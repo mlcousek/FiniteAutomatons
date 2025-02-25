@@ -24,7 +24,5 @@ jobs:
       run: dotnet restore FiniteAutomatons.sln
     - name: Build
       run: dotnet build FiniteAutomatons.sln --configuration Release --no-restore
-    - name: Test Unit Tests
-      run: dotnet test FiniteAutomatons.UnitTests/FiniteAutomatons.UnitTests.csproj --no-build --verbosity detailed
-    - name: Test Integration Tests
-      run: dotnet test FiniteAutomatons.IntegrationTests/FiniteAutomatons.IntegrationTests.csproj --no-build --verbosity detailed
+    - name: Test
+      run: dotnet test FiniteAutomatons.sln --no-build --verbosity normal
