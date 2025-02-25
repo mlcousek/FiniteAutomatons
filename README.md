@@ -25,7 +25,7 @@ This project is an interactive application for working with finite automata with
 
 
 ## Recommended Literature
-- [**Teoretická informatika – učební text** - Prof. RNDr Petr Jančar, CSc. (ISBN: 978-80-248-1487-2)] (chrome-extension://efaidnbmnnnibpcajpcglclefindmkaj/https://phoenix.inf.upol.cz/~jancarp/VAS/jancar-ti-vsb.pdf)
+- [**Teoretická informatika – učební text** - Prof. RNDr Petr Jančar, CSc. (ISBN: 978-80-248-1487-2)](https://phoenix.inf.upol.cz/~jancarp/VAS/jancar-ti-vsb.pdf)
 - [C# Documentation](https://learn.microsoft.com/en-us/dotnet/csharp/)
 
 ## Contribution
