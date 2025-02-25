@@ -1,0 +1,29 @@
+version: '3.4'
+
+networks:
+  finite_automatons_app:
+
+services:
+  finite_automatons_db:
+    container_name: finite_automatons_db
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    ports:
+     - 8002:1433
+    environment:
+     - ACCEPT_EULA=Y
+     - MSSQL_SA_PASSWORD=myStong_Password123#
+    networks:
+     - finite_automatons_app
+
+  finite_automatons:
+    container_name: finite_automatons
+    image: ${DOCKER_REGISTRY-}finiteautomatons
+    build:
+      context: .
+      dockerfile: FiniteAutomatons/Dockerfile
+    ports:
+     - 8001:8080
+    depends_on: 
+     - finite_automatons_db
+    networks:
+     - finite_automatons_app

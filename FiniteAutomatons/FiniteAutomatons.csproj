@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\FiniteAutomatons.Core\FiniteAutomatons.Core.csproj" />
+    <ProjectReference Include="..\FiniteAutomatons.Data\FiniteAutomatons.Data.csproj" />
     <ProjectReference Include="..\FiniteAutomatons.Services\FiniteAutomatons.Services.csproj" />
   </ItemGroup>
 
