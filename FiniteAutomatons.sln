@@ -17,16 +17,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{02EA681E
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FiniteAutomatons.Services", "FiniteAutomatons.Services\FiniteAutomatons.Services.csproj", "{EBA13B07-8BE2-45BF-A82C-EDB7D9DDF7F9}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Text", "Text", "{2D5B4B74-FA9C-4582-B070-13CC50A02B14}"
-	ProjectSection(SolutionItems) = preProject
-		test.txt = test.txt
-	EndProjectSection
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Text", "Text", "{E4C9C6A8-1FBA-44E7-B7F5-F020B94B1F36}"
-	ProjectSection(SolutionItems) = preProject
-		test.txt = test.txt
-	EndProjectSection
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -64,7 +54,6 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{DC788F69-9EDD-4973-8938-E64F3D78495C} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 		{3BE78C9C-876C-477F-88AF-ABCF2DE68AD9} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
-		{E4C9C6A8-1FBA-44E7-B7F5-F020B94B1F36} = {2D5B4B74-FA9C-4582-B070-13CC50A02B14}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {C78DA9A1-B086-47E7-83D5-805D55757E02}
