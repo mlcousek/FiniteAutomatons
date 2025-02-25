@@ -25,4 +25,4 @@ jobs:
     - name: Build
       run: dotnet build FiniteAutomatons.sln --configuration Release --no-restore
     - name: Test
-      run: dotnet test FiniteAutomatons.sln --no-build --verbosity normal
+      run: dotnet test ./FiniteAutomatons.UnitTests/FiniteAutomatons.UnitTests.csproj --no-build --verbosity normal
