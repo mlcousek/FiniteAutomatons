@@ -1,4 +1,4 @@
-namespace FiniteAutomatons.Models
+namespace FiniteAutomatons.Core.Models
 {
     public class ErrorViewModel
     {

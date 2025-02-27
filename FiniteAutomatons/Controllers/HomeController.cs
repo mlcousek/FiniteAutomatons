@@ -1,6 +1,6 @@
-using System.Diagnostics;
+using FiniteAutomatons.Core.Models;
 using Microsoft.AspNetCore.Mvc;
-using FiniteAutomatons.Models;
+using System.Diagnostics;
 
 namespace FiniteAutomatons.Controllers;
 

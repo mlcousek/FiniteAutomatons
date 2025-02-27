@@ -6,9 +6,6 @@ namespace FiniteAutomatons.IntegrationTests
     {
         private readonly MsSqlContainer msSqlContainer = new MsSqlBuilder()
             .WithImage("mcr.microsoft.com/mssql/server:2022-latest")
-            //  .WithPortBinding(1433, 1433) // Optional: Bind the container port to the host port
-            // .WithEnvironment("ACCEPT_EULA", "Y")
-            // .WithEnvironment("MSSQL_SA_PASSWORD", "YourStrong!Passw0rd;")
             .Build();
 
         private string? connectionString;
