@@ -1,9 +1,10 @@
 ﻿using FiniteAutomatons.Core.Models.DoMain;
+using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using Shouldly;
 
-namespace FiniteAutomatons.UnitTests.FiniteAutomatons.Core
+namespace FiniteAutomatons.UnitTests.FiniteAutomatons.Core.FiniteAutomataTests
 {
-    public class FiniteAutomataTests
+    public class DFATests
     {
         [Fact]
         public void Execute_ValidInput_ShouldReturnTrue()
@@ -20,7 +21,7 @@ namespace FiniteAutomatons.UnitTests.FiniteAutomatons.Core
                 new Transition { FromStateId = 1, ToStateId = 2, Symbol = 'a' }
             };
 
-            var automata = new FiniteAutomata();
+            var automata = new DFA();
             automata.States.AddRange(states);
             automata.Transitions.AddRange(transitions);
 
@@ -46,7 +47,7 @@ namespace FiniteAutomatons.UnitTests.FiniteAutomatons.Core
                 new Transition { FromStateId = 1, ToStateId = 2, Symbol = 'a' }
             };
 
-            var automata = new FiniteAutomata();
+            var automata = new DFA();
             automata.States.AddRange(states);
             automata.Transitions.AddRange(transitions);
 
@@ -72,7 +73,7 @@ namespace FiniteAutomatons.UnitTests.FiniteAutomatons.Core
                 new Transition { FromStateId = 1, ToStateId = 2, Symbol = 'a' }
             };
 
-            var automata = new FiniteAutomata();
+            var automata = new DFA();
             automata.States.AddRange(states);
             automata.Transitions.AddRange(transitions);
 
@@ -95,7 +96,7 @@ namespace FiniteAutomatons.UnitTests.FiniteAutomatons.Core
                 new Transition { FromStateId = 1, ToStateId = 2, Symbol = 'a' }
             };
 
-            var automata = new FiniteAutomata();
+            var automata = new DFA();
             automata.States.AddRange(states);
             automata.Transitions.AddRange(transitions);
 

@@ -1,18 +1,16 @@
-﻿namespace FiniteAutomatons.Core.Models.DoMain
+﻿using FiniteAutomatons.Core.Interfaces;
+
+namespace FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons
 {
-    public class FiniteAutomata
+    public class DFA : IAutomaton
     {
         public List<State> States { get; } = new();
         public List<Transition> Transitions { get; } = new();
 
         public int? StartStateId => States.FirstOrDefault(s => s.IsStart)?.Id;
 
-        /// <summary>
-        /// Executes the automaton on a given input.
-        /// </summary>
         public bool Execute(string input)
         {
-            // For a DFA you only have one current state at a time.
             var currentStateId = StartStateId;
             if (currentStateId == null)
             {
@@ -31,7 +29,6 @@
                 currentStateId = transition.ToStateId;
             }
 
-            // Check if the final state is an accepting state.
             return States.Any(s => s.Id == currentStateId && s.IsAccepting);
         }
     }

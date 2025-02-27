@@ -1,6 +1,8 @@
+using FiniteAutomatons.Core.Interfaces;
+using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
+using FiniteAutomatons.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using FiniteAutomatons.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +20,14 @@ builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
     .AddEntityFrameworkStores<ApplicationDbContext>();
 builder.Services.AddControllersWithViews();
+
+// Register automaton types
+builder.Services.AddTransient<DFA>();
+builder.Services.AddTransient<NFA>();
+builder.Services.AddTransient<EpsilonNFA>();
+
+// Register IAutomaton with a specific implementation
+builder.Services.AddTransient<IAutomaton, DFA>(); // Change to NFA or EpsilonNFA as needed
 
 var app = builder.Build();
 
