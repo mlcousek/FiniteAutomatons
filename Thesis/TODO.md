@@ -1,0 +1,3 @@
+- [ ] Rewrite all project to obsidian
+- [ ] Understand and go through all the code
+- [ ] Continue coding

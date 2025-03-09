@@ -31,8 +31,7 @@
               "title": "Finite Automata Simulator Project"
             }
           }
-        ],
-        "currentTab": 1
+        ]
       }
     ],
     "direction": "vertical"
@@ -176,10 +175,11 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "f1757c47fd3932af",
+  "active": "a87de0b9a58e16df",
   "lastOpenFiles": [
-    "Classes.md",
     "Finite Automata Simulator Project.md",
+    "TODO.md",
+    "Classes.md",
     "Welcome.md"
   ]
 }
