@@ -23,12 +23,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Thesis menu.md",
+                "file": "Finite Automata Simulator Project.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Thesis menu"
+              "title": "Finite Automata Simulator Project"
             }
           }
         ],
@@ -178,8 +178,8 @@
   },
   "active": "f1757c47fd3932af",
   "lastOpenFiles": [
-    "Thesis menu.md",
-    "Welcome.md",
-    "Classes.md"
+    "Classes.md",
+    "Finite Automata Simulator Project.md",
+    "Welcome.md"
   ]
 }

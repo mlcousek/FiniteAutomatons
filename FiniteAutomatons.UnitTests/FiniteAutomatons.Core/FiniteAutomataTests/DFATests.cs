@@ -12,13 +12,13 @@ namespace FiniteAutomatons.UnitTests.FiniteAutomatons.Core.FiniteAutomataTests
             // Arrange
             var states = new List<State>
             {
-                new State { Id = 1, IsStart = true, IsAccepting = false },
-                new State { Id = 2, IsStart = false, IsAccepting = true }
+                new() { Id = 1, IsStart = true, IsAccepting = false },
+                new() { Id = 2, IsStart = false, IsAccepting = true }
             };
 
             var transitions = new List<Transition>
             {
-                new Transition { FromStateId = 1, ToStateId = 2, Symbol = 'a' }
+                new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' }
             };
 
             var automata = new DFA();
@@ -38,13 +38,13 @@ namespace FiniteAutomatons.UnitTests.FiniteAutomatons.Core.FiniteAutomataTests
             // Arrange
             var states = new List<State>
             {
-                new State { Id = 1, IsStart = true, IsAccepting = false },
-                new State { Id = 2, IsStart = false, IsAccepting = true }
+                new() { Id = 1, IsStart = true, IsAccepting = false },
+                new() { Id = 2, IsStart = false, IsAccepting = true }
             };
 
             var transitions = new List<Transition>
             {
-                new Transition { FromStateId = 1, ToStateId = 2, Symbol = 'a' }
+                new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' }
             };
 
             var automata = new DFA();
@@ -64,13 +64,13 @@ namespace FiniteAutomatons.UnitTests.FiniteAutomatons.Core.FiniteAutomataTests
             // Arrange
             var states = new List<State>
             {
-                new State { Id = 1, IsStart = false, IsAccepting = false },
-                new State { Id = 2, IsStart = false, IsAccepting = true }
+                new() { Id = 1, IsStart = false, IsAccepting = false },
+                new() { Id = 2, IsStart = false, IsAccepting = true }
             };
 
             var transitions = new List<Transition>
             {
-                new Transition { FromStateId = 1, ToStateId = 2, Symbol = 'a' }
+                new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' }
             };
 
             var automata = new DFA();
@@ -87,13 +87,13 @@ namespace FiniteAutomatons.UnitTests.FiniteAutomatons.Core.FiniteAutomataTests
             // Arrange
             var states = new List<State>
             {
-                new State { Id = 1, IsStart = true, IsAccepting = false },
-                new State { Id = 2, IsStart = false, IsAccepting = true }
+                new() { Id = 1, IsStart = true, IsAccepting = false },
+                new() { Id = 2, IsStart = false, IsAccepting = true }
             };
 
             var transitions = new List<Transition>
             {
-                new Transition { FromStateId = 1, ToStateId = 2, Symbol = 'a' }
+                new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' }
             };
 
             var automata = new DFA();

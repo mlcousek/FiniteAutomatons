@@ -12,8 +12,7 @@ public class ApplicationDbContext : IdentityDbContext
     {
         try
         {
-            var databaseCreator = Database.GetService<IDatabaseCreator>() as RelationalDatabaseCreator;
-            if (databaseCreator != null)
+            if (Database.GetService<IDatabaseCreator>() is RelationalDatabaseCreator databaseCreator)
             {
                 if (!databaseCreator.CanConnect()) databaseCreator.Create();
                 if (!databaseCreator.HasTables()) databaseCreator.CreateTables();
