@@ -1,6 +1,4 @@
-﻿using FiniteAutomatons.Core.Interfaces;
-
-namespace FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
+﻿namespace FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons; // TO EDIIIIT
 
 public class NFA : Automaton
 {

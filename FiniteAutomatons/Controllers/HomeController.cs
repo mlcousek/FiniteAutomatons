@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models;
+using FiniteAutomatons.Core.Models.ViewModel;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 

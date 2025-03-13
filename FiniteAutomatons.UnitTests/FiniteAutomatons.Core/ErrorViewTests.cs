@@ -1,4 +1,4 @@
-﻿using FiniteAutomatons.Core.Models;
+﻿using FiniteAutomatons.Core.Models.ViewModel;
 using Shouldly;
 
 namespace FiniteAutomatons.UnitTests.FiniteAutomatons.Core;

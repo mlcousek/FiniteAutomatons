@@ -1,8 +1,6 @@
-﻿using FiniteAutomatons.Core.Interfaces;
+﻿namespace FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 
-namespace FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
-
-public class EpsilonNFA : Automaton
+public class EpsilonNFA : Automaton //TO EDIIIIIIIT
 {
     private HashSet<int> EpsilonClosure(HashSet<int> states)
     {
