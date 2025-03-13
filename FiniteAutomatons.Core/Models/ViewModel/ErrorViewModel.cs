@@ -1,9 +1,8 @@
-namespace FiniteAutomatons.Core.Models
-{
-    public class ErrorViewModel
-    {
-        public string? RequestId { get; set; }
+namespace FiniteAutomatons.Core.Models.ViewModel;
 
-        public bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
-    }
+public class ErrorViewModel
+{
+    public string? RequestId { get; set; }
+
+    public bool ShowRequestId => !string.IsNullOrEmpty(RequestId);
 }

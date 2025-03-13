@@ -1,7 +1,6 @@
-﻿namespace FiniteAutomatons.Services
-{
-    public class Class1
-    {
+﻿namespace FiniteAutomatons.Services;
 
-    }
+public class Class1
+{
+
 }

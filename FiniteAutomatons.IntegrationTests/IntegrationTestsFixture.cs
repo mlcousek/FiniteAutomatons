@@ -1,57 +1,55 @@
 ﻿using Testcontainers.MsSql;
 
-namespace FiniteAutomatons.IntegrationTests
+namespace FiniteAutomatons.IntegrationTests;
+
+public class IntegrationTestsFixture : IAsyncLifetime
 {
-    public class IntegrationTestsFixture : IAsyncLifetime
+    private readonly MsSqlContainer msSqlContainer = new MsSqlBuilder()
+        .WithImage("mcr.microsoft.com/mssql/server:2022-latest")
+        .Build();
+
+    private string? connectionString;
+    private AutomatonsWebApplicationFactory<Program>? applicationFactory;
+
+    public async Task InitializeAsync()
     {
-        private readonly MsSqlContainer msSqlContainer = new MsSqlBuilder()
-            .WithImage("mcr.microsoft.com/mssql/server:2022-latest")
-            .Build();
+        var startDb = StartDb();
+        await Task.WhenAll(startDb);
 
-        private string? connectionString;
-        private AutomatonsWebApplicationFactory<Program>? applicationFactory;
+        connectionString = await startDb;
 
-        public async Task InitializeAsync()
+        SetEnviromentVariables();
+        applicationFactory = CreateWebApplicationFactory();
+
+        async Task<string> StartDb()
         {
-            var startDb = StartDb();
-            await Task.WhenAll(startDb);
+            await msSqlContainer.StartAsync();
 
-            connectionString = await startDb;
-
-            SetEnviromentVariables();
-            applicationFactory = CreateWebApplicationFactory();
-
-            async Task<string> StartDb()
-            {
-                await msSqlContainer.StartAsync();
-
-                return msSqlContainer.GetConnectionString();
-            }
+            return msSqlContainer.GetConnectionString();
         }
-        public async Task DisposeAsync()
+    }
+    public async Task DisposeAsync()
+    {
+        var disposeDb = DisposeDb();
+
+        await Task.WhenAll(disposeDb);
+
+        async Task DisposeDb()
         {
-            var disposeDb = DisposeDb();
-
-            await Task.WhenAll(disposeDb);
-
-            async Task DisposeDb()
-            {
-                await msSqlContainer.DisposeAsync();
-            }
+            await msSqlContainer.DisposeAsync();
         }
+    }
 
-        public AutomatonsWebApplicationFactory<Program> AutomatonsWebApplicationFactory => applicationFactory!;
+    public AutomatonsWebApplicationFactory<Program> AutomatonsWebApplicationFactory => applicationFactory!;
 
-        private AutomatonsWebApplicationFactory<Program> CreateWebApplicationFactory()
-        {
-            return new AutomatonsWebApplicationFactory<Program>(connectionString!);
-        }
+    private AutomatonsWebApplicationFactory<Program> CreateWebApplicationFactory()
+    {
+        return new AutomatonsWebApplicationFactory<Program>(connectionString!);
+    }
 
-        private void SetEnviromentVariables()
-        {
-            Environment.SetEnvironmentVariable("ConnectionString__DbConnection", connectionString);
-        }
-
+    private void SetEnviromentVariables()
+    {
+        Environment.SetEnvironmentVariable("ConnectionString__DbConnection", connectionString);
     }
 
 }

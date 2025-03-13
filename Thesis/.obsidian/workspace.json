@@ -8,16 +8,6 @@
         "type": "tabs",
         "children": [
           {
-            "id": "a87de0b9a58e16df",
-            "type": "leaf",
-            "state": {
-              "type": "graph",
-              "state": {},
-              "icon": "lucide-git-fork",
-              "title": "Graph view"
-            }
-          },
-          {
             "id": "f1757c47fd3932af",
             "type": "leaf",
             "state": {
@@ -175,8 +165,9 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "a87de0b9a58e16df",
+  "active": "f1757c47fd3932af",
   "lastOpenFiles": [
+    "FiniteAutomatons.Core.md",
     "Finite Automata Simulator Project.md",
     "TODO.md",
     "Classes.md",
