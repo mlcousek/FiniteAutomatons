@@ -1,3 +1,4 @@
+using FiniteAutomatons.Core.Models.Database;
 using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Data;
 using FiniteAutomatons.Services;
@@ -6,10 +7,18 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+if (File.Exists(Path.Combine(builder.Environment.ContentRootPath, "dev.json")))
+{
+    builder.Configuration.AddJsonFile("dev.json", optional: true, reloadOnChange: true);
+}
+
+var dbSettings = new DatabaseSettings();
+builder.Configuration.GetSection("DatabaseSettings").Bind(dbSettings);
+var connectionString = dbSettings.GetConnectionString();
+
 //var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
-var connectionString = "Server=finite_automatons_db,1433;Database=finite_automatons_db;User Id=sa;Password=myStong_Password123#;Trust Server Certificate=True";
-//var connectionString = "Data Source=finite_automatons_db;Initial Catalog=;Password=myStong_Password123#;Trust Server Certificate=True";
+//var connectionString = "Server=finite_automatons_db,1433;Database=finite_automatons_db;User Id=sa;Password=myStong_Password123#;Trust Server Certificate=True";
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));

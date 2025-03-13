@@ -1,0 +1,9 @@
+{
+  "DatabaseSettings": {
+    "Server": "finite_automatons_db,1433",
+    "Database": "finite_automatons_db",
+    "UserId": "sa",
+    "Password": "myStong_Password123#",
+    "TrustServerCertificate": true
+  }
+}

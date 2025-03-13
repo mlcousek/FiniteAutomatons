@@ -8,22 +8,29 @@ public class AutomatonTests
     [Fact]
     public void AddState_ValidState_ShouldAddState()
     {
+        // Arrange
         var state = new State { Id = 1, IsStart = true };
         var automaton = new TestAutomatonBuilder()
             .WithState(state)
             .Build();
 
-        automaton.States.ShouldContain(state);
+        // Act
+        var result = automaton.States;
+
+        // Assert
+        result.ShouldContain(state);
     }
 
     [Fact]
     public void AddState_MultipleStartStates_ShouldThrowException()
     {
+        // Arrange
         var state1 = new State { Id = 1, IsStart = true };
         var state2 = new State { Id = 2, IsStart = true };
         var builder = new TestAutomatonBuilder()
             .WithState(state1);
 
+        // Act & Assert
         Should.Throw<InvalidOperationException>(() => builder.WithState(state2));
     }
 
@@ -31,14 +38,18 @@ public class AutomatonTests
     [Fact]
     public void AddState_NullState_ShouldThrowArgumentNullException()
     {
+        // Arrange
         var automaton = new TestAutomatonBuilder().Build();
 
+        // Act & Assert
         Should.Throw<ArgumentNullException>(() => automaton.AddState(null));
     }
 #nullable enable
+
     [Fact]
     public void SetStartState_ValidStateId_ShouldSetStartState()
     {
+        // Arrange
         var state1 = new State { Id = 1, IsStart = true };
         var state2 = new State { Id = 2, IsStart = false };
         var automaton = new TestAutomatonBuilder()
@@ -46,8 +57,10 @@ public class AutomatonTests
             .WithState(state2)
             .Build();
 
+        // Act
         automaton.SetStartState(2);
 
+        // Assert
         state1.IsStart.ShouldBeFalse();
         state2.IsStart.ShouldBeTrue();
     }
@@ -55,17 +68,20 @@ public class AutomatonTests
     [Fact]
     public void SetStartState_InvalidStateId_ShouldThrowArgumentException()
     {
+        // Arrange
         var state1 = new State { Id = 1, IsStart = true };
         var automaton = new TestAutomatonBuilder()
             .WithState(state1)
             .Build();
 
+        // Act & Assert
         Should.Throw<ArgumentException>(() => automaton.SetStartState(2));
     }
 
     [Fact]
     public void AddTransition_ValidTransition_ShouldAddTransition()
     {
+        // Arrange
         var state1 = new State { Id = 1, IsStart = true };
         var state2 = new State { Id = 2, IsStart = false };
         var transition = new Transition { FromStateId = 1, ToStateId = 2, Symbol = 'a' };
@@ -75,15 +91,21 @@ public class AutomatonTests
             .WithTransition(transition)
             .Build();
 
-        automaton.Transitions.ShouldContain(transition);
+        // Act
+        var result = automaton.Transitions;
+
+        // Assert
+        result.ShouldContain(transition);
     }
 
 #nullable disable
     [Fact]
     public void AddTransition_NullTransition_ShouldThrowArgumentNullException()
     {
+        // Arrange
         var automaton = new TestAutomatonBuilder().Build();
 
+        // Act & Assert
         Should.Throw<ArgumentNullException>(() => automaton.AddTransition(null));
     }
 #nullable enable
@@ -91,6 +113,7 @@ public class AutomatonTests
     [Fact]
     public void AddTransition_InvalidFromStateId_ShouldThrowArgumentException()
     {
+        // Arrange
         var state1 = new State { Id = 1, IsStart = true };
         var state2 = new State { Id = 2, IsStart = false };
         var automaton = new TestAutomatonBuilder()
@@ -100,12 +123,14 @@ public class AutomatonTests
 
         var transition = new Transition { FromStateId = 3, ToStateId = 2, Symbol = 'a' };
 
+        // Act & Assert
         Should.Throw<ArgumentException>(() => automaton.AddTransition(transition));
     }
 
     [Fact]
     public void AddTransition_InvalidToStateId_ShouldThrowArgumentException()
     {
+        // Arrange
         var state1 = new State { Id = 1, IsStart = true };
         var state2 = new State { Id = 2, IsStart = false };
         var automaton = new TestAutomatonBuilder()
@@ -115,12 +140,14 @@ public class AutomatonTests
 
         var transition = new Transition { FromStateId = 1, ToStateId = 3, Symbol = 'a' };
 
+        // Act & Assert
         Should.Throw<ArgumentException>(() => automaton.AddTransition(transition));
     }
 
     [Fact]
     public void FindTransitionsFromState_ValidStateId_ShouldReturnTransitions()
     {
+        // Arrange
         var state1 = new State { Id = 1, IsStart = true };
         var state2 = new State { Id = 2, IsStart = false };
         var transition = new Transition { FromStateId = 1, ToStateId = 2, Symbol = 'a' };
@@ -130,14 +157,17 @@ public class AutomatonTests
             .WithTransition(transition)
             .Build();
 
-        var transitions = automaton.FindTransitionsFromState(1);
+        // Act
+        var result = automaton.FindTransitionsFromState(1);
 
-        transitions.ShouldContain(transition);
+        // Assert
+        result.ShouldContain(transition);
     }
 
     [Fact]
     public void FindTransitionsForSymbol_ValidSymbol_ShouldReturnTransitions()
     {
+        // Arrange
         var state1 = new State { Id = 1, IsStart = true };
         var state2 = new State { Id = 2, IsStart = false };
         var transition = new Transition { FromStateId = 1, ToStateId = 2, Symbol = 'a' };
@@ -147,14 +177,17 @@ public class AutomatonTests
             .WithTransition(transition)
             .Build();
 
-        var transitions = automaton.FindTransitionsForSymbol('a');
+        // Act
+        var result = automaton.FindTransitionsForSymbol('a');
 
-        transitions.ShouldContain(transition);
+        // Assert
+        result.ShouldContain(transition);
     }
 
     [Fact]
     public void RemoveTransition_ValidTransition_ShouldRemoveTransition()
     {
+        // Arrange
         var state1 = new State { Id = 1, IsStart = true };
         var state2 = new State { Id = 2, IsStart = false };
         var transition = new Transition { FromStateId = 1, ToStateId = 2, Symbol = 'a' };
@@ -164,22 +197,27 @@ public class AutomatonTests
             .WithTransition(transition)
             .Build();
 
+        // Act
         automaton.RemoveTransition(transition);
 
+        // Assert
         automaton.Transitions.ShouldNotContain(transition);
     }
 
     [Fact]
     public void ValidateStartState_NoStartState_ShouldThrowException()
     {
+        // Arrange
         var automaton = new TestAutomatonBuilder().Build();
 
+        // Act & Assert
         Should.Throw<InvalidOperationException>(() => automaton.ValidateStartState());
     }
 
     [Fact]
     public void ValidateStartState_MultipleStartStates_ShouldThrowException()
     {
+        // Arrange
         var state1 = new State { Id = 1, IsStart = true };
         var state2 = new State { Id = 2, IsStart = true };
         var automaton = new TestAutomatonBuilder()
@@ -187,6 +225,7 @@ public class AutomatonTests
             .WithRawState(state2)
             .Build();
 
+        // Act & Assert
         Should.Throw<InvalidOperationException>(() => automaton.ValidateStartState());
     }
 }
@@ -205,6 +244,7 @@ public class TestAutomatonBuilder
         automaton.AddState(state);
         return this;
     }
+
     public TestAutomatonBuilder WithRawState(State state)
     {
         automaton.States.Add(state);
@@ -235,3 +275,4 @@ public class TestAutomatonBuilder
         }
     }
 }
+

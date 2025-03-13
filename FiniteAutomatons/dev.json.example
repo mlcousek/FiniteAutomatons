@@ -1,0 +1,9 @@
+{
+  "DatabaseSettings": {
+    "Server": "your_server_name",
+    "Database": "your_database_name",
+    "UserId": "your_user_id",
+    "Password": "your_password",
+    "TrustServerCertificate": true
+  }
+}

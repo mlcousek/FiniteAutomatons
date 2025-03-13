@@ -361,3 +361,7 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Development settings with sensitive information
+#HERE UNCOMMENT TO HIDE CONNECTION TO DOCKER DB
+# dev.json 
