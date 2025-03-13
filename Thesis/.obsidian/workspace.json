@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Finite Automata Simulator Project.md",
+                "file": "Finite Automata.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Finite Automata Simulator Project"
+              "title": "Finite Automata"
             }
           }
         ]
@@ -167,8 +167,10 @@
   },
   "active": "f1757c47fd3932af",
   "lastOpenFiles": [
-    "FiniteAutomatons.Core.md",
+    "Pasted image 20250313083846.png",
     "Finite Automata Simulator Project.md",
+    "Finite Automata.md",
+    "FiniteAutomatons.Core.md",
     "TODO.md",
     "Classes.md",
     "Welcome.md"

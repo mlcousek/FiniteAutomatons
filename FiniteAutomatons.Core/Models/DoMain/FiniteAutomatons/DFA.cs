@@ -1,16 +1,10 @@
-﻿using FiniteAutomatons.Core.Interfaces;
-
-namespace FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
+﻿namespace FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 
 public class DFA : Automaton
 {
     public override bool Execute(string input)
     {
-        var currentStateId = StartStateId;
-        if (currentStateId == null)
-        {
-            throw new InvalidOperationException("No start state defined.");
-        }
+        var currentStateId = ValidateStartState();
 
         foreach (var symbol in input)
         {

@@ -1,12 +1,10 @@
-using FiniteAutomatons.Core.Interfaces;
 using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Data;
+using FiniteAutomatons.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
-
-// Add services to the container.
 
 //var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
@@ -21,13 +19,12 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.Requ
     .AddEntityFrameworkStores<ApplicationDbContext>();
 builder.Services.AddControllersWithViews();
 
+builder.Services.AddScoped<IExecuteService, ExecuteService>();
+
 // Register automaton types
 builder.Services.AddTransient<DFA>();
 builder.Services.AddTransient<NFA>();
 builder.Services.AddTransient<EpsilonNFA>();
-
-// Register IAutomaton with a specific implementation
-builder.Services.AddTransient<IAutomaton, DFA>(); // Change to NFA or EpsilonNFA as needed
 
 var app = builder.Build();
 

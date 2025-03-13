@@ -1,4 +1,4 @@
-This Obsidian document provides an overview of the Finite Automata Simulator project, including its structure, components, and relationships.
+This Obsidian document provides an overview of the [[Finite Automata]] Simulator project, including its structure, components, and relationships.
 
 This is MVC (Model - View - Controller) project and i separate this parts to own projects. Models are in [[FiniteAutomatons.Core]] project. Views are in [[FiniteAutomatons]] web app project and Controllers are also in [[FiniteAutomatons]] project. 
 
