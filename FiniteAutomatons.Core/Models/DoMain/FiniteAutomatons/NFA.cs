@@ -1,4 +1,4 @@
-﻿namespace FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons; // TO EDIIIIT
+﻿namespace FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 
 public class NFA : Automaton
 {
