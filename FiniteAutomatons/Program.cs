@@ -1,7 +1,7 @@
 using FiniteAutomatons.Core.Models.Database;
 using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Data;
-using FiniteAutomatons.Services;
+using FiniteAutomatons.Services.AutomatonsSharedServices;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 

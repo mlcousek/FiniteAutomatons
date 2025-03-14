@@ -6,4 +6,7 @@ Main functionality of this project is:
 [[Areas]]
 [[Controllers]]
 [[Views]]
+[[appsettings.json and dev.json]]
+[[Dockerfile]]
 [[Program.cs]]
+etc.

@@ -1,0 +1,1 @@
+Here is info about dockerize.

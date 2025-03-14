@@ -1,0 +1,1 @@
+Simple controller without more logic to show home screen. 

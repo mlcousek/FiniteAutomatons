@@ -1,0 +1,1 @@
+Here are some information about logging and about how to get connection strings to local and to docker database.

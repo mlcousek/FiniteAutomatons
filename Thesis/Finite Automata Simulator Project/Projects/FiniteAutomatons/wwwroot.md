@@ -1,0 +1,1 @@
+Here are files that are seen by [[User]] like css, js etc.

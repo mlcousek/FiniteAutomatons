@@ -1,3 +1,4 @@
 - [ ] Rewrite all project to obsidian
 - [ ] Understand and go through all the code
 - [ ] Continue coding
+- [ ] Set up right migrations and update database etc !! creating in [[ApplicationDbContext]] database creator
