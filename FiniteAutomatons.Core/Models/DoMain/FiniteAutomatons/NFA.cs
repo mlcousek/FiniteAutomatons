@@ -4,7 +4,7 @@ public class NFA : Automaton
 {
     public override bool Execute(string input)
     {
-        var currentStates = new HashSet<int> { StartStateId ?? throw new InvalidOperationException("No start state defined.") }; //edit with function
+        var currentStates = GetInitialStates();
 
         foreach (var symbol in input)
         {
@@ -21,9 +21,19 @@ public class NFA : Automaton
                 }
             }
 
-            currentStates = nextStates;
+            currentStates = ProcessNextStates(nextStates);
         }
 
         return currentStates.Any(state => States.Any(s => s.Id == state && s.IsAccepting));
+    }
+
+    protected virtual HashSet<int> GetInitialStates()
+    {
+        return [StartStateId ?? throw new InvalidOperationException("No start state defined.")];
+    }
+
+    protected virtual HashSet<int> ProcessNextStates(HashSet<int> nextStates)
+    {
+        return nextStates;
     }
 }

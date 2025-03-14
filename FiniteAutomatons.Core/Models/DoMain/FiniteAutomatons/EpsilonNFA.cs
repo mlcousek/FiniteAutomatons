@@ -1,6 +1,6 @@
 ﻿namespace FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 
-public class EpsilonNFA : Automaton //TO EDIIIIIIIT
+public class EpsilonNFA : NFA
 {
     private HashSet<int> EpsilonClosure(HashSet<int> states)
     {
@@ -24,28 +24,20 @@ public class EpsilonNFA : Automaton //TO EDIIIIIIIT
 
         return closure;
     }
-    public override bool Execute(string input)
+
+    protected override HashSet<int> GetInitialStates()
     {
-        var currentStates = EpsilonClosure([StartStateId ?? throw new InvalidOperationException("No start state defined.")]);
+        return EpsilonClosure([StartStateId ?? throw new InvalidOperationException("No start state defined.")]);
+    }
 
-        foreach (var symbol in input)
-        {
-            var nextStates = new HashSet<int>();
+    protected override HashSet<int> ProcessNextStates(HashSet<int> nextStates)
+    {
+        return EpsilonClosure(nextStates);
+    }
 
-            foreach (var state in currentStates)
-            {
-                var transitions = Transitions
-                    .Where(t => t.FromStateId == state && t.Symbol == symbol);
-
-                foreach (var transition in transitions)
-                {
-                    nextStates.Add(transition.ToStateId);
-                }
-            }
-
-            currentStates = EpsilonClosure(nextStates);
-        }
-
-        return currentStates.Any(state => States.Any(s => s.Id == state && s.IsAccepting));
+    // Helper method to add epsilon transitions
+    public void AddEpsilonTransition(int fromStateId, int toStateId)
+    {
+        AddTransition(fromStateId, toStateId, '\0');
     }
 }
