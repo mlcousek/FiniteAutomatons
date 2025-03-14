@@ -1,0 +1,173 @@
+{
+  "main": {
+    "id": "d9193cd5d9566370",
+    "type": "split",
+    "children": [
+      {
+        "id": "00aefdf0a1bddcd9",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "3301271b78cd6b72",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "Thesis/Finite Automata Simulator Project/Projects/FiniteAutomatons/appsettings.json and dev.json.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "appsettings.json and dev.json"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "9c798446994be931",
+    "type": "split",
+    "children": [
+      {
+        "id": "b15850fccedd48a9",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "05bd6566d93767ad",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "4f38004b03219d0e",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "d84d7a730794a3ec",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "ccaa783ef73e05c6",
+    "type": "split",
+    "children": [
+      {
+        "id": "f9aa1ac1ce81a184",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "3b49c3703e655bab",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "Thesis/Finite Automata Simulator Project/Projects/FiniteAutomatons/appsettings.json and dev.json.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks for appsettings.json and dev.json"
+            }
+          },
+          {
+            "id": "4fc996c7a9136a74",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "Thesis/Finite Automata Simulator Project/Projects/FiniteAutomatons/appsettings.json and dev.json.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links from appsettings.json and dev.json"
+            }
+          },
+          {
+            "id": "ce4a6b0a50b44168",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "95cd32afb58a6473",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "Thesis/Finite Automata Simulator Project/Projects/FiniteAutomatons/appsettings.json and dev.json.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline of appsettings.json and dev.json"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false
+    }
+  },
+  "active": "3301271b78cd6b72",
+  "lastOpenFiles": []
+}
