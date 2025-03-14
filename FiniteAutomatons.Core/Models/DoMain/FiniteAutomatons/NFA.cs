@@ -4,7 +4,7 @@ public class NFA : Automaton
 {
     public override bool Execute(string input)
     {
-        var currentStates = new HashSet<int> { StartStateId ?? throw new InvalidOperationException("No start state defined.") };
+        var currentStates = new HashSet<int> { StartStateId ?? throw new InvalidOperationException("No start state defined.") }; //edit with function
 
         foreach (var symbol in input)
         {

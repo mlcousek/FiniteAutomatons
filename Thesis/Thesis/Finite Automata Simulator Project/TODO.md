@@ -1,4 +1,3 @@
-- [ ] Rewrite all project to obsidian
-- [ ] Understand and go through all the code
-- [ ] Continue coding
+- [ ] Edit epsilonNFAs - just an idea maybe it could inherit from NFA - maybe epsilon DFA and look at it
 - [ ] Set up right migrations and update database etc !! creating in [[ApplicationDbContext]] database creator
+- [ ] Study the materials !!!

@@ -1,1 +1,1 @@
-Here are Shared Views and viesws for [[Controllers]] it take care of visualization of application.
+Here are Shared Views and views for [[Controllers]] it take care of visualization of application.

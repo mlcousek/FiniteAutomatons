@@ -26,7 +26,7 @@ public class EpsilonNFA : Automaton //TO EDIIIIIIIT
     }
     public override bool Execute(string input)
     {
-        var currentStates = EpsilonClosure(new HashSet<int> { StartStateId ?? throw new InvalidOperationException("No start state defined.") });
+        var currentStates = EpsilonClosure([StartStateId ?? throw new InvalidOperationException("No start state defined.")]);
 
         foreach (var symbol in input)
         {
