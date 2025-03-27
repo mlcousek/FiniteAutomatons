@@ -1,0 +1,16 @@
+\babel@toc {czech}{}\relax 
+\contentsline {section}{\numberline {1}Úvod}{7}{section.1}%
+\contentsline {section}{\numberline {2}Teoretický základ}{7}{section.2}%
+\contentsline {section}{\numberline {3}Návrh systému}{7}{section.3}%
+\contentsline {section}{\numberline {4}Implementace}{7}{section.4}%
+\contentsline {section}{\numberline {5}Testování a experimenty}{7}{section.5}%
+\contentsline {section}{Z\'av\v er}{8}{section*.3}%
+\babel@toc {czech}{}\relax 
+\babel@toc {czech}{}\relax 
+\contentsline {section}{Conclusions}{9}{section*.5}%
+\babel@toc {english}{}\relax 
+\babel@toc {czech}{}\relax 
+\contentsline {section}{\numberline {A}První příloha}{10}{appendix.A}%
+\contentsline {section}{\numberline {B}Druhá příloha}{10}{appendix.B}%
+\contentsline {section}{\numberline {C}Obsah elektronických dat}{10}{appendix.C}%
+\contentsline {section}{Seznam zkratek}{12}{section*.7}%

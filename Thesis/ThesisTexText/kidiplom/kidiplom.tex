@@ -149,296 +149,40 @@
 
 %% -------------------------------------------------------------------
 
-\newcommand{\BibLaTeX}{\textsc{Bib}\LaTeX}
+\section{Úvod}
+- Motivace pro práci s konečnými automaty.
+- Přehled existujících řešení a jejich omezení.
+- Cíle a přínos diplomové práce.
+
+\section{Teoretický základ}
+- Definice konečných automatů.
+- Rozdíly mezi DKA a NKA.
+- Přechodová funkce a způsoby její reprezentace.
+- Minimalizace konečných automatů.
+- Konverze regulárních výrazů na automaty.
+
+\section{Návrh systému}
+- Požadavky na systém.
+- Uživatelské rozhraní a jeho funkce.
+- Grafická reprezentace automatů.
+- Struktura dat pro uchování automatů.
+
+\section{Implementace}
+- Použité technologie.
+- Realizace interaktivního editoru automatů.
+- Implementace krokového režimu.
+- Ukládání a načítání automatů.
+- Minimalizace automatů.
+- Generování automatů z regulárních výrazů.
+
+\section{Testování a experimenty}
+- Testovací scénáře.
+- Výsledky testování.
+- Srovnání s jinými existujícími nástroji.
 
-% \noindent\textcolor{red}{\LARGE Upozornění: Následující text
-%   dokumentace stylu, vyjma přílohy~\ref{sec:ObsahData}, je rozpracovaná
-%   a (značně) neúplná verze!!!}
 
-\section{Styly pro psaní bakalářských a diplomových prací}
-Toto jsou styly pro psaní bakalářských a diplomových prací přes typografický systém \LaTeX{}, tedy \textbf{kistyles}.
 
-\subsection{Požadavky a podprovaná prostředí}
-Sada balíku \textbf{kistyles} podporuje následující distribuce systému \LaTeX{}:
-\begin{itemize}
-\item \TeX{} Live.
-\end{itemize}
 
-Jsou podporovány všechny výstupní ovladače, tedy jak \textbf{dvi}, tak \textbf{pdf} i \textbf{ps}. Funkčnost zmiňovaných distribucí byla ověřena na několika operačních systémech, mezi které patří:
-\begin{enumerate}
-\item Windows $8.1$,
-\item Archlinux,
-\item Debian GNU/Linux.
-\end{enumerate}
-
-Důrazně se doporučuje používat aktuální verzi dané distribuce systému \LaTeX{}.
-
-%%%  Po přeložení programem CSLaTeX (třikrát) je potřeba použít
-%%%  program DVIPS a takto získaný PostScriptový soubor vytisknout
-%%%  na PostScriptové tiskárně nebo pomocí programu GhostScript.
-%%%
-%%%  Rovněž je možné použít program DVIPDFM a vytvořit z dokumentu
-%%%  soubor ve formátu PDF včetně hypertextových odkazů.
-
-\subsection{Přepínače}
-Styl kidiplom je z hlediska uživatele zastoupen ekvivalentně nazvanou třídou, kterou je třeba volat na záčátku dokumentu:
-\begin{kicode}{TeX}{}{Volání třídy \textbf{kidiplom}}
-\documentclass[
-  master,
-  program=ainfvs,
-  printversion,
-  biblatex,
-  language=english,
-  font=sans,
-  figures=false,
-  tables=false,
-  theorems,
-  sourcecodes,
-  joinlists,
-  glossaries,
-  index,
-  encoding=utf8,
-  bibencoding=utf8
-]{kidiplom}
-\end{kicode}
-
-Následuje přehled přepínačů, je vždy uvedeno jméno přepínač, včetně výchozí hodnoty. Přepínače uvádí tabulka \ref{tab:prepinace}.
-
-%\begin{table}
-\begin{center}
-\begin{longtable}{>{\bfseries}l >{\ttfamily}c L{8cm}}
-\caption{Seznam přepínačů}\label{tab:prepinace}\\
-  {\normalfont Přepínač} & {\normalfont Výchozí hodnota} & {\normalfont Popis} \\
-\hline
-master & false & Povolí nebo zakáže režim diplomové práce. Výchozí režim je tedy bakalářská práce. \\
-
-printversion & false & Je-li zapnuto, pak budou odkazy vysázeny optimalizovaně pro knižní sazbu. Tuto volbu je nutno použít pro tisk práce. \\
-
-biblatex & false & Zapne sazbu bibliografie přes balík \BibLaTeX{}. \\
-
-language & czech & Jazyk textu práce. Možné hodnoty jsou \textbf{czech},
-\textbf{english} a \textbf{slovak}. \\
-
-font & serif & Zapne či vypne podporu pěkného bezpatkového fontu. Možné hodnoty jsou:\newline
-\begin{description}\setlength{\itemsep}{-1ex}
-\item[serif] Patkové písmo (Computer Modern).
-\item[sans] Bezpatkové písmo (Iwona).
-\end{description} \\[-3ex]
-
-figures & true & Je-li zapnuto, pak v seznamech položek bude zahrnut seznam obrázků. \\
-
-tables & true & Je-li zapnuto, pak v seznamech položek bude zahrnut seznam tabulek. \\
-
-theorems & false & Je-li zapnuto, pak v seznamech bude zahrnut seznam teorémů. \\
-
-sourcecodes & false & Je-li zapnuto, pak v seznamech bude zahrnut seznam zdrojových kódů. \\
-
-%%% Argument `joinlists' způsobí zřetězení seznamů obrázků, tabulek,
-%%% vět a zdrojových kódů. Není-li použít, všechny seznamy jsou
-%%% uvedeny na samostatných stránkách.
-
-joinlists & true & Je-li zapnuto, pak seznamy obrázků, tabulek, vět a
-zdrojových kódů sázené za obsahem nebudou rozděleny na samostatné stránky. \\
-
-glossaries & false & Je-li zapnuto, pak na konci dokumentu bude vysázen seznam zkratek. \\
-
-index & false & Zapíná podporu sazby rejstříku. \\
-
-%%  'encoding=kódování' pro kódování tohoto a vložených zdrojových
-%%  textů v kódování jiném než výchozím utf8
-encoding & utf8 & Kódování souboru dokumentu, doporučuje se ponechat výchozí hodnotu. \\
-
-bibencoding & utf8 & Kódování souboru bibliografie. Tato volba má
-smysl pouze, pokud je použita bibliografie skrze balíček \BibLaTeX{}. \\
-
-program & \vtop{\hbox{\strut infpvs}\hbox{\strut ainfvs}} & Specifikuje studijní program/obor (specializaci):\newline
-\begin{description}
-\item[infoi] Informatika (Obecná informatika)\,--\,bakalářský i navazující magisterský,
-\item[infpvs] Informatika (Programování a vývoj software)\,--\,bakalářský,
-\item[itp] Informační technologie\,--\,bakalářský, prezenční forma,
-\item[itk] Informační technologie\,--\,bakalářský, kombinovaná forma,
-\item[infui] Informatika (Umělá inteligence)\,--\,navazující magisterský,
-\item[ainfvs] Aplikovaná informatika (Vývoj software)\,--\,navazující magisterský,
-\item[ainfpst] Aplikovaná informatika (Počítačové systémy a technologie)\,--\,navazující magisterský,
-\item[infv] Informatika pro vzdělávání\,--\,bakalářský,
-\item[uinf] Učitelství informatiky pro střední školy\,--\,navazující magisterský,
-\item[binf] Bioinformatika\,--\,bakalářský i navazující magisterský,
-\item[inf] Informatika (bez specializací)\,--\,bakalářský i navazující magisterský,
-\item[ainfp] Aplikovaná informatika (bez specializací)\,--\,bakalářský, prezenční forma,
-\item[ainfk] Aplikovaná informatika (bez specializací)\,--\,bakalářský, kombinovaná forma,
-\item[ainf] Aplikovaná informatika (bez specializací)\,--\,navazující magisterský.
-\end{description}
-\end{longtable}
-\end{center}
-%\end{table}
-
-\subsection{Geometrie stránky}
-Tento styl používá list velikosti $A4$. Pro sazbu prací je třeba použít jednostrannou sazbu. Levý okraj je rozšířen s ohledem na vazbu výsledné knižní podoby práce.
-
-\section{Sazba částí dokumentu}
-\subsection{Sazba úvodní strany či obsahu}
-Vysázení všech podstatných částí úvodu práce obstará makro \kiinlinecode{TeX}{!}{\\maketitle}. Pro správné vysázení všech částí a meta-informací je potřeba použí makra \kiinlinecode{TeX}{!}{\\title}, \mbox{\kiinlinecode{TeX}{!}{\\author}} a další. Jejich přehled lze najít ve zdrojovém souboru tohoto dokumentu. V případě použítí \textbf{pdf} výstupu se generuje i dodatečná hlavička souboru s meta-informacemi jako je autor dokumentu, název práce či dalšími.
-
-\subsection{Závěry}
-Závěr práce by se měl poskytnout jak v původním jazyce práce, tak v jazyce anglickém. Pro sazbu závěru jsou k dispozici příslušná makra. Berte na vědomí, že v anglickém závěru se aktivuje plně anglická sazba se všemi konvencemi. Tedy je třeba používat anglické uvozovky a další správné typografické prvky.
-
-\begin{kicode}{TeX}{}{Sazba závěrů}
-% Tiskne český závěr práce.
-\begin{kiconclusions}
-Závěr práce v \uv{českém} jazyce.
-\end{kiconclusions}
-
-% Tiskne anglický závěr práce.
-\begin{kiconclusions}[english]
-Thesis conclusions written in \uv{English}.
-\end{kiconclusions}
-\end{kicode}
-
-\subsection{Matematika}
-Pro sazbu matematiky je k dispozici sada standardních maker.
-$$\langle f \rangle, \lfloor g \rfloor,
-\lceil h \rceil, \ulcorner i \urcorner$$
-
-$$\left\{\frac{x^2}{y^3}\right\}$$
-
-$$
-A_{m,n} =
- \begin{pmatrix}
-  a_{1,1} & a_{1,2} & \cdots & a_{1,n} \\
-  a_{2,1} & a_{2,2} & \cdots & a_{2,n} \\
-  \vdots  & \vdots  & \ddots & \vdots  \\
-  a_{m,1} & a_{m,2} & \cdots & a_{m,n}
- \end{pmatrix}
-$$
-
-$$
-M = \begin{bmatrix}
-       \frac{5}{6} & \frac{1}{6} & 0           \\[0.3em]
-       \frac{5}{6} & 0           & \frac{1}{6} \\[0.3em]
-       0           & \frac{5}{6} & \frac{1}{6}
-     \end{bmatrix}
-$$
-
-\subsection{Sazba literatury}
-Pro sazbu literatury má uživatel dvě možnosti. Může použít služeb balíků \BibLaTeX{}, který je pro \textbf{kistyles} zapnutý, či lze použít manuální sazbu bibliografie.
-\subsubsection{Sazba bibliografie přes \BibLaTeX{}}
-Při použití tohoto balíku se data o použité literatuře ukládají do dedikovaného textového souboru, ukázku najdete i v tomto stylu pod jménem \kiinlinecode{text}{!}{bibliografie.bib}.
-
-Formát daného souboru je nad rámec této dokumentace a je na každém uživateli, aby si jej nastudoval. Bibliografie se tiskne makrem \kiinlinecode{TeX}{!}{\\printbibliography}. Taktéž v preambuli dokumentu je třeba definovat, který soubor data bibliografie obsahuje, tedy například \kiinlinecode{TeX}{!}{\\bibliography\{bibliografie.bib\}}.
-
-Dokument, který využívá \BibLaTeX{} je následně nutné přeložit jak pomocí překladače zvoleného ovladače, tak pomocí aplikace \kiinlinecode{text}{!}{biber}. Více informací poskytne soubor \kiinlinecode{text}{!}{Makefile} z distribuce tohoto stylu.
-
-Výhodou tohoto přístupu je, že bibliografie se vysází automaticky a (obvykle) není třeba manuální úprava formátování.
-
-\subsubsection{Manuální sazba bibliografie}
-Manuální sazba obnáší vysázení prostředí \kiinlinecode{text}{!}{thebibliography} ručně. To je nad rámec tohoto dokumentu. Ukázku tohoto přístupu lze samozřejmě nalézt ve zdrojovém souboru tohoto dokumentu nebo také \href{http://www.math.uiuc.edu/~hildebr/tex/bibliographies.html}{zde}.
-
-Pro aktivaci manuální sazby bibliografie je třeba volat třídu \kiinlinecode{text}{!}{kidiplom} s parametrem \kiinlinecode{text}{!}{biblatex=false}. Mějte, prosím, na paměti, že v tomto módu jsou makra \kiinlinecode{text}{!}{\\bibliography} a \kiinlinecode{text}{!}{\\printbibliography} nedostupná.
-
-\subsection{Drobná makra}
-Základní styl definuje hned několik maker pro usnadnění práce. Například makro \kiinlinecode{TeX}{!}{\\buno} vysází řetezec \uv{bez újmy na obecnosti}. Je k dispozici i verze s prvním velkým písmenem, \kiinlinecode{TeX}{!}{\\Buno}.
-
-Je rovněž možno přidávat položky do seznamu zkratek. K tomu slouží makro \mbox{\kiinlinecode{TeX}{!}{\\newacronym}}, které lze použít například jednoduše jako \kiinlinecode{TeX}{!}{\\newacronym\{UPOL\}\{UPOL\}\{\\kitextunivcz\}}. Na danou zkratku se pak lze odkazovat jednoduše, \mbox{\kiinlinecode{TeX}{!}{\\gls\{UPOL\}}}.
-
-Sazba uvozovek respektuje nastavení částí dokumentu, a proto se doporučuje používat makro \kiinlinecode{TeX}{!}{\\uv}. V anglické závěru práce toto platí taky, viz tato PDF ukázka.
-
-Styl podporuje sazbu odstavců v tabulkách, více obsahuje tabulka \ref{tab:odstavce}.
-
-\begin{table}
-\begin{center}
-\caption{Odstavce v tabulkách}\label{tab:odstavce}
-\begin{tabular}{L{4cm}|R{4cm}|L{4cm}}
-\lipsum[23] & \lipsum[22] & \lipsum[21]
-\end{tabular}
-\end{center}
-\end{table}
-
-K dispozici jsou také makra pro sazbu \csharp{} (\kiinlinecode{TeX}{!}{\\csharp}) či \cpp{} (\kiinlinecode{TeX}{!}{\\cpp}).
-
-%% v případě tvorby rejstříku přeložit vygenerovaný soubor .idx
-%% programem Makeindex a v případě tvorby seznamu zkratek spustit
-%% program Makeglossaries s parametrem jméno souboru zdrojového textu
-%% bez přípony a následně opět (dvakrát) přeložit zdrojový text
-%% programem pdfLaTeX.
-
-\subsection{Sazba rejstříku}
-Sazba rejstříku sestává z několika kroků:
-
-\begin{enumerate}
-\item Je třeba přes volbu \kiinlinecode{TeX}{!}{index=true} rejstříkování povolit.
-\item Použítím makra \kiinlinecode{TeX}{!}{\\index} rejstříkovat vybrané pojmy.
-\item Kompilovat s použitím utility \kiinlinecode{TeX}{!}{makeindex}. Pro specifika tohoto kroku si stačí prohlédnout soubor \kiinlinecode{text}{!}{Makefile}.
-\end{enumerate}
-
-Makro \kiinlinecode{TeX}{!}{\\index} je redefinováno tak, že sází klikací odkaz na výraz v rejstříku. Je doporučeno jej použít ihned za výrazem\index{výraz}.
-
-\textbf{Omezení redefinovaného makra \kiinlinecode{TeX}{!}{\\index}}: klikací odkaz nefunguje, pokud použijete konstrukci \kiinlinecode{TeX}{!}{\\index\{výraz|makro\}} (resp. \kiinlinecode{TeX}{!}{\\index\{výraz|(makro\}}), např. \kiinlinecode{TeX}{!}{\\index\{výraz|textit\}}.
-
-Rejstřík lze vysázet pomocí makra \kiinlinecode{TeX}{!}{\\printindex}.
-
-\subsection{Sazba zdrojových kódů}
-Styl nabízí dva způsoby sazby zdrojových kódů:
-
-\begin{enumerate}
-\item Sazbu řádkových kódů, například \kiinlinecode{CSS}{!}{background-color: white;}. K tomu slouží makro formátu \kiinlinecode{TeX}{!}{\\kiinlinecode\{jazyk\}\{separátor\}\{kód\}}. Za separátor je vhodné volit jakýkoliv znak, který se nevyskytuje v samotném sázeném zdrojovém kódu. Za jazyk je nutno dosadit jeden z těchto: C, TeX, PHP, HTML, Lisp, SQL, TeX, Python, Java, TutorialD, text, csharp, cpp, JavaScript, CSS.
-
-\item Sazbu zdrojových kódu do separátních prostředí. Takto vytištěný kód se objeví v seznamu zdrojových kódů. Ukázka například zdrojový kód \ref{kod:cpp}. Ukázku sazby naleznete ve zdrojovém kódu tohoto dokumentu.
-\end{enumerate}
-
-\newacronym{UPOL}{UPOL}{\kitextunivcz}
-
-\begin{definition}[Název definice]
-Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. \gls{UPOL}
-\end{definition}
-
-\begin{proof}[Název důkazu]
-Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd.
-\end{proof}
-
-\begin{remark}[Pumpovací věta]
-Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd.
-\end{remark}
-
-\begin{example}[Pumpovací věta]
-Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd.
-\end{example}
-
-\begin{lemma}[Název definice]
-Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd.
-\end{lemma}
-
-\begin{consequence}[Název důkazu]
-Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd.
-\end{consequence}
-
-\begin{theorem}[Pumpovací věta]
-Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd. Abcd.
-\end{theorem}
-
-
-\begin{kicode}{cpp}{kod:cpp}{\cpp}
-int main("cs acsa") // komentar
-int main("cs acsa") // komentar
-int main("cs acsa") // komentar
-int main("cs acsa") // komentar
-int main("cs acsa") // komentar
-\end{kicode}
-
-\begin{kicode}{JavaScript}{}{JS}
-new object() // komentar
-\end{kicode}
-
-\begin{kicode}{csharp}{}{\csharp}
-public static int main("cs acsa") // komentar
-\end{kicode}
-
-\begin{kicode}{SQL}{}{SQL}
-SELECT * FROM table_1; /* komentar */
-\end{kicode}
-
-\begin{kicode}{TutorialD}{}{TutorialD}
-table_1 AND table_2;
-\end{kicode}
 
 %% Závěry práce. V jazyce práce a anglicky. Text pro jiný než
 %% nastavený jazyk práce (nepovinným parametrem language makra
