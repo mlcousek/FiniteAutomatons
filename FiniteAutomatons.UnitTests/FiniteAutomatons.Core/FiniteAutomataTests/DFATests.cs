@@ -6,6 +6,8 @@ namespace FiniteAutomatons.UnitTests.FiniteAutomatons.Core.FiniteAutomataTests;
 
 public class DFATests
 {
+    ////////// Execute method tests for DFA
+
     [Fact]
     public void Execute_ValidInput_ShouldReturnTrue()
     {
@@ -184,6 +186,166 @@ public class DFATests
         result.ShouldBe(expected);
     }
 
+    ////////// Execute All tests for DFA
+
+    [Fact]
+    public void ExecuteAll_ProcessesEntireInputAndSetsIsAccepted()
+    {
+        // Arrange
+        var dfa = new DFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: true)
+            .WithTransition(1, 2, 'a')
+            .Build();
+
+        var state = dfa.StartExecution("a");
+
+        // Act
+        dfa.ExecuteAll(state);
+
+        // Assert
+        state.CurrentStateId.ShouldBe(2);
+        state.Position.ShouldBe(1);
+        state.IsAccepted.ShouldBe(true);
+    }
+
+    [Fact]
+    public void ExecuteAll_EmptyInput_SetsIsAcceptedBasedOnStartState()
+    {
+        // Arrange
+        var dfa = new DFABuilder()
+            .WithState(1, isStart: true, isAccepting: true)
+            .Build();
+
+        var state = dfa.StartExecution("");
+
+        // Act
+        dfa.ExecuteAll(state);
+
+        // Assert
+        state.CurrentStateId.ShouldBe(1);
+        state.Position.ShouldBe(0);
+        state.IsAccepted.ShouldBe(true);
+    }
+
+    ////////// Step Forward tests for DFA
+
+    [Fact]
+    public void StepForward_ValidTransition_UpdatesStateAndPosition()
+    {
+        // Arrange
+        var dfa = new DFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: true)
+            .WithTransition(1, 2, 'a')
+            .Build();
+
+        var state = dfa.StartExecution("a");
+
+        // Act
+        dfa.StepForward(state);
+
+        // Assert
+        state.CurrentStateId.ShouldBe(2);
+        state.Position.ShouldBe(1);
+        state.IsAccepted.ShouldBe(true);
+    }
+
+    [Fact]
+    public void StepForward_NoValidTransition_SetsIsAcceptedFalseAndFinishes()
+    {
+        // Arrange
+        var dfa = new DFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: true)
+            .WithTransition(1, 2, 'a')
+            .Build();
+
+        var state = dfa.StartExecution("b");
+
+        // Act
+        dfa.StepForward(state);
+
+        // Assert
+        state.IsAccepted.ShouldBe(false);
+        state.Position.ShouldBe(1); // Marked as finished
+    }
+
+    [Fact]
+    public void StepForward_AtEndOfInput_SetsIsAcceptedBasedOnCurrentState()
+    {
+        // Arrange
+        var dfa = new DFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: true)
+            .WithTransition(1, 2, 'a')
+            .Build();
+
+        var state = dfa.StartExecution("a");
+        dfa.StepForward(state); // Move to state 2, position 1
+
+        // Act
+        dfa.StepForward(state); // Should check acceptance
+
+        // Assert
+        state.IsAccepted.ShouldBe(true);
+    }
+
+    //////////// Start Execution tests for DFA
+
+    [Fact]
+    public void StartExecution_WithValidStartState_ShouldInitializeStateCorrectly()
+    {
+        // Arrange
+        var dfa = new DFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: true)
+            .WithTransition(1, 2, 'a')
+            .Build();
+
+        // Act
+        var execState = dfa.StartExecution("a");
+
+        // Assert
+        execState.CurrentStateId.ShouldBe(1);
+        execState.Input.ShouldBe("a");
+        execState.Position.ShouldBe(0);
+        execState.IsAccepted.ShouldBeNull();
+        execState.IsFinished.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void StartExecution_NoStartState_ShouldThrowInvalidOperationException()
+    {
+        // Arrange
+        var dfa = new DFABuilder()
+            .WithState(1, isStart: false, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: true)
+            .Build();
+
+        // Act & Assert
+        Should.Throw<InvalidOperationException>(() => dfa.StartExecution("a"));
+    }
+
+    [Fact]
+    public void StartExecution_WithEmptyInput_ShouldInitializeStateCorrectly()
+    {
+        // Arrange
+        var dfa = new DFABuilder()
+            .WithState(1, isStart: true, isAccepting: true)
+            .Build();
+
+        // Act
+        var execState = dfa.StartExecution("");
+
+        // Assert
+        execState.CurrentStateId.ShouldBe(1);
+        execState.Input.ShouldBe("");
+        execState.Position.ShouldBe(0);
+        execState.IsAccepted.ShouldBeNull();
+        // For empty input, execution is immediately finished
+        execState.IsFinished.ShouldBeTrue();
+    }
 }
 
 public class DFABuilder

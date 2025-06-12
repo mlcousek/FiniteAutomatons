@@ -264,9 +264,14 @@ public class TestAutomatonBuilder
 
     public class TestAutomaton : Automaton
     {
-        public override bool Execute(string input)
+        public override void StepForward(AutomatonExecutionState state)
         {
-            return true;
+            // No-op for testing
+        }
+
+        public override void ExecuteAll(AutomatonExecutionState state)
+        {
+            // No-op for testing
         }
 
         public new int ValidateStartState()

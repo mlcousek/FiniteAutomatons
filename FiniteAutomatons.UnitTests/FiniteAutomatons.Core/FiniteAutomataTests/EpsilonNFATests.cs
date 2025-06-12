@@ -1,11 +1,13 @@
-﻿using FiniteAutomatons.Core.Models.DoMain;
-using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
+﻿using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using Shouldly;
+using State = FiniteAutomatons.Core.Models.DoMain.State;
 
 namespace FiniteAutomatons.UnitTests.FiniteAutomatons.Core.FiniteAutomataTests;
 
 public class EpsilonNFATests
 {
+    ////////// Execute method tests for EpsilonNFA
+    ///
     [Fact]
     public void Execute_ValidInput_ShouldReturnTrue()
     {
@@ -229,6 +231,143 @@ public class EpsilonNFATests
 
         // Assert
         result.ShouldBeTrue();
+    }
+
+    ////////// Execute All tests for EpsilonNFA
+
+    [Fact]
+    public void ExecuteAll_ProcessesEntireInputAndSetsIsAccepted()
+    {
+        var enfa = new EpsilonNFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: true)
+            .WithTransition(1, 2, 'a')
+            .Build();
+
+        var state = enfa.StartExecution("a");
+        enfa.ExecuteAll(state);
+
+        state.CurrentStates.ShouldNotBeNull();
+        state.CurrentStates.ShouldContain(2);
+        state.Position.ShouldBe(1);
+        state.IsAccepted.ShouldBe(true);
+    }
+
+    [Fact]
+    public void ExecuteAll_EmptyInput_SetsIsAcceptedBasedOnStartState()
+    {
+        var enfa = new EpsilonNFABuilder()
+            .WithState(1, isStart: true, isAccepting: true)
+            .Build();
+
+        var state = enfa.StartExecution("");
+        enfa.ExecuteAll(state);
+
+        state.CurrentStates.ShouldNotBeNull();
+        state.CurrentStates.ShouldContain(1);
+        state.Position.ShouldBe(0);
+        state.IsAccepted.ShouldBe(true);
+    }
+
+    ////////// Step Forward tests for EpsilonNFA
+
+    [Fact]
+    public void StepForward_ValidTransition_UpdatesStatesAndPosition()
+    {
+        var enfa = new EpsilonNFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: true)
+            .WithTransition(1, 2, 'a')
+            .Build();
+
+        var state = enfa.StartExecution("a");
+        enfa.StepForward(state);
+
+        state.CurrentStates.ShouldNotBeNull();
+        state.CurrentStates.ShouldContain(2);
+        state.Position.ShouldBe(1);
+        state.IsAccepted.ShouldBe(true);
+    }
+
+    [Fact]
+    public void StepForward_NoValidTransition_SetsIsAcceptedFalseAndFinishes()
+    {
+        var enfa = new EpsilonNFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: true)
+            .WithTransition(1, 2, 'a')
+            .Build();
+
+        var state = enfa.StartExecution("b");
+        enfa.StepForward(state);
+
+        state.IsAccepted.ShouldBe(false);
+        state.Position.ShouldBe(1);
+    }
+
+    [Fact]
+    public void StepForward_AtEndOfInput_SetsIsAcceptedBasedOnCurrentStates()
+    {
+        var enfa = new EpsilonNFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: true)
+            .WithTransition(1, 2, 'a')
+            .Build();
+
+        var state = enfa.StartExecution("a");
+        enfa.StepForward(state); // Move to state 2, position 1
+        enfa.StepForward(state); // Should check acceptance
+
+        state.IsAccepted.ShouldBe(true);
+    }
+
+    //////////// Start Execution tests for EpsilonNFA
+
+    [Fact]
+    public void StartExecution_WithValidStartState_ShouldInitializeStateCorrectly()
+    {
+        var enfa = new EpsilonNFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: true)
+            .WithTransition(1, 2, 'a')
+            .Build();
+
+        var execState = enfa.StartExecution("a");
+
+        execState.CurrentStates.ShouldNotBeNull();
+        execState.CurrentStates.ShouldContain(1);
+        execState.Input.ShouldBe("a");
+        execState.Position.ShouldBe(0);
+        execState.IsAccepted.ShouldBeNull();
+        execState.IsFinished.ShouldBeFalse();
+    }
+
+    [Fact]
+    public void StartExecution_NoStartState_ShouldThrowInvalidOperationException()
+    {
+        var enfa = new EpsilonNFABuilder()
+            .WithState(1, isStart: false, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: true)
+            .Build();
+
+        Should.Throw<InvalidOperationException>(() => enfa.StartExecution("a"));
+    }
+
+    [Fact]
+    public void StartExecution_WithEmptyInput_ShouldInitializeStateCorrectly()
+    {
+        var enfa = new EpsilonNFABuilder()
+            .WithState(1, isStart: true, isAccepting: true)
+            .Build();
+
+        var execState = enfa.StartExecution("");
+
+        execState.CurrentStates.ShouldNotBeNull();
+        execState.CurrentStates.ShouldContain(1);
+        execState.Input.ShouldBe("");
+        execState.Position.ShouldBe(0);
+        execState.IsAccepted.ShouldBeNull();
+        execState.IsFinished.ShouldBeTrue();
     }
 }
 

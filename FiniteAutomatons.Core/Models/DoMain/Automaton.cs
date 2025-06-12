@@ -90,6 +90,20 @@ public abstract class Automaton : IAutomaton
         Transitions.Remove(transition);
     }
 
-    public abstract bool Execute(string input);
-}
+    public bool Execute(string input)
+    {
+        var state = StartExecution(input);
+        ExecuteAll(state);
+        return state.IsAccepted ?? false;
+    }
 
+    public virtual AutomatonExecutionState StartExecution(string input)
+    {
+        return new AutomatonExecutionState(input, ValidateStartState());
+    }
+
+    public abstract void StepForward(AutomatonExecutionState state);
+    public abstract void ExecuteAll(AutomatonExecutionState state);
+
+    //todo stpeback and to start
+}
