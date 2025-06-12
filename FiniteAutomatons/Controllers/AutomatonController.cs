@@ -1,6 +1,6 @@
 using FiniteAutomatons.Core.Models.DoMain;
+using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using Microsoft.AspNetCore.Mvc;
-using System.Collections.Generic;
 
 namespace FiniteAutomatons.Controllers;
 
@@ -24,8 +24,8 @@ public class AutomatonController : ControllerBase
         var dfa = new DFA();
         dfa.States.AddRange(dto.States);
         dfa.Transitions.AddRange(dto.Transitions);
-        var steps = dfa.GetStepwiseExecution(dto.Input);
-        return Ok(steps);
+        // var steps = dfa.GetStepwiseExecution(dto.Input);
+        return Ok();//steps);
     }
 
     [HttpPost("simulate-nfa")]
@@ -44,8 +44,8 @@ public class AutomatonController : ControllerBase
         var nfa = new NFA();
         nfa.States.AddRange(dto.States);
         nfa.Transitions.AddRange(dto.Transitions);
-        var steps = nfa.GetStepwiseExecution(dto.Input);
-        return Ok(steps);
+        //var steps = nfa.GetStepwiseExecution(dto.Input);
+        return Ok();// steps)
     }
 
     [HttpPost("minimize-dfa")]
@@ -54,8 +54,8 @@ public class AutomatonController : ControllerBase
         var dfa = new DFA();
         dfa.States.AddRange(dto.States);
         dfa.Transitions.AddRange(dto.Transitions);
-        var minimized = DfaMinimizer.Minimize(dfa);
-        return Ok(minimized);
+        // var minimized = DfaMinimizer.Minimize(dfa);
+        return Ok();//minimized);
     }
 
     // TODO: Add endpoints for regex, etc.
@@ -63,7 +63,7 @@ public class AutomatonController : ControllerBase
 
 public class AutomatonDto
 {
-    public List<State> States { get; set; } = new();
-    public List<Transition> Transitions { get; set; } = new();
+    public List<State> States { get; set; } = [];
+    public List<Transition> Transitions { get; set; } = [];
     public string Input { get; set; } = string.Empty;
 }

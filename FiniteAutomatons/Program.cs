@@ -18,6 +18,8 @@ var connectionString = dbSettings.GetConnectionString();
 
 //var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
+//var connectionString = "Server=finite_automatons_db,1433;Database=finite_automatons_db;User Id=sa;Password=myStong_Password123#;Trust Server Certificate=True";
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
