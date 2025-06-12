@@ -1,8 +1,60 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Automaton Simulator";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="simulator-layout">
+    <main class="sim-main">
+        <section class="sim-assignment">
+            <h2>CREATE AUTOMATON</h2>
+            <div class="sim-assignment-controls">
+                <button class="sim-btn" id="insertAutomatonBtn">Insert Automaton</button>
+                <button class="sim-btn" id="insertRegexBtn">Insert Regex</button>
+            </div>
+            <textarea id="assignmentInput" class="sim-assignment-input" placeholder="#states...">#states\ns0\ns1\ns2\ns3\n#initial\ns0\n#accepting\ns3\n#alphabet\na\nb\nc\n#transitions\ns0:a:s1\ns0:b:s2\ns0:c:s0\ns1:a:s1\ns1:b:s0\ns1:c:s2\ns2:a:s3\ns2:b:s2\ns2:c:s3\ns3:a:s0\ns3:b:s2\ns3:c:s0</textarea>
+        </section>
+        <section class="sim-graph">
+            <h2>GRAPH</h2>
+            <div class="sim-graph-controls">
+                <button class="sim-btn" id="addStateBtn">Add state</button>
+                <button class="sim-btn" id="addTransitionBtn">Add transition</button>
+                <button class="sim-btn" id="deleteBtn">Delete</button>
+                <button class="sim-btn sim-btn-icon">&#8634;</button>
+                <button class="sim-btn sim-btn-icon">&#8635;</button>
+            </div>
+            <div class="sim-graph-canvas-wrapper">
+                <canvas id="automaton-canvas" width="700" height="400"></canvas>
+                <button class="sim-btn sim-btn-trash" id="clearGraphBtn">&#128465;</button>
+            </div>
+        </section>
+    </main>
+    <footer class="sim-footer">
+        <div class="sim-input">
+            <label>INPUT</label>
+            <input type="text" id="inputString" class="sim-input-box" />
+        </div>
+        <div class="sim-simulate">
+            <label>SIMULATE</label>
+            <button class="sim-btn" id="startBtn">Start</button>
+            <button class="sim-btn" id="resetBtn">Reset</button>
+            <button class="sim-btn" id="stepBackBtn">Step back</button>
+            <button class="sim-btn" id="readNextBtn">Read next</button>
+            <button class="sim-btn" id="readAllBtn">Read all</button>
+        </div>
+        <div class="sim-automaton-type">
+            <label>AUTOMATON TYPE</label>
+            <button class="sim-btn" id="dfaBtn">DFA</button>
+            <button class="sim-btn" id="nfaBtn">NFA</button>
+            <button class="sim-btn" id="enfaBtn">ε-NFA</button>
+        </div>
+        <div class="sim-minimalize">
+            <label>MINIMALIZE</label>
+            <button class="sim-btn" id="minimizeBtn">Minimalize</button>
+        </div>
+    </footer>
 </div>
+@section Styles {
+    <link rel="stylesheet" href="~/css/simulator.css" />
+}
+@section Scripts {
+    <script src="~/js/automaton.js"></script>
+}

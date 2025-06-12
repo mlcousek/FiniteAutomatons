@@ -1,1 +1,1 @@
-This is class for working and does some set up for database.
+This is class for working and does some set up for [[Database]].
