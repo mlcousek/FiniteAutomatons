@@ -269,6 +269,11 @@ public class TestAutomatonBuilder
             // No-op for testing
         }
 
+        public override void StepBackward(AutomatonExecutionState state)
+        {
+            // No-op for testing
+        }
+
         public override void ExecuteAll(AutomatonExecutionState state)
         {
             // No-op for testing

@@ -46,6 +46,10 @@ public class EpsilonNFA : NFA
             return;
         }
 
+
+        // Always push the closure of the current states to history
+        state.StateHistory.Push(state.CurrentStates != null ? [.. ProcessNextStates(state.CurrentStates)] : []);
+
         char symbol = state.Input[state.Position];
         var nextStates = new HashSet<int>();
 
@@ -68,6 +72,46 @@ public class EpsilonNFA : NFA
             state.IsAccepted = state.CurrentStates != null &&
                 state.CurrentStates.Any(s => States.Any(st => st.Id == s && st.IsAccepting));
         }
+    }
+
+    public override void StepBackward(AutomatonExecutionState state)
+    {
+        if (state.Position == 0)
+            return;
+
+        state.Position--;
+
+        // Restore the previous set of states from the history stack
+        if (state.StateHistory.Count > 0)
+        {
+            state.CurrentStates = ProcessNextStates(state.StateHistory.Pop());
+
+            state.CurrentStates = ProcessNextStates(state.CurrentStates);
+
+
+        }
+        else
+        {
+            // Fallback: recalculate from start if history is missing
+            state.CurrentStates = GetInitialStates();
+            for (int i = 0; i < state.Position; i++)
+            {
+                char symbol = state.Input[i];
+                var nextStates = new HashSet<int>();
+                foreach (var currentState in state.CurrentStates ?? [])
+                {
+                    var transitions = Transitions
+                        .Where(t => t.FromStateId == currentState && t.Symbol == symbol);
+                    foreach (var transition in transitions)
+                    {
+                        nextStates.Add(transition.ToStateId);
+                    }
+                }
+                state.CurrentStates = ProcessNextStates(nextStates);
+            }
+        }
+
+        state.IsAccepted = null;
     }
 
     public override void ExecuteAll(AutomatonExecutionState state)

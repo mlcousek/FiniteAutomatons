@@ -321,6 +321,104 @@ public class EpsilonNFATests
         state.IsAccepted.ShouldBe(true);
     }
 
+    ////////// Step Backward tests for EpsilonNFA
+
+    [Fact]
+    public void StepBackward_AfterStepForward_RestoresPreviousStateAndPosition_WithEpsilon()
+    {
+        // Arrange
+        var enfa = new EpsilonNFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: true)
+            .WithEpsilonTransition(1, 2)
+            .WithTransition(1, 2, 'a')
+            .Build();
+
+        var state = enfa.StartExecution("a");
+        enfa.StepForward(state); // Move to state 2, position 1
+
+        // Act
+        enfa.StepBackward(state); // Should move back to position 0 and restore epsilon closure of initial state
+
+        // Assert
+        state.Position.ShouldBe(0);
+        state.CurrentStates.ShouldNotBeNull();
+        state.CurrentStates.ShouldContain(1);
+        state.CurrentStates.ShouldContain(2); // Epsilon closure includes both 1 and 2
+        state.IsAccepted.ShouldBeNull();
+    }
+
+    [Fact]
+    public void StepBackward_AtStartPosition_DoesNothing_WithEpsilon()
+    {
+        // Arrange
+        var enfa = new EpsilonNFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: true)
+            .WithEpsilonTransition(1, 2)
+            .Build();
+
+        var state = enfa.StartExecution("a");
+
+        // Act
+        enfa.StepBackward(state); // Already at position 0
+
+        // Assert
+        state.Position.ShouldBe(0);
+        state.CurrentStates.ShouldNotBeNull();
+        state.CurrentStates.ShouldContain(1);
+        state.CurrentStates.ShouldContain(2); // Epsilon closure includes both 1 and 2
+        state.IsAccepted.ShouldBeNull();
+    }
+
+    [Fact]
+    public void StepForward_NoValidTransition_SetsIsAcceptedFalseAndFinishes_EpsilonNFA()
+    {
+        var enfa = new EpsilonNFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: true)
+            .WithTransition(1, 2, 'a')
+            .Build();
+
+        var state = enfa.StartExecution("ab");
+        enfa.StepForward(state); // 'a' -> 2
+        enfa.StepForward(state); // 'b' -> no valid transition
+
+        state.CurrentStates.ShouldBeEmpty();
+        state.IsAccepted.ShouldBe(false);
+        state.Position.ShouldBe(2); // At end of input
+    }
+
+    [Fact]
+    public void StepBackward_MultipleSteps_RestoresStatesCorrectly_WithEpsilon()
+    {
+        // Arrange
+        var enfa = new EpsilonNFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: false)
+            .WithState(3, isStart: false, isAccepting: true)
+            .WithTransition(1, 2, 'a')
+            .WithEpsilonTransition(2, 3)
+            .Build();
+
+        var state = enfa.StartExecution("ab");
+        enfa.StepForward(state); // 'a', to state 2 (and 3 via epsilon), pos 1
+        enfa.StepForward(state); // 'b', no valid transition, pos 2
+
+        // Act
+        enfa.StepBackward(state); // back to pos 1, should be at state 2 and 3 (epsilon closure)
+        state.Position.ShouldBe(1);
+        state.CurrentStates.ShouldNotBeNull();
+        state.CurrentStates.ShouldContain(2);
+        state.CurrentStates.ShouldContain(3);
+
+        enfa.StepBackward(state); // back to pos 0, should be at state 1 (and 3 via epsilon from 2)
+        state.Position.ShouldBe(0);
+        state.CurrentStates.ShouldNotBeNull();
+        state.CurrentStates.ShouldContain(1);
+        state.CurrentStates.Count.ShouldBe(1);
+    }
+
     //////////// Start Execution tests for EpsilonNFA
 
     [Fact]
@@ -368,6 +466,90 @@ public class EpsilonNFATests
         execState.Position.ShouldBe(0);
         execState.IsAccepted.ShouldBeNull();
         execState.IsFinished.ShouldBeTrue();
+    }
+
+    // Additional tests for history
+    [Fact]
+    public void StepForward_PushesCurrentStatesToHistory_EpsilonNFA()
+    {
+        // Arrange
+        var enfa = new EpsilonNFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: false)
+            .WithState(3, isStart: false, isAccepting: true)
+            .WithTransition(1, 2, 'a')
+            .WithEpsilonTransition(2, 3)
+            .Build();
+
+        var state = enfa.StartExecution("a");
+
+        // Act
+        enfa.StepForward(state);
+
+        // Assert
+        state.StateHistory.Count.ShouldBe(1);
+        state.StateHistory.Peek().ShouldContain(1); // The start state was pushed
+    }
+
+    [Fact]
+    public void StepBackward_PopsFromHistory_AndRestoresPreviousStates_EpsilonNFA()
+    {
+        // Arrange
+        var enfa = new EpsilonNFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: false)
+            .WithState(3, isStart: false, isAccepting: true)
+            .WithTransition(1, 2, 'a')
+            .WithEpsilonTransition(2, 3)
+            .Build();
+
+        var state = enfa.StartExecution("a");
+        enfa.StepForward(state); // 'a' -> 2, epsilon to 3
+
+        // Act
+        enfa.StepBackward(state); // Should restore to state 1
+
+        // Assert
+        state.CurrentStates.ShouldNotBeNull();
+        state.CurrentStates.ShouldContain(1);
+        state.CurrentStates.Count.ShouldBe(1);
+        state.StateHistory.Count.ShouldBe(0);
+    }
+
+    [Fact]
+    public void StepForward_And_StepBackward_MultipleSteps_ManageHistoryCorrectly_EpsilonNFA()
+    {
+        // Arrange
+        var enfa = new EpsilonNFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: false)
+            .WithState(3, isStart: false, isAccepting: true)
+            .WithTransition(1, 2, 'a')
+            .WithEpsilonTransition(2, 3)
+            .Build();
+
+        var state = enfa.StartExecution("ab");
+        enfa.StepForward(state); // 'a' -> 2, epsilon to 3
+        enfa.StepForward(state); // 'b' -> no valid transition
+
+        // Assert history after two steps
+        state.StateHistory.Count.ShouldBe(2);
+        state.StateHistory.ToArray()[1].ShouldContain(1); // First pushed state
+        state.StateHistory.ToArray()[0].ShouldContain(2);
+        state.StateHistory.ToArray()[0].ShouldContain(3);
+
+        // Act: Step backward twice
+        enfa.StepBackward(state); // Should restore to state 2 and 3
+        state.CurrentStates.ShouldNotBeNull();
+        state.CurrentStates.ShouldContain(2);
+        state.CurrentStates.ShouldContain(3);
+        state.StateHistory.Count.ShouldBe(1);
+
+        enfa.StepBackward(state); // Should restore to state 1
+        state.CurrentStates.ShouldNotBeNull();
+        state.CurrentStates.ShouldContain(1);
+        state.CurrentStates.Count.ShouldBe(1);
+        state.StateHistory.Count.ShouldBe(0);
     }
 }
 

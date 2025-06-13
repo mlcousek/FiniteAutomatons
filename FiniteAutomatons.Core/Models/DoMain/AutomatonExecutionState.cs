@@ -8,4 +8,5 @@ public class AutomatonExecutionState(string input, int? startStateId = null, Has
     public int Position { get; set; } = 0;
     public bool IsFinished => Position >= Input.Length;
     public bool? IsAccepted { get; set; } = null;
+    public Stack<HashSet<int>> StateHistory { get; } = new();
 }

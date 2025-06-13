@@ -346,6 +346,195 @@ public class DFATests
         // For empty input, execution is immediately finished
         execState.IsFinished.ShouldBeTrue();
     }
+
+    ////////// Step Backward tests for DFA
+
+    [Fact]
+    public void StepBackward_FromMiddleOfInput_ShouldMoveBackOneStep()
+    {
+        // Arrange
+        var dfa = new DFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: true)
+            .WithTransition(1, 2, 'a')
+            .WithTransition(2, 2, 'b')
+            .Build();
+
+        var state = dfa.StartExecution("abb");
+        dfa.StepForward(state); // 'a' -> state 2, pos 1
+        dfa.StepForward(state); // 'b' -> state 2, pos 2
+
+        // Act
+        dfa.StepBackward(state);
+
+        // Assert
+        state.Position.ShouldBe(1);
+        state.CurrentStateId.ShouldBe(2);
+        state.IsAccepted.ShouldBeNull();
+    }
+
+
+    [Fact]
+    public void StepBackward_AtStartOfInput_ShouldDoNothing()
+    {
+        // Arrange
+        var dfa = new DFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: true)
+            .WithTransition(1, 2, 'a')
+            .Build();
+
+        var state = dfa.StartExecution("a");
+
+        // Act
+        dfa.StepBackward(state);
+
+        // Assert
+        state.Position.ShouldBe(0);
+        state.CurrentStateId.ShouldBe(1);
+        state.IsAccepted.ShouldBeNull();
+    }
+
+    [Fact]
+    public void StepBackward_AfterStepForward_ShouldReturnToStartState()
+    {
+        // Arrange
+        var dfa = new DFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: true)
+            .WithTransition(1, 2, 'a')
+            .Build();
+
+        var state = dfa.StartExecution("a");
+        dfa.StepForward(state); // Move to state 2, pos 1
+
+        // Act
+        dfa.StepBackward(state);
+
+        // Assert
+        state.Position.ShouldBe(0);
+        state.CurrentStateId.ShouldBe(1);
+        state.IsAccepted.ShouldBeNull();
+    }
+
+    [Fact]
+    public void StepBackward_AfterInvalidTransition_ShouldSetCurrentStateIdNull()
+    {
+        // Arrange
+        var dfa = new DFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: true)
+            .WithTransition(1, 2, 'a')
+            .Build();
+
+        var state = dfa.StartExecution("ab");
+        dfa.StepForward(state); // 'a' -> state 2, pos 1
+        dfa.StepForward(state); // 'b' -> no transition, pos 2, IsAccepted = false
+
+        // Act
+        dfa.StepBackward(state); // Should go back to pos 1, state 2
+
+        // Assert
+        state.Position.ShouldBe(1);
+        state.CurrentStateId.ShouldBe(2);
+        state.IsAccepted.ShouldBeNull();
+    }
+
+    [Fact]
+    public void StepBackward_ToStartState_ShouldSetCurrentStateIdToStart()
+    {
+        // Arrange
+        var dfa = new DFABuilder()
+            .WithState(1, isStart: true, isAccepting: true)
+            .WithState(2, isStart: false, isAccepting: false)
+            .WithTransition(1, 2, 'a')
+            .Build();
+
+        var state = dfa.StartExecution("a");
+        dfa.StepForward(state); // Move to state 2, pos 1
+
+        // Act
+        dfa.StepBackward(state); // Back to start
+
+        // Assert
+        state.Position.ShouldBe(0);
+        state.CurrentStateId.ShouldBe(1);
+        state.IsAccepted.ShouldBeNull();
+    }
+
+    // Additional tests 
+
+    [Fact]
+    public void StepForward_PushesStateToHistory()
+    {
+        // Arrange
+        var dfa = new DFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: true)
+            .WithTransition(1, 2, 'a')
+            .Build();
+
+        var state = dfa.StartExecution("a");
+
+        // Act
+        dfa.StepForward(state);
+
+        // Assert
+        state.StateHistory.Count.ShouldBe(1);
+        state.StateHistory.Peek().ShouldContain(1); // The start state was pushed
+    }
+
+    [Fact]
+    public void StepBackward_PopsStateFromHistory_AndRestoresPreviousState()
+    {
+        // Arrange
+        var dfa = new DFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: true)
+            .WithTransition(1, 2, 'a')
+            .Build();
+
+        var state = dfa.StartExecution("a");
+        dfa.StepForward(state); // Move to state 2, pos 1
+
+        // Act
+        dfa.StepBackward(state); // Should restore to state 1
+
+        // Assert
+        state.CurrentStateId.ShouldBe(1);
+        state.StateHistory.Count.ShouldBe(0);
+    }
+
+    [Fact]
+    public void StepForward_And_StepBackward_MultipleSteps_ManageHistoryCorrectly()
+    {
+        // Arrange
+        var dfa = new DFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: false)
+            .WithState(3, isStart: false, isAccepting: true)
+            .WithTransition(1, 2, 'a')
+            .WithTransition(2, 3, 'b')
+            .Build();
+
+        var state = dfa.StartExecution("ab");
+        dfa.StepForward(state); // 'a' -> 2
+        dfa.StepForward(state); // 'b' -> 3
+
+        // Assert history after two steps
+        state.StateHistory.Count.ShouldBe(2);
+        state.StateHistory.ToArray()[1].ShouldContain(1); // First pushed state
+        state.StateHistory.ToArray()[0].ShouldContain(2); // Second pushed state
+
+        // Act: Step backward twice
+        dfa.StepBackward(state); // Should restore to state 2
+        state.CurrentStateId.ShouldBe(2);
+        state.StateHistory.Count.ShouldBe(1);
+
+        dfa.StepBackward(state); // Should restore to state 1
+        state.CurrentStateId.ShouldBe(1);
+        state.StateHistory.Count.ShouldBe(0);
+    }
 }
 
 public class DFABuilder

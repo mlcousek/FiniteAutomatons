@@ -325,6 +325,156 @@ public class NFATests
         execState.IsAccepted.ShouldBeNull();
         execState.IsFinished.ShouldBeTrue();
     }
+
+    ////////// Step Backward tests for NFA
+
+    [Fact]
+    public void StepBackward_AfterStepForward_RestoresPreviousStateAndPosition()
+    {
+        // Arrange
+        var nfa = new NFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: true)
+            .WithTransition(1, 2, 'a')
+            .Build();
+
+        var state = nfa.StartExecution("a");
+        nfa.StepForward(state); // Move to state 2, position 1
+
+        // Act
+        nfa.StepBackward(state); // Should move back to position 0 and restore initial state
+
+        // Assert
+        state.Position.ShouldBe(0);
+        state.CurrentStates.ShouldNotBeNull();
+        state.CurrentStates.ShouldContain(1);
+        state.IsAccepted.ShouldBeNull();
+    }
+
+    [Fact]
+    public void StepBackward_AtStartPosition_DoesNothing()
+    {
+        // Arrange
+        var nfa = new NFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: true)
+            .WithTransition(1, 2, 'a')
+            .Build();
+
+        var state = nfa.StartExecution("a");
+
+        // Act
+        nfa.StepBackward(state); // Already at position 0
+
+        // Assert
+        state.Position.ShouldBe(0);
+        state.CurrentStates.ShouldNotBeNull();
+        state.CurrentStates.ShouldContain(1);
+        state.IsAccepted.ShouldBeNull();
+    }
+
+    [Fact]
+    public void StepBackward_MultipleSteps_RestoresStatesCorrectly()
+    {
+        // Arrange
+        var nfa = new NFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: false)
+            .WithState(3, isStart: false, isAccepting: true)
+            .WithTransition(1, 2, 'a')
+            .WithTransition(2, 3, 'b')
+            .Build();
+
+        var state = nfa.StartExecution("ab");
+        nfa.StepForward(state); // 'a', to state 2, pos 1
+        nfa.StepForward(state); // 'b', to state 3, pos 2
+
+        // Act
+        nfa.StepBackward(state); // back to pos 1, should be at state 2
+        state.Position.ShouldBe(1);
+        state.CurrentStates.ShouldNotBeNull();
+        state.CurrentStates.ShouldContain(2);
+
+        nfa.StepBackward(state); // back to pos 0, should be at state 1
+        state.Position.ShouldBe(0);
+        state.CurrentStates.ShouldNotBeNull();
+        state.CurrentStates.ShouldContain(1);
+    }
+
+    // Aditional test for Epsilon NFA 
+    [Fact]
+    public void StepForward_PushesCurrentStatesToHistory_NFA()
+    {
+        // Arrange
+        var nfa = new NFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: true)
+            .WithTransition(1, 2, 'a')
+            .Build();
+
+        var state = nfa.StartExecution("a");
+
+        // Act
+        nfa.StepForward(state);
+
+        // Assert
+        state.StateHistory.Count.ShouldBe(1);
+        state.StateHistory.Peek().ShouldContain(1); // The start state was pushed
+    }
+
+    [Fact]
+    public void StepBackward_PopsFromHistory_AndRestoresPreviousStates_NFA()
+    {
+        // Arrange
+        var nfa = new NFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: true)
+            .WithTransition(1, 2, 'a')
+            .Build();
+
+        var state = nfa.StartExecution("a");
+        nfa.StepForward(state); // Move to state 2, pos 1
+
+        // Act
+        nfa.StepBackward(state); // Should restore to state 1
+
+        // Assert
+        state.CurrentStates.ShouldNotBeNull();
+        state.CurrentStates.ShouldContain(1);
+        state.StateHistory.Count.ShouldBe(0);
+    }
+
+    [Fact]
+    public void StepForward_And_StepBackward_MultipleSteps_ManageHistoryCorrectly_NFA()
+    {
+        // Arrange
+        var nfa = new NFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: false)
+            .WithState(3, isStart: false, isAccepting: true)
+            .WithTransition(1, 2, 'a')
+            .WithTransition(2, 3, 'b')
+            .Build();
+
+        var state = nfa.StartExecution("ab");
+        nfa.StepForward(state); // 'a' -> 2
+        nfa.StepForward(state); // 'b' -> 3
+
+        // Assert history after two steps
+        state.StateHistory.Count.ShouldBe(2);
+        state.StateHistory.ToArray()[1].ShouldContain(1); // First pushed state
+        state.StateHistory.ToArray()[0].ShouldContain(2); // Second pushed state
+
+        // Act: Step backward twice
+        nfa.StepBackward(state); // Should restore to state 2
+        state.CurrentStates.ShouldNotBeNull();
+        state.CurrentStates.ShouldContain(2);
+        state.StateHistory.Count.ShouldBe(1);
+
+        nfa.StepBackward(state); // Should restore to state 1
+        state.CurrentStates.ShouldContain(1);
+        state.StateHistory.Count.ShouldBe(0);
+    }
 }
 
 public class NFABuilder
