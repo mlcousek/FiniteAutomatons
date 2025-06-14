@@ -129,12 +129,6 @@ public class EpsilonNFA : NFA
         }
     }
 
-    // Helper method to add epsilon transitions
-    public void AddEpsilonTransition(int fromStateId, int toStateId)
-    {
-        AddTransition(fromStateId, toStateId, '\0');
-    }
-
     public override void BackToStart(AutomatonExecutionState state)
     {
         state.Position = 0;
@@ -142,5 +136,66 @@ public class EpsilonNFA : NFA
         state.CurrentStateId = null;
         state.IsAccepted = null;
         state.StateHistory.Clear();
+    }
+
+    public NFA ToNFA()
+    {
+        var nfa = new NFA();
+
+        // 1. Copy all states, preserving IDs and accepting/start flags
+        foreach (var state in States)
+        {
+            // Accepting if any state in its epsilon-closure is accepting
+            var closure = EpsilonClosure([state.Id]);
+            bool isAccepting = closure.Any(id => States.First(s => s.Id == id).IsAccepting);
+            nfa.AddState(new State
+            {
+                Id = state.Id,
+                IsStart = state.IsStart,
+                IsAccepting = isAccepting
+            });
+            if (state.IsStart)
+                nfa.SetStartState(state.Id);
+        }
+
+        // 2. For each state and each symbol (except epsilon), add transitions according to epsilon-closure
+        var symbols = Transitions
+            .Where(t => t.Symbol != '\0')
+            .Select(t => t.Symbol)
+            .Distinct()
+            .ToList();
+
+        foreach (var state in States)
+        {
+            var fromClosure = EpsilonClosure([state.Id]);
+            foreach (var symbol in symbols)
+            {
+                // All states reachable from the closure of 'state' via 'symbol'
+                var toStates = new HashSet<int>();
+                foreach (var closureState in fromClosure)
+                {
+                    var transitions = Transitions
+                        .Where(t => t.FromStateId == closureState && t.Symbol == symbol);
+                    foreach (var t in transitions)
+                    {
+                        // Add all states in the epsilon-closure of the target
+                        foreach (var target in EpsilonClosure([t.ToStateId]))
+                            toStates.Add(target);
+                    }
+                }
+                foreach (var to in toStates)
+                {
+                    nfa.AddTransition(state.Id, to, symbol);
+                }
+            }
+        }
+
+        return nfa;
+    }
+
+    // Helper method to add epsilon transitions
+    public void AddEpsilonTransition(int fromStateId, int toStateId)
+    {
+        AddTransition(fromStateId, toStateId, '\0');
     }
 }

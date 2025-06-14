@@ -675,6 +675,83 @@ public class EpsilonNFATests
         bState.Position.ShouldBe(1);
         bState.IsAccepted.ShouldBe(true);
     }
+
+    ///////// EpsilonNFA to NFA conversion tests
+
+    [Fact]
+    public void ToNFA_RemovesEpsilonTransitionsAndPreservesLanguage()
+    {
+        // Arrange: EpsilonNFA with epsilon transition and normal transition
+        var enfa = new EpsilonNFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: true)
+            .WithTransition(1, 2, 'a')
+            .WithEpsilonTransition(1, 2)
+            .Build();
+
+        // Act
+        var nfa = enfa.ToNFA();
+
+        // Assert: NFA should have no epsilon transitions
+        nfa.Transitions.ShouldAllBe(t => t.Symbol != '\0');
+
+        // Accepting states should be preserved via epsilon closure
+        nfa.States.First(s => s.Id == 1).IsAccepting.ShouldBeTrue();
+        nfa.States.First(s => s.Id == 2).IsAccepting.ShouldBeTrue();
+
+        // NFA should accept "" and "a"
+        nfa.Execute("").ShouldBeTrue();
+        nfa.Execute("a").ShouldBeTrue();
+        nfa.Execute("b").ShouldBeFalse();
+    }
+
+    [Fact]
+    public void ToNFA_ChainedEpsilonTransitions_ReachAcceptingState()
+    {
+        // Arrange: EpsilonNFA with chained epsilon transitions
+        var enfa = new EpsilonNFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: false)
+            .WithState(3, isStart: false, isAccepting: true)
+            .WithEpsilonTransition(1, 2)
+            .WithEpsilonTransition(2, 3)
+            .Build();
+
+        // Act
+        var nfa = enfa.ToNFA();
+
+        // Assert: All states in the epsilon closure of 1 should be accepting if any are accepting
+        nfa.States.First(s => s.Id == 1).IsAccepting.ShouldBeTrue();
+        nfa.States.First(s => s.Id == 2).IsAccepting.ShouldBeTrue();
+        nfa.States.First(s => s.Id == 3).IsAccepting.ShouldBeTrue();
+
+        // NFA should accept ""
+        nfa.Execute("").ShouldBeTrue();
+    }
+
+    [Fact]
+    public void ToNFA_TransitionsAreCorrectlyConverted()
+    {
+        // Arrange: EpsilonNFA with both epsilon and non-epsilon transitions
+        var enfa = new EpsilonNFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: false)
+            .WithState(3, isStart: false, isAccepting: true)
+            .WithTransition(1, 2, 'a')
+            .WithEpsilonTransition(2, 3)
+            .Build();
+
+        // Act
+        var nfa = enfa.ToNFA();
+
+        // Assert: There should be a transition from 1 to 3 on 'a' (via 2's epsilon to 3)
+        nfa.Transitions.ShouldContain(t => t.FromStateId == 1 && t.ToStateId == 3 && t.Symbol == 'a');
+        // There should also be a transition from 1 to 2 on 'a'
+        nfa.Transitions.ShouldContain(t => t.FromStateId == 1 && t.ToStateId == 2 && t.Symbol == 'a');
+        // No epsilon transitions
+        nfa.Transitions.ShouldAllBe(t => t.Symbol != '\0');
+    }
+
 }
 
 public class EpsilonNFABuilder

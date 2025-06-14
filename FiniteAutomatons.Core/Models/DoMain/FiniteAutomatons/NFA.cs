@@ -91,6 +91,15 @@ public class NFA : Automaton
         }
     }
 
+    public override void BackToStart(AutomatonExecutionState state)
+    {
+        state.Position = 0;
+        state.CurrentStates = GetInitialStates();
+        state.CurrentStateId = null;
+        state.IsAccepted = null;
+        state.StateHistory.Clear();
+    }
+
     public override AutomatonExecutionState StartExecution(string input)
     {
         return new AutomatonExecutionState(input, null, GetInitialStates());
@@ -104,14 +113,5 @@ public class NFA : Automaton
     protected virtual HashSet<int> ProcessNextStates(HashSet<int> nextStates)
     {
         return nextStates;
-    }
-
-    public override void BackToStart(AutomatonExecutionState state)
-    {
-        state.Position = 0;
-        state.CurrentStates = GetInitialStates();
-        state.CurrentStateId = null;
-        state.IsAccepted = null;
-        state.StateHistory.Clear();
     }
 }
