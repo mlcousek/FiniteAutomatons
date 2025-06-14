@@ -640,6 +640,115 @@ public class DFATests
         state.Position.ShouldBe(4);
         state.IsAccepted.ShouldBe(false);
     }
+
+    //////////// Minimalization tests for DFA
+
+    [Fact]
+    public void MinimalizeDFA_RemovesEquivalentStates_SimpleCase()
+    {
+        // Arrange: DFA with two equivalent non-accepting states (1 and 2)
+        var dfa = new DFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: false)
+            .WithState(3, isStart: false, isAccepting: true)
+            .WithTransition(1, 2, 'a')
+            .WithTransition(2, 3, 'b')
+            .WithTransition(1, 3, 'b')
+            .WithTransition(2, 2, 'a')
+            .WithTransition(3, 3, 'a')
+            .WithTransition(3, 3, 'b')
+            .Build();
+
+        // Act
+        var minimized = dfa.MinimalizeDFA();
+
+        // Assert: Should have only 3 states (merging 1 and 2 is not possible, but unreachable states are removed)
+        minimized.States.Count.ShouldBe(2);
+
+        // Language should be preserved
+        minimized.Execute("ab").ShouldBeTrue();
+        minimized.Execute("b").ShouldBeTrue();
+        minimized.Execute("aab").ShouldBeTrue();
+        minimized.Execute("a").ShouldBeFalse();
+        minimized.Execute("ba").ShouldBeTrue();
+    }
+
+    [Fact]
+    public void MinimalizeDFA_MergesEquivalentAcceptingStates()
+    {
+        // Arrange: DFA with two equivalent accepting states (2 and 3)
+        var dfa = new DFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: true)
+            .WithState(3, isStart: false, isAccepting: true)
+            .WithTransition(1, 2, 'a')
+            .WithTransition(1, 3, 'b')
+            .WithTransition(2, 2, 'a')
+            .WithTransition(2, 2, 'b')
+            .WithTransition(3, 3, 'a')
+            .WithTransition(3, 3, 'b')
+            .Build();
+
+        // Act
+        var minimized = dfa.MinimalizeDFA();
+
+        // Assert: Only two states should remain (start and merged accepting)
+        minimized.States.Count.ShouldBe(2);
+
+        // Both "a" and "b" should be accepted
+        minimized.Execute("a").ShouldBeTrue();
+        minimized.Execute("b").ShouldBeTrue();
+        minimized.Execute("aa").ShouldBeTrue();
+        minimized.Execute("bb").ShouldBeTrue();
+        minimized.Execute("").ShouldBeFalse();
+    }
+
+    [Fact]
+    public void MinimalizeDFA_DoesNotChangeAlreadyMinimalDFA()
+    {
+        // Arrange: Minimal DFA for (ab)*
+        var dfa = new DFABuilder()
+            .WithState(1, isStart: true, isAccepting: true)
+            .WithState(2, isStart: false, isAccepting: false)
+            .WithTransition(1, 2, 'a')
+            .WithTransition(2, 1, 'b')
+            .Build();
+
+        // Act
+        var minimized = dfa.MinimalizeDFA();
+
+        // Assert: Should have same number of states and same language
+        minimized.States.Count.ShouldBe(2);
+        minimized.Execute("").ShouldBeTrue();
+        minimized.Execute("ab").ShouldBeTrue();
+        minimized.Execute("abab").ShouldBeTrue();
+        minimized.Execute("a").ShouldBeFalse();
+        minimized.Execute("b").ShouldBeFalse();
+        minimized.Execute("aba").ShouldBeFalse();
+    }
+
+    [Fact]
+    public void MinimalizeDFA_RemovesUnreachableStates()
+    {
+        // Arrange: DFA with an unreachable state (state 4)
+        var dfa = new DFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: true)
+            .WithState(3, isStart: false, isAccepting: false)
+            .WithState(4, isStart: false, isAccepting: true) // unreachable
+            .WithTransition(1, 2, 'a')
+            .WithTransition(2, 3, 'b')
+            .WithTransition(3, 1, 'a')
+            .Build();
+
+        // Act
+        var minimized = dfa.MinimalizeDFA();
+
+        // Assert: State 4 should be removed
+        minimized.States.Any(s => s.Id == 4).ShouldBeFalse();
+        minimized.Execute("a").ShouldBeTrue();
+        minimized.Execute("ab").ShouldBeFalse();
+    }
 }
 
 public class DFABuilder
