@@ -475,6 +475,140 @@ public class NFATests
         state.CurrentStates.ShouldContain(1);
         state.StateHistory.Count.ShouldBe(0);
     }
+
+    [Fact]
+    public void BackToStart_ResetsStateToInitialConditions_NFA()
+    {
+        // Arrange
+        var nfa = new NFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: true)
+            .WithTransition(1, 2, 'a')
+            .Build();
+
+        var state = nfa.StartExecution("a");
+        nfa.StepForward(state); // Move to state 2, pos 1
+        state.IsAccepted = true; // Simulate acceptance
+        state.StateHistory.Push(new HashSet<int> { 1 }); // Simulate history
+
+        // Act
+        nfa.BackToStart(state);
+
+        // Assert
+        state.Position.ShouldBe(0);
+        state.CurrentStates.ShouldNotBeNull();
+        state.CurrentStates.ShouldContain(1);
+        state.CurrentStateId.ShouldBeNull();
+        state.IsAccepted.ShouldBeNull();
+        state.StateHistory.Count.ShouldBe(0);
+    }
+
+    [Fact]
+    public void BackToStart_AfterMultipleStepsAndBackwards_NFA()
+    {
+        // Arrange
+        var nfa = new NFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: false)
+            .WithState(3, isStart: false, isAccepting: true)
+            .WithTransition(1, 2, 'a')
+            .WithTransition(2, 3, 'b')
+            .Build();
+
+        var state = nfa.StartExecution("ab");
+        nfa.StepForward(state); // 'a' -> 2
+        nfa.StepForward(state); // 'b' -> 3
+        nfa.StepBackward(state); // back to 2
+        nfa.StepBackward(state); // back to 1
+
+        // Act
+        nfa.BackToStart(state);
+
+        // Assert
+        state.Position.ShouldBe(0);
+        state.CurrentStates.ShouldNotBeNull();
+        state.CurrentStates.ShouldContain(1);
+        state.CurrentStateId.ShouldBeNull();
+        state.IsAccepted.ShouldBeNull();
+        state.StateHistory.Count.ShouldBe(0);
+    }
+
+    [Fact]
+    public void NFA_FullWorkflow_ComplexScenario()
+    {
+        // Arrange: NFA for language accepting "ab", "ac", "aab", "aac", "abb", "acc"
+        var nfa = new NFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: false)
+            .WithState(3, isStart: false, isAccepting: true)
+            .WithState(4, isStart: false, isAccepting: true)
+            .WithTransition(1, 2, 'a')
+            .WithTransition(2, 3, 'b')
+            .WithTransition(2, 4, 'c')
+            .WithTransition(2, 2, 'a') // allow multiple 'a's after first
+            .Build();
+
+        // Start execution with input "aac"
+        var state = nfa.StartExecution("aac");
+
+        // Step 1: 'a' -> state 2
+        nfa.StepForward(state);
+        state.CurrentStates.ShouldNotBeNull();
+        state.CurrentStates.ShouldContain(2);
+        state.Position.ShouldBe(1);
+        state.IsAccepted.ShouldBeNull();
+
+        // Step 2: 'a' -> state 2 (self-loop)
+        nfa.StepForward(state);
+        state.CurrentStates.ShouldNotBeNull();
+        state.CurrentStates.ShouldContain(2);
+        state.Position.ShouldBe(2);
+        state.IsAccepted.ShouldBeNull();
+
+        // Step 3: 'c' -> state 4 (accepting)
+        nfa.StepForward(state);
+        state.CurrentStates.ShouldNotBeNull();
+        state.CurrentStates.ShouldContain(4);
+        state.Position.ShouldBe(3);
+        state.IsAccepted.ShouldBe(true);
+
+        // Step backward: back to state 2
+        nfa.StepBackward(state);
+        state.CurrentStates.ShouldNotBeNull();
+        state.CurrentStates.ShouldContain(2);
+        state.Position.ShouldBe(2);
+        state.IsAccepted.ShouldBeNull();
+
+        // Step forward again: 'c' -> state 4
+        nfa.StepForward(state);
+        state.CurrentStates.ShouldNotBeNull();
+        state.CurrentStates.ShouldContain(4);
+        state.Position.ShouldBe(3);
+        state.IsAccepted.ShouldBe(true);
+
+        // ExecuteAll from current position (should remain at state 4, accepting)
+        nfa.ExecuteAll(state);
+        state.CurrentStates.ShouldNotBeNull();
+        state.CurrentStates.ShouldContain(4);
+        state.Position.ShouldBe(3);
+        state.IsAccepted.ShouldBe(true);
+
+        // Back to start
+        nfa.BackToStart(state);
+        state.Position.ShouldBe(0);
+        state.CurrentStates.ShouldNotBeNull();
+        state.CurrentStates.ShouldContain(1);
+        state.CurrentStateId.ShouldBeNull();
+        state.IsAccepted.ShouldBeNull();
+        state.StateHistory.Count.ShouldBe(0);
+
+        // ExecuteAll from start (should finish at state 4, accepting)
+        nfa.ExecuteAll(state);
+        state.CurrentStates.ShouldNotBeNull();
+        state.CurrentStates.ShouldContain(4);
+        state.Position.ShouldBe(3);
+        state.IsAccepted.ShouldBe(true);
+    }
 }
 
 public class NFABuilder

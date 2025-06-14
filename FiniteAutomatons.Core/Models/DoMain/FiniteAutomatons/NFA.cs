@@ -105,4 +105,13 @@ public class NFA : Automaton
     {
         return nextStates;
     }
+
+    public override void BackToStart(AutomatonExecutionState state)
+    {
+        state.Position = 0;
+        state.CurrentStates = GetInitialStates();
+        state.CurrentStateId = null;
+        state.IsAccepted = null;
+        state.StateHistory.Clear();
+    }
 }

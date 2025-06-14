@@ -134,4 +134,13 @@ public class EpsilonNFA : NFA
     {
         AddTransition(fromStateId, toStateId, '\0');
     }
+
+    public override void BackToStart(AutomatonExecutionState state)
+    {
+        state.Position = 0;
+        state.CurrentStates = GetInitialStates();
+        state.CurrentStateId = null;
+        state.IsAccepted = null;
+        state.StateHistory.Clear();
+    }
 }

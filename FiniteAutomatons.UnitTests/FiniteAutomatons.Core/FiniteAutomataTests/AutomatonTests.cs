@@ -279,6 +279,11 @@ public class TestAutomatonBuilder
             // No-op for testing
         }
 
+        public override void BackToStart(AutomatonExecutionState state)
+        {
+            // No-op for testing
+        }
+
         public new int ValidateStartState()
         {
             return base.ValidateStartState();

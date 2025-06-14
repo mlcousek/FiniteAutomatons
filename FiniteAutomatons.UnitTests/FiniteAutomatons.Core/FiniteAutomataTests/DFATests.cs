@@ -535,6 +535,111 @@ public class DFATests
         state.CurrentStateId.ShouldBe(1);
         state.StateHistory.Count.ShouldBe(0);
     }
+
+    [Fact]
+    public void BackToStart_ResetsStateToInitialConditions()
+    {
+        // Arrange
+        var dfa = new DFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: true)
+            .WithTransition(1, 2, 'a')
+            .Build();
+
+        var state = dfa.StartExecution("a");
+        dfa.StepForward(state); // Move to state 2, pos 1
+        state.IsAccepted = true; // Simulate acceptance
+        state.StateHistory.Push([1]); // Simulate history
+
+        // Act
+        dfa.BackToStart(state);
+
+        // Assert
+        state.Position.ShouldBe(0);
+        state.CurrentStateId.ShouldBe(1);
+        state.IsAccepted.ShouldBeNull();
+        state.StateHistory.Count.ShouldBe(0);
+    }
+
+    [Fact]
+    public void DFA_FullWorkflow_ComplexScenario()
+    {
+        // Arrange: DFA for language accepting "ab", "abc", "aabbc"
+        var dfa = new DFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: false)
+            .WithState(3, isStart: false, isAccepting: true)
+            .WithState(4, isStart: false, isAccepting: false)
+            .WithTransition(1, 2, 'a')
+            .WithTransition(2, 2, 'a') // allow multiple 'a's
+            .WithTransition(2, 3, 'b')
+            .WithTransition(3, 4, 'c')
+            .Build();
+
+        // Start execution with input "aabc"
+        var state = dfa.StartExecution("aabc");
+
+        // Step 1: 'a' -> state 2
+        dfa.StepForward(state);
+        state.CurrentStateId.ShouldBe(2);
+        state.Position.ShouldBe(1);
+        state.IsAccepted.ShouldBeNull();
+
+        // Step 2: 'a' -> state 2 (self-loop)
+        dfa.StepForward(state);
+        state.CurrentStateId.ShouldBe(2);
+        state.Position.ShouldBe(2);
+        state.IsAccepted.ShouldBeNull();
+
+        // Step 3: 'b' -> state 3 (accepting)
+        dfa.StepForward(state);
+        state.CurrentStateId.ShouldBe(3);
+        state.Position.ShouldBe(3);
+        state.IsAccepted.ShouldBeNull();
+
+        // Step 4: 'c' -> state 4 (not accepting)
+        dfa.StepForward(state);
+        state.CurrentStateId.ShouldBe(4);
+        state.Position.ShouldBe(4);
+        // At end of input, check acceptance
+        state.IsAccepted.ShouldBe(false);
+
+        // Step backward: back to state 3 (accepting)
+        dfa.StepBackward(state);
+        state.CurrentStateId.ShouldBe(3);
+        state.Position.ShouldBe(3);
+        state.IsAccepted.ShouldBeNull();
+
+        // Step backward: back to state 2
+        dfa.StepBackward(state);
+        state.CurrentStateId.ShouldBe(2);
+        state.Position.ShouldBe(2);
+        state.IsAccepted.ShouldBeNull();
+
+        // Step forward again: 'b' -> state 3
+        dfa.StepForward(state);
+        state.CurrentStateId.ShouldBe(3);
+        state.Position.ShouldBe(3);
+
+        // ExecuteAll from current position (should finish at state 4, not accepting)
+        dfa.ExecuteAll(state);
+        state.CurrentStateId.ShouldBe(4);
+        state.Position.ShouldBe(4);
+        state.IsAccepted.ShouldBe(false);
+
+        // Back to start
+        dfa.BackToStart(state);
+        state.Position.ShouldBe(0);
+        state.CurrentStateId.ShouldBe(1);
+        state.IsAccepted.ShouldBeNull();
+        state.StateHistory.Count.ShouldBe(0);
+
+        // ExecuteAll from start (should finish at state 4, not accepting)
+        dfa.ExecuteAll(state);
+        state.CurrentStateId.ShouldBe(4);
+        state.Position.ShouldBe(4);
+        state.IsAccepted.ShouldBe(false);
+    }
 }
 
 public class DFABuilder

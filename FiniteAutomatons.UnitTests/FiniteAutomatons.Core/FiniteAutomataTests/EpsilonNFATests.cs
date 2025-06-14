@@ -551,6 +551,130 @@ public class EpsilonNFATests
         state.CurrentStates.Count.ShouldBe(1);
         state.StateHistory.Count.ShouldBe(0);
     }
+
+    [Fact]
+    public void BackToStart_ResetsStateToInitialConditions_EpsilonNFA()
+    {
+        // Arrange
+        var enfa = new EpsilonNFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: true)
+            .WithEpsilonTransition(1, 2)
+            .Build();
+
+        var state = enfa.StartExecution("a");
+        enfa.StepForward(state); // Move forward, change state
+        state.IsAccepted = true; // Simulate acceptance
+        state.StateHistory.Push(new HashSet<int> { 1, 2 }); // Simulate history
+
+        // Act
+        enfa.BackToStart(state);
+
+        // Assert
+        state.Position.ShouldBe(0);
+        state.CurrentStates.ShouldNotBeNull();
+        state.CurrentStates.ShouldContain(1);
+        state.CurrentStates.ShouldContain(2); // Epsilon closure includes both 1 and 2
+        state.CurrentStateId.ShouldBeNull();
+        state.IsAccepted.ShouldBeNull();
+        state.StateHistory.Count.ShouldBe(0);
+    }
+
+    [Fact]
+    public void EpsilonNFA_FullWorkflow_ComplexScenario()
+    {
+        // Arrange: EpsilonNFA for language accepting "ab", "aac", "b", and "" (via epsilon)
+        var enfa = new EpsilonNFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: false)
+            .WithState(3, isStart: false, isAccepting: true)
+            .WithState(4, isStart: false, isAccepting: true)
+            .WithTransition(1, 2, 'a')
+            .WithTransition(2, 2, 'a') // self-loop on 'a'
+            .WithTransition(2, 3, 'c')
+            .WithTransition(1, 3, 'b')
+            .WithEpsilonTransition(1, 4) // epsilon from start to accepting
+            .Build();
+
+        // Start execution with input "aac"
+        var state = enfa.StartExecution("aac");
+
+        // Step 1: 'a' -> state 2
+        enfa.StepForward(state);
+        state.CurrentStates.ShouldNotBeNull();
+        state.CurrentStates.ShouldContain(2);
+        state.Position.ShouldBe(1);
+        state.IsAccepted.ShouldBeNull();
+
+        // Step 2: 'a' -> state 2 (self-loop)
+        enfa.StepForward(state);
+        state.CurrentStates.ShouldNotBeNull();
+        state.CurrentStates.ShouldContain(2);
+        state.Position.ShouldBe(2);
+        state.IsAccepted.ShouldBeNull();
+
+        // Step 3: 'c' -> state 3 (accepting)
+        enfa.StepForward(state);
+        state.CurrentStates.ShouldNotBeNull();
+        state.CurrentStates.ShouldContain(3);
+        state.Position.ShouldBe(3);
+        state.IsAccepted.ShouldBe(true);
+
+        // Step backward: back to state 2
+        enfa.StepBackward(state);
+        state.CurrentStates.ShouldNotBeNull();
+        state.CurrentStates.ShouldContain(2);
+        state.Position.ShouldBe(2);
+        state.IsAccepted.ShouldBeNull();
+
+        // Step forward again: 'c' -> state 3
+        enfa.StepForward(state);
+        state.CurrentStates.ShouldNotBeNull();
+        state.CurrentStates.ShouldContain(3);
+        state.Position.ShouldBe(3);
+        state.IsAccepted.ShouldBe(true);
+
+        // ExecuteAll from current position (should remain at state 3, accepting)
+        enfa.ExecuteAll(state);
+        state.CurrentStates.ShouldNotBeNull();
+        state.CurrentStates.ShouldContain(3);
+        state.Position.ShouldBe(3);
+        state.IsAccepted.ShouldBe(true);
+
+        // Back to start
+        enfa.BackToStart(state);
+        state.Position.ShouldBe(0);
+        state.CurrentStates.ShouldNotBeNull();
+        state.CurrentStates.ShouldContain(1);
+        state.CurrentStates.ShouldContain(4); // Epsilon closure includes both 1 and 4
+        state.CurrentStateId.ShouldBeNull();
+        state.IsAccepted.ShouldBeNull();
+        state.StateHistory.Count.ShouldBe(0);
+
+        // ExecuteAll from start (should finish at state 3, accepting, for input "aac")
+        enfa.ExecuteAll(state);
+        state.CurrentStates.ShouldNotBeNull();
+        state.CurrentStates.ShouldContain(3);
+        state.Position.ShouldBe(3);
+        state.IsAccepted.ShouldBe(true);
+
+        // Test epsilon-only acceptance (empty input)
+        var emptyState = enfa.StartExecution("");
+        enfa.ExecuteAll(emptyState);
+        emptyState.CurrentStates.ShouldNotBeNull();
+        emptyState.CurrentStates.ShouldContain(1);
+        emptyState.CurrentStates.ShouldContain(4); // Epsilon closure includes accepting state
+        emptyState.Position.ShouldBe(0);
+        emptyState.IsAccepted.ShouldBe(true);
+
+        // Test direct 'b' transition
+        var bState = enfa.StartExecution("b");
+        enfa.ExecuteAll(bState);
+        bState.CurrentStates.ShouldNotBeNull();
+        bState.CurrentStates.ShouldContain(3);
+        bState.Position.ShouldBe(1);
+        bState.IsAccepted.ShouldBe(true);
+    }
 }
 
 public class EpsilonNFABuilder

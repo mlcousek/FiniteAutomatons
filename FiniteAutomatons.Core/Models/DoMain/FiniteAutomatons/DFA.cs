@@ -83,4 +83,12 @@ public class DFA : Automaton
             StepForward(state);
         }
     }
+
+    public override void BackToStart(AutomatonExecutionState state)
+    {
+        state.Position = 0;
+        state.CurrentStateId = States.FirstOrDefault(s => s.IsStart)?.Id;
+        state.IsAccepted = null;
+        state.StateHistory.Clear();
+    }
 }

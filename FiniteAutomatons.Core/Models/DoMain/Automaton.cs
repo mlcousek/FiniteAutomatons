@@ -105,6 +105,5 @@ public abstract class Automaton : IAutomaton
     public abstract void StepForward(AutomatonExecutionState state);
     public abstract void StepBackward(AutomatonExecutionState state);
     public abstract void ExecuteAll(AutomatonExecutionState state);
-
-    //todo stpeback and to start
+    public abstract void BackToStart(AutomatonExecutionState state);
 }
