@@ -752,6 +752,32 @@ public class EpsilonNFATests
         nfa.Transitions.ShouldAllBe(t => t.Symbol != '\0');
     }
 
+    [Fact]
+    public void ToDFA_FromEpsilonNFA_ProducesCorrectDFA()
+    {
+        // Arrange: eNFA that accepts "", "a", and "b" via epsilon transitions
+        var enfa = new EpsilonNFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: true)
+            .WithEpsilonTransition(1, 2)
+            .WithTransition(1, 2, 'a')
+            .WithTransition(2, 2, 'b')
+            .Build();
+
+        // Act
+        var nfa = enfa.ToNFA();
+        var dfa = nfa.ToDFA();
+
+        // Assert: DFA should accept "", "a", "b", "ab", "bb", "aab", etc.
+        dfa.Execute("").ShouldBeTrue();
+        dfa.Execute("a").ShouldBeTrue();
+        dfa.Execute("b").ShouldBeTrue();
+        dfa.Execute("ab").ShouldBeTrue();
+        dfa.Execute("bb").ShouldBeTrue();
+        dfa.Execute("abb").ShouldBeTrue();
+        dfa.Execute("aab").ShouldBeFalse();
+        dfa.Execute("ba").ShouldBeFalse();
+    }
 }
 
 public class EpsilonNFABuilder

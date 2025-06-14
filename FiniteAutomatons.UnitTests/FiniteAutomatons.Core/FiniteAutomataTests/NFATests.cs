@@ -609,6 +609,75 @@ public class NFATests
         state.Position.ShouldBe(3);
         state.IsAccepted.ShouldBe(true);
     }
+
+    ///////// NFA to DFA Conversion Tests
+    ///
+    [Fact]
+    public void ToDFA_SimpleNFA_CreatesEquivalentDFA()
+    {
+        // Arrange: NFA that accepts "a" or "b"
+        var nfa = new NFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: true)
+            .WithTransition(1, 2, 'a')
+            .WithTransition(1, 2, 'b')
+            .Build();
+
+        // Act
+        var dfa = nfa.ToDFA();
+
+        // Assert: DFA should accept "a" and "b", but not ""
+        dfa.Execute("a").ShouldBeTrue();
+        dfa.Execute("b").ShouldBeTrue();
+        dfa.Execute("").ShouldBeFalse();
+
+        // DFA should have no more states than 2^NFA states (here, at most 4)
+        dfa.States.Count.ShouldBeLessThanOrEqualTo(4);
+
+        // DFA should have a single start state
+        dfa.States.Count(s => s.IsStart).ShouldBe(1);
+    }
+
+    [Fact]
+    public void ToDFA_NFAWithSelfLoopAndMultipleAcceptingStates()
+    {
+        // Arrange: NFA for language (a*)b
+        var nfa = new NFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: true)
+            .WithTransition(1, 1, 'a')
+            .WithTransition(1, 2, 'b')
+            .Build();
+
+        // Act
+        var dfa = nfa.ToDFA();
+
+        // Assert: DFA should accept "b", "ab", "aab", etc.
+        dfa.Execute("b").ShouldBeTrue();
+        dfa.Execute("ab").ShouldBeTrue();
+        dfa.Execute("aab").ShouldBeTrue();
+        dfa.Execute("a").ShouldBeFalse();
+        dfa.Execute("").ShouldBeFalse();
+    }
+
+    [Fact]
+    public void ToDFA_NFAWithNoAcceptingStates_DFARejectsAll()
+    {
+        // Arrange: NFA with no accepting states
+        var nfa = new NFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: false)
+            .WithTransition(1, 2, 'a')
+            .Build();
+
+        // Act
+        var dfa = nfa.ToDFA();
+
+        // Assert: DFA should reject all inputs
+        dfa.Execute("").ShouldBeFalse();
+        dfa.Execute("a").ShouldBeFalse();
+        dfa.Execute("aa").ShouldBeFalse();
+    }
 }
 
 public class NFABuilder
