@@ -29,4 +29,8 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="FiniteAutomatons.Core\ParsingTests\Deserialization\" />
+  </ItemGroup>
+
 </Project>
