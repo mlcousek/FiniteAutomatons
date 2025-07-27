@@ -1,5 +1,4 @@
 using FiniteAutomatons.Core.Models.DoMain;
-using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.ViewModel;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
@@ -53,17 +52,17 @@ public class HomeController(ILogger<HomeController> logger) : Controller
         return View(model);
     }
 
-    [HttpPost]
-    public IActionResult SimulateDfa([FromForm] DfaViewModel model)
-    {
-        var dfa = new DFA();
-        dfa.States.AddRange(model.States);
-        dfa.Transitions.AddRange(model.Transitions);
-        var result = dfa.Execute(model.Input);
-        model.Result = result;
-        model.Alphabet = [.. dfa.Transitions.Select(t => t.Symbol).Distinct()];
-        return View("Index", model);
-    }
+    //[HttpPost]
+    //public IActionResult SimulateDfa([FromForm] DfaViewModel model)
+    //{
+    //    var dfa = new DFA();
+    //    dfa.States.AddRange(model.States);
+    //    dfa.Transitions.AddRange(model.Transitions);
+    //    var result = dfa.Execute(model.Input);
+    //    model.Result = result;
+    //    model.Alphabet = [.. dfa.Transitions.Select(t => t.Symbol).Distinct()];
+    //    return View("Index", model);
+    //}
 
     public IActionResult Privacy()
     {

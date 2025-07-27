@@ -1,69 +1,22 @@
-using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
+using FiniteAutomatons.Core.Models.ViewModel;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FiniteAutomatons.Controllers;
 
-[ApiController]
-[Route("api/[controller]")]
-public class AutomatonController : ControllerBase
+public class AutomatonController(ILogger<AutomatonController> logger) : Controller
 {
-    [HttpPost("simulate-dfa")]
-    public IActionResult SimulateDfa([FromBody] AutomatonDto dto)
+    private readonly ILogger<AutomatonController> _logger = logger;
+
+    [HttpPost]
+    public IActionResult SimulateDfa([FromForm] DfaViewModel model)
     {
         var dfa = new DFA();
-        dfa.States.AddRange(dto.States);
-        dfa.Transitions.AddRange(dto.Transitions);
-        var result = dfa.Execute(dto.Input);
-        return Ok(new { accepted = result });
+        dfa.States.AddRange(model.States);
+        dfa.Transitions.AddRange(model.Transitions);
+        var result = dfa.Execute(model.Input);
+        model.Result = result;
+        model.Alphabet = [.. dfa.Transitions.Select(t => t.Symbol).Distinct()];
+        return View("../Home/Index", model);
     }
-
-    [HttpPost("simulate-dfa-stepwise")]
-    public IActionResult SimulateDfaStepwise([FromBody] AutomatonDto dto)
-    {
-        var dfa = new DFA();
-        dfa.States.AddRange(dto.States);
-        dfa.Transitions.AddRange(dto.Transitions);
-        // var steps = dfa.GetStepwiseExecution(dto.Input);
-        return Ok();//steps);
-    }
-
-    [HttpPost("simulate-nfa")]
-    public IActionResult SimulateNfa([FromBody] AutomatonDto dto)
-    {
-        var nfa = new NFA();
-        nfa.States.AddRange(dto.States);
-        nfa.Transitions.AddRange(dto.Transitions);
-        var result = nfa.Execute(dto.Input);
-        return Ok(new { accepted = result });
-    }
-
-    [HttpPost("simulate-nfa-stepwise")]
-    public IActionResult SimulateNfaStepwise([FromBody] AutomatonDto dto)
-    {
-        var nfa = new NFA();
-        nfa.States.AddRange(dto.States);
-        nfa.Transitions.AddRange(dto.Transitions);
-        //var steps = nfa.GetStepwiseExecution(dto.Input);
-        return Ok();// steps)
-    }
-
-    [HttpPost("minimize-dfa")]
-    public IActionResult MinimizeDfa([FromBody] AutomatonDto dto)
-    {
-        var dfa = new DFA();
-        dfa.States.AddRange(dto.States);
-        dfa.Transitions.AddRange(dto.Transitions);
-        // var minimized = DfaMinimizer.Minimize(dfa);
-        return Ok();//minimized);
-    }
-
-    // TODO: Add endpoints for regex, etc.
-}
-
-public class AutomatonDto
-{
-    public List<State> States { get; set; } = [];
-    public List<Transition> Transitions { get; set; } = [];
-    public string Input { get; set; } = string.Empty;
 }

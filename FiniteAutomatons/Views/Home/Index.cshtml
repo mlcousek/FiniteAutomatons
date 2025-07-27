@@ -33,7 +33,7 @@
 }
 </ul>
 
-<form asp-action="SimulateDfa" method="post">
+<form asp-controller="Automaton" asp-action="SimulateDfa" method="post">
     <div class="mb-3">
         <label for="inputString" class="form-label">Input String</label>
         <input type="text" class="form-control" id="inputString" name="Input" value="@Model.Input" />
