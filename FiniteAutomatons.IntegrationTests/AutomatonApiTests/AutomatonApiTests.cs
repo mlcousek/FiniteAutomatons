@@ -1,5 +1,6 @@
 using FiniteAutomatons.Core.Models.ViewModel;
 using System.Net;
+using System.Text.RegularExpressions;
 
 namespace FiniteAutomatons.IntegrationTests.AutomatonApiTests;
 
@@ -70,6 +71,37 @@ public class AutomatonApiTests(IntegrationTestsFixture fixture) : IntegrationTes
         return new FormUrlEncodedContent(dict);
     }
 
+    private static void UpdateModelFromHtml(DfaViewModel model, string html)
+    {
+        // Extract CurrentStateId
+        var currentStateMatch = Regex.Match(html, @"name=""CurrentStateId"" value=""([^""]*)""");
+        if (currentStateMatch.Success && int.TryParse(currentStateMatch.Groups[1].Value, out int currentStateId))
+        {
+            model.CurrentStateId = currentStateId;
+        }
+
+        // Extract Position
+        var positionMatch = Regex.Match(html, @"name=""Position"" value=""([^""]*)""");
+        if (positionMatch.Success && int.TryParse(positionMatch.Groups[1].Value, out int position))
+        {
+            model.Position = position;
+        }
+
+        // Extract IsAccepted
+        var isAcceptedMatch = Regex.Match(html, @"name=""IsAccepted"" value=""([^""]*)""");
+        if (isAcceptedMatch.Success && bool.TryParse(isAcceptedMatch.Groups[1].Value, out bool isAccepted))
+        {
+            model.IsAccepted = isAccepted;
+        }
+
+        // Extract StateHistorySerialized
+        var stateHistoryMatch = Regex.Match(html, @"name=""StateHistorySerialized"" value=""([^""]*)""");
+        if (stateHistoryMatch.Success)
+        {
+            model.StateHistorySerialized = stateHistoryMatch.Groups[1].Value;
+        }
+    }
+
     [Fact]
     public async Task ExecuteAll_AcceptsInputLeadingToAccepting()
     {
@@ -116,25 +148,48 @@ public class AutomatonApiTests(IntegrationTestsFixture fixture) : IntegrationTes
         var response = await client.PostAsync("/Automaton/StepForward", form);
         var html = await response.Content.ReadAsStringAsync();
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Contains("Current State: 2", html);
+        
+        // Debug: Check what we actually get for Current State
+        if (html.Contains("Current State:</strong> 2"))
+        {
+            // Continue with the test...
+            Assert.Contains("Current State:</strong> 2", html);
+        }
+        else if (html.Contains("Current State:</strong>"))
+        {
+            // Find what state it actually shows
+            var stateMatch = Regex.Match(html, @"Current State:</strong>\s*(\d+)");
+            if (stateMatch.Success)
+            {
+                Assert.Fail($"Expected state 2, but got state {stateMatch.Groups[1].Value}");
+            }
+            else
+            {
+                Assert.Fail("Found Current State section but couldn't parse the state number");
+            }
+        }
+        else
+        {
+            Assert.Fail("No Current State section found in HTML");
+        }
 
-        // Step 2: StepForward again (should move to state 3)
-        // Need to extract updated state from response (simulate round-trip)
-        // For simplicity, just re-post with updated position
-        model.CurrentStateId = 2;
-        model.Position = 1;
+        // Update model from response
+        UpdateModelFromHtml(model, html);
+
+        // Step 2: StepForward again (with 'b' should move to state 5, not 3!)
         form = ToFormContent(model);
         response = await client.PostAsync("/Automaton/StepForward", form);
         html = await response.Content.ReadAsStringAsync();
-        Assert.Contains("Current State: 3", html);
+        Assert.Contains("Current State:</strong> 5", html);
+
+        // Update model from response
+        UpdateModelFromHtml(model, html);
 
         // Step 3: StepBackward (should move back to state 2)
-        model.CurrentStateId = 3;
-        model.Position = 2;
         form = ToFormContent(model);
         response = await client.PostAsync("/Automaton/StepBackward", form);
         html = await response.Content.ReadAsStringAsync();
-        Assert.Contains("Current State: 2", html);
+        Assert.Contains("Current State:</strong> 2", html);
     }
 
     [Fact]
@@ -260,31 +315,33 @@ public class AutomatonApiTests(IntegrationTestsFixture fixture) : IntegrationTes
         var model = GetDefaultDfaViewModel("abca");
         var client = GetHttpClient();
         var form = ToFormContent(model);
+        
         // Step 1: StepForward (should move to state 2)
         var response = await client.PostAsync("/Automaton/StepForward", form);
         var html = await response.Content.ReadAsStringAsync();
-        Assert.Contains("Current State: 2", html);
-        // Step 2: StepForward (should move to state 3)
-        model.CurrentStateId = 2;
-        model.Position = 1;
+        Assert.Contains("Current State:</strong> 2", html);
+        UpdateModelFromHtml(model, html);
+        
+        // Step 2: StepForward (with 'b' should move to state 5, not 3!)
         form = ToFormContent(model);
         response = await client.PostAsync("/Automaton/StepForward", form);
         html = await response.Content.ReadAsStringAsync();
-        Assert.Contains("Current State: 3", html);
+        Assert.Contains("Current State:</strong> 5", html);
+        UpdateModelFromHtml(model, html);
+        
         // Step 3: StepBackward (should move back to state 2)
-        model.CurrentStateId = 3;
-        model.Position = 2;
         form = ToFormContent(model);
         response = await client.PostAsync("/Automaton/StepBackward", form);
         html = await response.Content.ReadAsStringAsync();
-        Assert.Contains("Current State: 2", html);
+        Assert.Contains("Current State:</strong> 2", html);
+        UpdateModelFromHtml(model, html);
+        
         // Step 4: ExecuteAll (should end in state 5)
-        model.CurrentStateId = 2;
-        model.Position = 1;
         form = ToFormContent(model);
         response = await client.PostAsync("/Automaton/ExecuteAll", form);
         html = await response.Content.ReadAsStringAsync();
         Assert.Contains("Accepted", html);
+        
         // Step 5: Reset
         response = await client.PostAsync("/Automaton/Reset", form);
         html = await response.Content.ReadAsStringAsync();

@@ -21,8 +21,12 @@ public class AutomatonController(ILogger<AutomatonController> logger) : Controll
         if (!string.IsNullOrEmpty(model.StateHistorySerialized))
         {
             var stackList = JsonSerializer.Deserialize<List<List<int>>>(model.StateHistorySerialized) ?? [];
-            foreach (var item in stackList)
-                state.StateHistory.Push([.. item]);
+            // Since we serialized as [top, ..., bottom], we need to push in reverse order
+            // to restore the original stack order
+            for (int i = stackList.Count - 1; i >= 0; i--)
+            {
+                state.StateHistory.Push([.. stackList[i]]);
+            }
         }
         return state;
     }
@@ -32,8 +36,9 @@ public class AutomatonController(ILogger<AutomatonController> logger) : Controll
         model.CurrentStateId = state.CurrentStateId;
         model.Position = state.Position;
         model.IsAccepted = state.IsAccepted;
-        // Serialize StateHistory
-        var stackList = state.StateHistory.Select(s => s.ToList()).ToList();
+        // Serialize StateHistory - convert stack to array first to preserve LIFO order
+        var stackArray = state.StateHistory.ToArray(); // This gives us [top, ..., bottom]
+        var stackList = stackArray.Select(s => s.ToList()).ToList();
         model.StateHistorySerialized = JsonSerializer.Serialize(stackList);
     }
 

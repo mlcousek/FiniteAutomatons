@@ -39,18 +39,12 @@ public class DFA : Automaton
 
         state.Position--;
 
-        // Restore the previous state from the bottom of the history stack (oldest)
+        // Restore the previous state from the history stack using standard Pop()
         if (state.StateHistory.Count > 0)
         {
-            // To remove the bottom item, we need to reverse the stack, remove the first, and rebuild
-            var items = state.StateHistory.ToArray(); // top-to-bottom
-            Array.Reverse(items); // now bottom-to-top
-            var bottom = items[0];
-            state.StateHistory.Clear();
-            for (int i = items.Length - 1; i >= 1; i--)
-                state.StateHistory.Push(items[i]);
+            var previousStates = state.StateHistory.Pop();
             // DFA only ever has one state in the set
-            state.CurrentStateId = bottom.FirstOrDefault();
+            state.CurrentStateId = previousStates.FirstOrDefault();
         }
         else
         {

@@ -46,9 +46,8 @@ public class EpsilonNFA : NFA
             return;
         }
 
-
-        // Always push the closure of the current states to history
-        state.StateHistory.Push(state.CurrentStates != null ? [.. ProcessNextStates(state.CurrentStates)] : []);
+        // Push the current states to history (before processing the next step)
+        state.StateHistory.Push(state.CurrentStates != null ? [.. state.CurrentStates] : []);
 
         char symbol = state.Input[state.Position];
         var nextStates = new HashSet<int>();
@@ -84,11 +83,7 @@ public class EpsilonNFA : NFA
         // Restore the previous set of states from the history stack
         if (state.StateHistory.Count > 0)
         {
-            state.CurrentStates = ProcessNextStates(state.StateHistory.Pop());
-
-            state.CurrentStates = ProcessNextStates(state.CurrentStates);
-
-
+            state.CurrentStates = state.StateHistory.Pop();
         }
         else
         {
