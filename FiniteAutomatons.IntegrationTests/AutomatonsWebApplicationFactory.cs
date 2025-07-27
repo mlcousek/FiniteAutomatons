@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.InMemory;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -10,7 +9,7 @@ namespace FiniteAutomatons.IntegrationTests;
 
 public class AutomatonsWebApplicationFactory<TProgram>(string dbConnetionString) : WebApplicationFactory<TProgram> where TProgram : class
 {
-    private readonly string _dbConnetionString = dbConnetionString ?? throw new ArgumentNullException(nameof(dbConnetionString));
+    private readonly string dbConnetionString = dbConnetionString ?? throw new ArgumentNullException(nameof(dbConnetionString));
     protected override IHost CreateHost(IHostBuilder builder)
     {
         try
@@ -44,7 +43,7 @@ public class AutomatonsWebApplicationFactory<TProgram>(string dbConnetionString)
             services.AddDbContext<ApplicationDbContext>(options =>
             {
                 // options.UseSqlServer("Server=localhost,1433;Database=TestDb;User Id=sa;Password=YourStrong!Passw0rd;");
-                options.UseSqlServer(_dbConnetionString);
+                options.UseSqlServer(dbConnetionString);
             });
 
             // Build the service provider

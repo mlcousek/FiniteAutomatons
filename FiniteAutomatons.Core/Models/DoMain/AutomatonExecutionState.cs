@@ -1,9 +1,9 @@
 ﻿namespace FiniteAutomatons.Core.Models.DoMain;
 
-public class AutomatonExecutionState(string input, int? startStateId = null, HashSet<int>? startStates = null)
+public class AutomatonExecutionState(string input, int? StateId = null, HashSet<int>? States = null)
 {
-    public int? CurrentStateId { get; set; } = startStateId;
-    public HashSet<int>? CurrentStates { get; set; } = startStates;
+    public int? CurrentStateId { get; set; } = StateId;
+    public HashSet<int>? CurrentStates { get; set; } = States;
     public string Input { get; } = input;
     public int Position { get; set; } = 0;
     public bool IsFinished => Position >= Input.Length;

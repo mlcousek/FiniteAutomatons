@@ -3,7 +3,36 @@
     ViewData["Title"] = "Automaton Simulator";
 }
 
-<h1>Automaton Simulator (DFA)</h1>
+<div class="alert alert-primary">
+    <h2>Welcome to the DFA Simulator!</h2>
+    <p>
+        This tool allows you to simulate a Deterministic Finite Automaton (DFA) step by step.<br />
+        <strong>How to use:</strong>
+        <ul>
+            <li>Enter an input string (using the automaton's alphabet) in the input box below.</li>
+            <li><strong>Step Forward</strong>: Move the automaton one step forward, processing the next symbol.</li>
+            <li><strong>Step Backward</strong>: Move one step back in the input (undo the last step).</li>
+            <li><strong>Execute All</strong>: Run the automaton on the entire input string at once.</li>
+            <li><strong>Back To Start</strong>: Reset the automaton to the initial state and position.</li>
+            <li><strong>Reset</strong>: Clear the automaton and input to start a new simulation.</li>
+        </ul>
+        <strong>Current State</strong> and <strong>Current Position</strong> are shown below, so you can track the automaton's progress as you step through the input.
+        <br />
+        The result (Accepted/Rejected) will be displayed after running or stepping through the input.
+    </p>
+</div>
+
+@if (Model.CurrentStateId != null)
+{
+    <div class="alert alert-info">
+        <strong>Current State:</strong> @Model.CurrentStateId<br />
+        <strong>Current Position:</strong> @Model.Position
+        @if (!string.IsNullOrEmpty(Model.Input) && Model.Position < Model.Input.Length)
+        {
+            <span>(Next symbol: '@Model.Input[Model.Position]')</span>
+        }
+    </div>
+}
 
 <h3>States</h3>
 <ul>
@@ -33,7 +62,7 @@
 }
 </ul>
 
-<form asp-controller="Automaton" asp-action="SimulateDfa" method="post">
+<form id="dfaForm" asp-controller="Automaton" asp-action="SimulateDfa" method="post">
     <div class="mb-3">
         <label for="inputString" class="form-label">Input String</label>
         <input type="text" class="form-control" id="inputString" name="Input" value="@Model.Input" />
@@ -50,7 +79,16 @@
         <input type="hidden" name="Transitions[@i].ToStateId" value="@Model.Transitions[i].ToStateId" />
         <input type="hidden" name="Transitions[@i].Symbol" value="@Model.Transitions[i].Symbol" />
     }
-    <button type="submit" class="btn btn-primary">Run DFA</button>
+    <!-- DFA execution state round-trip -->
+    <input type="hidden" name="CurrentStateId" value="@Model.CurrentStateId" />
+    <input type="hidden" name="Position" value="@Model.Position" />
+    <input type="hidden" name="IsAccepted" value="@Model.IsAccepted" />
+    <input type="hidden" name="StateHistorySerialized" value="@Model.StateHistorySerialized" />
+    <button type="submit" class="btn btn-primary" formaction="/Automaton/StepForward">Step Forward</button>
+    <button type="submit" class="btn btn-secondary" formaction="/Automaton/StepBackward">Step Backward</button>
+    <button type="submit" class="btn btn-success" formaction="/Automaton/ExecuteAll">Execute All</button>
+    <button type="submit" class="btn btn-warning" formaction="/Automaton/BackToStart">Back To Start</button>
+    <button type="submit" class="btn btn-danger" formaction="/Automaton/Reset">Reset</button>
 </form>
 
 @if (Model.Result != null)

@@ -6,10 +6,8 @@ namespace FiniteAutomatons.IntegrationTests;
 
 
 [Collection("Integration Tests")]
-public class TestIntegrationTests : IntegrationTestsBase
+public class TestIntegrationTests(IntegrationTestsFixture fixture) : IntegrationTestsBase(fixture)
 {
-    public TestIntegrationTests(IntegrationTestsFixture fixture) : base(fixture) { }
-
     [Fact]
     public async Task Test_ApplicationRunning_ReturnsSuccess()
     {
@@ -30,20 +28,18 @@ public class TestIntegrationTests : IntegrationTestsBase
         var userName = "testuser@example.com";
         var password = "Test@1234";
 
-        using (var scope = GetServiceScope())
-        {
-            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
+        using var scope = GetServiceScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
 
-            // Act
-            var user = new IdentityUser { UserName = userName, Email = userName };
-            var result = await userManager.CreateAsync(user, password);
+        // Act
+        var user = new IdentityUser { UserName = userName, Email = userName };
+        var result = await userManager.CreateAsync(user, password);
 
-            // Assert
-            result.Succeeded.ShouldBeTrue("User creation should succeed");
+        // Assert
+        result.Succeeded.ShouldBeTrue("User creation should succeed");
 
-            var createdUser = await userManager.FindByNameAsync(userName);
-            createdUser.ShouldNotBeNull();
-            createdUser.UserName.ShouldBe(userName);
-        }
+        var createdUser = await userManager.FindByNameAsync(userName);
+        createdUser.ShouldNotBeNull();
+        createdUser.UserName.ShouldBe(userName);
     }
 }

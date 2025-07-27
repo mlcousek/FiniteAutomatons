@@ -39,12 +39,18 @@ public class DFA : Automaton
 
         state.Position--;
 
-        // Restore the previous state from the history stack
+        // Restore the previous state from the bottom of the history stack (oldest)
         if (state.StateHistory.Count > 0)
         {
-            var prevStates = state.StateHistory.Pop();
+            // To remove the bottom item, we need to reverse the stack, remove the first, and rebuild
+            var items = state.StateHistory.ToArray(); // top-to-bottom
+            Array.Reverse(items); // now bottom-to-top
+            var bottom = items[0];
+            state.StateHistory.Clear();
+            for (int i = items.Length - 1; i >= 1; i--)
+                state.StateHistory.Push(items[i]);
             // DFA only ever has one state in the set
-            state.CurrentStateId = prevStates.FirstOrDefault();
+            state.CurrentStateId = bottom.FirstOrDefault();
         }
         else
         {
@@ -72,7 +78,8 @@ public class DFA : Automaton
 
     public override void ExecuteAll(AutomatonExecutionState state)
     {
-        if (state.Input.Length == 0)
+        // If input is empty, DFA should only accept if the start state is accepting
+        if (string.IsNullOrEmpty(state.Input))
         {
             state.IsAccepted = States.Any(s => s.Id == state.CurrentStateId && s.IsAccepting);
             return;

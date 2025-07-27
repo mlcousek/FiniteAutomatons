@@ -10,4 +10,10 @@ public class DfaViewModel
     public List<char> Alphabet { get; set; } = [];
     public string Input { get; set; } = string.Empty;
     public bool? Result { get; set; }
+
+    // Execution state for stepwise DFA
+    public int? CurrentStateId { get; set; }
+    public int Position { get; set; }
+    public bool? IsAccepted { get; set; }
+    public string StateHistorySerialized { get; set; } = string.Empty; // for round-tripping stack
 }
