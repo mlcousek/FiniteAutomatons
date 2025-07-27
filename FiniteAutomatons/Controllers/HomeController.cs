@@ -1,3 +1,5 @@
+using FiniteAutomatons.Core.Models.DoMain;
+using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.ViewModel;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
@@ -10,7 +12,57 @@ public class HomeController(ILogger<HomeController> logger) : Controller
 
     public IActionResult Index()
     {
-        return View();
+        // Define a more complex DFA: 5 states, alphabet {a, b, c}
+        var states = new List<State>
+        {
+            new() { Id = 1, IsStart = true, IsAccepting = false },
+            new() { Id = 2, IsStart = false, IsAccepting = false },
+            new() { Id = 3, IsStart = false, IsAccepting = false },
+            new() { Id = 4, IsStart = false, IsAccepting = false },
+            new() { Id = 5, IsStart = false, IsAccepting = true }
+        };
+        var transitions = new List<Transition>
+        {
+            new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' },
+            new() { FromStateId = 1, ToStateId = 3, Symbol = 'b' },
+            new() { FromStateId = 1, ToStateId = 4, Symbol = 'c' },
+
+            new() { FromStateId = 2, ToStateId = 2, Symbol = 'a' },
+            new() { FromStateId = 2, ToStateId = 5, Symbol = 'b' },
+            new() { FromStateId = 2, ToStateId = 3, Symbol = 'c' },
+
+            new() { FromStateId = 3, ToStateId = 4, Symbol = 'a' },
+            new() { FromStateId = 3, ToStateId = 3, Symbol = 'b' },
+            new() { FromStateId = 3, ToStateId = 1, Symbol = 'c' },
+
+            new() { FromStateId = 4, ToStateId = 5, Symbol = 'a' },
+            new() { FromStateId = 4, ToStateId = 2, Symbol = 'b' },
+            new() { FromStateId = 4, ToStateId = 4, Symbol = 'c' },
+
+            new() { FromStateId = 5, ToStateId = 5, Symbol = 'a' },
+            new() { FromStateId = 5, ToStateId = 5, Symbol = 'b' },
+            new() { FromStateId = 5, ToStateId = 5, Symbol = 'c' }
+        };
+        var alphabet = new List<char> { 'a', 'b', 'c' };
+        var model = new DfaViewModel
+        {
+            States = states,
+            Transitions = transitions,
+            Alphabet = alphabet
+        };
+        return View(model);
+    }
+
+    [HttpPost]
+    public IActionResult SimulateDfa([FromForm] DfaViewModel model)
+    {
+        var dfa = new DFA();
+        dfa.States.AddRange(model.States);
+        dfa.Transitions.AddRange(model.Transitions);
+        var result = dfa.Execute(model.Input);
+        model.Result = result;
+        model.Alphabet = [.. dfa.Transitions.Select(t => t.Symbol).Distinct()];
+        return View("Index", model);
     }
 
     public IActionResult Privacy()

@@ -1,8 +1,62 @@
-﻿@{
+﻿@model FiniteAutomatons.Core.Models.ViewModel.DfaViewModel
+@{
     ViewData["Title"] = "Automaton Simulator";
 }
 
-<h1>
-Hello World    
-</h1>
+<h1>Automaton Simulator (DFA)</h1>
+
+<h3>States</h3>
+<ul>
+@foreach (var state in Model.States)
+{
+    <li>
+        State @state.Id
+        @(state.IsStart ? "(Start)" : "")
+        @(state.IsAccepting ? "(Accepting)" : "")
+    </li>
+}
+</ul>
+
+<h3>Alphabet</h3>
+<ul>
+@foreach (var symbol in Model.Alphabet)
+{
+    <li>@symbol</li>
+}
+</ul>
+
+<h3>Transitions</h3>
+<ul>
+@foreach (var t in Model.Transitions)
+{
+    <li>@t.FromStateId -- @t.Symbol --> @t.ToStateId</li>
+}
+</ul>
+
+<form asp-action="SimulateDfa" method="post">
+    <div class="mb-3">
+        <label for="inputString" class="form-label">Input String</label>
+        <input type="text" class="form-control" id="inputString" name="Input" value="@Model.Input" />
+    </div>
+    @for (int i = 0; i < Model.States.Count; i++)
+    {
+        <input type="hidden" name="States[@i].Id" value="@Model.States[i].Id" />
+        <input type="hidden" name="States[@i].IsStart" value="@(Model.States[i].IsStart.ToString().ToLower())" />
+        <input type="hidden" name="States[@i].IsAccepting" value="@(Model.States[i].IsAccepting.ToString().ToLower())" />
+    }
+    @for (int i = 0; i < Model.Transitions.Count; i++)
+    {
+        <input type="hidden" name="Transitions[@i].FromStateId" value="@Model.Transitions[i].FromStateId" />
+        <input type="hidden" name="Transitions[@i].ToStateId" value="@Model.Transitions[i].ToStateId" />
+        <input type="hidden" name="Transitions[@i].Symbol" value="@Model.Transitions[i].Symbol" />
+    }
+    <button type="submit" class="btn btn-primary">Run DFA</button>
+</form>
+
+@if (Model.Result != null)
+{
+    <div class="alert @(Model.Result.Value ? "alert-success" : "alert-danger") mt-3">
+        Result: @(Model.Result.Value ? "Accepted" : "Rejected")
+    </div>
+}
 
