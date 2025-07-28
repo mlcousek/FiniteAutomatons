@@ -20,6 +20,12 @@
         <br />
         The result (Accepted/Rejected) will be displayed after running or stepping through the input.
     </p>
+    <div class="mt-3">
+        <a asp-action="CreateAutomaton" class="btn btn-outline-primary">
+            <i class="fas fa-plus"></i> Create Your Own Automaton
+        </a>
+        <small class="text-muted ms-2">Or use the default automaton below</small>
+    </div>
 </div>
 
 @if (Model.CurrentStateId != null)
@@ -34,67 +40,151 @@
     </div>
 }
 
-<h3>States</h3>
-<ul>
-@foreach (var state in Model.States)
+<!-- Automaton Visualization -->
+@if (Model.IsCustomAutomaton)
 {
-    <li>
-        State @state.Id
-        @(state.IsStart ? "(Start)" : "")
-        @(state.IsAccepting ? "(Accepting)" : "")
-    </li>
-}
-</ul>
-
-<h3>Alphabet</h3>
-<ul>
-@foreach (var symbol in Model.Alphabet)
-{
-    <li>@symbol</li>
-}
-</ul>
-
-<h3>Transitions</h3>
-<ul>
-@foreach (var t in Model.Transitions)
-{
-    <li>@t.FromStateId -- @t.Symbol --> @t.ToStateId</li>
-}
-</ul>
-
-<form id="dfaForm" asp-controller="Automaton" asp-action="SimulateDfa" method="post">
-    <div class="mb-3">
-        <label for="inputString" class="form-label">Input String</label>
-        <input type="text" class="form-control" id="inputString" name="Input" value="@Model.Input" />
+    <div class="alert alert-success">
+        <strong><i class="fas fa-user"></i> Custom Automaton</strong> - You are using your own created automaton!
+        <a asp-action="CreateAutomaton" class="btn btn-sm btn-outline-success ms-2">Edit Automaton</a>
     </div>
-    @for (int i = 0; i < Model.States.Count; i++)
-    {
-        <input type="hidden" name="States[@i].Id" value="@Model.States[i].Id" />
-        <input type="hidden" name="States[@i].IsStart" value="@(Model.States[i].IsStart.ToString().ToLower())" />
-        <input type="hidden" name="States[@i].IsAccepting" value="@(Model.States[i].IsAccepting.ToString().ToLower())" />
-    }
-    @for (int i = 0; i < Model.Transitions.Count; i++)
-    {
-        <input type="hidden" name="Transitions[@i].FromStateId" value="@Model.Transitions[i].FromStateId" />
-        <input type="hidden" name="Transitions[@i].ToStateId" value="@Model.Transitions[i].ToStateId" />
-        <input type="hidden" name="Transitions[@i].Symbol" value="@Model.Transitions[i].Symbol" />
-    }
-    <!-- DFA execution state round-trip -->
-    <input type="hidden" name="CurrentStateId" value="@Model.CurrentStateId" />
-    <input type="hidden" name="Position" value="@Model.Position" />
-    <input type="hidden" name="IsAccepted" value="@Model.IsAccepted" />
-    <input type="hidden" name="StateHistorySerialized" value="@Model.StateHistorySerialized" />
-    <button type="submit" class="btn btn-primary" formaction="/Automaton/StepForward">Step Forward</button>
-    <button type="submit" class="btn btn-secondary" formaction="/Automaton/StepBackward">Step Backward</button>
-    <button type="submit" class="btn btn-success" formaction="/Automaton/ExecuteAll">Execute All</button>
-    <button type="submit" class="btn btn-warning" formaction="/Automaton/BackToStart">Back To Start</button>
-    <button type="submit" class="btn btn-danger" formaction="/Automaton/Reset">Reset</button>
-</form>
+}
+else
+{
+    <div class="alert alert-info">
+        <strong><i class="fas fa-cog"></i> Default Automaton</strong> - This is the sample 5-state DFA with alphabet {a, b, c}.
+    </div>
+}
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-circle"></i> States</h5>
+            </div>
+            <div class="card-body">
+                @foreach (var state in Model.States)
+                {
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span>
+                            <strong>State @state.Id</strong>
+                            @if (state.IsStart) { <span class="badge bg-primary">Start</span> }
+                            @if (state.IsAccepting) { <span class="badge bg-success">Accept</span> }
+                        </span>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-font"></i> Alphabet</h5>
+            </div>
+            <div class="card-body">
+                @foreach (var symbol in Model.Alphabet)
+                {
+                    <span class="badge bg-info me-2 mb-1">@symbol</span>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-arrow-right"></i> Transitions</h5>
+            </div>
+            <div class="card-body" style="max-height: 200px; overflow-y: auto;">
+                @foreach (var t in Model.Transitions)
+                {
+                    <div class="small mb-1">
+                        <code>@t.FromStateId --@t.Symbol--> @t.ToStateId</code>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mt-3">
+    <div class="card-header">
+        <h5><i class="fas fa-play"></i> Simulation Controls</h5>
+    </div>
+    <div class="card-body">
+        <form id="dfaForm" asp-controller="Automaton" asp-action="SimulateDfa" method="post">
+            <div class="mb-3">
+                <label for="inputString" class="form-label">Input String</label>
+                <input type="text" class="form-control" id="inputString" name="Input" value="@Model.Input" 
+                       placeholder="Enter a string using the alphabet above..." />
+            </div>
+            
+            @for (int i = 0; i < Model.States.Count; i++)
+            {
+                <input type="hidden" name="States[@i].Id" value="@Model.States[i].Id" />
+                <input type="hidden" name="States[@i].IsStart" value="@(Model.States[i].IsStart.ToString().ToLower())" />
+                <input type="hidden" name="States[@i].IsAccepting" value="@(Model.States[i].IsAccepting.ToString().ToLower())" />
+            }
+            @for (int i = 0; i < Model.Transitions.Count; i++)
+            {
+                <input type="hidden" name="Transitions[@i].FromStateId" value="@Model.Transitions[i].FromStateId" />
+                <input type="hidden" name="Transitions[@i].ToStateId" value="@Model.Transitions[i].ToStateId" />
+                <input type="hidden" name="Transitions[@i].Symbol" value="@Model.Transitions[i].Symbol" />
+            }
+            <!-- DFA execution state round-trip -->
+            <input type="hidden" name="CurrentStateId" value="@Model.CurrentStateId" />
+            <input type="hidden" name="Position" value="@Model.Position" />
+            <input type="hidden" name="IsAccepted" value="@Model.IsAccepted" />
+            <input type="hidden" name="StateHistorySerialized" value="@Model.StateHistorySerialized" />
+            <input type="hidden" name="IsCustomAutomaton" value="@Model.IsCustomAutomaton.ToString().ToLower()" />
+            
+            <div class="btn-group" role="group">
+                <button type="submit" class="btn btn-primary" formaction="/Automaton/StepForward">
+                    <i class="fas fa-step-forward"></i> Step Forward
+                </button>
+                <button type="submit" class="btn btn-secondary" formaction="/Automaton/StepBackward">
+                    <i class="fas fa-step-backward"></i> Step Backward
+                </button>
+                <button type="submit" class="btn btn-success" formaction="/Automaton/ExecuteAll">
+                    <i class="fas fa-play"></i> Execute All
+                </button>
+                <button type="submit" class="btn btn-warning" formaction="/Automaton/BackToStart">
+                    <i class="fas fa-home"></i> Back To Start
+                </button>
+                <button type="submit" class="btn btn-danger" formaction="/Automaton/Reset">
+                    <i class="fas fa-refresh"></i> Reset
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 
 @if (Model.Result != null)
 {
     <div class="alert @(Model.Result.Value ? "alert-success" : "alert-danger") mt-3">
-        Result: @(Model.Result.Value ? "Accepted" : "Rejected")
+        <strong>Result:</strong> 
+        <i class="fas @(Model.Result.Value ? "fa-check-circle" : "fa-times-circle")"></i>
+        @(Model.Result.Value ? "Accepted" : "Rejected")
     </div>
+}
+
+@section Scripts {
+    <script>
+        // Auto-validate input against alphabet
+        document.getElementById('inputString').addEventListener('input', function() {
+            const alphabet = [@Html.Raw(string.Join(",", Model.Alphabet.Select(c => $"'{c}'")))];
+            const input = this.value;
+            let isValid = true;
+            
+            for (let char of input) {
+                if (!alphabet.includes(char)) {
+                    isValid = false;
+                    break;
+                }
+            }
+            
+            this.className = isValid ? 'form-control is-valid' : 'form-control is-invalid';
+        });
+    </script>
 }
 
