@@ -1,12 +1,30 @@
-﻿@model FiniteAutomatons.Core.Models.ViewModel.DfaViewModel
+﻿@using FiniteAutomatons.Core.Models.ViewModel
+@model FiniteAutomatons.Core.Models.ViewModel.AutomatonViewModel
 @{
     ViewData["Title"] = "Automaton Simulator";
 }
 
+@if (TempData["ConversionMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show">
+        <i class="fas fa-check-circle"></i> @TempData["ConversionMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show">
+        <i class="fas fa-exclamation-circle"></i> @TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
 <div class="alert alert-primary">
-    <h2>Welcome to the DFA Simulator!</h2>
+    <h2>Welcome to the Automaton Simulator!</h2>
     <p>
-        This tool allows you to simulate a Deterministic Finite Automaton (DFA) step by step.<br />
+        This tool allows you to simulate different types of finite automatons step by step.<br />
+        <strong>Current Type:</strong> <span class="badge bg-primary">@Model.TypeDisplayName</span><br />
         <strong>How to use:</strong>
         <ul>
             <li>Enter an input string (using the automaton's alphabet) in the input box below.</li>
@@ -16,7 +34,14 @@
             <li><strong>Back To Start</strong>: Reset the automaton to the initial state and position.</li>
             <li><strong>Reset</strong>: Clear the automaton and input to start a new simulation.</li>
         </ul>
-        <strong>Current State</strong> and <strong>Current Position</strong> are shown below, so you can track the automaton's progress as you step through the input.
+        @if (Model.Type != AutomatonType.DFA)
+        {
+            <text><strong>@Model.Type Current States</strong> and <strong>Current Position</strong> are shown below, so you can track the automaton's progress as you step through the input.</text>
+        }
+        else
+        {
+            <text><strong>Current State</strong> and <strong>Current Position</strong> are shown below, so you can track the automaton's progress as you step through the input.</text>
+        }
         <br />
         The result (Accepted/Rejected) will be displayed after running or stepping through the input.
     </p>
@@ -28,10 +53,17 @@
     </div>
 </div>
 
-@if (Model.CurrentStateId != null)
+@if (Model.CurrentStateId != null || (Model.CurrentStates != null && Model.CurrentStates.Any()))
 {
     <div class="alert alert-info">
-        <strong>Current State:</strong> @Model.CurrentStateId<br />
+        @if (Model.Type == AutomatonType.DFA)
+        {
+            <strong>Current State:</strong> @Model.CurrentStateId<br />
+        }
+        else
+        {
+            <strong>Current States:</strong> @Model.CurrentStatesDisplay<br />
+        }
         <strong>Current Position:</strong> @Model.Position
         @if (!string.IsNullOrEmpty(Model.Input) && Model.Position < Model.Input.Length)
         {
@@ -44,8 +76,32 @@
 @if (Model.IsCustomAutomaton)
 {
     <div class="alert alert-success">
-        <strong><i class="fas fa-user"></i> Custom Automaton</strong> - You are using your own created automaton!
+        <strong><i class="fas fa-user"></i> Custom Automaton</strong> - You are using your own created @Model.TypeDisplayName!
         <a asp-action="CreateAutomaton" class="btn btn-sm btn-outline-success ms-2">Edit Automaton</a>
+        @if (Model.Type != AutomatonType.DFA)
+        {
+            <form asp-controller="Automaton" asp-action="ConvertToDFA" method="post" class="d-inline ms-2">
+                <!-- Include all model data for conversion -->
+                @for (int i = 0; i < Model.States.Count; i++)
+                {
+                    <input type="hidden" name="States[@i].Id" value="@Model.States[i].Id" />
+                    <input type="hidden" name="States[@i].IsStart" value="@(Model.States[i].IsStart.ToString().ToLower())" />
+                    <input type="hidden" name="States[@i].IsAccepting" value="@(Model.States[i].IsAccepting.ToString().ToLower())" />
+                }
+                @for (int i = 0; i < Model.Transitions.Count; i++)
+                {
+                    <input type="hidden" name="Transitions[@i].FromStateId" value="@Model.Transitions[i].FromStateId" />
+                    <input type="hidden" name="Transitions[@i].ToStateId" value="@Model.Transitions[i].ToStateId" />
+                    <input type="hidden" name="Transitions[@i].Symbol" value="@Model.Transitions[i].Symbol" />
+                }
+                <input type="hidden" name="Type" value="@Model.Type" />
+                <input type="hidden" name="Input" value="@Model.Input" />
+                <input type="hidden" name="IsCustomAutomaton" value="@Model.IsCustomAutomaton.ToString().ToLower()" />
+                <button type="submit" class="btn btn-sm btn-outline-primary" title="Convert to DFA">
+                    <i class="fas fa-exchange-alt"></i> Convert to DFA
+                </button>
+            </form>
+        }
     </div>
 }
 else
@@ -69,6 +125,14 @@ else
                             <strong>State @state.Id</strong>
                             @if (state.IsStart) { <span class="badge bg-primary">Start</span> }
                             @if (state.IsAccepting) { <span class="badge bg-success">Accept</span> }
+                            @if (Model.Type == AutomatonType.DFA && Model.CurrentStateId == state.Id)
+                            {
+                                <span class="badge bg-warning">Current</span>
+                            }
+                            @if (Model.Type != AutomatonType.DFA && Model.CurrentStates != null && Model.CurrentStates.Contains(state.Id))
+                            {
+                                <span class="badge bg-warning">Current</span>
+                            }
                         </span>
                     </div>
                 }
@@ -86,6 +150,10 @@ else
                 {
                     <span class="badge bg-info me-2 mb-1">@symbol</span>
                 }
+                @if (Model.SupportsEpsilonTransitions && Model.Transitions.Any(t => t.Symbol == '\0'))
+                {
+                    <span class="badge bg-secondary me-2 mb-1">ε</span>
+                }
             </div>
         </div>
     </div>
@@ -99,7 +167,7 @@ else
                 @foreach (var t in Model.Transitions)
                 {
                     <div class="small mb-1">
-                        <code>@t.FromStateId --@t.Symbol--> @t.ToStateId</code>
+                        <code>@t.FromStateId --@(t.Symbol == '\0' ? "ε" : t.Symbol.ToString())--> @t.ToStateId</code>
                     </div>
                 }
             </div>
@@ -112,7 +180,7 @@ else
         <h5><i class="fas fa-play"></i> Simulation Controls</h5>
     </div>
     <div class="card-body">
-        <form id="dfaForm" asp-controller="Automaton" asp-action="SimulateDfa" method="post">
+        <form id="automatonForm" asp-controller="Automaton" asp-action="SimulateAutomaton" method="post">
             <div class="mb-3">
                 <label for="inputString" class="form-label">Input String</label>
                 <input type="text" class="form-control" id="inputString" name="Input" value="@Model.Input" 
@@ -131,8 +199,16 @@ else
                 <input type="hidden" name="Transitions[@i].ToStateId" value="@Model.Transitions[i].ToStateId" />
                 <input type="hidden" name="Transitions[@i].Symbol" value="@Model.Transitions[i].Symbol" />
             }
-            <!-- DFA execution state round-trip -->
+            <!-- Automaton execution state round-trip -->
+            <input type="hidden" name="Type" value="@Model.Type" />
             <input type="hidden" name="CurrentStateId" value="@Model.CurrentStateId" />
+            @if (Model.CurrentStates != null)
+            {
+                @for (int i = 0; i < Model.CurrentStates.Count; i++)
+                {
+                    <input type="hidden" name="CurrentStates[@i]" value="@Model.CurrentStates.ElementAt(i)" />
+                }
+            }
             <input type="hidden" name="Position" value="@Model.Position" />
             <input type="hidden" name="IsAccepted" value="@Model.IsAccepted" />
             <input type="hidden" name="StateHistorySerialized" value="@Model.StateHistorySerialized" />
@@ -165,6 +241,10 @@ else
         <strong>Result:</strong> 
         <i class="fas @(Model.Result.Value ? "fa-check-circle" : "fa-times-circle")"></i>
         @(Model.Result.Value ? "Accepted" : "Rejected")
+        @if (Model.Type != AutomatonType.DFA && Model.CurrentStates != null && Model.CurrentStates.Any())
+        {
+            <small class="d-block mt-1">Final states: @Model.CurrentStatesDisplay</small>
+        }
     </div>
 }
 
@@ -173,6 +253,7 @@ else
         // Auto-validate input against alphabet
         document.getElementById('inputString').addEventListener('input', function() {
             const alphabet = [@Html.Raw(string.Join(",", Model.Alphabet.Select(c => $"'{c}'")))];
+            const supportsEpsilon = @(Model.SupportsEpsilonTransitions.ToString().ToLower());
             const input = this.value;
             let isValid = true;
             
@@ -184,6 +265,11 @@ else
             }
             
             this.className = isValid ? 'form-control is-valid' : 'form-control is-invalid';
+            
+            // Show helper text for epsilon NFAs
+            if (supportsEpsilon && !isValid) {
+                // Could show specific validation message for epsilon NFAs
+            }
         });
     </script>
 }

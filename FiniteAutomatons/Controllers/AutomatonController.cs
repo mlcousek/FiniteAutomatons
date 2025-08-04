@@ -10,112 +10,393 @@ public class AutomatonController(ILogger<AutomatonController> logger) : Controll
 {
     private readonly ILogger<AutomatonController> logger = logger;
 
-    private static AutomatonExecutionState ReconstructState(DfaViewModel model)
+    private static AutomatonExecutionState ReconstructState(AutomatonViewModel model)
     {
-        var state = new AutomatonExecutionState(model.Input, model.CurrentStateId)
+        // Ensure model has required collections initialized
+        model.States ??= [];
+        model.Transitions ??= [];
+        model.Alphabet ??= [];
+
+        AutomatonExecutionState state;
+
+        if (model.Type == AutomatonType.DFA)
         {
-            Position = model.Position,
-            IsAccepted = model.IsAccepted
-        };
+            state = new AutomatonExecutionState(model.Input ?? "", model.CurrentStateId)
+            {
+                Position = model.Position,
+                IsAccepted = model.IsAccepted
+            };
+        }
+        else
+        {
+            // For NFA and EpsilonNFA, use CurrentStates
+            state = new AutomatonExecutionState(model.Input ?? "", null, model.CurrentStates ?? [])
+            {
+                Position = model.Position,
+                IsAccepted = model.IsAccepted
+            };
+        }
+
         // Deserialize StateHistory if present
         if (!string.IsNullOrEmpty(model.StateHistorySerialized))
         {
-            var stackList = JsonSerializer.Deserialize<List<List<int>>>(model.StateHistorySerialized) ?? [];
-            // Since we serialized as [top, ..., bottom], we need to push in reverse order
-            // to restore the original stack order
-            for (int i = stackList.Count - 1; i >= 0; i--)
+            try
             {
-                state.StateHistory.Push([.. stackList[i]]);
+                if (model.Type == AutomatonType.DFA)
+                {
+                    // DFA uses List<List<int>> where each inner list has one element
+                    var stackList = JsonSerializer.Deserialize<List<List<int>>>(model.StateHistorySerialized) ?? [];
+                    for (int i = stackList.Count - 1; i >= 0; i--)
+                    {
+                        state.StateHistory.Push([.. stackList[i]]);
+                    }
+                }
+                else
+                {
+                    // NFA/EpsilonNFA uses List<HashSet<int>>
+                    var stackList = JsonSerializer.Deserialize<List<HashSet<int>>>(model.StateHistorySerialized) ?? [];
+                    for (int i = stackList.Count - 1; i >= 0; i--)
+                    {
+                        state.StateHistory.Push([.. stackList[i]]);
+                    }
+                }
+            }
+            catch (JsonException)
+            {
+                // If deserialization fails, start with empty history
+                state.StateHistory.Clear();
             }
         }
         return state;
     }
 
-    private static void UpdateModelFromState(DfaViewModel model, AutomatonExecutionState state)
+    private static void UpdateModelFromState(AutomatonViewModel model, AutomatonExecutionState state)
     {
-        model.CurrentStateId = state.CurrentStateId;
         model.Position = state.Position;
         model.IsAccepted = state.IsAccepted;
-        // Serialize StateHistory - convert stack to array first to preserve LIFO order
+
+        if (model.Type == AutomatonType.DFA)
+        {
+            model.CurrentStateId = state.CurrentStateId;
+            model.CurrentStates = null;
+        }
+        else
+        {
+            model.CurrentStateId = null;
+            model.CurrentStates = state.CurrentStates ?? [];
+        }
+
+        // Serialize StateHistory
         var stackArray = state.StateHistory.ToArray(); // This gives us [top, ..., bottom]
         var stackList = stackArray.Select(s => s.ToList()).ToList();
         model.StateHistorySerialized = JsonSerializer.Serialize(stackList);
     }
 
-    private static void EnsureNotNullCurrentStateId(DfaViewModel model)
+    private static void EnsureProperStateInitialization(AutomatonViewModel model, Automaton automaton)
     {
-        model.CurrentStateId ??= model.States.FirstOrDefault(s => s.IsStart)?.Id;
+        // Ensure proper state initialization based on automaton type
+        if (model.Type == AutomatonType.DFA)
+        {
+            model.CurrentStateId ??= model.States?.FirstOrDefault(s => s.IsStart)?.Id;
+            model.CurrentStates = null;
+        }
+        else
+        {
+            // For NFA and EpsilonNFA, initialize with proper start state closure
+            if (model.CurrentStates == null || model.CurrentStates.Count == 0)
+            {
+                var startState = model.States?.FirstOrDefault(s => s.IsStart);
+                if (startState != null)
+                {
+                    try
+                    {
+                        // Use StartExecution to properly initialize the state
+                        var tempState = automaton.StartExecution("");
+                        model.CurrentStates = tempState.CurrentStates ?? [startState.Id];
+                    }
+                    catch
+                    {
+                        // Fallback if StartExecution fails
+                        model.CurrentStates = [startState.Id];
+                    }
+                }
+                else
+                {
+                    model.CurrentStates = [];
+                }
+            }
+            model.CurrentStateId = null;
+        }
     }
 
-    [HttpPost]
-    public IActionResult StepForward([FromForm] DfaViewModel model)
+    private static Automaton CreateAutomatonFromModel(AutomatonViewModel model)
+    {
+        // Ensure model has required collections initialized
+        model.States ??= [];
+        model.Transitions ??= [];
+        model.Alphabet ??= [];
+
+        return model.Type switch
+        {
+            AutomatonType.DFA => CreateDFA(model),
+            AutomatonType.NFA => CreateNFA(model),
+            AutomatonType.EpsilonNFA => CreateEpsilonNFA(model),
+            _ => throw new ArgumentException($"Unsupported automaton type: {model.Type}")
+        };
+    }
+
+    private static DFA CreateDFA(AutomatonViewModel model)
     {
         var dfa = new DFA();
-        dfa.States.AddRange(model.States);
-        dfa.Transitions.AddRange(model.Transitions);
-        EnsureNotNullCurrentStateId(model);
-        var execState = ReconstructState(model);
-        dfa.StepForward(execState);
-        UpdateModelFromState(model, execState);
-        model.Result = execState.IsAccepted;
-        model.Alphabet = [.. dfa.Transitions.Select(t => t.Symbol).Distinct()];
-        return View("../Home/Index", model);
+
+        // Add states safely
+        foreach (var state in model.States ?? [])
+        {
+            dfa.States.Add(state);
+        }
+
+        // Add transitions safely
+        foreach (var transition in model.Transitions ?? [])
+        {
+            dfa.Transitions.Add(transition);
+        }
+
+        var startState = model.States?.FirstOrDefault(s => s.IsStart);
+        if (startState != null)
+        {
+            dfa.SetStartState(startState.Id);
+        }
+        return dfa;
     }
 
-    //TODO when wants to go back but is on start give feedback
-    [HttpPost]
-    public IActionResult StepBackward([FromForm] DfaViewModel model)
+    private static NFA CreateNFA(AutomatonViewModel model)
     {
-        var dfa = new DFA();
-        dfa.States.AddRange(model.States);
-        dfa.Transitions.AddRange(model.Transitions);
-        var execState = ReconstructState(model);
-        dfa.StepBackward(execState);
-        UpdateModelFromState(model, execState);
-        model.Result = execState.IsAccepted;
-        model.Alphabet = [.. dfa.Transitions.Select(t => t.Symbol).Distinct()];
-        return View("../Home/Index", model);
+        var nfa = new NFA();
+
+        // Add states safely
+        foreach (var state in model.States ?? [])
+        {
+            nfa.States.Add(state);
+        }
+
+        // Add transitions safely
+        foreach (var transition in model.Transitions ?? [])
+        {
+            nfa.Transitions.Add(transition);
+        }
+
+        var startState = model.States?.FirstOrDefault(s => s.IsStart);
+        if (startState != null)
+        {
+            nfa.SetStartState(startState.Id);
+        }
+        return nfa;
     }
 
-    [HttpPost]
-    public IActionResult ExecuteAll([FromForm] DfaViewModel model)
+    private static EpsilonNFA CreateEpsilonNFA(AutomatonViewModel model)
     {
-        var dfa = new DFA();
-        dfa.States.AddRange(model.States);
-        dfa.Transitions.AddRange(model.Transitions);
-        EnsureNotNullCurrentStateId(model);
-        var execState = ReconstructState(model);
-        dfa.ExecuteAll(execState);
-        UpdateModelFromState(model, execState);
-        model.Result = execState.IsAccepted;
-        model.Alphabet = [.. dfa.Transitions.Select(t => t.Symbol).Distinct()];
-        return View("../Home/Index", model);
+        var enfa = new EpsilonNFA();
+
+        // Add states safely
+        foreach (var state in model.States ?? [])
+        {
+            enfa.States.Add(state);
+        }
+
+        // Add transitions safely
+        foreach (var transition in model.Transitions ?? [])
+        {
+            enfa.Transitions.Add(transition);
+        }
+
+        var startState = model.States?.FirstOrDefault(s => s.IsStart);
+        if (startState != null)
+        {
+            enfa.SetStartState(startState.Id);
+        }
+        return enfa;
     }
 
     [HttpPost]
-    public IActionResult BackToStart([FromForm] DfaViewModel model)
+    public IActionResult StepForward([FromForm] AutomatonViewModel model)
     {
-        var dfa = new DFA();
-        dfa.States.AddRange(model.States);
-        dfa.Transitions.AddRange(model.Transitions);
-        var execState = new AutomatonExecutionState(model.Input, dfa.States.FirstOrDefault(s => s.IsStart)?.Id);
-        dfa.BackToStart(execState);
-        UpdateModelFromState(model, execState);
-        model.Result = execState.IsAccepted;
-        model.Alphabet = [.. dfa.Transitions.Select(t => t.Symbol).Distinct()];
-        return View("../Home/Index", model);
+        try
+        {
+            // Ensure collections are initialized
+            model.States ??= [];
+            model.Transitions ??= [];
+            model.Alphabet ??= [];
+            model.Input ??= "";
+
+            var automaton = CreateAutomatonFromModel(model);
+            EnsureProperStateInitialization(model, automaton);
+            var execState = ReconstructState(model);
+            automaton.StepForward(execState);
+            UpdateModelFromState(model, execState);
+            model.Result = execState.IsAccepted;
+            model.Alphabet = [.. automaton.Transitions.Select(t => t.Symbol).Where(s => s != '\0').Distinct()];
+            return View("../Home/Index", model);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in StepForward");
+            TempData["ErrorMessage"] = "An error occurred while stepping forward.";
+            return View("../Home/Index", model);
+        }
     }
 
     [HttpPost]
-    public IActionResult Reset([FromForm] DfaViewModel model)
+    public IActionResult StepBackward([FromForm] AutomatonViewModel model)
+    {
+        try
+        {
+            // Ensure collections are initialized
+            model.States ??= [];
+            model.Transitions ??= [];
+            model.Alphabet ??= [];
+            model.Input ??= "";
+
+            var automaton = CreateAutomatonFromModel(model);
+            var execState = ReconstructState(model);
+            automaton.StepBackward(execState);
+            UpdateModelFromState(model, execState);
+            model.Result = execState.IsAccepted;
+            model.Alphabet = [.. automaton.Transitions.Select(t => t.Symbol).Where(s => s != '\0').Distinct()];
+            return View("../Home/Index", model);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in StepBackward");
+            TempData["ErrorMessage"] = "An error occurred while stepping backward.";
+            return View("../Home/Index", model);
+        }
+    }
+
+    [HttpPost]
+    public IActionResult ExecuteAll([FromForm] AutomatonViewModel model)
+    {
+        try
+        {
+            // Ensure collections are initialized
+            model.States ??= [];
+            model.Transitions ??= [];
+            model.Alphabet ??= [];
+            model.Input ??= "";
+
+            var automaton = CreateAutomatonFromModel(model);
+            EnsureProperStateInitialization(model, automaton);
+            var execState = ReconstructState(model);
+            automaton.ExecuteAll(execState);
+            UpdateModelFromState(model, execState);
+            model.Result = execState.IsAccepted;
+            model.Alphabet = [.. automaton.Transitions.Select(t => t.Symbol).Where(s => s != '\0').Distinct()];
+            return View("../Home/Index", model);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in ExecuteAll");
+            TempData["ErrorMessage"] = "An error occurred while executing the automaton.";
+            return View("../Home/Index", model);
+        }
+    }
+
+    [HttpPost]
+    public IActionResult BackToStart([FromForm] AutomatonViewModel model)
+    {
+        try
+        {
+            // Ensure collections are initialized
+            model.States ??= [];
+            model.Transitions ??= [];
+            model.Alphabet ??= [];
+            model.Input ??= "";
+
+            var automaton = CreateAutomatonFromModel(model);
+            var execState = automaton.StartExecution(model.Input);
+            UpdateModelFromState(model, execState);
+            model.Result = execState.IsAccepted;
+            model.Alphabet = [.. automaton.Transitions.Select(t => t.Symbol).Where(s => s != '\0').Distinct()];
+            return View("../Home/Index", model);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in BackToStart");
+            TempData["ErrorMessage"] = "An error occurred while resetting to start.";
+            return View("../Home/Index", model);
+        }
+    }
+
+    [HttpPost]
+    public IActionResult Reset([FromForm] AutomatonViewModel model)
     {
         model.Input = string.Empty;
         model.Result = null;
         model.CurrentStateId = null;
+        model.CurrentStates = null;
         model.Position = 0;
         model.IsAccepted = null;
         model.StateHistorySerialized = string.Empty;
 
         return View("../Home/Index", model);
+    }
+
+    [HttpPost]
+    public IActionResult ConvertToDFA([FromForm] AutomatonViewModel model)
+    {
+        try
+        {
+            // Ensure collections are initialized
+            model.States ??= [];
+            model.Transitions ??= [];
+            model.Alphabet ??= [];
+
+            if (model.Type == AutomatonType.DFA)
+            {
+                // Already a DFA
+                return View("../Home/Index", model);
+            }
+
+            var automaton = CreateAutomatonFromModel(model);
+            DFA convertedDFA;
+
+            if (automaton is NFA nfa)
+            {
+                convertedDFA = nfa.ToDFA();
+            }
+            else if (automaton is EpsilonNFA enfa)
+            {
+                // Convert EpsilonNFA -> NFA -> DFA
+                var intermediateNFA = enfa.ToNFA();
+                convertedDFA = intermediateNFA.ToDFA();
+            }
+            else
+            {
+                throw new InvalidOperationException("Cannot convert this automaton type to DFA");
+            }
+
+            // Create new model with converted DFA
+            var convertedModel = new AutomatonViewModel
+            {
+                Type = AutomatonType.DFA,
+                States = [.. convertedDFA.States],
+                Transitions = [.. convertedDFA.Transitions],
+                Alphabet = [.. convertedDFA.Transitions.Select(t => t.Symbol).Distinct()],
+                Input = model.Input ?? "",
+                IsCustomAutomaton = true
+            };
+
+            // Store the converted automaton
+            var modelJson = System.Text.Json.JsonSerializer.Serialize(convertedModel);
+            TempData["CustomAutomaton"] = modelJson;
+            TempData["ConversionMessage"] = $"Successfully converted {model.TypeDisplayName} to DFA with {convertedModel.States.Count} states.";
+
+            return RedirectToAction("Index", "Home");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in ConvertToDFA");
+            TempData["ErrorMessage"] = $"Failed to convert to DFA: {ex.Message}";
+            return View("../Home/Index", model);
+        }
     }
 }

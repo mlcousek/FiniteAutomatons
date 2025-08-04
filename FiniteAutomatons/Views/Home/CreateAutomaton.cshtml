@@ -1,4 +1,5 @@
-@model FiniteAutomatons.Core.Models.ViewModel.DfaViewModel
+@using FiniteAutomatons.Core.Models.ViewModel
+@model FiniteAutomatons.Core.Models.ViewModel.AutomatonViewModel
 @{
     ViewData["Title"] = "Create Automaton";
 }
@@ -20,6 +21,52 @@
                     </ul>
                 </div>
             }
+
+            <!-- Automaton Type Selection -->
+            <div class="card mb-3">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-cog"></i> Automaton Type</h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="ChangeAutomatonType" method="post">
+                        <!-- Hidden fields for preserving state during type change -->
+                        @for (int i = 0; i < Model.States.Count; i++)
+                        {
+                            <input type="hidden" name="States[@i].Id" value="@Model.States[i].Id" />
+                            <input type="hidden" name="States[@i].IsStart" value="@Model.States[i].IsStart.ToString().ToLower()" />
+                            <input type="hidden" name="States[@i].IsAccepting" value="@Model.States[i].IsAccepting.ToString().ToLower()" />
+                        }
+                        @for (int i = 0; i < Model.Transitions.Count; i++)
+                        {
+                            <input type="hidden" name="Transitions[@i].FromStateId" value="@Model.Transitions[i].FromStateId" />
+                            <input type="hidden" name="Transitions[@i].ToStateId" value="@Model.Transitions[i].ToStateId" />
+                            <input type="hidden" name="Transitions[@i].Symbol" value="@Model.Transitions[i].Symbol" />
+                        }
+                        @for (int i = 0; i < Model.Alphabet.Count; i++)
+                        {
+                            <input type="hidden" name="Alphabet[@i]" value="@Model.Alphabet[i]" />
+                        }
+                        <input type="hidden" name="IsCustomAutomaton" value="@Model.IsCustomAutomaton.ToString().ToLower()" />
+
+                        <div class="row align-items-end">
+                            <div class="col-md-8">
+                                <label for="newType" class="form-label">Select Automaton Type:</label>
+                                <select name="newType" class="form-control">
+                                    <option value="DFA" selected="@(Model.Type == AutomatonType.DFA)">DFA - Deterministic Finite Automaton</option>
+                                    <option value="NFA" selected="@(Model.Type == AutomatonType.NFA)">NFA - Nondeterministic Finite Automaton</option>
+                                    <option value="EpsilonNFA" selected="@(Model.Type == AutomatonType.EpsilonNFA)">?-NFA - Epsilon Nondeterministic Finite Automaton</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <button type="submit" class="btn btn-info">
+                                    <i class="fas fa-exchange-alt"></i> Change Type
+                                </button>
+                            </div>
+                        </div>
+                        <small class="text-muted">Current: <strong>@Model.TypeDisplayName</strong></small>
+                    </form>
+                </div>
+            </div>
 
             <!-- Add State Form -->
             <div class="card mb-3">
@@ -50,7 +97,8 @@
                             <input type="hidden" name="Alphabet[@i]" value="@Model.Alphabet[i]" />
                         }
                         
-                        <!-- Include IsCustomAutomaton flag -->
+                        <!-- Include automaton type and custom flag -->
+                        <input type="hidden" name="Type" value="@Model.Type" />
                         <input type="hidden" name="IsCustomAutomaton" value="@Model.IsCustomAutomaton.ToString().ToLower()" />
                         
                         <div class="row">
@@ -87,29 +135,24 @@
                 </div>
                 <div class="card-body">
                     <form asp-action="AddTransition" method="post">
-                        <!-- Manually generate hidden fields for States -->
+                        <!-- Hidden fields for preservation -->
                         @for (int i = 0; i < Model.States.Count; i++)
                         {
                             <input type="hidden" name="States[@i].Id" value="@Model.States[i].Id" />
                             <input type="hidden" name="States[@i].IsStart" value="@Model.States[i].IsStart.ToString().ToLower()" />
                             <input type="hidden" name="States[@i].IsAccepting" value="@Model.States[i].IsAccepting.ToString().ToLower()" />
                         }
-                        
-                        <!-- Manually generate hidden fields for Transitions -->
                         @for (int i = 0; i < Model.Transitions.Count; i++)
                         {
                             <input type="hidden" name="Transitions[@i].FromStateId" value="@Model.Transitions[i].FromStateId" />
                             <input type="hidden" name="Transitions[@i].ToStateId" value="@Model.Transitions[i].ToStateId" />
                             <input type="hidden" name="Transitions[@i].Symbol" value="@Model.Transitions[i].Symbol" />
                         }
-                        
-                        <!-- Manually generate hidden fields for Alphabet -->
                         @for (int i = 0; i < Model.Alphabet.Count; i++)
                         {
                             <input type="hidden" name="Alphabet[@i]" value="@Model.Alphabet[i]" />
                         }
-                        
-                        <!-- Include IsCustomAutomaton flag -->
+                        <input type="hidden" name="Type" value="@Model.Type" />
                         <input type="hidden" name="IsCustomAutomaton" value="@Model.IsCustomAutomaton.ToString().ToLower()" />
                         
                         <div class="row">
@@ -134,9 +177,16 @@
                                 </select>
                             </div>
                             <div class="col-md-3">
-                                <label for="symbol" class="form-label">Symbol:</label>
-                                <input type="text" name="symbol" maxlength="1" class="form-control" required 
-                                       placeholder="e.g., a" />
+                                <label for="symbol" class="form-label">
+                                    Symbol:
+                                    @if (Model.SupportsEpsilonTransitions)
+                                    {
+                                        <small class="text-muted">(or ? for epsilon)</small>
+                                    }
+                                </label>
+                                <input type="text" name="symbol" maxlength="@(Model.SupportsEpsilonTransitions ? "7" : "1")" 
+                                       class="form-control" required 
+                                       placeholder="@(Model.SupportsEpsilonTransitions ? "a or ?" : "e.g., a")" />
                             </div>
                             <div class="col-md-3">
                                 <button type="submit" class="btn btn-success mt-4">
@@ -144,6 +194,13 @@
                                 </button>
                             </div>
                         </div>
+                        @if (Model.SupportsEpsilonTransitions)
+                        {
+                            <small class="text-info mt-2 d-block">
+                                <i class="fas fa-info-circle"></i> 
+                                For epsilon transitions, enter "?", "epsilon", "eps", or leave empty.
+                            </small>
+                        }
                     </form>
                 </div>
             </div>
@@ -155,29 +212,24 @@
                 </div>
                 <div class="card-body">
                     <form asp-action="CreateAutomaton" method="post">
-                        <!-- Manually generate hidden fields for States -->
+                        <!-- Hidden fields -->
                         @for (int i = 0; i < Model.States.Count; i++)
                         {
                             <input type="hidden" name="States[@i].Id" value="@Model.States[i].Id" />
                             <input type="hidden" name="States[@i].IsStart" value="@Model.States[i].IsStart.ToString().ToLower()" />
                             <input type="hidden" name="States[@i].IsAccepting" value="@Model.States[i].IsAccepting.ToString().ToLower()" />
                         }
-                        
-                        <!-- Manually generate hidden fields for Transitions -->
                         @for (int i = 0; i < Model.Transitions.Count; i++)
                         {
                             <input type="hidden" name="Transitions[@i].FromStateId" value="@Model.Transitions[i].FromStateId" />
                             <input type="hidden" name="Transitions[@i].ToStateId" value="@Model.Transitions[i].ToStateId" />
                             <input type="hidden" name="Transitions[@i].Symbol" value="@Model.Transitions[i].Symbol" />
                         }
-                        
-                        <!-- Manually generate hidden fields for Alphabet -->
                         @for (int i = 0; i < Model.Alphabet.Count; i++)
                         {
                             <input type="hidden" name="Alphabet[@i]" value="@Model.Alphabet[i]" />
                         }
-                        
-                        <!-- Include IsCustomAutomaton flag -->
+                        <input type="hidden" name="Type" value="@Model.Type" />
                         <input type="hidden" name="IsCustomAutomaton" value="@Model.IsCustomAutomaton.ToString().ToLower()" />
                         
                         <button type="submit" class="btn btn-warning btn-lg me-2">
@@ -196,6 +248,7 @@
             <div class="card">
                 <div class="card-header bg-info text-white">
                     <h5 class="mb-0"><i class="fas fa-eye"></i> Automaton Preview</h5>
+                    <small>@Model.TypeDisplayName</small>
                 </div>
                 <div class="card-body">
                     @if (Model.States.Any())
@@ -211,31 +264,25 @@
                                             @if (state.IsStart) { <span class="badge bg-primary">Start</span> }
                                             @if (state.IsAccepting) { <span class="badge bg-success">Accept</span> }
                                             <form asp-action="RemoveState" method="post" class="d-inline">
-                                                <!-- Manually generate hidden fields for States -->
+                                                <!-- Hidden fields for state removal -->
                                                 @for (int i = 0; i < Model.States.Count; i++)
                                                 {
                                                     <input type="hidden" name="States[@i].Id" value="@Model.States[i].Id" />
                                                     <input type="hidden" name="States[@i].IsStart" value="@Model.States[i].IsStart.ToString().ToLower()" />
                                                     <input type="hidden" name="States[@i].IsAccepting" value="@Model.States[i].IsAccepting.ToString().ToLower()" />
                                                 }
-                                                
-                                                <!-- Manually generate hidden fields for Transitions -->
                                                 @for (int i = 0; i < Model.Transitions.Count; i++)
                                                 {
                                                     <input type="hidden" name="Transitions[@i].FromStateId" value="@Model.Transitions[i].FromStateId" />
                                                     <input type="hidden" name="Transitions[@i].ToStateId" value="@Model.Transitions[i].ToStateId" />
                                                     <input type="hidden" name="Transitions[@i].Symbol" value="@Model.Transitions[i].Symbol" />
                                                 }
-                                                
-                                                <!-- Manually generate hidden fields for Alphabet -->
                                                 @for (int i = 0; i < Model.Alphabet.Count; i++)
                                                 {
                                                     <input type="hidden" name="Alphabet[@i]" value="@Model.Alphabet[i]" />
                                                 }
-                                                
-                                                <!-- Include IsCustomAutomaton flag -->
+                                                <input type="hidden" name="Type" value="@Model.Type" />
                                                 <input type="hidden" name="IsCustomAutomaton" value="@Model.IsCustomAutomaton.ToString().ToLower()" />
-                                                
                                                 <input type="hidden" name="stateId" value="@state.Id" />
                                                 <button type="submit" class="btn btn-sm btn-outline-danger float-end" title="Remove State">
                                                     <i class="fas fa-times"></i>
@@ -265,33 +312,31 @@
                                         {
                                             <tr>
                                                 <td><strong>@transition.FromStateId</strong></td>
-                                                <td><code class="text-primary">@transition.Symbol</code></td>
+                                                <td>
+                                                    <code class="text-primary">
+                                                        @(transition.Symbol == '\0' ? "?" : transition.Symbol.ToString())
+                                                    </code>
+                                                </td>
                                                 <td><strong>@transition.ToStateId</strong></td>
                                                 <td>
                                                     <form asp-action="RemoveTransition" method="post" class="d-inline">
-                                                        <!-- Manually generate hidden fields for States -->
                                                         @for (int i = 0; i < Model.States.Count; i++)
                                                         {
                                                             <input type="hidden" name="States[@i].Id" value="@Model.States[i].Id" />
                                                             <input type="hidden" name="States[@i].IsStart" value="@Model.States[i].IsStart.ToString().ToLower()" />
                                                             <input type="hidden" name="States[@i].IsAccepting" value="@Model.States[i].IsAccepting.ToString().ToLower()" />
                                                         }
-                                                        
-                                                        <!-- Manually generate hidden fields for Transitions -->
                                                         @for (int i = 0; i < Model.Transitions.Count; i++)
                                                         {
                                                             <input type="hidden" name="Transitions[@i].FromStateId" value="@Model.Transitions[i].FromStateId" />
                                                             <input type="hidden" name="Transitions[@i].ToStateId" value="@Model.Transitions[i].ToStateId" />
                                                             <input type="hidden" name="Transitions[@i].Symbol" value="@Model.Transitions[i].Symbol" />
                                                         }
-                                                        
-                                                        <!-- Manually generate hidden fields for Alphabet -->
                                                         @for (int i = 0; i < Model.Alphabet.Count; i++)
                                                         {
                                                             <input type="hidden" name="Alphabet[@i]" value="@Model.Alphabet[i]" />
                                                         }
-                                                        
-                                                        <!-- Include IsCustomAutomaton flag -->
+                                                        <input type="hidden" name="Type" value="@Model.Type" />
                                                         <input type="hidden" name="IsCustomAutomaton" value="@Model.IsCustomAutomaton.ToString().ToLower()" />
                                                         <input type="hidden" name="fromStateId" value="@transition.FromStateId" />
                                                         <input type="hidden" name="toStateId" value="@transition.ToStateId" />
@@ -316,6 +361,10 @@
                                 {
                                     <span class="badge bg-info me-1 mb-1">@symbol</span>
                                 }
+                                @if (Model.SupportsEpsilonTransitions && Model.Transitions.Any(t => t.Symbol == '\0'))
+                                {
+                                    <span class="badge bg-secondary me-1 mb-1">?</span>
+                                }
                             </p>
                         }
                     }
@@ -324,7 +373,7 @@
                         <div class="text-center text-muted p-4">
                             <i class="fas fa-info-circle fa-3x mb-3"></i>
                             <p>No states added yet.</p>
-                            <p>Start by adding states and transitions to create your automaton.</p>
+                            <p>Start by selecting an automaton type and adding states and transitions.</p>
                         </div>
                     }
                 </div>
@@ -335,10 +384,11 @@
 
 @section Scripts {
     <script>
-        // Auto-focus next input after entering single character
+        // Auto-focus next input after entering single character (for non-epsilon NFAs)
         document.querySelectorAll('input[name="symbol"]').forEach(input => {
             input.addEventListener('input', function() {
-                if (this.value.length >= 1) {
+                const isEpsilonNFA = @(Model.SupportsEpsilonTransitions.ToString().ToLower());
+                if (!isEpsilonNFA && this.value.length >= 1) {
                     this.value = this.value.charAt(0); // Keep only first character
                 }
             });

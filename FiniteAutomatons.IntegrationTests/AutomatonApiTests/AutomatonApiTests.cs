@@ -7,9 +7,9 @@ namespace FiniteAutomatons.IntegrationTests.AutomatonApiTests;
 [Collection("Integration Tests")]
 public class AutomatonApiTests(IntegrationTestsFixture fixture) : IntegrationTestsBase(fixture)
 {
-    private static DfaViewModel GetDefaultDfaViewModel(string input)
+    private static AutomatonViewModel GetDefaultDfaViewModel(string input)
     {
-        return new DfaViewModel
+        return new AutomatonViewModel
         {
             States =
             [
@@ -42,7 +42,7 @@ public class AutomatonApiTests(IntegrationTestsFixture fixture) : IntegrationTes
         };
     }
 
-    private static FormUrlEncodedContent ToFormContent(DfaViewModel model)
+    private static FormUrlEncodedContent ToFormContent(AutomatonViewModel model)
     {
         var dict = new List<KeyValuePair<string, string>>
         {
@@ -71,7 +71,7 @@ public class AutomatonApiTests(IntegrationTestsFixture fixture) : IntegrationTes
         return new FormUrlEncodedContent(dict);
     }
 
-    private static void UpdateModelFromHtml(DfaViewModel model, string html)
+    private static void UpdateModelFromHtml(AutomatonViewModel model, string html)
     {
         // Extract CurrentStateId
         var currentStateMatch = Regex.Match(html, @"name=""CurrentStateId"" value=""([^""]*)""");

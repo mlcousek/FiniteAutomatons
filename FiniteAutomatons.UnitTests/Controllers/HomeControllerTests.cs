@@ -32,7 +32,7 @@ public class HomeControllerTests
 
         // Assert
         result.ShouldNotBeNull();
-        var model = result.Model as DfaViewModel;
+        var model = result.Model as AutomatonViewModel;
         model.ShouldNotBeNull();
         model.States.Count.ShouldBe(5);
         model.States.Count(s => s.IsStart).ShouldBe(1);
@@ -50,7 +50,7 @@ public class HomeControllerTests
 
         // Assert
         result.ShouldNotBeNull();
-        var model = result.Model as DfaViewModel;
+        var model = result.Model as AutomatonViewModel;
         model.ShouldNotBeNull();
         model.States.ShouldBeEmpty();
         model.Transitions.ShouldBeEmpty();
@@ -61,7 +61,7 @@ public class HomeControllerTests
     public void AddState_ValidState_AddsStateToModel()
     {
         // Arrange
-        var model = new DfaViewModel();
+        var model = new AutomatonViewModel();
 
         // Act
         var result = controller.AddState(model, 1, true, false) as ViewResult;
@@ -69,7 +69,7 @@ public class HomeControllerTests
         // Assert
         result.ShouldNotBeNull();
         result.ViewName.ShouldBe("CreateAutomaton");
-        var returnedModel = result.Model as DfaViewModel;
+        var returnedModel = result.Model as AutomatonViewModel;
         returnedModel.ShouldNotBeNull();
         returnedModel.States.Count.ShouldBe(1);
         returnedModel.States[0].Id.ShouldBe(1);
@@ -81,7 +81,7 @@ public class HomeControllerTests
     public void AddState_DuplicateStateId_ReturnsModelStateError()
     {
         // Arrange
-        var model = new DfaViewModel();
+        var model = new AutomatonViewModel();
         model.States.Add(new State { Id = 1, IsStart = true, IsAccepting = false });
 
         // Act
@@ -100,7 +100,7 @@ public class HomeControllerTests
     public void AddState_MultipleStartStates_ReturnsModelStateError()
     {
         // Arrange
-        var model = new DfaViewModel();
+        var model = new AutomatonViewModel();
         model.States.Add(new State { Id = 1, IsStart = true, IsAccepting = false });
 
         // Act
@@ -119,17 +119,17 @@ public class HomeControllerTests
     public void AddTransition_ValidTransition_AddsTransitionAndUpdatesAlphabet()
     {
         // Arrange
-        var model = new DfaViewModel();
+        var model = new AutomatonViewModel();
         model.States.Add(new State { Id = 1, IsStart = true, IsAccepting = false });
         model.States.Add(new State { Id = 2, IsStart = false, IsAccepting = true });
 
         // Act
-        var result = controller.AddTransition(model, 1, 2, 'a') as ViewResult;
+        var result = controller.AddTransition(model, 1, 2, "a") as ViewResult;
 
         // Assert
         result.ShouldNotBeNull();
         result.ViewName.ShouldBe("CreateAutomaton");
-        var returnedModel = result.Model as DfaViewModel;
+        var returnedModel = result.Model as AutomatonViewModel;
         returnedModel.ShouldNotBeNull();
         returnedModel.Transitions.Count.ShouldBe(1);
         returnedModel.Transitions[0].FromStateId.ShouldBe(1);
@@ -142,11 +142,11 @@ public class HomeControllerTests
     public void AddTransition_NonExistentFromState_ReturnsModelStateError()
     {
         // Arrange
-        var model = new DfaViewModel();
+        var model = new AutomatonViewModel();
         model.States.Add(new State { Id = 2, IsStart = false, IsAccepting = true });
 
         // Act
-        var result = controller.AddTransition(model, 1, 2, 'a') as ViewResult;
+        var result = controller.AddTransition(model, 1, 2, "a") as ViewResult;
 
         // Assert
         result.ShouldNotBeNull();
@@ -160,11 +160,11 @@ public class HomeControllerTests
     public void AddTransition_NonExistentToState_ReturnsModelStateError()
     {
         // Arrange
-        var model = new DfaViewModel();
+        var model = new AutomatonViewModel();
         model.States.Add(new State { Id = 1, IsStart = true, IsAccepting = false });
 
         // Act
-        var result = controller.AddTransition(model, 1, 2, 'a') as ViewResult;
+        var result = controller.AddTransition(model, 1, 2, "a") as ViewResult;
 
         // Assert
         result.ShouldNotBeNull();
@@ -178,13 +178,34 @@ public class HomeControllerTests
     public void AddTransition_DuplicateTransition_ReturnsModelStateError()
     {
         // Arrange
-        var model = new DfaViewModel();
+        var model = new AutomatonViewModel(); // Default type is DFA
         model.States.Add(new State { Id = 1, IsStart = true, IsAccepting = false });
         model.States.Add(new State { Id = 2, IsStart = false, IsAccepting = true });
         model.Transitions.Add(new Transition { FromStateId = 1, ToStateId = 2, Symbol = 'a' });
 
         // Act
-        var result = controller.AddTransition(model, 1, 2, 'a') as ViewResult;
+        var result = controller.AddTransition(model, 1, 2, "a") as ViewResult;
+
+        // Assert
+        result.ShouldNotBeNull();
+        controller.ModelState.IsValid.ShouldBeFalse();
+        var errors = controller.ModelState[""]?.Errors;
+        errors.ShouldNotBeNull();
+        // For DFA, it's detected as a determinism violation first
+        errors[0].ErrorMessage.ShouldContain("DFA cannot have multiple transitions from state 1 on symbol 'a'");
+    }
+
+    [Fact]
+    public void AddTransition_NFA_ExactDuplicateTransition_ReturnsModelStateError()
+    {
+        // Arrange
+        var model = new AutomatonViewModel { Type = AutomatonType.NFA };
+        model.States.Add(new State { Id = 1, IsStart = true, IsAccepting = false });
+        model.States.Add(new State { Id = 2, IsStart = false, IsAccepting = true });
+        model.Transitions.Add(new Transition { FromStateId = 1, ToStateId = 2, Symbol = 'a' });
+
+        // Act - Try to add exact same transition
+        var result = controller.AddTransition(model, 1, 2, "a") as ViewResult;
 
         // Assert
         result.ShouldNotBeNull();
@@ -195,10 +216,33 @@ public class HomeControllerTests
     }
 
     [Fact]
+    public void AddTransition_EpsilonNFA_EpsilonTransition_AddsSuccessfully()
+    {
+        // Arrange
+        var model = new AutomatonViewModel { Type = AutomatonType.EpsilonNFA };
+        model.States.Add(new State { Id = 1, IsStart = true, IsAccepting = false });
+        model.States.Add(new State { Id = 2, IsStart = false, IsAccepting = true });
+
+        // Act - Add epsilon transition
+        var result = controller.AddTransition(model, 1, 2, "?") as ViewResult;
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.ViewName.ShouldBe("CreateAutomaton");
+        var returnedModel = result.Model as AutomatonViewModel;
+        returnedModel.ShouldNotBeNull();
+        returnedModel.Transitions.Count.ShouldBe(1);
+        returnedModel.Transitions[0].FromStateId.ShouldBe(1);
+        returnedModel.Transitions[0].ToStateId.ShouldBe(2);
+        returnedModel.Transitions[0].Symbol.ShouldBe('\0'); // Epsilon is stored as null character
+        returnedModel.Alphabet.ShouldBeEmpty(); // Epsilon not added to alphabet
+    }
+
+    [Fact]
     public void RemoveState_ValidState_RemovesStateAndRelatedTransitions()
     {
         // Arrange
-        var model = new DfaViewModel();
+        var model = new AutomatonViewModel();
         model.States.Add(new State { Id = 1, IsStart = true, IsAccepting = false });
         model.States.Add(new State { Id = 2, IsStart = false, IsAccepting = true });
         model.Transitions.Add(new Transition { FromStateId = 1, ToStateId = 2, Symbol = 'a' });
@@ -209,7 +253,7 @@ public class HomeControllerTests
 
         // Assert
         result.ShouldNotBeNull();
-        var returnedModel = result.Model as DfaViewModel;
+        var returnedModel = result.Model as AutomatonViewModel;
         returnedModel.ShouldNotBeNull();
         returnedModel.States.Count.ShouldBe(1);
         returnedModel.States.ShouldNotContain(s => s.Id == 1);
@@ -221,7 +265,7 @@ public class HomeControllerTests
     public void RemoveTransition_ValidTransition_RemovesTransitionAndUpdatesAlphabet()
     {
         // Arrange
-        var model = new DfaViewModel();
+        var model = new AutomatonViewModel();
         model.States.Add(new State { Id = 1, IsStart = true, IsAccepting = false });
         model.States.Add(new State { Id = 2, IsStart = false, IsAccepting = true });
         model.Transitions.Add(new Transition { FromStateId = 1, ToStateId = 2, Symbol = 'a' });
@@ -232,7 +276,7 @@ public class HomeControllerTests
 
         // Assert
         result.ShouldNotBeNull();
-        var returnedModel = result.Model as DfaViewModel;
+        var returnedModel = result.Model as AutomatonViewModel;
         returnedModel.ShouldNotBeNull();
         returnedModel.Transitions.ShouldBeEmpty();
         returnedModel.Alphabet.ShouldBeEmpty(); // Should be removed since no transitions use it
@@ -242,7 +286,7 @@ public class HomeControllerTests
     public void CreateAutomaton_ValidModel_RedirectsToIndex()
     {
         // Arrange
-        var model = new DfaViewModel();
+        var model = new AutomatonViewModel();
         model.States.Add(new State { Id = 1, IsStart = true, IsAccepting = false });
         model.States.Add(new State { Id = 2, IsStart = false, IsAccepting = true });
         model.Transitions.Add(new Transition { FromStateId = 1, ToStateId = 2, Symbol = 'a' });
@@ -260,7 +304,7 @@ public class HomeControllerTests
     public void CreateAutomaton_InvalidModel_ReturnsViewWithErrors()
     {
         // Arrange
-        var model = new DfaViewModel(); // Empty model - no states
+        var model = new AutomatonViewModel(); // Empty model - no states
 
         // Act
         var result = controller.CreateAutomaton(model) as ViewResult;
@@ -274,7 +318,7 @@ public class HomeControllerTests
     public void ValidateAutomaton_NoStates_ReturnsFalse()
     {
         // Arrange
-        var model = new DfaViewModel();
+        var model = new AutomatonViewModel();
 
         // Act
         var result = controller.CreateAutomaton(model) as ViewResult;
@@ -291,7 +335,7 @@ public class HomeControllerTests
     public void ValidateAutomaton_NoStartState_ReturnsFalse()
     {
         // Arrange
-        var model = new DfaViewModel();
+        var model = new AutomatonViewModel();
         model.States.Add(new State { Id = 1, IsStart = false, IsAccepting = true });
 
         // Act
@@ -309,7 +353,7 @@ public class HomeControllerTests
     public void ValidateAutomaton_MultipleStartStates_ReturnsFalse()
     {
         // Arrange
-        var model = new DfaViewModel();
+        var model = new AutomatonViewModel();
         model.States.Add(new State { Id = 1, IsStart = true, IsAccepting = false });
         model.States.Add(new State { Id = 2, IsStart = true, IsAccepting = true });
 
