@@ -225,6 +225,38 @@ public class HomeController(ILogger<HomeController> logger) : Controller
             model.Transitions ??= [];
             model.Alphabet ??= [];
 
+            // Add detailed logging for debugging the epsilon symbol issue
+            _logger.LogInformation("AddTransition called with symbol: '{Symbol}' (Length: {Length})", 
+                symbol ?? "NULL", symbol?.Length ?? 0);
+            
+            if (!string.IsNullOrEmpty(symbol))
+            {
+                _logger.LogInformation("Symbol byte values: {Bytes}", 
+                    string.Join(", ", System.Text.Encoding.UTF8.GetBytes(symbol).Select(b => b.ToString())));
+                _logger.LogInformation("Symbol char codes: {CharCodes}", 
+                    string.Join(", ", symbol.Select(c => ((int)c).ToString())));
+                
+                // Check each character individually with hex representation
+                for (int i = 0; i < symbol.Length; i++)
+                {
+                    char c = symbol[i];
+                    _logger.LogInformation("Character {Index}: '{Char}' (Unicode: U+{Unicode:X4}, Dec: {Dec}, Hex: 0x{Hex:X})", 
+                        i, c == '\0' ? "NULL" : c.ToString(), (int)c, (int)c, (int)c);
+                    
+                    // Special check for epsilon
+                    if ((int)c == 949)
+                    {
+                        _logger.LogInformation("*** EPSILON CHARACTER DETECTED: This is the Greek lowercase epsilon (?) ***");
+                    }
+                }
+                
+                // Alternative logging without the symbol directly to avoid encoding issues
+                _logger.LogInformation("Symbol analysis: Length={Length}, First char code={FirstChar}, Is Greek epsilon={IsEpsilon}", 
+                    symbol.Length, 
+                    symbol.Length > 0 ? (int)symbol[0] : -1,
+                    symbol.Length == 1 && symbol[0] == 949);
+            }
+
             // Validate states exist
             if (!model.States.Any(s => s.Id == fromStateId))
             {
@@ -238,18 +270,50 @@ public class HomeController(ILogger<HomeController> logger) : Controller
                 return View("CreateAutomaton", model);
             }
 
-            // Handle epsilon transitions for Epsilon NFA
+            // Handle epsilon transitions - more comprehensive checking
             char transitionSymbol;
-            if (model.Type == AutomatonType.EpsilonNFA && (symbol == "?" || symbol == "epsilon" || symbol == "eps" || string.IsNullOrEmpty(symbol)))
+            
+            _logger.LogInformation("Checking epsilon conditions:");
+            _logger.LogInformation("symbol == \"?\": {Result} (Expected: True for epsilon symbol U+03B5)", symbol == "?");
+            _logger.LogInformation("symbol == \"epsilon\": {Result}", symbol == "epsilon");
+            _logger.LogInformation("symbol == \"eps\": {Result}", symbol == "eps");
+            _logger.LogInformation("string.IsNullOrEmpty(symbol): {Result}", string.IsNullOrEmpty(symbol));
+            
+            // More comprehensive epsilon detection
+            bool isEpsilonTransition = string.IsNullOrEmpty(symbol) || 
+                                     symbol == "?" || 
+                                     symbol == "epsilon" || 
+                                     symbol == "eps" ||
+                                     symbol == "e" ||
+                                     symbol == "?" ||  // Alternative lambda symbol
+                                     symbol == "\u03B5" ||  // Unicode epsilon
+                                     symbol == "\u025B" ||  // Latin small letter open e
+                                     symbol.Trim() == "" ||
+                                     symbol.Trim() == "?" ||
+                                     (symbol.Length == 1 && symbol[0] == '\u03B5') || // Direct unicode check
+                                     (symbol.Length == 1 && symbol[0] == 949); // Decimal value for ?
+            
+            _logger.LogInformation("Is epsilon transition (comprehensive check): {Result}", isEpsilonTransition);
+            
+            if (isEpsilonTransition)
             {
+                _logger.LogInformation("Epsilon transition detected!");
+                // Epsilon symbols are only allowed in Epsilon NFA
+                if (model.Type != AutomatonType.EpsilonNFA)
+                {
+                    ModelState.AddModelError("", "Epsilon transitions (?) are only allowed in Epsilon NFAs. Please change the automaton type or use a different symbol.");
+                    return View("CreateAutomaton", model);
+                }
                 transitionSymbol = '\0'; // Epsilon transition
             }
-            else if (!string.IsNullOrEmpty(symbol) && symbol.Length == 1)
+            else if (!string.IsNullOrEmpty(symbol) && symbol.Trim().Length == 1)
             {
-                transitionSymbol = symbol[0];
+                _logger.LogInformation("Regular symbol detected: '{Symbol}'", symbol.Trim());
+                transitionSymbol = symbol.Trim()[0];
             }
             else
             {
+                _logger.LogInformation("Invalid symbol format detected");
                 ModelState.AddModelError("", "Symbol must be a single character or epsilon (?) for Epsilon NFA.");
                 return View("CreateAutomaton", model);
             }
@@ -276,6 +340,11 @@ public class HomeController(ILogger<HomeController> logger) : Controller
             {
                 model.Alphabet.Add(transitionSymbol);
             }
+
+            _logger.LogInformation("Transition added successfully: {From} -> {To} on '{Symbol}' (char code: {Code})",
+                fromStateId, toStateId, 
+                transitionSymbol == '\0' ? "?" : transitionSymbol.ToString(),
+                (int)transitionSymbol);
 
             return View("CreateAutomaton", model);
         }
@@ -401,7 +470,7 @@ public class HomeController(ILogger<HomeController> logger) : Controller
 
     [HttpPost]
     [IgnoreAntiforgeryToken] // Allow integration tests to work without antiforgery tokens
-    public IActionResult RemoveTransition(AutomatonViewModel model, int fromStateId, int toStateId, char symbol)
+    public IActionResult RemoveTransition(AutomatonViewModel model, int fromStateId, int toStateId, string symbol)
     {
         try
         {
@@ -410,12 +479,28 @@ public class HomeController(ILogger<HomeController> logger) : Controller
             model.Transitions ??= [];
             model.Alphabet ??= [];
 
-            model.Transitions.RemoveAll(t => t.FromStateId == fromStateId && t.ToStateId == toStateId && t.Symbol == symbol);
+            // Convert symbol string to char, handling epsilon transitions consistently
+            char symbolChar;
+            if (symbol == "?" || symbol == "epsilon" || symbol == "eps" || string.IsNullOrEmpty(symbol))
+            {
+                symbolChar = '\0'; // Epsilon transition
+            }
+            else if (symbol.Length == 1)
+            {
+                symbolChar = symbol[0];
+            }
+            else
+            {
+                ModelState.AddModelError("", "Invalid symbol format.");
+                return View("CreateAutomaton", model);
+            }
+
+            model.Transitions.RemoveAll(t => t.FromStateId == fromStateId && t.ToStateId == toStateId && t.Symbol == symbolChar);
 
             // Update alphabet - remove symbol if no longer used
-            if (symbol != '\0' && !model.Transitions.Any(t => t.Symbol == symbol))
+            if (symbolChar != '\0' && !model.Transitions.Any(t => t.Symbol == symbolChar))
             {
-                model.Alphabet.Remove(symbol);
+                model.Alphabet.Remove(symbolChar);
             }
 
             return View("CreateAutomaton", model);

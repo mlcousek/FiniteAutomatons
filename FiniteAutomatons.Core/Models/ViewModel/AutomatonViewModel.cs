@@ -1,4 +1,4 @@
-namespace FiniteAutomatons.Core.Models.ViewModel;
+﻿namespace FiniteAutomatons.Core.Models.ViewModel;
 
 using FiniteAutomatons.Core.Models.DoMain;
 using System.Collections.Generic;
@@ -40,7 +40,7 @@ public class AutomatonViewModel
     {
         AutomatonType.DFA => "Deterministic Finite Automaton (DFA)",
         AutomatonType.NFA => "Nondeterministic Finite Automaton (NFA)",
-        AutomatonType.EpsilonNFA => "Epsilon Nondeterministic Finite Automaton (?-NFA)",
+        AutomatonType.EpsilonNFA => "Epsilon Nondeterministic Finite Automaton (ε-NFA)",
         _ => Type.ToString()
     };
 }

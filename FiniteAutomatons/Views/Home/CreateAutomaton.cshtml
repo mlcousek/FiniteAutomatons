@@ -1,4 +1,4 @@
-@using FiniteAutomatons.Core.Models.ViewModel
+﻿@using FiniteAutomatons.Core.Models.ViewModel
 @model FiniteAutomatons.Core.Models.ViewModel.AutomatonViewModel
 @{
     ViewData["Title"] = "Create Automaton";
@@ -40,7 +40,7 @@
                         {
                             <input type="hidden" name="Transitions[@i].FromStateId" value="@Model.Transitions[i].FromStateId" />
                             <input type="hidden" name="Transitions[@i].ToStateId" value="@Model.Transitions[i].ToStateId" />
-                            <input type="hidden" name="Transitions[@i].Symbol" value="@Model.Transitions[i].Symbol" />
+                            <input type="hidden" name="Transitions[@i].Symbol" value="@(Model.Transitions[i].Symbol == '\0' ? "ε" : Model.Transitions[i].Symbol.ToString())" />
                         }
                         @for (int i = 0; i < Model.Alphabet.Count; i++)
                         {
@@ -54,7 +54,7 @@
                                 <select name="newType" class="form-control">
                                     <option value="DFA" selected="@(Model.Type == AutomatonType.DFA)">DFA - Deterministic Finite Automaton</option>
                                     <option value="NFA" selected="@(Model.Type == AutomatonType.NFA)">NFA - Nondeterministic Finite Automaton</option>
-                                    <option value="EpsilonNFA" selected="@(Model.Type == AutomatonType.EpsilonNFA)">?-NFA - Epsilon Nondeterministic Finite Automaton</option>
+                                    <option value="EpsilonNFA" selected="@(Model.Type == AutomatonType.EpsilonNFA)">ε-NFA - Epsilon Nondeterministic Finite Automaton</option>
                                 </select>
                             </div>
                             <div class="col-md-4">
@@ -88,7 +88,7 @@
                         {
                             <input type="hidden" name="Transitions[@i].FromStateId" value="@Model.Transitions[i].FromStateId" />
                             <input type="hidden" name="Transitions[@i].ToStateId" value="@Model.Transitions[i].ToStateId" />
-                            <input type="hidden" name="Transitions[@i].Symbol" value="@Model.Transitions[i].Symbol" />
+                            <input type="hidden" name="Transitions[@i].Symbol" value="@(Model.Transitions[i].Symbol == '\0' ? "ε" : Model.Transitions[i].Symbol.ToString())" />
                         }
                         
                         <!-- Manually generate hidden fields for Alphabet -->
@@ -146,7 +146,7 @@
                         {
                             <input type="hidden" name="Transitions[@i].FromStateId" value="@Model.Transitions[i].FromStateId" />
                             <input type="hidden" name="Transitions[@i].ToStateId" value="@Model.Transitions[i].ToStateId" />
-                            <input type="hidden" name="Transitions[@i].Symbol" value="@Model.Transitions[i].Symbol" />
+                            <input type="hidden" name="Transitions[@i].Symbol" value="@(Model.Transitions[i].Symbol == '\0' ? "ε" : Model.Transitions[i].Symbol.ToString())" />
                         }
                         @for (int i = 0; i < Model.Alphabet.Count; i++)
                         {
@@ -179,14 +179,19 @@
                             <div class="col-md-3">
                                 <label for="symbol" class="form-label">
                                     Symbol:
+                                </label>
+                                <div class="input-group">
+                                    <input type="text" name="symbol" maxlength="@(Model.SupportsEpsilonTransitions ? "7" : "1")" 
+                                           class="form-control" required 
+                                           placeholder="@(Model.SupportsEpsilonTransitions ? "a or ε" : "e.g., a")" 
+                                           id="symbolInput" />
                                     @if (Model.SupportsEpsilonTransitions)
                                     {
-                                        <small class="text-muted">(or ? for epsilon)</small>
+                                        <button type="button" class="btn btn-outline-secondary" onclick="insertEpsilon()" title="Insert epsilon symbol">
+                                            ε
+                                        </button>
                                     }
-                                </label>
-                                <input type="text" name="symbol" maxlength="@(Model.SupportsEpsilonTransitions ? "7" : "1")" 
-                                       class="form-control" required 
-                                       placeholder="@(Model.SupportsEpsilonTransitions ? "a or ?" : "e.g., a")" />
+                                </div>
                             </div>
                             <div class="col-md-3">
                                 <button type="submit" class="btn btn-success mt-4">
@@ -197,8 +202,8 @@
                         @if (Model.SupportsEpsilonTransitions)
                         {
                             <small class="text-info mt-2 d-block">
-                                <i class="fas fa-info-circle"></i> 
-                                For epsilon transitions, enter "?", "epsilon", "eps", or leave empty.
+                                <i class="fas fa-info-circle"></i>
+                                For epsilon transitions, enter "ε", "epsilon", "eps", or leave empty.
                             </small>
                         }
                     </form>
@@ -223,7 +228,7 @@
                         {
                             <input type="hidden" name="Transitions[@i].FromStateId" value="@Model.Transitions[i].FromStateId" />
                             <input type="hidden" name="Transitions[@i].ToStateId" value="@Model.Transitions[i].ToStateId" />
-                            <input type="hidden" name="Transitions[@i].Symbol" value="@Model.Transitions[i].Symbol" />
+                            <input type="hidden" name="Transitions[@i].Symbol" value="@(Model.Transitions[i].Symbol == '\0' ? "ε" : Model.Transitions[i].Symbol.ToString())" />
                         }
                         @for (int i = 0; i < Model.Alphabet.Count; i++)
                         {
@@ -275,7 +280,7 @@
                                                 {
                                                     <input type="hidden" name="Transitions[@i].FromStateId" value="@Model.Transitions[i].FromStateId" />
                                                     <input type="hidden" name="Transitions[@i].ToStateId" value="@Model.Transitions[i].ToStateId" />
-                                                    <input type="hidden" name="Transitions[@i].Symbol" value="@Model.Transitions[i].Symbol" />
+                                                    <input type="hidden" name="Transitions[@i].Symbol" value="@(Model.Transitions[i].Symbol == '\0' ? "ε" : Model.Transitions[i].Symbol.ToString())" />
                                                 }
                                                 @for (int i = 0; i < Model.Alphabet.Count; i++)
                                                 {
@@ -314,7 +319,7 @@
                                                 <td><strong>@transition.FromStateId</strong></td>
                                                 <td>
                                                     <code class="text-primary">
-                                                        @(transition.Symbol == '\0' ? "?" : transition.Symbol.ToString())
+                                                        @(transition.Symbol == '\0' ? "ε" : transition.Symbol.ToString())
                                                     </code>
                                                 </td>
                                                 <td><strong>@transition.ToStateId</strong></td>
@@ -330,7 +335,7 @@
                                                         {
                                                             <input type="hidden" name="Transitions[@i].FromStateId" value="@Model.Transitions[i].FromStateId" />
                                                             <input type="hidden" name="Transitions[@i].ToStateId" value="@Model.Transitions[i].ToStateId" />
-                                                            <input type="hidden" name="Transitions[@i].Symbol" value="@Model.Transitions[i].Symbol" />
+                                                            <input type="hidden" name="Transitions[@i].Symbol" value="@(Model.Transitions[i].Symbol == '\0' ? "ε" : Model.Transitions[i].Symbol.ToString())" />
                                                         }
                                                         @for (int i = 0; i < Model.Alphabet.Count; i++)
                                                         {
@@ -340,7 +345,7 @@
                                                         <input type="hidden" name="IsCustomAutomaton" value="@Model.IsCustomAutomaton.ToString().ToLower()" />
                                                         <input type="hidden" name="fromStateId" value="@transition.FromStateId" />
                                                         <input type="hidden" name="toStateId" value="@transition.ToStateId" />
-                                                        <input type="hidden" name="symbol" value="@transition.Symbol" />
+                                                        <input type="hidden" name="symbol" value="@(transition.Symbol == '\0' ? "ε" : transition.Symbol.ToString())" />
                                                         <button type="submit" class="btn btn-sm btn-outline-danger" title="Remove Transition">
                                                             <i class="fas fa-trash"></i>
                                                         </button>
@@ -363,7 +368,7 @@
                                 }
                                 @if (Model.SupportsEpsilonTransitions && Model.Transitions.Any(t => t.Symbol == '\0'))
                                 {
-                                    <span class="badge bg-secondary me-1 mb-1">?</span>
+                                    <span class="badge bg-secondary me-1 mb-1">ε</span>
                                 }
                             </p>
                         }
@@ -384,12 +389,54 @@
 
 @section Scripts {
     <script>
+        // Function to insert epsilon symbol
+        function insertEpsilon() {
+            const symbolInput = document.getElementById('symbolInput');
+            if (symbolInput) {
+                symbolInput.value = 'ε';
+                symbolInput.focus();
+                
+                // Debug the inserted epsilon
+                console.log('Epsilon inserted - Symbol value:', symbolInput.value);
+                console.log('Epsilon inserted - Symbol length:', symbolInput.value.length);
+                console.log('Epsilon inserted - Symbol char codes:', symbolInput.value.split('').map(c => c.charCodeAt(0)));
+            }
+        }
+
         // Auto-focus next input after entering single character (for non-epsilon NFAs)
         document.querySelectorAll('input[name="symbol"]').forEach(input => {
             input.addEventListener('input', function() {
                 const isEpsilonNFA = @(Model.SupportsEpsilonTransitions.ToString().ToLower());
                 if (!isEpsilonNFA && this.value.length >= 1) {
                     this.value = this.value.charAt(0); // Keep only first character
+                }
+                
+                // Debug logging for epsilon symbol
+                if (this.value) {
+                    console.log('Symbol input value:', this.value);
+                    console.log('Symbol length:', this.value.length);
+                    console.log('Symbol char codes:', this.value.split('').map(c => c.charCodeAt(0)));
+                    
+                    // Check if it matches various epsilon representations
+                    console.log('Matches ε:', this.value === 'ε');
+                    console.log('Matches unicode \\u03B5:', this.value === '\u03B5');
+                    console.log('Char code 949 check:', this.value.length === 1 && this.value.charCodeAt(0) === 949);
+                }
+            });
+        });
+
+        // Debug form submission
+        document.querySelectorAll('form[action="/Home/AddTransition"]').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                const symbolInput = this.querySelector('input[name="symbol"]');
+                if (symbolInput) {
+                    console.log('Form submission - Symbol value:', symbolInput.value);
+                    console.log('Form submission - Symbol length:', symbolInput.value.length);
+                    if (symbolInput.value) {
+                        console.log('Form submission - Symbol char codes:', symbolInput.value.split('').map(c => c.charCodeAt(0)));
+                        console.log('Form submission - Is epsilon (ε):', symbolInput.value === 'ε');
+                        console.log('Form submission - Is unicode epsilon:', symbolInput.value === '\u03B5');
+                    }
                 }
             });
         });

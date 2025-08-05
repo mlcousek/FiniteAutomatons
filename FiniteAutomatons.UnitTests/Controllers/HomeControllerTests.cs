@@ -272,7 +272,7 @@ public class HomeControllerTests
         model.Alphabet.Add('a');
 
         // Act
-        var result = controller.RemoveTransition(model, 1, 2, 'a') as ViewResult;
+        var result = controller.RemoveTransition(model, 1, 2, "a") as ViewResult;
 
         // Assert
         result.ShouldNotBeNull();
@@ -366,6 +366,44 @@ public class HomeControllerTests
         var errors = controller.ModelState[""]?.Errors;
         errors.ShouldNotBeNull();
         errors[0].ErrorMessage.ShouldContain("Automaton must have exactly one start state");
+    }
+
+    [Fact]
+    public void AddTransition_EpsilonSymbolInDFA_ReturnsModelStateError()
+    {
+        // Arrange
+        var model = new AutomatonViewModel { Type = AutomatonType.DFA };
+        model.States.Add(new State { Id = 1, IsStart = true, IsAccepting = false });
+        model.States.Add(new State { Id = 2, IsStart = false, IsAccepting = true });
+
+        // Act - Try to add epsilon transition to DFA
+        var result = controller.AddTransition(model, 1, 2, "?") as ViewResult;
+
+        // Assert
+        result.ShouldNotBeNull();
+        controller.ModelState.IsValid.ShouldBeFalse();
+        var errors = controller.ModelState[""]?.Errors;
+        errors.ShouldNotBeNull();
+        errors[0].ErrorMessage.ShouldContain("Epsilon transitions (?) are only allowed in Epsilon NFAs");
+    }
+
+    [Fact]
+    public void AddTransition_EpsilonSymbolInNFA_ReturnsModelStateError()
+    {
+        // Arrange
+        var model = new AutomatonViewModel { Type = AutomatonType.NFA };
+        model.States.Add(new State { Id = 1, IsStart = true, IsAccepting = false });
+        model.States.Add(new State { Id = 2, IsStart = false, IsAccepting = true });
+
+        // Act - Try to add epsilon transition to NFA
+        var result = controller.AddTransition(model, 1, 2, "?") as ViewResult;
+
+        // Assert
+        result.ShouldNotBeNull();
+        controller.ModelState.IsValid.ShouldBeFalse();
+        var errors = controller.ModelState[""]?.Errors;
+        errors.ShouldNotBeNull();
+        errors[0].ErrorMessage.ShouldContain("Epsilon transitions (?) are only allowed in Epsilon NFAs");
     }
 }
 
