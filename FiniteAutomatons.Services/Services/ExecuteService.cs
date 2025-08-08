@@ -1,6 +1,7 @@
 ﻿using FiniteAutomatons.Core.Interfaces;
+using FiniteAutomatons.Services.Interfaces;
 
-namespace FiniteAutomatons.Services.AutomatonsSharedServices;
+namespace FiniteAutomatons.Services.Services;
 
 public class ExecuteService : IExecuteService
 {

@@ -1,14 +1,17 @@
 using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.ViewModel;
+using FiniteAutomatons.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 
 namespace FiniteAutomatons.Controllers;
 
-public class AutomatonController(ILogger<AutomatonController> logger) : Controller
+public class AutomatonController(ILogger<AutomatonController> logger, IAutomatonGeneratorService generatorService, IAutomatonTempDataService tempDataService) : Controller
 {
     private readonly ILogger<AutomatonController> logger = logger;
+    private readonly IAutomatonGeneratorService generatorService = generatorService;
+    private readonly IAutomatonTempDataService tempDataService = tempDataService;
 
     public IActionResult CreateAutomaton()
     {
@@ -49,9 +52,8 @@ public class AutomatonController(ILogger<AutomatonController> logger) : Controll
             // Mark as custom automaton
             model.IsCustomAutomaton = true;
 
-            // Store the custom automaton in TempData and redirect to simulator
-            var modelJson = System.Text.Json.JsonSerializer.Serialize(model);
-            TempData["CustomAutomaton"] = modelJson;
+            // Store the custom automaton using the service
+            tempDataService.StoreCustomAutomaton(TempData, model);
 
             logger.LogInformation("Successfully created automaton, redirecting to Index");
             return RedirectToAction("Index", "Home");
@@ -165,7 +167,7 @@ public class AutomatonController(ILogger<AutomatonController> logger) : Controll
                 }
                 
                 // Alternative logging without the symbol directly to avoid encoding issues
-                logger.LogInformation("Symbol analysis: Length={Length}, First char code={FirstChar}, Is Greek epsilon={IsEpsilon}", 
+                logger.LogInformation("Symbol analysis: Length={Length}, First char code={FirstChar}, Is Epsilon={IsEpsilon}", 
                     symbol.Length, 
                     symbol.Length > 0 ? (int)symbol[0] : -1,
                     symbol.Length == 1 && symbol[0] == 949);
@@ -658,7 +660,7 @@ public class AutomatonController(ILogger<AutomatonController> logger) : Controll
         catch (Exception ex)
         {
             logger.LogError(ex, "Error in StepForward");
-            TempData["ErrorMessage"] = "An error occurred while stepping forward.";
+            tempDataService.StoreErrorMessage(TempData, "An error occurred while stepping forward.");
             return View("../Home/Index", model);
         }
     }
@@ -685,7 +687,7 @@ public class AutomatonController(ILogger<AutomatonController> logger) : Controll
         catch (Exception ex)
         {
             logger.LogError(ex, "Error in StepBackward");
-            TempData["ErrorMessage"] = "An error occurred while stepping backward.";
+            tempDataService.StoreErrorMessage(TempData, "An error occurred while stepping backward.");
             return View("../Home/Index", model);
         }
     }
@@ -713,7 +715,7 @@ public class AutomatonController(ILogger<AutomatonController> logger) : Controll
         catch (Exception ex)
         {
             logger.LogError(ex, "Error in ExecuteAll");
-            TempData["ErrorMessage"] = "An error occurred while executing the automaton.";
+            tempDataService.StoreErrorMessage(TempData, "An error occurred while executing the automaton.");
             return View("../Home/Index", model);
         }
     }
@@ -739,7 +741,7 @@ public class AutomatonController(ILogger<AutomatonController> logger) : Controll
         catch (Exception ex)
         {
             logger.LogError(ex, "Error in BackToStart");
-            TempData["ErrorMessage"] = "An error occurred while resetting to start.";
+            tempDataService.StoreErrorMessage(TempData, "An error occurred while resetting to start.");
             return View("../Home/Index", model);
         }
     }
@@ -778,7 +780,7 @@ public class AutomatonController(ILogger<AutomatonController> logger) : Controll
         catch (Exception ex)
         {
             logger.LogError(ex, "Error in Reset");
-            TempData["ErrorMessage"] = "An error occurred while resetting.";
+            tempDataService.StoreErrorMessage(TempData, "An error occurred while resetting.");
             return View("../Home/Index", model);
         }
     }
@@ -828,18 +830,101 @@ public class AutomatonController(ILogger<AutomatonController> logger) : Controll
                 IsCustomAutomaton = true
             };
 
-            // Store the converted automaton
-            var modelJson = System.Text.Json.JsonSerializer.Serialize(convertedModel);
-            TempData["CustomAutomaton"] = modelJson;
-            TempData["ConversionMessage"] = $"Successfully converted {model.TypeDisplayName} to DFA with {convertedModel.States.Count} states.";
+            // Store the converted automaton using the service
+            tempDataService.StoreCustomAutomaton(TempData, convertedModel);
+            tempDataService.StoreConversionMessage(TempData, $"Successfully converted {model.TypeDisplayName} to DFA with {convertedModel.States.Count} states.");
 
             return RedirectToAction("Index", "Home");
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Error in ConvertToDFA");
-            TempData["ErrorMessage"] = $"Failed to convert to DFA: {ex.Message}";
+            tempDataService.StoreErrorMessage(TempData, $"Failed to convert to DFA: {ex.Message}");
             return View("../Home/Index", model);
+        }
+    }
+
+    public IActionResult GenerateRandomAutomaton()
+    {
+        // Show the generation form
+        var model = new RandomAutomatonGenerationViewModel
+        {
+            Type = AutomatonType.DFA,
+            StateCount = 5,
+            TransitionCount = 8,
+            AlphabetSize = 3,
+            AcceptingStateRatio = 0.3
+        };
+        return View(model);
+    }
+
+    [HttpPost]
+    public IActionResult GenerateRandomAutomaton(RandomAutomatonGenerationViewModel model)
+    {
+        try
+        {
+            logger.LogInformation("Generating random automaton: Type={Type}, States={States}, Transitions={Transitions}",
+                model.Type, model.StateCount, model.TransitionCount);
+
+            // Validate parameters
+            if (!generatorService.ValidateGenerationParameters(model.Type, model.StateCount, model.TransitionCount, model.AlphabetSize))
+            {
+                ModelState.AddModelError("", "Invalid generation parameters. Please check your input values.");
+                return View(model);
+            }
+
+            // Generate the automaton
+            var generatedAutomaton = generatorService.GenerateRandomAutomaton(
+                model.Type,
+                model.StateCount,
+                model.TransitionCount,
+                model.AlphabetSize,
+                model.AcceptingStateRatio,
+                model.Seed);
+
+            // Store in TempData and redirect to simulator using the service
+            tempDataService.StoreCustomAutomaton(TempData, generatedAutomaton);
+            tempDataService.StoreConversionMessage(TempData, $"Successfully generated random {model.Type} with {generatedAutomaton.States.Count} states and {generatedAutomaton.Transitions.Count} transitions.");
+
+            logger.LogInformation("Successfully generated random automaton, redirecting to Index");
+            return RedirectToAction("Index", "Home");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error generating random automaton");
+            ModelState.AddModelError("", $"An error occurred while generating the automaton: {ex.Message}");
+            return View(model);
+        }
+    }
+
+    [HttpPost]
+    public IActionResult GenerateRealisticAutomaton(AutomatonType type, int stateCount, int? seed = null)
+    {
+        try
+        {
+            logger.LogInformation("Generating realistic automaton: Type={Type}, States={States}", type, stateCount);
+
+            if (stateCount < 1 || stateCount > 20)
+            {
+                tempDataService.StoreErrorMessage(TempData, "State count must be between 1 and 20.");
+                return RedirectToAction("GenerateRandomAutomaton");
+            }
+
+            // Generate the automaton with realistic parameters
+            var generatedAutomaton = generatorService.GenerateRealisticAutomaton(type, stateCount, seed);
+
+            // Store in TempData and redirect to simulator using the service
+            tempDataService.StoreCustomAutomaton(TempData, generatedAutomaton);
+            tempDataService.StoreConversionMessage(TempData, $"Successfully generated realistic {type} with {generatedAutomaton.States.Count} states and {generatedAutomaton.Transitions.Count} transitions.");
+
+            logger.LogInformation("Successfully generated realistic automaton, redirecting to Index");
+            return RedirectToAction("Index", "Home");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error generating realistic automaton");
+            tempDataService.StoreErrorMessage(TempData, $"An error occurred while generating the automaton: {ex.Message}");
+            return RedirectToAction("GenerateRandomAutomaton");
         }
     }
 }

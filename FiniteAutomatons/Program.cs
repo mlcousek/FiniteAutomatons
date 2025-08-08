@@ -1,7 +1,8 @@
 using FiniteAutomatons.Core.Models.Database;
 using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Data;
-using FiniteAutomatons.Services.AutomatonsSharedServices;
+using FiniteAutomatons.Services.Interfaces;
+using FiniteAutomatons.Services.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System.Text;
@@ -39,6 +40,9 @@ builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
 builder.Services.AddScoped<IExecuteService, ExecuteService>();
+builder.Services.AddScoped<IAutomatonGeneratorService, AutomatonGeneratorService>();
+builder.Services.AddScoped<IAutomatonTempDataService, AutomatonTempDataService>();
+builder.Services.AddScoped<IHomeAutomatonService, HomeAutomatonService>();
 
 // Register automaton types
 builder.Services.AddTransient<DFA>();

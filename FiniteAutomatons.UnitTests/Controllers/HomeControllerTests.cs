@@ -1,6 +1,7 @@
 using FiniteAutomatons.Controllers;
 using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.ViewModel;
+using FiniteAutomatons.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
@@ -16,11 +17,15 @@ public class HomeControllerTests
     public HomeControllerTests()
     {
         var logger = new TestLogger<HomeController>();
-        controller = new HomeController(logger);
+        var mockTempDataService = new MockAutomatonTempDataService();
+        var mockHomeAutomatonService = new MockHomeAutomatonService();
+        controller = new HomeController(logger, mockTempDataService, mockHomeAutomatonService);
 
         // Setup HttpContext and TempData
-        var httpContext = new DefaultHttpContext();
-        httpContext.TraceIdentifier = "test-trace-id";
+        var httpContext = new DefaultHttpContext
+        {
+            TraceIdentifier = "test-trace-id"
+        };
         var tempData = new TempDataDictionary(httpContext, new TestTempDataProvider());
         controller.TempData = tempData;
         controller.ControllerContext = new ControllerContext
@@ -30,7 +35,7 @@ public class HomeControllerTests
     }
 
     [Fact]
-    public void Index_WithoutCustomAutomaton_ReturnsDefaultDfa()
+    public void Index_WithoutCustomAutomaton_ReturnsRandomlyGeneratedAutomaton()
     {
         // Act
         var result = controller.Index() as ViewResult;
@@ -39,12 +44,13 @@ public class HomeControllerTests
         result.ShouldNotBeNull();
         var model = result.Model as AutomatonViewModel;
         model.ShouldNotBeNull();
-        model.States.Count.ShouldBe(5);
+        
+        // Should return a generated automaton (using mock service)
+        model.States.Count.ShouldBeGreaterThan(0);
         model.States.Count(s => s.IsStart).ShouldBe(1);
-        model.States.Count(s => s.IsAccepting).ShouldBe(1);
-        model.Alphabet.ShouldContain('a');
-        model.Alphabet.ShouldContain('b');
-        model.Alphabet.ShouldContain('c');
+        model.IsCustomAutomaton.ShouldBeFalse(); // Should be marked as default (non-custom)
+        model.Alphabet.ShouldNotBeEmpty();
+        model.Transitions.ShouldNotBeNull();
     }
 
     [Fact]

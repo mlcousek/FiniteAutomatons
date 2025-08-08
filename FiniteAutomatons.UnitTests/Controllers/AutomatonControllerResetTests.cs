@@ -1,6 +1,7 @@
 using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Controllers;
+using FiniteAutomatons.Services.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Shouldly;
@@ -16,7 +17,9 @@ public class AutomatonControllerResetTests
         // Create a simple logger for testing
         var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
         var logger = loggerFactory.CreateLogger<AutomatonController>();
-        _controller = new AutomatonController(logger);
+        var mockGeneratorService = new MockAutomatonGeneratorService();
+        var mockTempDataService = new MockAutomatonTempDataService();
+        _controller = new AutomatonController(logger, mockGeneratorService, mockTempDataService);
     }
 
     [Fact]

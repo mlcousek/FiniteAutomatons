@@ -46,10 +46,13 @@
         The result (Accepted/Rejected) will be displayed after running or stepping through the input.
     </p>
     <div class="mt-3">
-        <a asp-action="CreateAutomaton" class="btn btn-outline-primary">
+        <a asp-controller="Automaton" asp-action="CreateAutomaton" class="btn btn-outline-primary">
             <i class="fas fa-plus"></i> Create Your Own Automaton
         </a>
-        <small class="text-muted ms-2">Or use the default automaton below</small>
+        <a asp-controller="Automaton" asp-action="GenerateRandomAutomaton" class="btn btn-outline-info ms-2">
+            <i class="fas fa-random"></i> Generate Random Automaton
+        </a>
+        <small class="text-muted ms-2">Or explore the randomly generated automaton below</small>
     </div>
 </div>
 
@@ -107,7 +110,8 @@
 else
 {
     <div class="alert alert-info">
-        <strong><i class="fas fa-cog"></i> Default Automaton</strong> - This is the sample 5-state DFA with alphabet {a, b, c}.
+        <strong><i class="fas fa-random"></i> Randomly Generated Automaton</strong> - This is a randomly generated @Model.TypeDisplayName with @Model.States.Count states and @Model.Alphabet.Count-letter alphabet. 
+        <small class="d-block mt-1">Refresh the page to get a different random automaton!</small>
     </div>
 }
 

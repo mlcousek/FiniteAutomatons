@@ -1,0 +1,220 @@
+@model FiniteAutomatons.Core.Models.ViewModel.RandomAutomatonGenerationViewModel
+@{
+    ViewData["Title"] = "Generate Random Automaton";
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-random"></i> Generate Random Automaton
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Random Automaton Generator</strong> - This tool creates random automatons with specified parameters.
+                        The generator ensures the resulting automaton is well-formed and connected.
+                    </div>
+
+                    @if (!ViewData.ModelState.IsValid)
+                    {
+                        <div class="alert alert-danger">
+                            <h6>Please correct the following errors:</h6>
+                            <ul class="mb-0">
+                                @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                                {
+                                    <li>@error.ErrorMessage</li>
+                                }
+                            </ul>
+                        </div>
+                    }
+
+                    <form asp-action="GenerateRandomAutomaton" method="post">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="Type" class="form-label">Automaton Type</label>
+                                    <select asp-for="Type" class="form-select" id="automatonType">
+                                        <option value="DFA">DFA - Deterministic Finite Automaton</option>
+                                        <option value="NFA">NFA - Nondeterministic Finite Automaton</option>
+                                        <option value="EpsilonNFA">?-NFA - Epsilon Nondeterministic Finite Automaton</option>
+                                    </select>
+                                    <span asp-validation-for="Type" class="text-danger"></span>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label asp-for="StateCount" class="form-label">Number of States</label>
+                                    <input asp-for="StateCount" type="number" class="form-control" min="1" max="50" id="stateCount" />
+                                    <span asp-validation-for="StateCount" class="text-danger"></span>
+                                    <div class="form-text">Must be between 1 and 50</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label asp-for="TransitionCount" class="form-label">Number of Transitions</label>
+                                    <input asp-for="TransitionCount" type="number" class="form-control" min="0" max="500" id="transitionCount" />
+                                    <span asp-validation-for="TransitionCount" class="text-danger"></span>
+                                    <div class="form-text" id="transitionHelp">
+                                        Should be at least <span id="minTransitions">@Model.StateCount</span> to ensure connectivity.
+                                        For DFA, maximum is <span id="maxTransitions">@Model.MaxTransitionCount</span>.
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="AlphabetSize" class="form-label">Alphabet Size</label>
+                                    <input asp-for="AlphabetSize" type="number" class="form-control" min="1" max="10" id="alphabetSize" />
+                                    <span asp-validation-for="AlphabetSize" class="text-danger"></span>
+                                    <div class="form-text">Uses symbols a, b, c, ... (1-10 symbols)</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label asp-for="AcceptingStateRatio" class="form-label">Accepting State Ratio</label>
+                                    <input asp-for="AcceptingStateRatio" type="number" class="form-control" min="0" max="1" step="0.1" />
+                                    <span asp-validation-for="AcceptingStateRatio" class="text-danger"></span>
+                                    <div class="form-text">Ratio of states that are accepting (0.0 - 1.0)</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label asp-for="Seed" class="form-label">Random Seed (Optional)</label>
+                                    <input asp-for="Seed" type="number" class="form-control" />
+                                    <span asp-validation-for="Seed" class="text-danger"></span>
+                                    <div class="form-text">Leave empty for random generation, or provide a seed for reproducible results</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                    <button type="submit" class="btn btn-primary btn-lg me-md-2">
+                                        <i class="fas fa-random"></i> Generate Random Automaton
+                                    </button>
+                                    <a asp-action="CreateAutomaton" class="btn btn-outline-secondary btn-lg">
+                                        <i class="fas fa-edit"></i> Manual Creation
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-magic"></i> Quick Generation
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Generate realistic automatons with default parameters:</strong></p>
+                    
+                    <div class="d-grid gap-2 mb-3">
+                        <form asp-action="GenerateRealisticAutomaton" method="post" class="d-inline">
+                            <input type="hidden" name="type" value="DFA" />
+                            <input type="hidden" name="stateCount" value="5" />
+                            <button type="submit" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-cog"></i> DFA (5 states)
+                            </button>
+                        </form>
+                    </div>
+
+                    <div class="d-grid gap-2 mb-3">
+                        <form asp-action="GenerateRealisticAutomaton" method="post" class="d-inline">
+                            <input type="hidden" name="type" value="NFA" />
+                            <input type="hidden" name="stateCount" value="4" />
+                            <button type="submit" class="btn btn-outline-success w-100">
+                                <i class="fas fa-project-diagram"></i> NFA (4 states)
+                            </button>
+                        </form>
+                    </div>
+
+                    <div class="d-grid gap-2 mb-3">
+                        <form asp-action="GenerateRealisticAutomaton" method="post" class="d-inline">
+                            <input type="hidden" name="type" value="EpsilonNFA" />
+                            <input type="hidden" name="stateCount" value="4" />
+                            <button type="submit" class="btn btn-outline-warning w-100">
+                                <i class="fas fa-share-alt"></i> ?-NFA (4 states)
+                            </button>
+                        </form>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <form asp-action="GenerateRealisticAutomaton" method="post" class="d-inline">
+                            <input type="hidden" name="type" value="DFA" />
+                            <input type="hidden" name="stateCount" value="10" />
+                            <button type="submit" class="btn btn-outline-info w-100">
+                                <i class="fas fa-expand-arrows-alt"></i> Large DFA (10 states)
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header bg-secondary text-white">
+                    <h6 class="mb-0">
+                        <i class="fas fa-question-circle"></i> Generation Tips
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ul class="small mb-0">
+                        <li><strong>DFA:</strong> Each state can have at most one transition per symbol</li>
+                        <li><strong>NFA:</strong> States can have multiple transitions on the same symbol</li>
+                        <li><strong>?-NFA:</strong> Includes epsilon transitions (shown as ?)</li>
+                        <li><strong>Connectivity:</strong> Generator ensures all states are reachable</li>
+                        <li><strong>Seed:</strong> Use same seed to reproduce identical automatons</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Update transition constraints based on automaton type and parameters
+    function updateTransitionConstraints() {
+        const type = document.getElementById('automatonType').value;
+        const stateCount = parseInt(document.getElementById('stateCount').value) || 1;
+        const alphabetSize = parseInt(document.getElementById('alphabetSize').value) || 1;
+        
+        const minTransitions = stateCount;
+        let maxTransitions = stateCount * stateCount;
+        
+        if (type === 'DFA') {
+            maxTransitions = stateCount * alphabetSize;
+        }
+        
+        document.getElementById('minTransitions').textContent = minTransitions;
+        document.getElementById('maxTransitions').textContent = maxTransitions;
+        
+        const transitionInput = document.getElementById('transitionCount');
+        transitionInput.min = minTransitions;
+        transitionInput.max = maxTransitions;
+        
+        // Adjust current value if it's outside the new range
+        const currentValue = parseInt(transitionInput.value) || 0;
+        if (currentValue < minTransitions) {
+            transitionInput.value = minTransitions;
+        } else if (currentValue > maxTransitions) {
+            transitionInput.value = maxTransitions;
+        }
+    }
+    
+    // Update constraints when values change
+    document.getElementById('automatonType').addEventListener('change', updateTransitionConstraints);
+    document.getElementById('stateCount').addEventListener('input', updateTransitionConstraints);
+    document.getElementById('alphabetSize').addEventListener('input', updateTransitionConstraints);
+    
+    // Initialize constraints on page load
+    updateTransitionConstraints();
+</script>
+
+@section Scripts {
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+}
