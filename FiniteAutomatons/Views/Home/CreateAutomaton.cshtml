@@ -28,7 +28,7 @@
                     <h5 class="mb-0"><i class="fas fa-cog"></i> Automaton Type</h5>
                 </div>
                 <div class="card-body">
-                    <form asp-action="ChangeAutomatonType" method="post">
+                    <form asp-action="ChangeAutomatonType" method="post" id="automatonTypeForm">
                         <!-- Hidden fields for preserving state during type change -->
                         @for (int i = 0; i < Model.States.Count; i++)
                         {
@@ -48,20 +48,18 @@
                         }
                         <input type="hidden" name="IsCustomAutomaton" value="@Model.IsCustomAutomaton.ToString().ToLower()" />
 
-                        <div class="row align-items-end">
-                            <div class="col-md-8">
-                                <label for="newType" class="form-label">Select Automaton Type:</label>
-                                <select name="newType" class="form-control">
-                                    <option value="DFA" selected="@(Model.Type == AutomatonType.DFA)">DFA - Deterministic Finite Automaton</option>
-                                    <option value="NFA" selected="@(Model.Type == AutomatonType.NFA)">NFA - Nondeterministic Finite Automaton</option>
-                                    <option value="EpsilonNFA" selected="@(Model.Type == AutomatonType.EpsilonNFA)">ε-NFA - Epsilon Nondeterministic Finite Automaton</option>
-                                </select>
-                            </div>
-                            <div class="col-md-4">
-                                <button type="submit" class="btn btn-info">
-                                    <i class="fas fa-exchange-alt"></i> Change Type
-                                </button>
-                            </div>
+                        <div class="mb-3">
+                            <label for="newType" class="form-label">Select Automaton Type:</label>
+                            @{
+                                var dfaSelected = Model.Type == AutomatonType.DFA ? "selected" : "";
+                                var nfaSelected = Model.Type == AutomatonType.NFA ? "selected" : "";
+                                var epsilonNfaSelected = Model.Type == AutomatonType.EpsilonNFA ? "selected" : "";
+                            }
+                            <select name="newType" id="newType" class="form-control" onchange="changeAutomatonType()">
+                                <!option value="DFA" @dfaSelected>DFA - Deterministic Finite Automaton</!option>
+                                <!option value="NFA" @nfaSelected>NFA - Nondeterministic Finite Automaton</!option>
+                                <!option value="EpsilonNFA" @epsilonNfaSelected>ε-NFA - Epsilon Nondeterministic Finite Automaton</!option>
+                            </select>
                         </div>
                         <small class="text-muted">Current: <strong>@Model.TypeDisplayName</strong></small>
                     </form>
@@ -389,6 +387,14 @@
 
 @section Scripts {
     <script>
+        // Function to automatically change automaton type when dropdown changes
+        function changeAutomatonType() {
+            const form = document.getElementById('automatonTypeForm');
+            if (form) {
+                form.submit();
+            }
+        }
+
         // Function to insert epsilon symbol
         function insertEpsilon() {
             const symbolInput = document.getElementById('symbolInput');
