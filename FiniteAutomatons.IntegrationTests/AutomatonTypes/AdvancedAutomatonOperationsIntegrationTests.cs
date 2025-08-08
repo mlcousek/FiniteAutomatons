@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 
 namespace FiniteAutomatons.IntegrationTests.AutomatonTypes;
 
@@ -69,7 +69,7 @@ public class AdvancedAutomatonOperationsIntegrationTests(IntegrationTestsFixture
             new KeyValuePair<string, string>("Alphabet[1]", "b"),
             new KeyValuePair<string, string>("Input", "abab")
         ]);
-        _ = await client.PostAsync("/Home/CreateAutomaton", new FormUrlEncodedContent(largeNfaData));
+        _ = await client.PostAsync("/Automaton/CreateAutomaton", new FormUrlEncodedContent(largeNfaData));
 
         // Wait a moment for any redirects to complete
         await Task.Delay(100);
@@ -95,7 +95,7 @@ public class AdvancedAutomatonOperationsIntegrationTests(IntegrationTestsFixture
     [Fact]
     public async Task LargeEpsilonNFA_MultipleEpsilonPaths_PerformanceTest()
     {
-        // Create a large ε-NFA to test epsilon closure performance
+        // Create a large ?-NFA to test epsilon closure performance
         var client = GetHttpClient();
 
         var largeEpsilonNfaData = new List<KeyValuePair<string, string>>
@@ -160,7 +160,7 @@ public class AdvancedAutomatonOperationsIntegrationTests(IntegrationTestsFixture
             new KeyValuePair<string, string>("Alphabet[1]", "b"),
             new KeyValuePair<string, string>("Input", "")
         ]);
-        _ = await client.PostAsync("/Home/CreateAutomaton", new FormUrlEncodedContent(largeEpsilonNfaData));
+        _ = await client.PostAsync("/Automaton/CreateAutomaton", new FormUrlEncodedContent(largeEpsilonNfaData));
 
         // Wait a moment for any redirects to complete
         await Task.Delay(100);
@@ -204,10 +204,10 @@ public class AdvancedAutomatonOperationsIntegrationTests(IntegrationTestsFixture
     [Fact]
     public async Task ComplexConversionWorkflow_EpsilonNFA_To_NFA_To_DFA()
     {
-        // Create an ε-NFA, convert to NFA, then to DFA, testing the full conversion pipeline
+        // Create an ?-NFA, convert to NFA, then to DFA, testing the full conversion pipeline
         var client = GetHttpClient();
 
-        // Step 1: Create ε-NFA
+        // Step 1: Create ?-NFA
         var epsilonNfaData = new List<KeyValuePair<string, string>>
         {
             new("Type", "EpsilonNFA"),
@@ -245,9 +245,9 @@ public class AdvancedAutomatonOperationsIntegrationTests(IntegrationTestsFixture
             new("Input", "a")
         };
 
-        await client.PostAsync("/Home/CreateAutomaton", new FormUrlEncodedContent(epsilonNfaData));
+        await client.PostAsync("/Automaton/CreateAutomaton", new FormUrlEncodedContent(epsilonNfaData));
 
-        // Verify ε-NFA creation
+        // Verify ?-NFA creation
         var homeResponse1 = await client.GetAsync("/Home");
         var homeHtml1 = await homeResponse1.Content.ReadAsStringAsync();
 
@@ -255,7 +255,7 @@ public class AdvancedAutomatonOperationsIntegrationTests(IntegrationTestsFixture
         {
             Assert.Contains("Epsilon Nondeterministic Finite Automaton", homeHtml1);
 
-            // Step 2: Convert ε-NFA to DFA (which goes through NFA internally)
+            // Step 2: Convert ?-NFA to DFA (which goes through NFA internally)
             var convertData = new List<KeyValuePair<string, string>>
             {
                 new("Type", "EpsilonNFA"),
@@ -288,7 +288,7 @@ public class AdvancedAutomatonOperationsIntegrationTests(IntegrationTestsFixture
         }
         else
         {
-            Assert.True(true, "Skipping conversion workflow test because ε-NFA creation failed");
+            Assert.True(true, "Skipping conversion workflow test because ?-NFA creation failed");
         }
     }
 
@@ -329,7 +329,7 @@ public class AdvancedAutomatonOperationsIntegrationTests(IntegrationTestsFixture
             new("Alphabet[1]", "b")
         };
 
-        await client.PostAsync("/Home/CreateAutomaton", new FormUrlEncodedContent(originalNfaData));
+        await client.PostAsync("/Automaton/CreateAutomaton", new FormUrlEncodedContent(originalNfaData));
 
         // Test cases for language ending with "ab"
         var testCases = new[]
@@ -424,7 +424,7 @@ public class AdvancedAutomatonOperationsIntegrationTests(IntegrationTestsFixture
                 new("Input", "")
             };
 
-            var createResponse = await client.PostAsync("/Home/CreateAutomaton", new FormUrlEncodedContent(automatonData));
+            var createResponse = await client.PostAsync("/Automaton/CreateAutomaton", new FormUrlEncodedContent(automatonData));
             Assert.True(createResponse.IsSuccessStatusCode ||
                        createResponse.StatusCode == HttpStatusCode.Redirect ||
                        createResponse.StatusCode == HttpStatusCode.Found ||
@@ -496,7 +496,7 @@ public class AdvancedAutomatonOperationsIntegrationTests(IntegrationTestsFixture
             new("Alphabet[1]", "b")
         };
 
-        await client.PostAsync("/Home/CreateAutomaton", new FormUrlEncodedContent(nfaData));
+        await client.PostAsync("/Automaton/CreateAutomaton", new FormUrlEncodedContent(nfaData));
 
         // Test with increasingly long strings
         var stringLengths = new[] { 10, 50, 100 };
@@ -590,7 +590,7 @@ public class AdvancedAutomatonOperationsIntegrationTests(IntegrationTestsFixture
             new("Alphabet[2]", "d")
         };
 
-        await client.PostAsync("/Home/CreateAutomaton", new FormUrlEncodedContent(emailNfaData));
+        await client.PostAsync("/Automaton/CreateAutomaton", new FormUrlEncodedContent(emailNfaData));
 
         // Test various email patterns (simplified)
         var emailTests = new[]
@@ -629,7 +629,7 @@ public class AdvancedAutomatonOperationsIntegrationTests(IntegrationTestsFixture
     [Fact]
     public async Task RealWorldScenario_CommentParsingEpsilonNFA()
     {
-        // Create an ε-NFA that recognizes C-style comments: /* ... */
+        // Create an ?-NFA that recognizes C-style comments: /* ... */
         var client = GetHttpClient();
 
         var commentNfaData = new List<KeyValuePair<string, string>>
@@ -687,7 +687,7 @@ public class AdvancedAutomatonOperationsIntegrationTests(IntegrationTestsFixture
             new("Alphabet[2]", "a")
         };
 
-        await client.PostAsync("/Home/CreateAutomaton", new FormUrlEncodedContent(commentNfaData));
+        await client.PostAsync("/Automaton/CreateAutomaton", new FormUrlEncodedContent(commentNfaData));
 
         // Test comment patterns
         var commentTests = new[]

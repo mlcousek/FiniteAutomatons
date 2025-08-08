@@ -16,7 +16,7 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
         var client = GetHttpClient();
 
         // Step 1: Get the creation page
-        var getResponse = await client.GetAsync("/Home/CreateAutomaton");
+        var getResponse = await client.GetAsync("/Automaton/CreateAutomaton");
         getResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         // Create a simple valid DFA
@@ -37,7 +37,7 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
         };
 
         // Try to create the DFA
-        var finalizeResponse = await PostAutomatonForm(client, "/Home/CreateAutomaton", model);
+        var finalizeResponse = await PostAutomatonForm(client, "/Automaton/CreateAutomaton", model);
         
         // Should either redirect (success) or return OK with validation info
         finalizeResponse.StatusCode.ShouldBeOneOf(HttpStatusCode.OK, HttpStatusCode.Redirect);
@@ -78,7 +78,7 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
         };
 
         // Try to create the NFA directly
-        var finalizeResponse = await PostAutomatonForm(client, "/Home/CreateAutomaton", nfaModel);
+        var finalizeResponse = await PostAutomatonForm(client, "/Automaton/CreateAutomaton", nfaModel);
         
         // Should either redirect (success) or return OK with validation info
         finalizeResponse.StatusCode.ShouldBeOneOf(HttpStatusCode.OK, HttpStatusCode.Redirect);
@@ -118,7 +118,7 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
         };
 
         // Try to create the Epsilon NFA directly
-        var finalizeResponse = await PostAutomatonForm(client, "/Home/CreateAutomaton", epsilonModel);
+        var finalizeResponse = await PostAutomatonForm(client, "/Automaton/CreateAutomaton", epsilonModel);
         
         // Should either redirect (success) or return OK with validation info
         finalizeResponse.StatusCode.ShouldBeOneOf(HttpStatusCode.OK, HttpStatusCode.Redirect);
@@ -231,7 +231,7 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
             Alphabet = []
         };
 
-        var response = await PostAutomatonForm(client, "/Home/CreateAutomaton", emptyModel);
+        var response = await PostAutomatonForm(client, "/Automaton/CreateAutomaton", emptyModel);
         response.StatusCode.ShouldBe(HttpStatusCode.OK); // Should return view with errors
 
         var content = await response.Content.ReadAsStringAsync();
@@ -254,7 +254,7 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
             Alphabet = []
         };
 
-        var response = await PostAutomatonForm(client, "/Home/CreateAutomaton", modelWithoutStart);
+        var response = await PostAutomatonForm(client, "/Automaton/CreateAutomaton", modelWithoutStart);
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         var content = await response.Content.ReadAsStringAsync();
@@ -278,7 +278,7 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
             Alphabet = []
         };
 
-        var response = await PostAutomatonForm(client, "/Home/CreateAutomaton", modelWithMultipleStarts);
+        var response = await PostAutomatonForm(client, "/Automaton/CreateAutomaton", modelWithMultipleStarts);
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         var content = await response.Content.ReadAsStringAsync();
@@ -307,7 +307,7 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
             Alphabet = ['a']
         };
 
-        var response = await PostAutomatonForm(client, "/Home/CreateAutomaton", nonDeterministicDFA);
+        var response = await PostAutomatonForm(client, "/Automaton/CreateAutomaton", nonDeterministicDFA);
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         var content = await response.Content.ReadAsStringAsync();
@@ -334,7 +334,7 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
             Alphabet = []
         };
 
-        var response = await PostAutomatonForm(client, "/Home/CreateAutomaton", dfaWithEpsilon);
+        var response = await PostAutomatonForm(client, "/Automaton/CreateAutomaton", dfaWithEpsilon);
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         var content = await response.Content.ReadAsStringAsync();
@@ -563,7 +563,7 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
 
         AddModelDataToForm(formData, model);
         var formContent = new FormUrlEncodedContent(formData);
-        return await client.PostAsync("/Home/AddState", formContent);
+        return await client.PostAsync("/Automaton/AddState", formContent);
     }
 
     private async Task<HttpResponseMessage> PostAddTransition(HttpClient client, AutomatonViewModel model, int fromStateId, int toStateId, string symbol)
@@ -579,7 +579,7 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
 
         AddModelDataToForm(formData, model);
         var formContent = new FormUrlEncodedContent(formData);
-        return await client.PostAsync("/Home/AddTransition", formContent);
+        return await client.PostAsync("/Automaton/AddTransition", formContent);
     }
 
     private async Task<HttpResponseMessage> PostRemoveState(HttpClient client, AutomatonViewModel model, int stateId)
@@ -593,7 +593,7 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
 
         AddModelDataToForm(formData, model);
         var formContent = new FormUrlEncodedContent(formData);
-        return await client.PostAsync("/Home/RemoveState", formContent);
+        return await client.PostAsync("/Automaton/RemoveState", formContent);
     }
 
     private async Task<HttpResponseMessage> PostRemoveTransition(HttpClient client, AutomatonViewModel model, int fromStateId, int toStateId, string symbol)
@@ -609,7 +609,7 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
 
         AddModelDataToForm(formData, model);
         var formContent = new FormUrlEncodedContent(formData);
-        return await client.PostAsync("/Home/RemoveTransition", formContent);
+        return await client.PostAsync("/Automaton/RemoveTransition", formContent);
     }
 
     private async Task<HttpResponseMessage> PostChangeAutomatonType(HttpClient client, AutomatonViewModel model, AutomatonType newType)
@@ -622,7 +622,7 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
 
         AddModelDataToForm(formData, model);
         var formContent = new FormUrlEncodedContent(formData);
-        return await client.PostAsync("/Home/ChangeAutomatonType", formContent);
+        return await client.PostAsync("/Automaton/ChangeAutomatonType", formContent);
     }
 
     private async Task<HttpResponseMessage> PostAutomatonForm(HttpClient client, string url, AutomatonViewModel model)

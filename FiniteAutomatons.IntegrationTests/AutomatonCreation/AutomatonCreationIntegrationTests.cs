@@ -12,7 +12,7 @@ public class AutomatonCreationIntegrationTests(IntegrationTestsFixture fixture) 
         var client = GetHttpClient();
 
         // Act
-        var response = await client.GetAsync("/Home/CreateAutomaton");
+        var response = await client.GetAsync("/Automaton/CreateAutomaton");
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -36,7 +36,7 @@ public class AutomatonCreationIntegrationTests(IntegrationTestsFixture fixture) 
         };
 
         // Act
-        var response = await client.PostAsync("/Home/AddState", new FormUrlEncodedContent(formData));
+        var response = await client.PostAsync("/Automaton/AddState", new FormUrlEncodedContent(formData));
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -60,7 +60,7 @@ public class AutomatonCreationIntegrationTests(IntegrationTestsFixture fixture) 
             new("isAccepting", "false"),
             new("isAccepting", "false")
         };
-        await client.PostAsync("/Home/AddState", new FormUrlEncodedContent(firstStateData));
+        await client.PostAsync("/Automaton/AddState", new FormUrlEncodedContent(firstStateData));
 
         // Try to add duplicate state
         var duplicateStateData = new List<KeyValuePair<string, string>>
@@ -76,7 +76,7 @@ public class AutomatonCreationIntegrationTests(IntegrationTestsFixture fixture) 
         };
 
         // Act
-        var response = await client.PostAsync("/Home/AddState", new FormUrlEncodedContent(duplicateStateData));
+        var response = await client.PostAsync("/Automaton/AddState", new FormUrlEncodedContent(duplicateStateData));
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -99,7 +99,7 @@ public class AutomatonCreationIntegrationTests(IntegrationTestsFixture fixture) 
             new("isAccepting", "false"),
             new("isAccepting", "false")
         };
-        var response1 = await client.PostAsync("/Home/AddState", new FormUrlEncodedContent(state1Data));
+        var response1 = await client.PostAsync("/Automaton/AddState", new FormUrlEncodedContent(state1Data));
         _ = await response1.Content.ReadAsStringAsync();
 
         var state2Data = new List<KeyValuePair<string, string>>
@@ -113,7 +113,7 @@ public class AutomatonCreationIntegrationTests(IntegrationTestsFixture fixture) 
             new("isAccepting", "true"),
             new("isAccepting", "false")
         };
-        _ = await client.PostAsync("/Home/AddState", new FormUrlEncodedContent(state2Data));
+        _ = await client.PostAsync("/Automaton/AddState", new FormUrlEncodedContent(state2Data));
 
         // Now add transition
         var transitionData = new List<KeyValuePair<string, string>>
@@ -130,7 +130,7 @@ public class AutomatonCreationIntegrationTests(IntegrationTestsFixture fixture) 
         };
 
         // Act
-        var response = await client.PostAsync("/Home/AddTransition", new FormUrlEncodedContent(transitionData));
+        var response = await client.PostAsync("/Automaton/AddTransition", new FormUrlEncodedContent(transitionData));
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -163,7 +163,7 @@ public class AutomatonCreationIntegrationTests(IntegrationTestsFixture fixture) 
         };
 
         // Act
-        var response = await client.PostAsync("/Home/CreateAutomaton", new FormUrlEncodedContent(finalData));
+        var response = await client.PostAsync("/Automaton/CreateAutomaton", new FormUrlEncodedContent(finalData));
 
         // Assert
         // Check for either success or redirect
@@ -181,7 +181,7 @@ public class AutomatonCreationIntegrationTests(IntegrationTestsFixture fixture) 
         var emptyData = new List<KeyValuePair<string, string>>();
 
         // Act
-        var response = await client.PostAsync("/Home/CreateAutomaton", new FormUrlEncodedContent(emptyData));
+        var response = await client.PostAsync("/Automaton/CreateAutomaton", new FormUrlEncodedContent(emptyData));
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -204,7 +204,7 @@ public class AutomatonCreationIntegrationTests(IntegrationTestsFixture fixture) 
             new("isAccepting", "false"),
             new("isAccepting", "false")
         };
-        await client.PostAsync("/Home/AddState", new FormUrlEncodedContent(addStateData));
+        await client.PostAsync("/Automaton/AddState", new FormUrlEncodedContent(addStateData));
 
         // Remove the state
         var removeStateData = new List<KeyValuePair<string, string>>
@@ -216,7 +216,7 @@ public class AutomatonCreationIntegrationTests(IntegrationTestsFixture fixture) 
         };
 
         // Act
-        var response = await client.PostAsync("/Home/RemoveState", new FormUrlEncodedContent(removeStateData));
+        var response = await client.PostAsync("/Automaton/RemoveState", new FormUrlEncodedContent(removeStateData));
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -240,7 +240,7 @@ public class AutomatonCreationIntegrationTests(IntegrationTestsFixture fixture) 
             new("isAccepting", "false"),
             new("isAccepting", "false")
         };
-        await client.PostAsync("/Home/AddState", new FormUrlEncodedContent(firstStateData));
+        await client.PostAsync("/Automaton/AddState", new FormUrlEncodedContent(firstStateData));
 
         // Try to add second start state
         var secondStartStateData = new List<KeyValuePair<string, string>>
@@ -256,7 +256,7 @@ public class AutomatonCreationIntegrationTests(IntegrationTestsFixture fixture) 
         };
 
         // Act
-        var response = await client.PostAsync("/Home/AddState", new FormUrlEncodedContent(secondStartStateData));
+        var response = await client.PostAsync("/Automaton/AddState", new FormUrlEncodedContent(secondStartStateData));
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -279,7 +279,7 @@ public class AutomatonCreationIntegrationTests(IntegrationTestsFixture fixture) 
             new("isAccepting", "false"),
             new("isAccepting", "false")
         };
-        var response1 = await client.PostAsync("/Home/AddState", new FormUrlEncodedContent(firstStateData));
+        var response1 = await client.PostAsync("/Automaton/AddState", new FormUrlEncodedContent(firstStateData));
         var html1 = await response1.Content.ReadAsStringAsync();
 
         // Verify first state is added and marked as start
@@ -298,7 +298,7 @@ public class AutomatonCreationIntegrationTests(IntegrationTestsFixture fixture) 
             new("isAccepting", "true"),
             new("isAccepting", "false")
         };
-        var response2 = await client.PostAsync("/Home/AddState", new FormUrlEncodedContent(secondStateData));
+        var response2 = await client.PostAsync("/Automaton/AddState", new FormUrlEncodedContent(secondStateData));
         var html2 = await response2.Content.ReadAsStringAsync();
 
         // Assert

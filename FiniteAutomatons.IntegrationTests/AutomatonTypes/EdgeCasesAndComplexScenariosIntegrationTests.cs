@@ -1,4 +1,4 @@
-﻿namespace FiniteAutomatons.IntegrationTests.AutomatonTypes;
+namespace FiniteAutomatons.IntegrationTests.AutomatonTypes;
 
 [Collection("Integration Tests")]
 public class EdgeCasesAndComplexScenariosIntegrationTests(IntegrationTestsFixture fixture) : IntegrationTestsBase(fixture)
@@ -9,7 +9,7 @@ public class EdgeCasesAndComplexScenariosIntegrationTests(IntegrationTestsFixtur
     [Fact]
     public async Task EpsilonNFA_OnlyEpsilonTransitions_AcceptsEmptyString()
     {
-        // Test an ε-NFA with only epsilon transitions
+        // Test an ?-NFA with only epsilon transitions
         var client = GetHttpClient();
 
         var epsilonOnlyNfaData = new List<KeyValuePair<string, string>>
@@ -36,7 +36,7 @@ public class EdgeCasesAndComplexScenariosIntegrationTests(IntegrationTestsFixtur
             new("Input", "")
         };
 
-        await client.PostAsync("/Home/CreateAutomaton", new FormUrlEncodedContent(epsilonOnlyNfaData));
+        await client.PostAsync("/Automaton/CreateAutomaton", new FormUrlEncodedContent(epsilonOnlyNfaData));
 
         // Check if automaton was created successfully
         var homeResponse = await client.GetAsync("/Home");
@@ -93,7 +93,7 @@ public class EdgeCasesAndComplexScenariosIntegrationTests(IntegrationTestsFixtur
             new("Alphabet[2]", "c")
         };
 
-        await client.PostAsync("/Home/CreateAutomaton", new FormUrlEncodedContent(selfLoopNfaData));
+        await client.PostAsync("/Automaton/CreateAutomaton", new FormUrlEncodedContent(selfLoopNfaData));
 
         // Test various strings - all should be accepted
         var testInputs = new[] { "", "a", "abc", "cba", "aaaaaa", "bcbcbc", "abcabcabc" };
@@ -116,7 +116,7 @@ public class EdgeCasesAndComplexScenariosIntegrationTests(IntegrationTestsFixtur
     [Fact]
     public async Task EpsilonNFA_EpsilonCycles_HandledCorrectly()
     {
-        // Test ε-NFA with epsilon cycles (potential infinite loops)
+        // Test ?-NFA with epsilon cycles (potential infinite loops)
         var client = GetHttpClient();
 
         var cyclicEpsilonNfaData = new List<KeyValuePair<string, string>>
@@ -148,7 +148,7 @@ public class EdgeCasesAndComplexScenariosIntegrationTests(IntegrationTestsFixtur
             new("Input", "")
         };
 
-        await client.PostAsync("/Home/CreateAutomaton", new FormUrlEncodedContent(cyclicEpsilonNfaData));
+        await client.PostAsync("/Automaton/CreateAutomaton", new FormUrlEncodedContent(cyclicEpsilonNfaData));
 
         var executeData = new List<KeyValuePair<string, string>>
         {
@@ -212,7 +212,7 @@ public class EdgeCasesAndComplexScenariosIntegrationTests(IntegrationTestsFixtur
             new("Alphabet[1]", "b")
         };
 
-        await client.PostAsync("/Home/CreateAutomaton", new FormUrlEncodedContent(universalNfaData));
+        await client.PostAsync("/Automaton/CreateAutomaton", new FormUrlEncodedContent(universalNfaData));
 
         // Test many different strings - all should be accepted
         var testInputs = new[] { "", "a", "b", "ab", "ba", "aaaa", "bbbb", "abab", "baba", "aabbbaaba" };
@@ -302,7 +302,7 @@ public class EdgeCasesAndComplexScenariosIntegrationTests(IntegrationTestsFixtur
             new("Alphabet[1]", "b")
         };
 
-        await client.PostAsync("/Home/CreateAutomaton", new FormUrlEncodedContent(exponentialNfaData));
+        await client.PostAsync("/Automaton/CreateAutomaton", new FormUrlEncodedContent(exponentialNfaData));
 
         // Test with strings that explore the exponential state space
         var complexInputs = new[]
@@ -350,7 +350,7 @@ public class EdgeCasesAndComplexScenariosIntegrationTests(IntegrationTestsFixtur
     [Fact]
     public async Task EpsilonNFA_DeepEpsilonChains_CorrectClosure()
     {
-        // Test ε-NFA with deep chains of epsilon transitions
+        // Test ?-NFA with deep chains of epsilon transitions
         var client = GetHttpClient();
 
         var deepEpsilonNfaData = new List<KeyValuePair<string, string>>
@@ -409,7 +409,7 @@ public class EdgeCasesAndComplexScenariosIntegrationTests(IntegrationTestsFixtur
             new("Input", "")
         };
 
-        await client.PostAsync("/Home/CreateAutomaton", new FormUrlEncodedContent(deepEpsilonNfaData));
+        await client.PostAsync("/Automaton/CreateAutomaton", new FormUrlEncodedContent(deepEpsilonNfaData));
 
         // Check if automaton was created successfully
         var homeResponse = await client.GetAsync("/Home");
@@ -486,7 +486,7 @@ public class EdgeCasesAndComplexScenariosIntegrationTests(IntegrationTestsFixtur
             new("Alphabet[1]", "b")
         };
 
-        await client.PostAsync("/Home/CreateAutomaton", new FormUrlEncodedContent(regexNfaData));
+        await client.PostAsync("/Automaton/CreateAutomaton", new FormUrlEncodedContent(regexNfaData));
 
         // Test pattern: must end with 'a' followed by any symbol, minimum length 2
         var regexTests = new[]
@@ -531,7 +531,7 @@ public class EdgeCasesAndComplexScenariosIntegrationTests(IntegrationTestsFixtur
     [Fact]
     public async Task EpsilonNFA_NestedStructures_ComplexLanguage()
     {
-        // Create ε-NFA for nested structure language: properly nested 'a' and 'b' (simplified)
+        // Create ?-NFA for nested structure language: properly nested 'a' and 'b' (simplified)
         // Like balanced parentheses but with 'a' as open and 'b' as close
         var client = GetHttpClient();
 
@@ -585,7 +585,7 @@ public class EdgeCasesAndComplexScenariosIntegrationTests(IntegrationTestsFixtur
             new("Alphabet[1]", "b")
         };
 
-        await client.PostAsync("/Home/CreateAutomaton", new FormUrlEncodedContent(nestedNfaData));
+        await client.PostAsync("/Automaton/CreateAutomaton", new FormUrlEncodedContent(nestedNfaData));
 
         // Test balanced/unbalanced strings
         var nestedTests = new[]

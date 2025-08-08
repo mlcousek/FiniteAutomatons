@@ -1,4 +1,4 @@
-﻿using FiniteAutomatons.Data;
+using FiniteAutomatons.Data;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;

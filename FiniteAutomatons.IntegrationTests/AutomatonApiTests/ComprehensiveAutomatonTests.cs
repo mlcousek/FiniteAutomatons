@@ -38,7 +38,7 @@ public class ComprehensiveAutomatonTests(IntegrationTestsFixture fixture) : Inte
         };
 
         // Create automaton
-        var createResponse = await PostAutomatonForm(client, "/Home/CreateAutomaton", dfaModel);
+        var createResponse = await PostAutomatonForm(client, "/Automaton/CreateAutomaton", dfaModel);
         createResponse.StatusCode.ShouldBeOneOf(HttpStatusCode.OK, HttpStatusCode.Redirect);
 
         // Test execution with various inputs
@@ -90,7 +90,7 @@ public class ComprehensiveAutomatonTests(IntegrationTestsFixture fixture) : Inte
         };
 
         // Create automaton
-        var createResponse = await PostAutomatonForm(client, "/Home/CreateAutomaton", nfaModel);
+        var createResponse = await PostAutomatonForm(client, "/Automaton/CreateAutomaton", nfaModel);
         createResponse.StatusCode.ShouldBeOneOf(HttpStatusCode.OK, HttpStatusCode.Redirect);
 
         // Test execution
@@ -123,7 +123,7 @@ public class ComprehensiveAutomatonTests(IntegrationTestsFixture fixture) : Inte
         };
 
         // Create automaton
-        var createResponse = await PostAutomatonForm(client, "/Home/CreateAutomaton", epsilonModel);
+        var createResponse = await PostAutomatonForm(client, "/Automaton/CreateAutomaton", epsilonModel);
         createResponse.StatusCode.ShouldBeOneOf(HttpStatusCode.OK, HttpStatusCode.Redirect);
 
         // Test execution - empty string should be accepted due to epsilon closure

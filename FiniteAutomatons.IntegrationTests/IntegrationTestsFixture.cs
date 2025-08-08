@@ -1,4 +1,4 @@
-﻿using Testcontainers.MsSql;
+using Testcontainers.MsSql;
 
 namespace FiniteAutomatons.IntegrationTests;
 

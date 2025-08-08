@@ -146,7 +146,7 @@ public class AutomatonConversionAndAdvancedTests(IntegrationTestsFixture fixture
             Alphabet = ['a', 'b']
         };
 
-        await PostAutomatonForm(client, "/Home/CreateAutomaton", dfaModel);
+        await PostAutomatonForm(client, "/Automaton/CreateAutomaton", dfaModel);
 
         var testCases = new[]
         {
@@ -202,7 +202,7 @@ public class AutomatonConversionAndAdvancedTests(IntegrationTestsFixture fixture
             Alphabet = ['a', 'b']
         };
 
-        await PostAutomatonForm(client, "/Home/CreateAutomaton", nfaModel);
+        await PostAutomatonForm(client, "/Automaton/CreateAutomaton", nfaModel);
 
         var testCases = new[]
         {
@@ -262,7 +262,7 @@ public class AutomatonConversionAndAdvancedTests(IntegrationTestsFixture fixture
             Alphabet = ['a', 'b']
         };
 
-        await PostAutomatonForm(client, "/Home/CreateAutomaton", epsilonNfaModel);
+        await PostAutomatonForm(client, "/Automaton/CreateAutomaton", epsilonNfaModel);
 
         var testCases = new[]
         {
@@ -350,7 +350,7 @@ public class AutomatonConversionAndAdvancedTests(IntegrationTestsFixture fixture
             Input = new string('a', 49) // Should reach accepting state
         };
 
-        var createResponse = await PostAutomatonForm(client, "/Home/CreateAutomaton", largeModel);
+        var createResponse = await PostAutomatonForm(client, "/Automaton/CreateAutomaton", largeModel);
         createResponse.StatusCode.ShouldBeOneOf(HttpStatusCode.OK, HttpStatusCode.Redirect);
 
         if (createResponse.StatusCode == HttpStatusCode.Redirect)
@@ -395,7 +395,7 @@ public class AutomatonConversionAndAdvancedTests(IntegrationTestsFixture fixture
             Input = "a"
         };
 
-        var createResponse = await PostAutomatonForm(client, "/Home/CreateAutomaton", nfaModel);
+        var createResponse = await PostAutomatonForm(client, "/Automaton/CreateAutomaton", nfaModel);
         createResponse.StatusCode.ShouldBeOneOf(HttpStatusCode.OK, HttpStatusCode.Redirect);
 
         if (createResponse.StatusCode == HttpStatusCode.Redirect)
@@ -449,7 +449,7 @@ public class AutomatonConversionAndAdvancedTests(IntegrationTestsFixture fixture
             Alphabet = ['0', '1']
         };
 
-        await PostAutomatonForm(client, "/Home/CreateAutomaton", dfaModel);
+        await PostAutomatonForm(client, "/Automaton/CreateAutomaton", dfaModel);
 
         var testCases = new[]
         {
@@ -512,7 +512,7 @@ public class AutomatonConversionAndAdvancedTests(IntegrationTestsFixture fixture
             Alphabet = ['a', 'b', 'c', '@', '.']
         };
 
-        await PostAutomatonForm(client, "/Home/CreateAutomaton", epsilonNfaModel);
+        await PostAutomatonForm(client, "/Automaton/CreateAutomaton", epsilonNfaModel);
 
         var testCases = new[]
         {

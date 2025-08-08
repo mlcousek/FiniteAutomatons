@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 
 namespace FiniteAutomatons.IntegrationTests.AutomatonTypes;
 
@@ -46,7 +46,7 @@ public class NFAAndEpsilonNFAIntegrationTests(IntegrationTestsFixture fixture) :
             new("Alphabet[1]", "b"),
             new("Input", "aabab")
         };
-        _ = await client.PostAsync("/Home/CreateAutomaton", new FormUrlEncodedContent(finalData));
+        _ = await client.PostAsync("/Automaton/CreateAutomaton", new FormUrlEncodedContent(finalData));
 
         // Instead of checking the exact status code, just proceed to check the end result
         // This makes the test more resilient to model binding issues
@@ -100,7 +100,7 @@ public class NFAAndEpsilonNFAIntegrationTests(IntegrationTestsFixture fixture) :
             new("Input", "a")
         };
 
-        await client.PostAsync("/Home/CreateAutomaton", new FormUrlEncodedContent(createData));
+        await client.PostAsync("/Automaton/CreateAutomaton", new FormUrlEncodedContent(createData));
 
         // Get home page and step forward
         var homeResponse = await client.GetAsync("/Home");
@@ -155,7 +155,7 @@ public class NFAAndEpsilonNFAIntegrationTests(IntegrationTestsFixture fixture) :
     [Fact]
     public async Task CreateEpsilonNFA_WithEpsilonTransitions_WorksCorrectly()
     {
-        // Create an ε-NFA that accepts strings matching (a|b)*a
+        // Create an ?-NFA that accepts strings matching (a|b)*a
         // Uses epsilon transitions for elegant construction
         var client = GetHttpClient();
 
@@ -189,7 +189,7 @@ public class NFAAndEpsilonNFAIntegrationTests(IntegrationTestsFixture fixture) :
             new("Input", "bba")
         };
 
-        _ = await client.PostAsync("/Home/CreateAutomaton", new FormUrlEncodedContent(finalData));
+        _ = await client.PostAsync("/Automaton/CreateAutomaton", new FormUrlEncodedContent(finalData));
 
         // Wait a moment for any redirects to complete
         await Task.Delay(100);
@@ -213,7 +213,7 @@ public class NFAAndEpsilonNFAIntegrationTests(IntegrationTestsFixture fixture) :
     [Fact]
     public async Task EpsilonNFA_EpsilonClosure_WorksCorrectly()
     {
-        // Test epsilon closure by creating an ε-NFA where epsilon transitions
+        // Test epsilon closure by creating an ?-NFA where epsilon transitions
         // create multiple reachable states from the start
         var client = GetHttpClient();
 
@@ -241,7 +241,7 @@ public class NFAAndEpsilonNFAIntegrationTests(IntegrationTestsFixture fixture) :
             new("Input", "")
         };
 
-        await client.PostAsync("/Home/CreateAutomaton", new FormUrlEncodedContent(createData));
+        await client.PostAsync("/Automaton/CreateAutomaton", new FormUrlEncodedContent(createData));
 
         // Check if automaton was created successfully
         var homeResponse = await client.GetAsync("/Home");
@@ -315,7 +315,7 @@ public class NFAAndEpsilonNFAIntegrationTests(IntegrationTestsFixture fixture) :
             new("Input", "a")
         };
 
-        await client.PostAsync("/Home/CreateAutomaton", new FormUrlEncodedContent(nfaData));
+        await client.PostAsync("/Automaton/CreateAutomaton", new FormUrlEncodedContent(nfaData));
 
         // Check if NFA was created
         var homeResponse = await client.GetAsync("/Home");
@@ -361,7 +361,7 @@ public class NFAAndEpsilonNFAIntegrationTests(IntegrationTestsFixture fixture) :
     [Fact]
     public async Task ConvertEpsilonNFA_ToDFA_HandlesEpsilonTransitions()
     {
-        // Create an ε-NFA and convert it to DFA through NFA
+        // Create an ?-NFA and convert it to DFA through NFA
         var client = GetHttpClient();
 
         var epsilonNfaData = new List<KeyValuePair<string, string>>
@@ -382,7 +382,7 @@ public class NFAAndEpsilonNFAIntegrationTests(IntegrationTestsFixture fixture) :
             new("Input", "a")
         };
 
-        await client.PostAsync("/Home/CreateAutomaton", new FormUrlEncodedContent(epsilonNfaData));
+        await client.PostAsync("/Automaton/CreateAutomaton", new FormUrlEncodedContent(epsilonNfaData));
 
         // Check if Epsilon NFA was created
         var homeResponse = await client.GetAsync("/Home");
@@ -501,7 +501,7 @@ public class NFAAndEpsilonNFAIntegrationTests(IntegrationTestsFixture fixture) :
             new("Alphabet[1]", "b")
         };
 
-        await client.PostAsync("/Home/CreateAutomaton", new FormUrlEncodedContent(complexNfaData));
+        await client.PostAsync("/Automaton/CreateAutomaton", new FormUrlEncodedContent(complexNfaData));
 
         // Check if complex NFA was created
         var homeResponse = await client.GetAsync("/Home");
@@ -568,7 +568,7 @@ public class NFAAndEpsilonNFAIntegrationTests(IntegrationTestsFixture fixture) :
     [Fact]
     public async Task ComplexEpsilonNFA_NestedEpsilonTransitions_CorrectEpsilonClosure()
     {
-        // Create an ε-NFA with nested epsilon transitions that create complex epsilon closures
+        // Create an ?-NFA with nested epsilon transitions that create complex epsilon closures
         var client = GetHttpClient();
 
         var complexEpsilonNfaData = new List<KeyValuePair<string, string>>
@@ -619,7 +619,7 @@ public class NFAAndEpsilonNFAIntegrationTests(IntegrationTestsFixture fixture) :
             new("Input", "")
         };
 
-        await client.PostAsync("/Home/CreateAutomaton", new FormUrlEncodedContent(complexEpsilonNfaData));
+        await client.PostAsync("/Automaton/CreateAutomaton", new FormUrlEncodedContent(complexEpsilonNfaData));
 
         // Check if complex Epsilon NFA was created
         var homeResponse = await client.GetAsync("/Home");
@@ -666,7 +666,7 @@ public class NFAAndEpsilonNFAIntegrationTests(IntegrationTestsFixture fixture) :
             new("Alphabet[0]", "a")
         };
 
-        var response = await client.PostAsync("/Home/CreateAutomaton", new FormUrlEncodedContent(invalidNfaData));
+        var response = await client.PostAsync("/Automaton/CreateAutomaton", new FormUrlEncodedContent(invalidNfaData));
         var html = await response.Content.ReadAsStringAsync();
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -695,7 +695,7 @@ public class NFAAndEpsilonNFAIntegrationTests(IntegrationTestsFixture fixture) :
             new("Input", "")
         };
 
-        var response = await client.PostAsync("/Home/CreateAutomaton", new FormUrlEncodedContent(automatonData));
+        var response = await client.PostAsync("/Automaton/CreateAutomaton", new FormUrlEncodedContent(automatonData));
 
         // Handle any response type - the key is that the server doesn't crash
         // Internal server errors might happen due to model binding complexities with epsilon NFAs
