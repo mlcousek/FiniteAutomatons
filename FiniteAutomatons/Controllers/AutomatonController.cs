@@ -329,15 +329,40 @@ public class AutomatonController(ILogger<AutomatonController> logger) : Controll
     [HttpPost]
     public IActionResult Reset([FromForm] AutomatonViewModel model)
     {
-        model.Input = string.Empty;
-        model.Result = null;
-        model.CurrentStateId = null;
-        model.CurrentStates = null;
-        model.Position = 0;
-        model.IsAccepted = null;
-        model.StateHistorySerialized = string.Empty;
+        try
+        {
+            // Ensure collections are initialized
+            model.States ??= [];
+            model.Transitions ??= [];
+            model.Alphabet ??= [];
 
-        return View("../Home/Index", model);
+            // Only reset the execution state and input, NOT the automaton structure
+            model.Input = string.Empty;
+            model.Result = null;
+            model.CurrentStateId = null;
+            model.CurrentStates = null;
+            model.Position = 0;
+            model.IsAccepted = null;
+            model.StateHistorySerialized = string.Empty;
+
+            // Preserve the automaton's alphabet - rebuild it from transitions
+            var transitionSymbols = model.Transitions
+                .Where(t => t.Symbol != '\0') // Exclude epsilon transitions
+                .Select(t => t.Symbol)
+                .Distinct()
+                .ToList();
+            
+            model.Alphabet = transitionSymbols;
+
+            logger.LogInformation("Reset execution state while preserving automaton structure");
+            return View("../Home/Index", model);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error in Reset");
+            TempData["ErrorMessage"] = "An error occurred while resetting.";
+            return View("../Home/Index", model);
+        }
     }
 
     [HttpPost]
