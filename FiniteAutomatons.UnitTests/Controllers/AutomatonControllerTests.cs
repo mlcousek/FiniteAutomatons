@@ -19,7 +19,12 @@ public class AutomatonControllerTests
         var logger = new TestLogger<AutomatonController>();
         var mockGeneratorService = new MockAutomatonGeneratorService();
         var mockTempDataService = new MockAutomatonTempDataService();
-        controller = new AutomatonController(logger, mockGeneratorService, mockTempDataService);
+        var mockValidationService = new MockAutomatonValidationService();
+        var mockConversionService = new MockAutomatonConversionService();
+        var mockExecutionService = new MockAutomatonExecutionService();
+        
+        controller = new AutomatonController(logger, mockGeneratorService, mockTempDataService,
+            mockValidationService, mockConversionService, mockExecutionService);
 
         // Setup TempData
         var httpContext = new DefaultHttpContext();

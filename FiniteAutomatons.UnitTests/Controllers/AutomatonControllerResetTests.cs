@@ -19,7 +19,12 @@ public class AutomatonControllerResetTests
         var logger = loggerFactory.CreateLogger<AutomatonController>();
         var mockGeneratorService = new MockAutomatonGeneratorService();
         var mockTempDataService = new MockAutomatonTempDataService();
-        _controller = new AutomatonController(logger, mockGeneratorService, mockTempDataService);
+        var mockValidationService = new MockAutomatonValidationService();
+        var mockConversionService = new MockAutomatonConversionService();
+        var mockExecutionService = new MockAutomatonExecutionService();
+        
+        _controller = new AutomatonController(logger, mockGeneratorService, mockTempDataService,
+            mockValidationService, mockConversionService, mockExecutionService);
     }
 
     [Fact]

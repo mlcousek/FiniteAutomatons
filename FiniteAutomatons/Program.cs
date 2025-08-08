@@ -43,6 +43,10 @@ builder.Services.AddScoped<IExecuteService, ExecuteService>();
 builder.Services.AddScoped<IAutomatonGeneratorService, AutomatonGeneratorService>();
 builder.Services.AddScoped<IAutomatonTempDataService, AutomatonTempDataService>();
 builder.Services.AddScoped<IHomeAutomatonService, HomeAutomatonService>();
+builder.Services.AddScoped<IAutomatonValidationService, AutomatonValidationService>();
+builder.Services.AddScoped<IAutomatonConversionService, AutomatonConversionService>();
+builder.Services.AddScoped<IAutomatonBuilderService, AutomatonBuilderService>();
+builder.Services.AddScoped<IAutomatonExecutionService, AutomatonExecutionService>();
 
 // Register automaton types
 builder.Services.AddTransient<DFA>();
