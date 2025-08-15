@@ -2,6 +2,7 @@ using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using FiniteAutomatons.Core.Utilities;
 
 namespace FiniteAutomatons.Controllers;
 
@@ -20,12 +21,7 @@ public class AutomatonController(
     private readonly IAutomatonConversionService conversionService = conversionService;
     private readonly IAutomatonExecutionService executionService = executionService;
 
-    // Central epsilon alias list (kept in sync with validation service)
-    private static readonly HashSet<string> EpsilonAliases = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "", "?", "?", "epsilon", "eps", "e", "lambda", "?"
-    };
-    private static bool IsEpsilon(string? s) => s == null || EpsilonAliases.Contains(s.Trim());
+    private static bool IsEpsilon(string? s) => AutomatonSymbolHelper.IsEpsilon(s);
 
     public IActionResult CreateAutomaton()
     {
@@ -52,7 +48,7 @@ public class AutomatonController(
             {
                 logger.LogInformation("Transition: {From} -> {To} on '{Symbol}' (char code: {Code})",
                     transition.FromStateId, transition.ToStateId,
-                    transition.Symbol == '\0' ? "?" : transition.Symbol.ToString(),
+                    transition.Symbol == AutomatonSymbolHelper.EpsilonInternal ? AutomatonSymbolHelper.EpsilonDisplay : transition.Symbol.ToString(),
                     (int)transition.Symbol);
             }
 
@@ -165,11 +161,11 @@ public class AutomatonController(
 
             model.Transitions.Add(new Transition { FromStateId = fromStateId, ToStateId = toStateId, Symbol = processedSymbol });
             // Update alphabet (but not for epsilon transitions)
-            if (processedSymbol != '\0' && !model.Alphabet.Contains(processedSymbol))
+            if (processedSymbol != AutomatonSymbolHelper.EpsilonInternal && !model.Alphabet.Contains(processedSymbol))
                 model.Alphabet.Add(processedSymbol);
 
             logger.LogInformation("Transition added successfully: {From} -> {To} on '{Symbol}' (char code: {Code})",
-                fromStateId, toStateId, processedSymbol == '\0' ? "?" : processedSymbol.ToString(), (int)processedSymbol);
+                fromStateId, toStateId, processedSymbol == AutomatonSymbolHelper.EpsilonInternal ? AutomatonSymbolHelper.EpsilonDisplay : processedSymbol.ToString(), (int)processedSymbol);
 
             ClearExecutionState(model, keepInput: true);
             return View("CreateAutomaton", model);
@@ -198,7 +194,7 @@ public class AutomatonController(
             model.Transitions.RemoveAll(t => t.FromStateId == stateId || t.ToStateId == stateId);
 
             // Update alphabet - remove symbols that are no longer used
-            var usedSymbols = model.Transitions.Where(t => t.Symbol != '\0').Select(t => t.Symbol).Distinct().ToList();
+            var usedSymbols = model.Transitions.Where(t => t.Symbol != AutomatonSymbolHelper.EpsilonInternal).Select(t => t.Symbol).Distinct().ToList();
             model.Alphabet.RemoveAll(c => !usedSymbols.Contains(c));
 
             if (removedStart && model.States.Any())
@@ -230,12 +226,10 @@ public class AutomatonController(
             model.Transitions ??= [];
             model.Alphabet ??= [];
 
-            var isEpsilon = IsEpsilon(symbol);
             char symbolChar;
-
-            if (isEpsilon)
+            if (IsEpsilon(symbol))
             {
-                symbolChar = '\0';
+                symbolChar = AutomatonSymbolHelper.EpsilonInternal;
             }
             else if (!string.IsNullOrWhiteSpace(symbol) && symbol.Trim().Length == 1)
             {
@@ -254,7 +248,7 @@ public class AutomatonController(
             }
 
             // Update alphabet - remove symbol if no longer used
-            if (symbolChar != '\0' && !model.Transitions.Any(t => t.Symbol == symbolChar))
+            if (symbolChar != AutomatonSymbolHelper.EpsilonInternal && !model.Transitions.Any(t => t.Symbol == symbolChar))
                 model.Alphabet.Remove(symbolChar);
 
             ClearExecutionState(model);

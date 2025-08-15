@@ -1,6 +1,7 @@
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Interfaces;
 using Microsoft.Extensions.Logging;
+using FiniteAutomatons.Core.Utilities;
 
 namespace FiniteAutomatons.Services.Services;
 
@@ -11,22 +12,10 @@ public class AutomatonValidationService : IAutomatonValidationService
 {
     private readonly ILogger<AutomatonValidationService> _logger;
 
-    // Central list of accepted epsilon aliases (all mapped to '\0')
-    private static readonly HashSet<string> _epsilonAliases = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "", "?", "?", "epsilon", "eps", "e", "lambda", "?"
-    };
-
     public AutomatonValidationService(ILogger<AutomatonValidationService> logger)
     {
         _logger = logger;
     }
-
-    /// <summary>
-    /// Helper to determine if a user supplied symbol represents epsilon
-    /// </summary>
-    private static bool IsEpsilon(string? symbol)
-        => symbol is null || _epsilonAliases.Contains(symbol.Trim());
 
     /// <summary>
     /// Validates an automaton model for correctness and consistency
@@ -68,12 +57,12 @@ public class AutomatonValidationService : IAutomatonValidationService
             if (groupedTransitions.Count != 0)
             {
                 var conflicts = groupedTransitions.Select(g =>
-                    $"State {g.Key.FromStateId} on symbol '{(g.Key.Symbol == '\0' ? "?" : g.Key.Symbol.ToString())}'");
+                    $"State {g.Key.FromStateId} on symbol '{(g.Key.Symbol == AutomatonSymbolHelper.EpsilonInternal ? AutomatonSymbolHelper.EpsilonDisplay : g.Key.Symbol.ToString())}'");
                 errors.Add($"DFA cannot have multiple transitions from the same state on the same symbol. Conflicts: {string.Join(", ", conflicts)}");
             }
 
             // DFA should not have epsilon transitions
-            if (model.Transitions.Any(t => t.Symbol == '\0'))
+            if (model.Transitions.Any(t => t.Symbol == AutomatonSymbolHelper.EpsilonInternal))
             {
                 errors.Add("DFA cannot have epsilon transitions.");
             }
@@ -88,22 +77,15 @@ public class AutomatonValidationService : IAutomatonValidationService
     /// <summary>
     /// Validates if a state can be added to the automaton
     /// </summary>
-    /// <param name="model">The current automaton model</param>
-    /// <param name="stateId">The ID of the state to add</param>
-    /// <param name="isStart">Whether the state is a start state</param>
-    /// <returns>A tuple containing validation result and error message if any</returns>
     public (bool IsValid, string? ErrorMessage) ValidateStateAddition(AutomatonViewModel model, int stateId, bool isStart)
     {
-        // Ensure collections are initialized
         model.States ??= [];
 
-        // Check if state ID already exists
         if (model.States.Any(s => s.Id == stateId))
         {
             return (false, $"State with ID {stateId} already exists.");
         }
 
-        // Check if trying to add another start state
         if (isStart && model.States.Any(s => s.IsStart))
         {
             return (false, "Only one start state is allowed.");
@@ -115,42 +97,32 @@ public class AutomatonValidationService : IAutomatonValidationService
     /// <summary>
     /// Validates if a transition can be added to the automaton
     /// </summary>
-    /// <param name="model">The current automaton model</param>
-    /// <param name="fromStateId">Source state ID</param>
-    /// <param name="toStateId">Target state ID</param>
-    /// <param name="symbol">Transition symbol</param>
-    /// <returns>A tuple containing validation result, processed symbol, and error message if any</returns>
     public (bool IsValid, char ProcessedSymbol, string? ErrorMessage) ValidateTransitionAddition(AutomatonViewModel model, int fromStateId, int toStateId, string symbol)
     {
-        // Ensure collections are initialized
         model.States ??= [];
         model.Transitions ??= [];
 
         _logger.LogInformation("Validating transition addition: {From} -> {To} on '{Symbol}'", fromStateId, toStateId, symbol ?? "NULL");
 
-        // Validate states exist
         if (!model.States.Any(s => s.Id == fromStateId))
         {
-            return (false, '\0', $"From state {fromStateId} does not exist.");
+            return (false, AutomatonSymbolHelper.EpsilonInternal, $"From state {fromStateId} does not exist.");
         }
 
         if (!model.States.Any(s => s.Id == toStateId))
         {
-            return (false, '\0', $"To state {toStateId} does not exist.");
+            return (false, AutomatonSymbolHelper.EpsilonInternal, $"To state {toStateId} does not exist.");
         }
 
-        var isEpsilonTransition = IsEpsilon(symbol);
         char transitionSymbol;
-
-        if (isEpsilonTransition)
+        if (AutomatonSymbolHelper.IsEpsilon(symbol))
         {
             _logger.LogInformation("Epsilon transition detected");
-            // Epsilon symbols are only allowed in Epsilon NFA
             if (model.Type != AutomatonType.EpsilonNFA)
             {
-                return (false, '\0', "Epsilon transitions (?) are only allowed in Epsilon NFAs. Please change the automaton type or use a different symbol.");
+                return (false, AutomatonSymbolHelper.EpsilonInternal, $"Epsilon transitions ({AutomatonSymbolHelper.EpsilonDisplay}) are only allowed in Epsilon NFAs. Please change the automaton type or use a different symbol.");
             }
-            transitionSymbol = '\0';
+            transitionSymbol = AutomatonSymbolHelper.EpsilonInternal;
         }
         else if (!string.IsNullOrWhiteSpace(symbol) && symbol.Trim().Length == 1)
         {
@@ -158,20 +130,18 @@ public class AutomatonValidationService : IAutomatonValidationService
         }
         else
         {
-            return (false, '\0', "Symbol must be a single character or epsilon (?) for Epsilon NFA.");
+            return (false, AutomatonSymbolHelper.EpsilonInternal, $"Symbol must be a single character or epsilon ({AutomatonSymbolHelper.EpsilonDisplay}) for Epsilon NFA.");
         }
 
-        // Check if transition already exists (for DFA, this matters more)
         if (model.Type == AutomatonType.DFA &&
             model.Transitions.Any(t => t.FromStateId == fromStateId && t.Symbol == transitionSymbol))
         {
-            return (false, '\0', $"DFA cannot have multiple transitions from state {fromStateId} on symbol '{(transitionSymbol == '\0' ? "?" : transitionSymbol.ToString())}'.");
+            return (false, AutomatonSymbolHelper.EpsilonInternal, $"DFA cannot have multiple transitions from state {fromStateId} on symbol '{(transitionSymbol == AutomatonSymbolHelper.EpsilonInternal ? AutomatonSymbolHelper.EpsilonDisplay : transitionSymbol.ToString())}'. ");
         }
 
-        // Check for exact duplicate transitions
         if (model.Transitions.Any(t => t.FromStateId == fromStateId && t.ToStateId == toStateId && t.Symbol == transitionSymbol))
         {
-            return (false, '\0', $"Transition from {fromStateId} to {toStateId} on '{(transitionSymbol == '\0' ? "?" : transitionSymbol.ToString())}' already exists.");
+            return (false, AutomatonSymbolHelper.EpsilonInternal, $"Transition from {fromStateId} to {toStateId} on '{(transitionSymbol == AutomatonSymbolHelper.EpsilonInternal ? AutomatonSymbolHelper.EpsilonDisplay : transitionSymbol.ToString())}' already exists.");
         }
 
         return (true, transitionSymbol, null);
