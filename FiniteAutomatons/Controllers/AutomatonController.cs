@@ -6,8 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace FiniteAutomatons.Controllers;
 
 public class AutomatonController(
-    ILogger<AutomatonController> logger, 
-    IAutomatonGeneratorService generatorService, 
+    ILogger<AutomatonController> logger,
+    IAutomatonGeneratorService generatorService,
     IAutomatonTempDataService tempDataService,
     IAutomatonValidationService validationService,
     IAutomatonConversionService conversionService,
@@ -19,6 +19,13 @@ public class AutomatonController(
     private readonly IAutomatonValidationService validationService = validationService;
     private readonly IAutomatonConversionService conversionService = conversionService;
     private readonly IAutomatonExecutionService executionService = executionService;
+
+    // Central epsilon alias list (kept in sync with validation service)
+    private static readonly HashSet<string> EpsilonAliases = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "", "?", "?", "epsilon", "eps", "e", "lambda", "?"
+    };
+    private static bool IsEpsilon(string? s) => s == null || EpsilonAliases.Contains(s.Trim());
 
     public IActionResult CreateAutomaton()
     {
@@ -45,7 +52,7 @@ public class AutomatonController(
             {
                 logger.LogInformation("Transition: {From} -> {To} on '{Symbol}' (char code: {Code})",
                     transition.FromStateId, transition.ToStateId,
-                    transition.Symbol == '\0' ? "NULL" : transition.Symbol.ToString(),
+                    transition.Symbol == '\0' ? "?" : transition.Symbol.ToString(),
                     (int)transition.Symbol);
             }
 
@@ -54,10 +61,7 @@ public class AutomatonController(
             if (!isValid)
             {
                 logger.LogWarning("Automaton validation failed: {Errors}", string.Join("; ", errors));
-                foreach (var error in errors)
-                {
-                    ModelState.AddModelError("", error);
-                }
+                foreach (var error in errors) ModelState.AddModelError("", error);
                 return View(model);
             }
 
@@ -90,18 +94,14 @@ public class AutomatonController(
             model.Alphabet ??= [];
 
             if (model.Type == newType)
-            {
                 return View("CreateAutomaton", model);
-            }
 
             // Convert the automaton to the new type if possible using the service
             var (convertedModel, warnings) = conversionService.ConvertAutomatonType(model, newType);
-            
-            foreach (var warning in warnings)
-            {
-                ModelState.AddModelError("", warning);
-            }
-            
+            foreach (var warning in warnings) ModelState.AddModelError("", warning);
+
+            // Clear any stale execution state after type change
+            ClearExecutionState(convertedModel);
             return View("CreateAutomaton", convertedModel);
         }
         catch (Exception ex)
@@ -132,6 +132,8 @@ public class AutomatonController(
             }
 
             model.States.Add(new State { Id = stateId, IsStart = isStart, IsAccepting = isAccepting });
+            // Adding structure changes invalidates execution state
+            ClearExecutionState(model, keepInput: true);
             return View("CreateAutomaton", model);
         }
         catch (Exception ex)
@@ -154,7 +156,7 @@ public class AutomatonController(
             model.Alphabet ??= [];
 
             // Validate transition addition using the service
-            var (isValidTransition, processedSymbol, transitionError) = validationService.ValidateTransitionAddition(model, fromStateId, toStateId, symbol ?? "");
+            var (isValidTransition, processedSymbol, transitionError) = validationService.ValidateTransitionAddition(model, fromStateId, toStateId, symbol ?? string.Empty);
             if (!isValidTransition)
             {
                 ModelState.AddModelError("", transitionError!);
@@ -162,18 +164,14 @@ public class AutomatonController(
             }
 
             model.Transitions.Add(new Transition { FromStateId = fromStateId, ToStateId = toStateId, Symbol = processedSymbol });
-
             // Update alphabet (but not for epsilon transitions)
             if (processedSymbol != '\0' && !model.Alphabet.Contains(processedSymbol))
-            {
                 model.Alphabet.Add(processedSymbol);
-            }
 
             logger.LogInformation("Transition added successfully: {From} -> {To} on '{Symbol}' (char code: {Code})",
-                fromStateId, toStateId, 
-                processedSymbol == '\0' ? "?" : processedSymbol.ToString(),
-                (int)processedSymbol);
+                fromStateId, toStateId, processedSymbol == '\0' ? "?" : processedSymbol.ToString(), (int)processedSymbol);
 
+            ClearExecutionState(model, keepInput: true);
             return View("CreateAutomaton", model);
         }
         catch (Exception ex)
@@ -195,13 +193,22 @@ public class AutomatonController(
             model.Transitions ??= [];
             model.Alphabet ??= [];
 
+            var removedStart = model.States.FirstOrDefault(s => s.Id == stateId)?.IsStart == true;
             model.States.RemoveAll(s => s.Id == stateId);
             model.Transitions.RemoveAll(t => t.FromStateId == stateId || t.ToStateId == stateId);
 
             // Update alphabet - remove symbols that are no longer used
-            var usedSymbols = model.Transitions.Select(t => t.Symbol).Distinct().ToList();
+            var usedSymbols = model.Transitions.Where(t => t.Symbol != '\0').Select(t => t.Symbol).Distinct().ToList();
             model.Alphabet.RemoveAll(c => !usedSymbols.Contains(c));
 
+            if (removedStart && model.States.Any())
+            {
+                // Auto-assign first state as start to keep model valid; user can adjust
+                model.States[0].IsStart = true;
+                ModelState.AddModelError("", "Start state removed. First remaining state marked as new start.");
+            }
+
+            ClearExecutionState(model);
             return View("CreateAutomaton", model);
         }
         catch (Exception ex)
@@ -223,15 +230,16 @@ public class AutomatonController(
             model.Transitions ??= [];
             model.Alphabet ??= [];
 
-            // Convert symbol string to char, handling epsilon transitions consistently
+            var isEpsilon = IsEpsilon(symbol);
             char symbolChar;
-            if (symbol == "?" || symbol == "epsilon" || symbol == "eps" || string.IsNullOrEmpty(symbol))
+
+            if (isEpsilon)
             {
-                symbolChar = '\0'; // Epsilon transition
+                symbolChar = '\0';
             }
-            else if (symbol.Length == 1)
+            else if (!string.IsNullOrWhiteSpace(symbol) && symbol.Trim().Length == 1)
             {
-                symbolChar = symbol[0];
+                symbolChar = symbol.Trim()[0];
             }
             else
             {
@@ -239,14 +247,17 @@ public class AutomatonController(
                 return View("CreateAutomaton", model);
             }
 
-            model.Transitions.RemoveAll(t => t.FromStateId == fromStateId && t.ToStateId == toStateId && t.Symbol == symbolChar);
+            int removed = model.Transitions.RemoveAll(t => t.FromStateId == fromStateId && t.ToStateId == toStateId && t.Symbol == symbolChar);
+            if (removed == 0)
+            {
+                ModelState.AddModelError("", "No matching transition found to remove.");
+            }
 
             // Update alphabet - remove symbol if no longer used
             if (symbolChar != '\0' && !model.Transitions.Any(t => t.Symbol == symbolChar))
-            {
                 model.Alphabet.Remove(symbolChar);
-            }
 
+            ClearExecutionState(model);
             return View("CreateAutomaton", model);
         }
         catch (Exception ex)
@@ -343,11 +354,11 @@ public class AutomatonController(
         try
         {
             var convertedModel = conversionService.ConvertToDFA(model);
+            // Clear execution state after conversion
+            ClearExecutionState(convertedModel);
 
-            // Store the converted automaton using the service
             tempDataService.StoreCustomAutomaton(TempData, convertedModel);
             tempDataService.StoreConversionMessage(TempData, $"Successfully converted {model.TypeDisplayName} to DFA with {convertedModel.States.Count} states.");
-
             return RedirectToAction("Index", "Home");
         }
         catch (Exception ex)
@@ -360,7 +371,6 @@ public class AutomatonController(
 
     public IActionResult GenerateRandomAutomaton()
     {
-        // Show the generation form
         var model = new RandomAutomatonGenerationViewModel
         {
             Type = AutomatonType.DFA,
@@ -399,7 +409,6 @@ public class AutomatonController(
             // Store in TempData and redirect to simulator using the service
             tempDataService.StoreCustomAutomaton(TempData, generatedAutomaton);
             tempDataService.StoreConversionMessage(TempData, $"Successfully generated random {model.Type} with {generatedAutomaton.States.Count} states and {generatedAutomaton.Transitions.Count} transitions.");
-
             logger.LogInformation("Successfully generated random automaton, redirecting to Index");
             return RedirectToAction("Index", "Home");
         }
@@ -430,7 +439,6 @@ public class AutomatonController(
             // Store in TempData and redirect to simulator using the service
             tempDataService.StoreCustomAutomaton(TempData, generatedAutomaton);
             tempDataService.StoreConversionMessage(TempData, $"Successfully generated realistic {type} with {generatedAutomaton.States.Count} states and {generatedAutomaton.Transitions.Count} transitions.");
-
             logger.LogInformation("Successfully generated realistic automaton, redirecting to Index");
             return RedirectToAction("Index", "Home");
         }
@@ -440,5 +448,16 @@ public class AutomatonController(
             tempDataService.StoreErrorMessage(TempData, $"An error occurred while generating the automaton: {ex.Message}");
             return RedirectToAction("GenerateRandomAutomaton");
         }
+    }
+
+    private static void ClearExecutionState(AutomatonViewModel model, bool keepInput = false)
+    {
+        if (!keepInput) model.Input = string.Empty;
+        model.Result = null;
+        model.CurrentStateId = null;
+        model.CurrentStates = null;
+        model.Position = 0;
+        model.IsAccepted = null;
+        model.StateHistorySerialized = string.Empty;
     }
 }

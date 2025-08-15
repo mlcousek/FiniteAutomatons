@@ -11,10 +11,22 @@ public class AutomatonValidationService : IAutomatonValidationService
 {
     private readonly ILogger<AutomatonValidationService> _logger;
 
+    // Central list of accepted epsilon aliases (all mapped to '\0')
+    private static readonly HashSet<string> _epsilonAliases = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "", "?", "?", "epsilon", "eps", "e", "lambda", "?"
+    };
+
     public AutomatonValidationService(ILogger<AutomatonValidationService> logger)
     {
         _logger = logger;
     }
+
+    /// <summary>
+    /// Helper to determine if a user supplied symbol represents epsilon
+    /// </summary>
+    private static bool IsEpsilon(string? symbol)
+        => symbol is null || _epsilonAliases.Contains(symbol.Trim());
 
     /// <summary>
     /// Validates an automaton model for correctness and consistency
@@ -127,20 +139,7 @@ public class AutomatonValidationService : IAutomatonValidationService
             return (false, '\0', $"To state {toStateId} does not exist.");
         }
 
-        // Handle epsilon transitions - comprehensive epsilon detection
-        bool isEpsilonTransition = string.IsNullOrEmpty(symbol) ||
-                                 symbol == "?" ||
-                                 symbol == "epsilon" ||
-                                 symbol == "eps" ||
-                                 symbol == "e" ||
-                                 symbol == "?" ||  // Alternative lambda symbol
-                                 symbol == "\u03B5" ||  // Unicode epsilon
-                                 symbol == "\u025B" ||  // Latin small letter open e
-                                 symbol.Trim() == "" ||
-                                 symbol.Trim() == "?" ||
-                                 (symbol.Length == 1 && symbol[0] == '\u03B5') || // Direct unicode check
-                                 (symbol.Length == 1 && symbol[0] == 949); // Decimal value for ?
-
+        var isEpsilonTransition = IsEpsilon(symbol);
         char transitionSymbol;
 
         if (isEpsilonTransition)
@@ -151,11 +150,10 @@ public class AutomatonValidationService : IAutomatonValidationService
             {
                 return (false, '\0', "Epsilon transitions (?) are only allowed in Epsilon NFAs. Please change the automaton type or use a different symbol.");
             }
-            transitionSymbol = '\0'; // Epsilon transition
+            transitionSymbol = '\0';
         }
-        else if (!string.IsNullOrEmpty(symbol) && symbol.Trim().Length == 1)
+        else if (!string.IsNullOrWhiteSpace(symbol) && symbol.Trim().Length == 1)
         {
-            _logger.LogInformation("Regular symbol detected: '{Symbol}'", symbol.Trim());
             transitionSymbol = symbol.Trim()[0];
         }
         else
