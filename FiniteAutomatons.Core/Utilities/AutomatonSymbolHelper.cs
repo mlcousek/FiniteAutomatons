@@ -1,9 +1,5 @@
 namespace FiniteAutomatons.Core.Utilities;
 
-/// <summary>
-/// Helper utilities and canonical definitions for automaton related symbols.
-/// Centralizes epsilon alias handling to keep controller / services / UI consistent.
-/// </summary>
 public static class AutomatonSymbolHelper
 {
     /// <summary>
@@ -14,21 +10,19 @@ public static class AutomatonSymbolHelper
     /// <summary>
     /// Display representation for epsilon for UI/logging.
     /// </summary>
-    public const string EpsilonDisplay = "?";
+    public const string EpsilonDisplay = "?"; // unified epsilon display
 
     /// <summary>
     /// Accepted textual aliases that users may input to denote epsilon.
     /// </summary>
     private static readonly HashSet<string> _epsilonAliases = new(StringComparer.OrdinalIgnoreCase)
     {
-        string.Empty, // empty
-        EpsilonDisplay, // Greek epsilon
-        "?",          // legacy placeholder / earlier UI
+        string.Empty,            // empty
+        EpsilonDisplay,          // Greek epsilon
         "epsilon",
         "eps",
         "e",
-        "lambda",
-        "?"
+        "lambda"
     };
 
     /// <summary>

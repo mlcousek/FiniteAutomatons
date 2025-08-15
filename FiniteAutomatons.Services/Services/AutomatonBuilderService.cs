@@ -30,6 +30,12 @@ public class AutomatonBuilderService : IAutomatonBuilderService
         model.Transitions ??= [];
         model.Alphabet ??= [];
 
+        // Validate single start state invariant early
+        if (model.States.Count(s => s.IsStart) > 1)
+        {
+            throw new InvalidOperationException("Multiple start states defined. Automaton must have exactly one start state.");
+        }
+
         _logger.LogInformation("Creating automaton of type {Type} with {StateCount} states and {TransitionCount} transitions", 
             model.Type, model.States.Count, model.Transitions.Count);
 
