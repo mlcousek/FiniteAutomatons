@@ -196,12 +196,6 @@ else
                 <input type="text" class="form-control @(isInputDisabled ? "disabled" : "")" id="inputString" name="Input" value="@Model.Input" 
                        placeholder="@(isInputDisabled ? "Input locked during execution - click Reset to enter new input" : "Enter a string using the alphabet above...")"
                        @(isInputDisabled ? "disabled readonly" : "") />
-                @if (isInputDisabled)
-                {
-                    <small class="text-muted mt-1 d-block">
-                        <i class="fas fa-lock"></i> Input is locked during execution. Click <strong>Reset</strong> to enter a new word.
-                    </small>
-                }
             </div>
             
             @for (int i = 0; i < Model.States.Count; i++)
