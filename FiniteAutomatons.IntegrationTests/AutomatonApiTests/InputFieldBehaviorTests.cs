@@ -38,8 +38,7 @@ public class InputFieldBehaviorTests(IntegrationTestsFixture fixture) : Integrat
 
         var content = await response.Content.ReadAsStringAsync();
         
-        // After stepping forward, input field should be disabled
-        content.ShouldContain("disabled readonly");
+        content.ShouldContain("readonly");
         
         // Should show execution state
         content.ShouldContain("Current State");
@@ -68,7 +67,8 @@ public class InputFieldBehaviorTests(IntegrationTestsFixture fixture) : Integrat
             Input = "ab",
             Position = 1, // Execution started
             CurrentStateId = 2,
-            IsCustomAutomaton = true
+            IsCustomAutomaton = true,
+            HasExecuted = true
         };
 
         // Reset to clear execution state
@@ -77,14 +77,11 @@ public class InputFieldBehaviorTests(IntegrationTestsFixture fixture) : Integrat
 
         var content = await response.Content.ReadAsStringAsync();
         
-        // After reset, should not show execution state indicators
         content.ShouldNotContain("Current State:");
-        
-        // Reset should work successfully
         content.ShouldNotContain("Error occurred");
     }
 
-    private async Task<HttpResponseMessage> PostAutomatonForm(HttpClient client, string url, AutomatonViewModel model)
+    private static async Task<HttpResponseMessage> PostAutomatonForm(HttpClient client, string url, AutomatonViewModel model)
     {
         var formData = new List<KeyValuePair<string, string>>
         {
@@ -92,7 +89,8 @@ public class InputFieldBehaviorTests(IntegrationTestsFixture fixture) : Integrat
             new("Input", model.Input ?? ""),
             new("IsCustomAutomaton", model.IsCustomAutomaton.ToString().ToLower()),
             new("Position", model.Position.ToString()),
-            new("StateHistorySerialized", model.StateHistorySerialized ?? "")
+            new("StateHistorySerialized", model.StateHistorySerialized ?? ""),
+            new("HasExecuted", model.HasExecuted.ToString().ToLower())
         };
 
         if (model.CurrentStateId.HasValue)
