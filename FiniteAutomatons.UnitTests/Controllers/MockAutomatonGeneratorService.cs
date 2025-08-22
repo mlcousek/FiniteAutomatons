@@ -16,7 +16,6 @@ public class MockAutomatonGeneratorService : IAutomatonGeneratorService
             Type = type,
             States = [new State { Id = 1, IsStart = true, IsAccepting = true }],
             Transitions = [],
-            Alphabet = ['a'],
             IsCustomAutomaton = true
         };
     }

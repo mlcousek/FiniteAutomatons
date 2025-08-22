@@ -19,7 +19,6 @@ public class AutomatonBuilderAndDFASupplementalTests
         Type = type,
         States = new List<State>(),
         Transitions = new List<Transition>(),
-        Alphabet = new List<char>()
     };
 
     // Local minimal DFA builder (duplicated lightweight for isolation)
@@ -43,7 +42,6 @@ public class AutomatonBuilderAndDFASupplementalTests
             new State { Id = 2, IsStart = false, IsAccepting = true }
         });
         model.Transitions.Add(new Transition { FromStateId = 1, ToStateId = 2, Symbol = 'a' });
-        model.Alphabet.Add('a');
 
         var svc = new AutomatonBuilderService(new NullLogger<AutomatonBuilderService>());
         var automaton = svc.CreateAutomatonFromModel(model) as DFA;
@@ -63,7 +61,6 @@ public class AutomatonBuilderAndDFASupplementalTests
         });
         model.Transitions.Add(new Transition { FromStateId = 1, ToStateId = 2, Symbol = 'a' });
         model.Transitions.Add(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'a' }); // nondeterminism same symbol to two targets
-        model.Alphabet.Add('a');
 
         var svc = new AutomatonBuilderService(new NullLogger<AutomatonBuilderService>());
         var automaton = svc.CreateAutomatonFromModel(model) as NFA;

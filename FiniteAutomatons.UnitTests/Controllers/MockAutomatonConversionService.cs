@@ -12,7 +12,6 @@ public class MockAutomatonConversionService : IAutomatonConversionService
             Type = newType,
             States = [.. model.States ?? []],
             Transitions = [.. model.Transitions ?? []],
-            Alphabet = [.. model.Alphabet ?? []],
             IsCustomAutomaton = model.IsCustomAutomaton
         };
 
@@ -32,7 +31,6 @@ public class MockAutomatonConversionService : IAutomatonConversionService
             Type = AutomatonType.DFA,
             States = [.. model.States ?? []],
             Transitions = [.. model.Transitions ?? []],
-            Alphabet = [.. model.Alphabet ?? []],
             IsCustomAutomaton = true
         };
     }

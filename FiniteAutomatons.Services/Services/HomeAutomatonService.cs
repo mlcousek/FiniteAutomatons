@@ -68,7 +68,6 @@ public class HomeAutomatonService(IAutomatonGeneratorService automatonGeneratorS
             Type = AutomatonType.DFA,
             States = fallbackStates,
             Transitions = fallbackTransitions,
-            Alphabet = fallbackAlphabet,
             IsCustomAutomaton = false
         };
 

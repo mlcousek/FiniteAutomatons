@@ -34,7 +34,6 @@ public class ComprehensiveAutomatonTests(IntegrationTestsFixture fixture) : Inte
                 new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' },
                 new() { FromStateId = 2, ToStateId = 1, Symbol = 'b' }
             ],
-            Alphabet = ['a', 'b']
         };
 
         // Create automaton
@@ -86,7 +85,6 @@ public class ComprehensiveAutomatonTests(IntegrationTestsFixture fixture) : Inte
                 new() { FromStateId = 1, ToStateId = 1, Symbol = 'a' },
                 new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' }
             ],
-            Alphabet = ['a']
         };
 
         // Create automaton
@@ -119,7 +117,6 @@ public class ComprehensiveAutomatonTests(IntegrationTestsFixture fixture) : Inte
             [
                 new() { FromStateId = 1, ToStateId = 2, Symbol = '\0' } // Epsilon transition
             ],
-            Alphabet = []
         };
 
         // Create automaton
@@ -153,7 +150,6 @@ public class ComprehensiveAutomatonTests(IntegrationTestsFixture fixture) : Inte
                 new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' },
                 new() { FromStateId = 2, ToStateId = 1, Symbol = 'b' }
             ],
-            Alphabet = ['a', 'b'],
             Input = "ab"
         };
 
@@ -188,7 +184,6 @@ public class ComprehensiveAutomatonTests(IntegrationTestsFixture fixture) : Inte
             [
                 new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' }
             ],
-            Alphabet = ['a']
         };
 
         var convertResponse = await PostAutomatonForm(client, "/Automaton/ConvertToDFA", nfaModel);

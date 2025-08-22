@@ -30,7 +30,6 @@ public class AutomatonExecutionService : IAutomatonExecutionService
         // Ensure model has required collections initialized
         model.States ??= [];
         model.Transitions ??= [];
-        model.Alphabet ??= [];
 
         AutomatonExecutionState state;
 
@@ -167,7 +166,6 @@ public class AutomatonExecutionService : IAutomatonExecutionService
         // Ensure collections are initialized
         model.States ??= [];
         model.Transitions ??= [];
-        model.Alphabet ??= [];
         model.Input ??= "";
 
         var automaton = _builderService.CreateAutomatonFromModel(model);
@@ -176,7 +174,6 @@ public class AutomatonExecutionService : IAutomatonExecutionService
         automaton.StepForward(execState);
         UpdateModelFromState(model, execState);
         model.Result = execState.IsAccepted;
-        model.Alphabet = [.. automaton.Transitions.Select(t => t.Symbol).Where(s => s != '\0').Distinct().OrderBy(c => c)];
 
         _logger.LogInformation("Executed step forward, position: {Position}, accepted: {IsAccepted}", 
             model.Position, model.IsAccepted);
@@ -194,7 +191,6 @@ public class AutomatonExecutionService : IAutomatonExecutionService
         // Ensure collections are initialized
         model.States ??= [];
         model.Transitions ??= [];
-        model.Alphabet ??= [];
         model.Input ??= "";
 
         var automaton = _builderService.CreateAutomatonFromModel(model);
@@ -202,7 +198,6 @@ public class AutomatonExecutionService : IAutomatonExecutionService
         automaton.StepBackward(execState);
         UpdateModelFromState(model, execState);
         model.Result = execState.IsAccepted;
-        model.Alphabet = [.. automaton.Transitions.Select(t => t.Symbol).Where(s => s != '\0').Distinct().OrderBy(c => c)];
 
         _logger.LogInformation("Executed step backward, position: {Position}, accepted: {IsAccepted}", 
             model.Position, model.IsAccepted);
@@ -220,7 +215,6 @@ public class AutomatonExecutionService : IAutomatonExecutionService
         // Ensure collections are initialized
         model.States ??= [];
         model.Transitions ??= [];
-        model.Alphabet ??= [];
         model.Input ??= "";
 
         var automaton = _builderService.CreateAutomatonFromModel(model);
@@ -229,7 +223,6 @@ public class AutomatonExecutionService : IAutomatonExecutionService
         automaton.ExecuteAll(execState);
         UpdateModelFromState(model, execState);
         model.Result = execState.IsAccepted;
-        model.Alphabet = [.. automaton.Transitions.Select(t => t.Symbol).Where(s => s != '\0').Distinct().OrderBy(c => c)];
 
         _logger.LogInformation("Executed all steps, final position: {Position}, accepted: {IsAccepted}", 
             model.Position, model.IsAccepted);
@@ -247,14 +240,12 @@ public class AutomatonExecutionService : IAutomatonExecutionService
         // Ensure collections are initialized
         model.States ??= [];
         model.Transitions ??= [];
-        model.Alphabet ??= [];
         model.Input ??= "";
 
         var automaton = _builderService.CreateAutomatonFromModel(model);
         var execState = automaton.StartExecution(model.Input);
         UpdateModelFromState(model, execState);
         model.Result = execState.IsAccepted;
-        model.Alphabet = [.. automaton.Transitions.Select(t => t.Symbol).Where(s => s != '\0').Distinct().OrderBy(c => c)];
 
         _logger.LogInformation("Reset to start state, position: {Position}", model.Position);
 
@@ -271,7 +262,6 @@ public class AutomatonExecutionService : IAutomatonExecutionService
         // Ensure collections are initialized
         model.States ??= [];
         model.Transitions ??= [];
-        model.Alphabet ??= [];
 
         // Only reset the execution state and input, NOT the automaton structure
         model.Input = string.Empty;
@@ -289,8 +279,6 @@ public class AutomatonExecutionService : IAutomatonExecutionService
             .Distinct()
             .ToList();
         
-        model.Alphabet = transitionSymbols.OrderBy(c => c).ToList();
-
         _logger.LogInformation("Reset execution state while preserving automaton structure");
 
         return model;

@@ -27,7 +27,6 @@ public class SimpleAutomatonExecutionTests(IntegrationTestsFixture fixture) : In
                 new() { FromStateId = 2, ToStateId = 2, Symbol = 'a' },
                 new() { FromStateId = 2, ToStateId = 1, Symbol = 'b' }
             ],
-            Alphabet = ['a', 'b']
         };
 
         var client = GetHttpClient();
@@ -80,7 +79,6 @@ public class SimpleAutomatonExecutionTests(IntegrationTestsFixture fixture) : In
                 new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' }, // Nondeterministic
                 new() { FromStateId = 2, ToStateId = 3, Symbol = 'b' }
             ],
-            Alphabet = ['a', 'b']
         };
 
         var client = GetHttpClient();
@@ -131,8 +129,7 @@ public class SimpleAutomatonExecutionTests(IntegrationTestsFixture fixture) : In
             [
                 new() { FromStateId = 1, ToStateId = 2, Symbol = '\0' }, // Epsilon transition
                 new() { FromStateId = 2, ToStateId = 3, Symbol = 'a' }
-            ],
-            Alphabet = ['a']
+            ]
         };
 
         var client = GetHttpClient();
@@ -181,7 +178,6 @@ public class SimpleAutomatonExecutionTests(IntegrationTestsFixture fixture) : In
                 new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' },
                 new() { FromStateId = 2, ToStateId = 1, Symbol = 'b' }
             ],
-            Alphabet = ['a', 'b'],
             Input = "ab"
         };
 
@@ -223,7 +219,6 @@ public class SimpleAutomatonExecutionTests(IntegrationTestsFixture fixture) : In
                 new() { FromStateId = 1, ToStateId = 1, Symbol = 'a' },
                 new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' }
             ],
-            Alphabet = ['a']
         };
 
         var client = GetHttpClient();
@@ -262,7 +257,6 @@ public class SimpleAutomatonExecutionTests(IntegrationTestsFixture fixture) : In
             [
                 new() { FromStateId = 1, ToStateId = 2, Symbol = '\0' } // Epsilon
             ],
-            Alphabet = []
         };
 
         var client = GetHttpClient();

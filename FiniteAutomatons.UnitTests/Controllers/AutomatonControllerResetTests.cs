@@ -44,7 +44,6 @@ public class AutomatonControllerResetTests
                 new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' },
                 new() { FromStateId = 2, ToStateId = 1, Symbol = 'b' }
             ],
-            Alphabet = ['a', 'b'],
             Input = "test input",
             Position = 3,
             CurrentStateId = 2,
@@ -97,7 +96,6 @@ public class AutomatonControllerResetTests
                 new() { FromStateId = 1, ToStateId = 2, Symbol = '\0' }, // Epsilon transition
                 new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' }
             ],
-            Alphabet = ['a'],
             Input = "test",
             Position = 2,
             CurrentStates = [1, 2]
@@ -140,7 +138,6 @@ public class AutomatonControllerResetTests
                 new() { Id = 1, IsStart = true, IsAccepting = true }
             ],
             Transitions = [],
-            Alphabet = [],
             Input = string.Empty,
             Position = 0
         };

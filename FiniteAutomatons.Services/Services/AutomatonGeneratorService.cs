@@ -39,7 +39,6 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
             Type = type,
             States = states,
             Transitions = transitions,
-            Alphabet = alphabet,
             Input = "",
             IsCustomAutomaton = true
         };

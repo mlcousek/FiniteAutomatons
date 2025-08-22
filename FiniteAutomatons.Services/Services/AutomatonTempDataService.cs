@@ -43,7 +43,6 @@ public class AutomatonTempDataService(ILogger<AutomatonTempDataService> logger) 
             
             customModel.States ??= [];
             customModel.Transitions ??= [];
-            customModel.Alphabet ??= [];
             customModel.Input ??= "";
 
             return (true, customModel);

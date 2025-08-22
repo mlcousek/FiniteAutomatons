@@ -134,7 +134,6 @@ public class AutomatonControllerAdvancedTests
             Type = AutomatonType.DFA,
             States = new List<State> { new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true } },
             Transitions = new List<Transition> { new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' } },
-            Alphabet = new List<char> { 'a' }
         };
 
         var result = _controllerWithMocks.RemoveTransition(model, 1, 2, "b") as ViewResult;
@@ -169,7 +168,6 @@ public class AutomatonControllerAdvancedTests
             Type = AutomatonType.DFA,
             States = new List<State> { new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true } },
             Transitions = new List<Transition> { new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' } },
-            Alphabet = new List<char> { 'a' }
         };
 
         controller.AddTransition(model, 1, 2, "a");

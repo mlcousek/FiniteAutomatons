@@ -41,7 +41,6 @@ public class AutomatonController(
             // Ensure collections are initialized
             model.States ??= [];
             model.Transitions ??= [];
-            model.Alphabet ??= [];
 
             // Log transition symbols for debugging
             foreach (var transition in model.Transitions)
@@ -87,7 +86,6 @@ public class AutomatonController(
             // Ensure collections are initialized
             model.States ??= [];
             model.Transitions ??= [];
-            model.Alphabet ??= [];
 
             if (model.Type == newType)
                 return View("CreateAutomaton", model);
@@ -117,7 +115,6 @@ public class AutomatonController(
             // Ensure collections are initialized
             model.States ??= [];
             model.Transitions ??= [];
-            model.Alphabet ??= [];
 
             // Validate state addition using the service
             var (isValidState, errorMessage) = validationService.ValidateStateAddition(model, stateId, isStart);
@@ -149,7 +146,6 @@ public class AutomatonController(
             // Ensure collections are initialized
             model.States ??= [];
             model.Transitions ??= [];
-            model.Alphabet ??= [];
 
             // Validate transition addition using the service
             var (isValidTransition, processedSymbol, transitionError) = validationService.ValidateTransitionAddition(model, fromStateId, toStateId, symbol ?? string.Empty);
@@ -162,7 +158,6 @@ public class AutomatonController(
             model.Transitions.Add(new Transition { FromStateId = fromStateId, ToStateId = toStateId, Symbol = processedSymbol });
             // Update alphabet (but not for epsilon transitions)
             if (processedSymbol != AutomatonSymbolHelper.EpsilonInternal && !model.Alphabet.Contains(processedSymbol))
-                model.Alphabet.Add(processedSymbol);
 
             logger.LogInformation("Transition added successfully: {From} -> {To} on '{Symbol}' (char code: {Code})",
                 fromStateId, toStateId, processedSymbol == AutomatonSymbolHelper.EpsilonInternal ? AutomatonSymbolHelper.EpsilonDisplay : processedSymbol.ToString(), (int)processedSymbol);
@@ -187,7 +182,6 @@ public class AutomatonController(
             // Ensure collections are initialized
             model.States ??= [];
             model.Transitions ??= [];
-            model.Alphabet ??= [];
 
             var removedStart = model.States.FirstOrDefault(s => s.Id == stateId)?.IsStart == true;
             model.States.RemoveAll(s => s.Id == stateId);
@@ -195,9 +189,8 @@ public class AutomatonController(
 
             // Update alphabet - remove symbols that are no longer used
             var usedSymbols = model.Transitions.Where(t => t.Symbol != AutomatonSymbolHelper.EpsilonInternal).Select(t => t.Symbol).Distinct().ToList();
-            model.Alphabet.RemoveAll(c => !usedSymbols.Contains(c));
 
-            if (removedStart && model.States.Any())
+            if (removedStart && model.States.Count != 0)
             {
                 // Auto-assign first state as start to keep model valid; user can adjust
                 model.States[0].IsStart = true;
@@ -224,7 +217,6 @@ public class AutomatonController(
             // Ensure collections are initialized
             model.States ??= [];
             model.Transitions ??= [];
-            model.Alphabet ??= [];
 
             char symbolChar;
             if (IsEpsilon(symbol))
@@ -249,7 +241,6 @@ public class AutomatonController(
 
             // Update alphabet - remove symbol if no longer used
             if (symbolChar != AutomatonSymbolHelper.EpsilonInternal && !model.Transitions.Any(t => t.Symbol == symbolChar))
-                model.Alphabet.Remove(symbolChar);
 
             ClearExecutionState(model);
             return View("CreateAutomaton", model);

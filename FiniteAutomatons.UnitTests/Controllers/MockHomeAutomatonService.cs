@@ -22,7 +22,6 @@ public class MockHomeAutomatonService : IHomeAutomatonService
                 new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' },
                 new() { FromStateId = 2, ToStateId = 2, Symbol = 'a' }
             ],
-            Alphabet = ['a', 'b', 'c', 'd'],
             IsCustomAutomaton = false
         };
     }
@@ -41,7 +40,6 @@ public class MockHomeAutomatonService : IHomeAutomatonService
             [
                 new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' }
             ],
-            Alphabet = ['a'],
             IsCustomAutomaton = false
         };
     }

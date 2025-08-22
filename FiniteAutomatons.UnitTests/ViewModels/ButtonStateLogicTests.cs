@@ -14,8 +14,8 @@ public class ButtonStateLogicTests
         {
             Type = AutomatonType.DFA,
             States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
+            // No transitions -> empty alphabet fine for empty input case
             Transitions = [],
-            Alphabet = ['a', 'b'],
             Input = string.Empty,
             Position = 0,
             CurrentStateId = null,
@@ -27,7 +27,7 @@ public class ButtonStateLogicTests
         bool isAtFirstPosition = model.Position == 0;
         bool hasExecutionStarted = model.Position > 0 || model.Result != null ||
                                  (model.Type == AutomatonType.DFA && model.CurrentStateId != null) ||
-                                 (model.Type != AutomatonType.DFA && model.CurrentStates != null && model.CurrentStates.Any());
+                                 (model.Type != AutomatonType.DFA && model.CurrentStates != null && model.CurrentStates.Count != 0);
         bool isAtEnd = hasInput && model.Position >= model.Input.Length;
         
         // Input validation
@@ -54,20 +54,22 @@ public class ButtonStateLogicTests
     [Fact]
     public void ButtonStates_WithValidInputAtStart_StepForwardAndExecuteAllEnabled()
     {
-        // Arrange - Valid input provided but at start position
+        // Arrange - Invalid input provided (contains 'c' not in alphabet {'a','b'})
         var model = new AutomatonViewModel
         {
             Type = AutomatonType.DFA,
             States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
-            Transitions = [],
-            Alphabet = ['a', 'b'],
-            Input = "abc", // Invalid input (contains 'c' not in alphabet)
+            Transitions =
+            [
+                new() { FromStateId = 1, ToStateId = 1, Symbol = 'a' },
+                new() { FromStateId = 1, ToStateId = 1, Symbol = 'b' }
+            ],
+            Input = "abc", // Invalid input (contains 'c')
             Position = 0,
             CurrentStateId = null,
             Result = null
         };
 
-        // Act & Assert
         bool hasInput = !string.IsNullOrEmpty(model.Input);
         bool isAtFirstPosition = model.Position == 0;
         bool hasExecutionStarted = model.Position > 0 || model.Result != null ||
@@ -75,9 +77,8 @@ public class ButtonStateLogicTests
                                  (model.Type != AutomatonType.DFA && model.CurrentStates != null && model.CurrentStates.Any());
         bool isAtEnd = hasInput && model.Position >= model.Input.Length;
         
-        // Input validation - 'abc' contains 'c' which is not in alphabet ['a', 'b']
         bool isInputValid = true;
-        if (hasInput && model.Alphabet != null && model.Alphabet.Any())
+        if (hasInput && model.Alphabet.Any())
         {
             isInputValid = model.Input.All(c => model.Alphabet.Contains(c));
         }
@@ -88,8 +89,7 @@ public class ButtonStateLogicTests
         bool canBackToStart = hasExecutionStarted && isInputValid;
         bool canReset = hasExecutionStarted;
 
-        // All buttons should be disabled due to invalid input
-        isInputValid.ShouldBeFalse(); // 'c' is not in alphabet ['a', 'b']
+        isInputValid.ShouldBeFalse();
         canStepForward.ShouldBeFalse();
         canExecuteAll.ShouldBeFalse();
         canStepBackward.ShouldBeFalse();
@@ -105,15 +105,17 @@ public class ButtonStateLogicTests
         {
             Type = AutomatonType.DFA,
             States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
-            Transitions = [],
-            Alphabet = ['a', 'b'],
+            Transitions =
+            [
+                new() { FromStateId = 1, ToStateId = 1, Symbol = 'a' },
+                new() { FromStateId = 1, ToStateId = 1, Symbol = 'b' }
+            ],
             Input = "ab", // Valid input
             Position = 0,
             CurrentStateId = null,
             Result = null
         };
 
-        // Act & Assert
         bool hasInput = !string.IsNullOrEmpty(model.Input);
         bool isAtFirstPosition = model.Position == 0;
         bool hasExecutionStarted = model.Position > 0 || model.Result != null ||
@@ -121,9 +123,8 @@ public class ButtonStateLogicTests
                                  (model.Type != AutomatonType.DFA && model.CurrentStates != null && model.CurrentStates.Any());
         bool isAtEnd = hasInput && model.Position >= model.Input.Length;
         
-        // Input validation
         bool isInputValid = true;
-        if (hasInput && model.Alphabet != null && model.Alphabet.Any())
+        if (hasInput && model.Alphabet.Any())
         {
             isInputValid = model.Input.All(c => model.Alphabet.Contains(c));
         }
@@ -134,15 +135,12 @@ public class ButtonStateLogicTests
         bool canBackToStart = hasExecutionStarted && isInputValid;
         bool canReset = hasExecutionStarted;
 
-        // Input should be valid
         isInputValid.ShouldBeTrue();
-        
-        // Step Forward and Execute All should be enabled
         canStepForward.ShouldBeTrue();
         canExecuteAll.ShouldBeTrue();
-        canStepBackward.ShouldBeFalse(); // Still at first position
-        canBackToStart.ShouldBeFalse(); // No execution started
-        canReset.ShouldBeFalse(); // No execution started yet
+        canStepBackward.ShouldBeFalse();
+        canBackToStart.ShouldBeFalse();
+        canReset.ShouldBeFalse();
     }
 
     [Fact]
@@ -153,10 +151,13 @@ public class ButtonStateLogicTests
         {
             Type = AutomatonType.DFA,
             States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
-            Transitions = [],
-            Alphabet = ['a', 'b'],
+            Transitions =
+            [
+                new() { FromStateId = 1, ToStateId = 1, Symbol = 'a' },
+                new() { FromStateId = 1, ToStateId = 1, Symbol = 'b' }
+            ],
             Input = "ab",
-            Position = 1, // Mid execution
+            Position = 1,
             CurrentStateId = 1,
             Result = null
         };
@@ -169,9 +170,8 @@ public class ButtonStateLogicTests
                                  (model.Type != AutomatonType.DFA && model.CurrentStates != null && model.CurrentStates.Any());
         bool isAtEnd = hasInput && model.Position >= model.Input.Length;
         
-        // Input validation
         bool isInputValid = true;
-        if (hasInput && model.Alphabet != null && model.Alphabet.Any())
+        if (hasInput && model.Alphabet.Any())
         {
             isInputValid = model.Input.All(c => model.Alphabet.Contains(c));
         }
@@ -199,10 +199,13 @@ public class ButtonStateLogicTests
         {
             Type = AutomatonType.DFA,
             States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
-            Transitions = [],
-            Alphabet = ['a', 'b'],
+            Transitions =
+            [
+                new() { FromStateId = 1, ToStateId = 1, Symbol = 'a' },
+                new() { FromStateId = 1, ToStateId = 1, Symbol = 'b' }
+            ],
             Input = "ab",
-            Position = 2, // At end
+            Position = 2,
             CurrentStateId = 1,
             Result = true
         };
@@ -215,9 +218,8 @@ public class ButtonStateLogicTests
                                  (model.Type != AutomatonType.DFA && model.CurrentStates != null && model.CurrentStates.Any());
         bool isAtEnd = hasInput && model.Position >= model.Input.Length;
         
-        // Input validation
         bool isInputValid = true;
-        if (hasInput && model.Alphabet != null && model.Alphabet.Any())
+        if (hasInput && model.Alphabet.Any())
         {
             isInputValid = model.Input.All(c => model.Alphabet.Contains(c));
         }
@@ -245,9 +247,12 @@ public class ButtonStateLogicTests
         {
             Type = AutomatonType.DFA,
             States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
-            Transitions = [],
-            Alphabet = ['a', 'b'],
-            Input = "axb", // Invalid: 'x' not in alphabet
+            Transitions =
+            [
+                new() { FromStateId = 1, ToStateId = 1, Symbol = 'a' },
+                new() { FromStateId = 1, ToStateId = 1, Symbol = 'b' }
+            ],
+            Input = "axb",
             Position = 1,
             CurrentStateId = 1,
             Result = null
@@ -261,9 +266,8 @@ public class ButtonStateLogicTests
                                  (model.Type != AutomatonType.DFA && model.CurrentStates != null && model.CurrentStates.Any());
         bool isAtEnd = hasInput && model.Position >= model.Input.Length;
         
-        // Input validation
         bool isInputValid = true;
-        if (hasInput && model.Alphabet != null && model.Alphabet.Any())
+        if (hasInput && model.Alphabet.Any())
         {
             isInputValid = model.Input.All(c => model.Alphabet.Contains(c));
         }

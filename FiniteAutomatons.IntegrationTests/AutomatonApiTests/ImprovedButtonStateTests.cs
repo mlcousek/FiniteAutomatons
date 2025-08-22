@@ -30,7 +30,6 @@ public class ImprovedButtonStateTests(IntegrationTestsFixture fixture) : Integra
                 new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' },
                 new() { FromStateId = 2, ToStateId = 1, Symbol = 'b' }
             ],
-            Alphabet = ['a', 'b'],
             Input = "a", // Valid input
             IsCustomAutomaton = true
         };
@@ -70,7 +69,6 @@ public class ImprovedButtonStateTests(IntegrationTestsFixture fixture) : Integra
                 new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' },
                 new() { FromStateId = 2, ToStateId = 1, Symbol = 'b' }
             ],
-            Alphabet = ['a', 'b'],
             Input = "a", // Valid input
             IsCustomAutomaton = true
         };

@@ -37,7 +37,6 @@ public class AutomatonApiTests(IntegrationTestsFixture fixture) : IntegrationTes
                 new() { FromStateId = 5, ToStateId = 5, Symbol = 'b' },
                 new() { FromStateId = 5, ToStateId = 5, Symbol = 'c' }
             ],
-            Alphabet = ['a', 'b', 'c'],
             Input = input
         };
     }

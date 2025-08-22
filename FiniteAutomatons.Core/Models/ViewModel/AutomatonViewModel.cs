@@ -2,6 +2,7 @@
 
 using FiniteAutomatons.Core.Models.DoMain;
 using System.Collections.Generic;
+using System.Linq;
 
 public enum AutomatonType
 {
@@ -15,20 +16,24 @@ public class AutomatonViewModel
     public AutomatonType Type { get; set; } = AutomatonType.DFA;
     public List<State> States { get; set; } = [];
     public List<Transition> Transitions { get; set; } = [];
-    public List<char> Alphabet { get; set; } = [];
+
+    // Derived alphabet (distinct, sorted, excludes epsilon). Always computed from transitions.
+    public IReadOnlyList<char> Alphabet => Transitions
+        .Where(t => t.Symbol != '\0')
+        .Select(t => t.Symbol)
+        .Distinct()
+        .OrderBy(c => c)
+        .ToList();
+
     public string Input { get; set; } = string.Empty;
     public bool? Result { get; set; }
-    // New flag: has at least one execution step (forward or execute all) occurred in this session
     public bool HasExecuted { get; set; } = false;
-    // Execution state for stepwise simulation
     public int? CurrentStateId { get; set; } // For DFA - single current state
     public HashSet<int>? CurrentStates { get; set; } // For NFA/EpsilonNFA - current set of states
     public int Position { get; set; }
     public bool? IsAccepted { get; set; }
     public string StateHistorySerialized { get; set; } = string.Empty; // for round-tripping stack
-    // Flag to indicate if this is a custom automaton (not the default)
     public bool IsCustomAutomaton { get; set; } = false;
-    // Helper properties for display
     public string CurrentStatesDisplay => CurrentStates != null && CurrentStates.Count != 0
         ? string.Join(", ", CurrentStates.OrderBy(x => x))
         : CurrentStateId?.ToString() ?? "";

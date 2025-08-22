@@ -5,26 +5,11 @@ using Microsoft.Extensions.Logging;
 
 namespace FiniteAutomatons.Services.Services;
 
-/// <summary>
-/// Service for converting between different automaton types
-/// </summary>
-public class AutomatonConversionService : IAutomatonConversionService
+public class AutomatonConversionService(IAutomatonBuilderService builderService, ILogger<AutomatonConversionService> logger) : IAutomatonConversionService
 {
-    private readonly IAutomatonBuilderService _builderService;
-    private readonly ILogger<AutomatonConversionService> _logger;
+    private readonly IAutomatonBuilderService builderService = builderService;
+    private readonly ILogger<AutomatonConversionService> logger = logger;
 
-    public AutomatonConversionService(IAutomatonBuilderService builderService, ILogger<AutomatonConversionService> logger)
-    {
-        _builderService = builderService;
-        _logger = logger;
-    }
-
-    /// <summary>
-    /// Converts an automaton from one type to another
-    /// </summary>
-    /// <param name="model">The source automaton model</param>
-    /// <param name="newType">The target automaton type</param>
-    /// <returns>A tuple containing the converted model and any warnings</returns>
     public (AutomatonViewModel ConvertedModel, List<string> Warnings) ConvertAutomatonType(AutomatonViewModel model, AutomatonType newType)
     {
         var warnings = new List<string>();
@@ -34,7 +19,6 @@ public class AutomatonConversionService : IAutomatonConversionService
             Type = newType,
             States = [.. model.States ?? []],
             Transitions = [.. model.Transitions ?? []],
-            Alphabet = [.. model.Alphabet ?? []],
             IsCustomAutomaton = model.IsCustomAutomaton
         };
 
@@ -57,7 +41,7 @@ public class AutomatonConversionService : IAutomatonConversionService
                 break;
         }
 
-        _logger.LogInformation("Converted automaton from {SourceType} to {TargetType} with {WarningCount} warnings", 
+        logger.LogInformation("Converted automaton from {SourceType} to {TargetType} with {WarningCount} warnings", 
             model.Type, newType, warnings.Count);
 
         return (convertedModel, warnings);
@@ -73,25 +57,24 @@ public class AutomatonConversionService : IAutomatonConversionService
         // Ensure collections are initialized
         model.States ??= [];
         model.Transitions ??= [];
-        model.Alphabet ??= [];
 
         if (model.Type == AutomatonType.DFA)
         {
-            _logger.LogInformation("Automaton is already a DFA, returning original model");
+            logger.LogInformation("Automaton is already a DFA, returning original model");
             return model;
         }
 
-        var automaton = _builderService.CreateAutomatonFromModel(model);
+        var automaton = builderService.CreateAutomatonFromModel(model);
         DFA convertedDFA;
 
         if (automaton is NFA nfa)
         {
-            _logger.LogInformation("Converting NFA to DFA");
+            logger.LogInformation("Converting NFA to DFA");
             convertedDFA = nfa.ToDFA();
         }
         else if (automaton is EpsilonNFA enfa)
         {
-            _logger.LogInformation("Converting EpsilonNFA to DFA via NFA");
+            logger.LogInformation("Converting EpsilonNFA to DFA via NFA");
             // Convert EpsilonNFA -> NFA -> DFA
             var intermediateNFA = enfa.ToNFA();
             convertedDFA = intermediateNFA.ToDFA();
@@ -107,12 +90,11 @@ public class AutomatonConversionService : IAutomatonConversionService
             Type = AutomatonType.DFA,
             States = [.. convertedDFA.States],
             Transitions = [.. convertedDFA.Transitions],
-            Alphabet = [.. convertedDFA.Transitions.Select(t => t.Symbol).Distinct()],
             Input = model.Input ?? "",
             IsCustomAutomaton = true
         };
 
-        _logger.LogInformation("Successfully converted {SourceType} to DFA with {StateCount} states", 
+        logger.LogInformation("Successfully converted {SourceType} to DFA with {StateCount} states", 
             model.Type, convertedModel.States.Count);
 
         return convertedModel;

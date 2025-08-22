@@ -27,7 +27,6 @@ public class InputFieldBehaviorTests(IntegrationTestsFixture fixture) : Integrat
                 new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' },
                 new() { FromStateId = 2, ToStateId = 1, Symbol = 'b' }
             ],
-            Alphabet = ['a', 'b'],
             Input = "ab",
             IsCustomAutomaton = true
         };
@@ -63,7 +62,6 @@ public class InputFieldBehaviorTests(IntegrationTestsFixture fixture) : Integrat
                 new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' },
                 new() { FromStateId = 2, ToStateId = 1, Symbol = 'b' }
             ],
-            Alphabet = ['a', 'b'],
             Input = "ab",
             Position = 1, // Execution started
             CurrentStateId = 2,

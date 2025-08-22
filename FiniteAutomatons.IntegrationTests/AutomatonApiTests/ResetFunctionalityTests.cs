@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.DoMain;
+﻿using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.ViewModel;
 using Shouldly;
 using System.Net;
@@ -27,7 +27,6 @@ public class ResetFunctionalityTests(IntegrationTestsFixture fixture) : Integrat
                 new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' },
                 new() { FromStateId = 2, ToStateId = 1, Symbol = 'b' }
             ],
-            Alphabet = ['a', 'b'],
             Input = "ababab",
             Position = 3,
             CurrentStateId = 2,
@@ -75,7 +74,6 @@ public class ResetFunctionalityTests(IntegrationTestsFixture fixture) : Integrat
                 new() { FromStateId = 1, ToStateId = 2, Symbol = '\0' }, // Epsilon
                 new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' }
             ],
-            Alphabet = ['a'],
             Input = "test",
             Position = 2,
             CurrentStates = [1, 2],
@@ -91,7 +89,7 @@ public class ResetFunctionalityTests(IntegrationTestsFixture fixture) : Integrat
         content.ShouldContain("<span class=\"badge bg-info me-2 mb-1\">a</span>");
         
         // Should show epsilon transition
-        content.ShouldContain("1 --?--> 2");
+        content.ShouldContain("1 --&#x3B5;--> 2");
         content.ShouldContain("1 --a--> 2");
         
         // Input should be cleared
@@ -111,7 +109,6 @@ public class ResetFunctionalityTests(IntegrationTestsFixture fixture) : Integrat
                 new() { Id = 1, IsStart = true, IsAccepting = true }
             ],
             Transitions = [],
-            Alphabet = [],
             Input = "",
             Position = 0,
             IsCustomAutomaton = true

@@ -83,7 +83,6 @@ public class MockAutomatonExecutionService : IAutomatonExecutionService
         // Ensure collections are initialized
         model.States ??= [];
         model.Transitions ??= [];
-        model.Alphabet ??= [];
 
         // Only reset the execution state and input, NOT the automaton structure
         model.Input = string.Empty;
@@ -101,8 +100,6 @@ public class MockAutomatonExecutionService : IAutomatonExecutionService
             .Distinct()
             .ToList();
         
-        model.Alphabet = transitionSymbols;
-
         return model;
     }
 }

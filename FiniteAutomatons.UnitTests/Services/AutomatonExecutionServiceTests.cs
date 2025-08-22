@@ -35,7 +35,6 @@ public class AutomatonExecutionServiceTests
             Type = AutomatonType.DFA,
             States = [ new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true } ],
             Transitions = [ new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' }, new() { FromStateId = 2, ToStateId = 1, Symbol = 'b' } ],
-            Alphabet = ['a','b'],
             Input = "abba",
             Position = 2,
             CurrentStateId = 2,
@@ -66,7 +65,6 @@ public class AutomatonExecutionServiceTests
             Type = AutomatonType.DFA,
             States = [ new() { Id = 1, IsStart = true, IsAccepting = true } ],
             Transitions = [],
-            Alphabet = [],
             Input = "a",
             Position = 1, // already at end
             CurrentStateId = 1
@@ -85,7 +83,6 @@ public class AutomatonExecutionServiceTests
             Type = AutomatonType.DFA,
             States = [ new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true } ],
             Transitions = [ new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' } ],
-            Alphabet = ['a'],
             Input = "a",
             Position = 1,
             CurrentStateId = 2,
@@ -107,7 +104,6 @@ public class AutomatonExecutionServiceTests
             Type = AutomatonType.DFA,
             States = [ new() { Id = 1, IsStart = true, IsAccepting = false } ],
             Transitions = [],
-            Alphabet = [],
             Input = "ab",
             Position = 1,
             CurrentStateId = 1,
@@ -191,7 +187,6 @@ public class AutomatonExecutionServiceTests
             Type = AutomatonType.DFA,
             States = [ new() { Id = 1, IsStart = true, IsAccepting = true } ],
             Transitions = [ new() { FromStateId = 1, ToStateId = 1, Symbol = 'a' } ],
-            Alphabet = ['a'],
             Input = longInput
         };
         svc.ExecuteAll(model);

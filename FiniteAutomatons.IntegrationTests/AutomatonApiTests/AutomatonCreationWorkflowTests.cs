@@ -33,7 +33,6 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
                 new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' },
                 new() { FromStateId = 2, ToStateId = 1, Symbol = 'b' }
             ],
-            Alphabet = ['a', 'b']
         };
 
         // Try to create the DFA
@@ -74,7 +73,6 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
                 new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' }, // Nondeterministic
                 new() { FromStateId = 2, ToStateId = 3, Symbol = 'b' }
             ],
-            Alphabet = ['a', 'b']
         };
 
         // Try to create the NFA directly
@@ -114,7 +112,6 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
                 new() { FromStateId = 1, ToStateId = 2, Symbol = '\0' }, // Epsilon
                 new() { FromStateId = 2, ToStateId = 3, Symbol = 'a' }
             ],
-            Alphabet = ['a']
         };
 
         // Try to create the Epsilon NFA directly
@@ -152,7 +149,6 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
             [
                 new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' }
             ],
-            Alphabet = ['a']
         };
 
         // Change type to NFA
@@ -178,7 +174,6 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
                 new() { Id = 1, IsStart = true, IsAccepting = true }
             ],
             Transitions = [],
-            Alphabet = []
         };
 
         var changeTypeResponse = await PostChangeAutomatonType(client, nfaModel, AutomatonType.EpsilonNFA);
@@ -203,7 +198,6 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
                 new() { FromStateId = 1, ToStateId = 2, Symbol = '\0' }, // Epsilon
                 new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' }  // Regular
             ],
-            Alphabet = ['a']
         };
 
         var changeTypeResponse = await PostChangeAutomatonType(client, epsilonModel, AutomatonType.NFA);
@@ -228,7 +222,6 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
             Type = AutomatonType.DFA,
             States = [],
             Transitions = [],
-            Alphabet = []
         };
 
         var response = await PostAutomatonForm(client, "/Automaton/CreateAutomaton", emptyModel);
@@ -251,7 +244,6 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
                 new() { Id = 1, IsStart = false, IsAccepting = true } // No start state
             ],
             Transitions = [],
-            Alphabet = []
         };
 
         var response = await PostAutomatonForm(client, "/Automaton/CreateAutomaton", modelWithoutStart);
@@ -275,7 +267,6 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
                 new() { Id = 2, IsStart = true, IsAccepting = true } // Multiple start states
             ],
             Transitions = [],
-            Alphabet = []
         };
 
         var response = await PostAutomatonForm(client, "/Automaton/CreateAutomaton", modelWithMultipleStarts);
@@ -304,7 +295,6 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
                 new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' },
                 new() { FromStateId = 1, ToStateId = 3, Symbol = 'a' } // Non-deterministic!
             ],
-            Alphabet = ['a']
         };
 
         var response = await PostAutomatonForm(client, "/Automaton/CreateAutomaton", nonDeterministicDFA);
@@ -331,7 +321,6 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
             [
                 new() { FromStateId = 1, ToStateId = 2, Symbol = '\0' } // Epsilon in DFA!
             ],
-            Alphabet = []
         };
 
         var response = await PostAutomatonForm(client, "/Automaton/CreateAutomaton", dfaWithEpsilon);
@@ -455,7 +444,6 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
             [
                 new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' }
             ],
-            Alphabet = ['a']
         };
 
         var response = await PostRemoveState(client, model, 2);
@@ -484,7 +472,6 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
                 new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' },
                 new() { FromStateId = 2, ToStateId = 1, Symbol = 'b' }
             ],
-            Alphabet = ['a', 'b']
         };
 
         // Remove transition using 'a', alphabet should still contain 'a' if it's the only one
@@ -538,7 +525,6 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
                 new() { Id = 1, IsStart = true, IsAccepting = true }
             ],
             Transitions = [],
-            Alphabet = ['!', '@', '#', '$', '%'],
             Input = "!@#$%"
         };
 
@@ -676,7 +662,6 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
                 new() { Id = 1, IsStart = true, IsAccepting = true }
             ],
             Transitions = [],
-            Alphabet = ['a']
         };
     }
 

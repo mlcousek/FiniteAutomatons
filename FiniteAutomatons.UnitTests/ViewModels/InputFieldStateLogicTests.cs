@@ -15,7 +15,6 @@ public class InputFieldStateLogicTests
             Type = AutomatonType.DFA,
             States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
             Transitions = [],
-            Alphabet = ['a', 'b'],
             Input = string.Empty,
             Position = 0,
             CurrentStateId = null,
@@ -40,7 +39,6 @@ public class InputFieldStateLogicTests
             Type = AutomatonType.DFA,
             States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
             Transitions = [],
-            Alphabet = ['a', 'b'],
             Input = "ab",
             Position = 1, // Execution started
             CurrentStateId = 1,
@@ -65,7 +63,6 @@ public class InputFieldStateLogicTests
             Type = AutomatonType.DFA,
             States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
             Transitions = [],
-            Alphabet = ['a', 'b'],
             Input = "ab",
             Position = 2,
             CurrentStateId = 1,
@@ -90,7 +87,6 @@ public class InputFieldStateLogicTests
             Type = AutomatonType.NFA,
             States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
             Transitions = [],
-            Alphabet = ['a', 'b'],
             Input = "a",
             Position = 0,
             CurrentStates = [1, 2], // Current states set
@@ -115,7 +111,6 @@ public class InputFieldStateLogicTests
             Type = AutomatonType.DFA,
             States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
             Transitions = [],
-            Alphabet = ['a', 'b'],
             Input = string.Empty, // Reset clears input
             Position = 0, // Reset position
             CurrentStateId = null, // Reset state

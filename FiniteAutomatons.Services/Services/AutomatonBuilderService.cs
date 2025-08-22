@@ -28,7 +28,6 @@ public class AutomatonBuilderService : IAutomatonBuilderService
         // Ensure model has required collections initialized
         model.States ??= [];
         model.Transitions ??= [];
-        model.Alphabet ??= [];
 
         // Validate single start state invariant early
         if (model.States.Count(s => s.IsStart) > 1)
