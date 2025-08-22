@@ -2,9 +2,13 @@ using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Controllers;
 using FiniteAutomatons.Services.Services;
+using FiniteAutomatons.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Shouldly;
+using Xunit;
 
 namespace FiniteAutomatons.UnitTests.Controllers;
 
@@ -22,9 +26,12 @@ public class AutomatonControllerResetTests
         var mockValidationService = new MockAutomatonValidationService();
         var mockConversionService = new MockAutomatonConversionService();
         var mockExecutionService = new MockAutomatonExecutionService();
-        
+        var editing = new AutomatonEditingService(new MockAutomatonValidationService(), new TestLogger<AutomatonEditingService>());
         _controller = new AutomatonController(logger, mockGeneratorService, mockTempDataService,
-            mockValidationService, mockConversionService, mockExecutionService);
+            mockValidationService, mockConversionService, mockExecutionService, editing)
+        {
+            TempData = new TempDataDictionary(new DefaultHttpContext(), new TestTempDataProvider())
+        };
     }
 
     [Fact]

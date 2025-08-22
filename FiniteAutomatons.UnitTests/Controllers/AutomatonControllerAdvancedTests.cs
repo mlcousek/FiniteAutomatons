@@ -3,6 +3,7 @@ using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Core.Utilities;
 using FiniteAutomatons.Services.Services;
+using FiniteAutomatons.Services.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
@@ -22,13 +23,15 @@ public class AutomatonControllerAdvancedTests
         var mockTempData = new MockAutomatonTempDataService();
         var mockConversion = new MockAutomatonConversionService();
         var mockExecution = new MockAutomatonExecutionService();
+        var editingService = new AutomatonEditingService(realValidation, new TestLogger<AutomatonEditingService>());
 
-        _controllerWithRealValidation = new AutomatonController(new TestLogger<AutomatonController>(), mockGenerator, mockTempData, realValidation, mockConversion, mockExecution)
+        _controllerWithRealValidation = new AutomatonController(new TestLogger<AutomatonController>(), mockGenerator, mockTempData, realValidation, mockConversion, mockExecution, editingService)
         {
             TempData = new TempDataDictionary(new DefaultHttpContext(), new TestTempDataProvider())
         };
 
-        _controllerWithMocks = new AutomatonController(new TestLogger<AutomatonController>(), mockGenerator, mockTempData, new MockAutomatonValidationService(), mockConversion, mockExecution)
+        var mockEditing = new AutomatonEditingService(new MockAutomatonValidationService(), new TestLogger<AutomatonEditingService>());
+        _controllerWithMocks = new AutomatonController(new TestLogger<AutomatonController>(), mockGenerator, mockTempData, new MockAutomatonValidationService(), mockConversion, mockExecution, mockEditing)
         {
             TempData = new TempDataDictionary(new DefaultHttpContext(), new TestTempDataProvider())
         };
@@ -159,7 +162,7 @@ public class AutomatonControllerAdvancedTests
     public void AddTransition_DuplicateForDFA_ShouldBeRejected()
     {
         var realValidation = new AutomatonValidationService(new TestLogger<AutomatonValidationService>());
-        var controller = new AutomatonController(new TestLogger<AutomatonController>(), new MockAutomatonGeneratorService(), new MockAutomatonTempDataService(), realValidation, new MockAutomatonConversionService(), new MockAutomatonExecutionService())
+        var controller = new AutomatonController(new TestLogger<AutomatonController>(), new MockAutomatonGeneratorService(), new MockAutomatonTempDataService(), realValidation, new MockAutomatonConversionService(), new MockAutomatonExecutionService(), new AutomatonEditingService(realValidation, new TestLogger<AutomatonEditingService>()))
         {
             TempData = new TempDataDictionary(new DefaultHttpContext(), new TestTempDataProvider())
         };

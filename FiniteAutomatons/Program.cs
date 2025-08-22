@@ -6,6 +6,8 @@ using FiniteAutomatons.Services.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System.Text;
+using Microsoft.AspNetCore.Mvc;
+using FiniteAutomatons.Filters;
 
 // Set console encoding to UTF-8 to properly display Unicode characters like ?
 Console.OutputEncoding = Encoding.UTF8;
@@ -32,7 +34,13 @@ builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
     .AddEntityFrameworkStores<ApplicationDbContext>();
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews(o =>
+{
+#if !DEBUG
+    o.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
+#endif
+    o.Filters.Add<AutomatonModelFilter>();
+});
 
 // Configure logging with better Unicode support
 builder.Logging.ClearProviders();
@@ -47,6 +55,7 @@ builder.Services.AddScoped<IAutomatonValidationService, AutomatonValidationServi
 builder.Services.AddScoped<IAutomatonConversionService, AutomatonConversionService>();
 builder.Services.AddScoped<IAutomatonBuilderService, AutomatonBuilderService>();
 builder.Services.AddScoped<IAutomatonExecutionService, AutomatonExecutionService>();
+builder.Services.AddScoped<IAutomatonEditingService, AutomatonEditingService>();
 
 // Register automaton types
 builder.Services.AddTransient<DFA>();

@@ -1,6 +1,7 @@
 using FiniteAutomatons.Controllers;
 using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.ViewModel;
+using FiniteAutomatons.Services.Interfaces;
 using FiniteAutomatons.Services.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -22,9 +23,10 @@ public class AutomatonControllerTests
         var mockValidationService = new MockAutomatonValidationService();
         var mockConversionService = new MockAutomatonConversionService();
         var mockExecutionService = new MockAutomatonExecutionService();
+        var mockEditingService = new AutomatonEditingService(new MockAutomatonValidationService(), new TestLogger<AutomatonEditingService>());
         
         controller = new AutomatonController(logger, mockGeneratorService, mockTempDataService,
-            mockValidationService, mockConversionService, mockExecutionService);
+            mockValidationService, mockConversionService, mockExecutionService, mockEditingService);
 
         // Setup TempData
         var httpContext = new DefaultHttpContext();
