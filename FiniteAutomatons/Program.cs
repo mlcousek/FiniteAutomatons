@@ -36,9 +36,10 @@ builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.Requ
     .AddEntityFrameworkStores<ApplicationDbContext>();
 builder.Services.AddControllersWithViews(o =>
 {
-#if !DEBUG
-    o.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
-#endif
+    if (builder.Environment.IsProduction())
+    {
+        o.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
+    }
     o.Filters.Add<AutomatonModelFilter>();
 });
 

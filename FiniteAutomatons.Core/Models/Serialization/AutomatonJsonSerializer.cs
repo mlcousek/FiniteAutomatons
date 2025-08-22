@@ -51,7 +51,6 @@ public static class AutomatonJsonSerializer
         var dto = JsonSerializer.Deserialize<AutomatonDto>(json, CachedJsonSerializerOptions);
         if (dto != null)
         {
-            // Detect automaton type
             bool hasEpsilon = dto.Transitions.Any(t => t.Symbol == "ε" || t.Symbol == "eps" || t.Symbol == "e" || t.Symbol == "\\0");
             bool isNFA = dto.Transitions
                 .GroupBy(t => (t.FromStateId, t.Symbol))
