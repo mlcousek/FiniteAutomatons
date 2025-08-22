@@ -462,7 +462,7 @@ public class AutomatonController(
         if (model.Transitions == null) return;
         foreach (var t in model.Transitions)
         {
-            if (t.Symbol == '?' || t.Symbol == '?' )
+            if ((int)t.Symbol == 949)
             {
                 t.Symbol = AutomatonSymbolHelper.EpsilonInternal;
             }
