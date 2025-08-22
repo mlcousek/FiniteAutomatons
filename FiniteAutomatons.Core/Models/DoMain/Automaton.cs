@@ -19,7 +19,6 @@ public abstract class Automaton : IAutomaton
         return StartStateId.Value;
     }
 
-    // Add a method to safely add states that ensures the single start state constraint
     public void AddState(State state)
     {
         ArgumentNullException.ThrowIfNull(state);
@@ -32,7 +31,6 @@ public abstract class Automaton : IAutomaton
         States.Add(state);
     }
 
-    // Method to safely change which state is the start state
     public void SetStartState(int stateId)
     {
         var state = States.FirstOrDefault(s => s.Id == stateId)
@@ -46,7 +44,6 @@ public abstract class Automaton : IAutomaton
         state.IsStart = true;
     }
 
-    // Transition management methods
     public void AddTransition(Transition transition)
     {
         ArgumentNullException.ThrowIfNull(transition);

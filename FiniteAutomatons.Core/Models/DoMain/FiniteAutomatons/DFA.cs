@@ -39,16 +39,13 @@ public class DFA : Automaton
 
         state.Position--;
 
-        // Restore the previous state from the history stack using standard Pop()
         if (state.StateHistory.Count > 0)
         {
             var previousStates = state.StateHistory.Pop();
-            // DFA only ever has one state in the set
             state.CurrentStateId = previousStates.FirstOrDefault();
         }
         else
         {
-            // Fallback: recalculate from start if history is missing
             state.CurrentStateId = States.First(s => s.IsStart).Id;
             for (int i = 0; i < state.Position; i++)
             {
@@ -72,7 +69,6 @@ public class DFA : Automaton
 
     public override void ExecuteAll(AutomatonExecutionState state)
     {
-        // If input is empty, DFA should only accept if the start state is accepting
         if (string.IsNullOrEmpty(state.Input))
         {
             state.IsAccepted = States.Any(s => s.Id == state.CurrentStateId && s.IsAccepting);
@@ -95,7 +91,6 @@ public class DFA : Automaton
 
     public DFA MinimalizeDFA()
     {
-        // 0. Remove unreachable states first
         var reachable = new HashSet<int>();
         var queue = new Queue<int>();
         var startState = States.FirstOrDefault(s => s.IsStart)?.Id;
@@ -117,7 +112,6 @@ public class DFA : Automaton
             var reachableStates = States.Where(s => reachable.Contains(s.Id)).ToList();
             var reachableTransitions = Transitions.Where(t => reachable.Contains(t.FromStateId) && reachable.Contains(t.ToStateId)).ToList();
 
-            // 1. Partition reachable states into accepting and non-accepting
             var accepting = reachableStates.Where(s => s.IsAccepting).Select(s => s.Id).ToHashSet();
             var nonAccepting = reachableStates.Where(s => !s.IsAccepting).Select(s => s.Id).ToHashSet();
 
@@ -168,8 +162,7 @@ public class DFA : Automaton
                 partitions = newPartitions;
             } while (changed);
 
-            // 2. Build new DFA
-            var stateMap = new Dictionary<int, int>(); // old state id -> new state id
+            var stateMap = new Dictionary<int, int>(); 
             var minimizedDfa = new DFA();
             int newId = 1;
 
@@ -188,11 +181,9 @@ public class DFA : Automaton
                 newId++;
             }
 
-            // Set start state
             var startGroup = partitions.First(p => p.Contains(startState.Value));
             minimizedDfa.SetStartState(stateMap[startGroup.First()]);
 
-            // Add transitions
             foreach (var group in partitions)
             {
                 var rep = group.First();
