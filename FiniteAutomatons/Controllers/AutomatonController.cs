@@ -267,7 +267,9 @@ public class AutomatonController(
     {
         try
         {
+            model.HasExecuted = true;
             var updatedModel = executionService.ExecuteStepForward(model);
+            updatedModel.HasExecuted = true;
             return View("../Home/Index", updatedModel);
         }
         catch (Exception ex)
@@ -283,7 +285,9 @@ public class AutomatonController(
     {
         try
         {
+            // Do not clear HasExecuted; user already started a session
             var updatedModel = executionService.ExecuteStepBackward(model);
+            updatedModel.HasExecuted = model.HasExecuted || updatedModel.Position > 0;
             return View("../Home/Index", updatedModel);
         }
         catch (Exception ex)
@@ -299,7 +303,9 @@ public class AutomatonController(
     {
         try
         {
+            model.HasExecuted = true;
             var updatedModel = executionService.ExecuteAll(model);
+            updatedModel.HasExecuted = true;
             return View("../Home/Index", updatedModel);
         }
         catch (Exception ex)
@@ -316,6 +322,8 @@ public class AutomatonController(
         try
         {
             var updatedModel = executionService.BackToStart(model);
+            // Keep HasExecuted true so UI knows session happened even if at position 0
+            updatedModel.HasExecuted = model.HasExecuted || model.Position > 0 || model.Result != null;
             return View("../Home/Index", updatedModel);
         }
         catch (Exception ex)
@@ -332,6 +340,8 @@ public class AutomatonController(
         try
         {
             var updatedModel = executionService.ResetExecution(model);
+            // Reset resets execution session
+            updatedModel.HasExecuted = false;
             return View("../Home/Index", updatedModel);
         }
         catch (Exception ex)

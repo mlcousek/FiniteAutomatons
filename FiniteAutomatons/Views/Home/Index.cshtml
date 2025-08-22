@@ -188,14 +188,13 @@ else
             <div class="mb-3">
                 <label for="inputString" class="form-label">Input String</label>
                 @{
-                    // Disable input field when execution has started
-                    bool isInputDisabled = Model.Position > 0 || Model.Result != null ||
-                                         (Model.Type == AutomatonType.DFA && Model.CurrentStateId != null) ||
-                                         (Model.Type != AutomatonType.DFA && Model.CurrentStates != null && Model.CurrentStates.Any());
+                    // Execution considered started only after at least one step (Position>0) or a Result was produced
+                    bool executionStarted = Model.HasExecuted || Model.Result != null || (Model.Type != AutomatonType.DFA && Model.CurrentStates != null && Model.CurrentStates.Any());
+                    bool isInputDisabled = executionStarted; // lock only after actual progress
                 }
                 <input type="text" class="form-control @(isInputDisabled ? "disabled" : "")" id="inputString" name="Input" value="@Model.Input" 
                        placeholder="@(isInputDisabled ? "Input locked during execution - click Reset to enter new input" : "Enter a string using the alphabet above...")"
-                       @(isInputDisabled ? "disabled readonly" : "") />
+                       @(isInputDisabled ? "readonly" : "") />
             </div>
             
             @for (int i = 0; i < Model.States.Count; i++)
@@ -210,7 +209,6 @@ else
                 <input type="hidden" name="Transitions[@i].ToStateId" value="@Model.Transitions[i].ToStateId" />
                 <input type="hidden" name="Transitions[@i].Symbol" value="@Model.Transitions[i].Symbol" />
             }
-            <!-- Automaton execution state round-trip -->
             <input type="hidden" name="Type" value="@Model.Type" />
             <input type="hidden" name="CurrentStateId" value="@Model.CurrentStateId" />
             @if (Model.CurrentStates != null)
@@ -224,40 +222,25 @@ else
             <input type="hidden" name="IsAccepted" value="@Model.IsAccepted" />
             <input type="hidden" name="StateHistorySerialized" value="@Model.StateHistorySerialized" />
             <input type="hidden" name="IsCustomAutomaton" value="@Model.IsCustomAutomaton.ToString().ToLower()" />
-            
+            <input type="hidden" name="HasExecuted" value="@Model.HasExecuted" />
             <div class="btn-group" role="group">
                 @{
-                    // Comprehensive button state logic with input validation
                     bool hasInput = !string.IsNullOrEmpty(Model.Input);
                     bool isAtFirstPosition = Model.Position == 0;
                     bool isAtEnd = hasInput && Model.Position >= Model.Input.Length;
-                    bool hasExecutionStarted = Model.Position > 0 || Model.Result != null ||
-                                             (Model.Type == AutomatonType.DFA && Model.CurrentStateId != null) ||
-                                             (Model.Type != AutomatonType.DFA && Model.CurrentStates != null && Model.CurrentStates.Any());
-                    
-                    // Check if input is valid against alphabet (server-side validation)
+                    bool hasExecutionStarted = Model.HasExecuted || Model.Result != null || (Model.Type != AutomatonType.DFA && Model.CurrentStates != null && Model.CurrentStates.Any());
                     bool isInputValid = true;
                     if (hasInput && Model.Alphabet != null && Model.Alphabet.Any())
                     {
                         isInputValid = Model.Input.All(c => Model.Alphabet.Contains(c));
                     }
-                    
-                    // Button state calculations based on your requirements:
-                    
-                    // 1. Step Forward & Execute All: Active when input is valid, present and not at end
-                    bool canStepForward = hasInput && isInputValid && !isAtEnd && Model.Result != false;
-                    bool canExecuteAll = hasInput && isInputValid && !isAtEnd && Model.Result != false;
-                    
-                    // 2. Step Backward: Active when not at first position (position > 0)
+                    // Permit step forward even after a rejection when user stepped back
+                    bool canStepForward = hasInput && isInputValid && !isAtEnd; 
+                    bool canExecuteAll = hasInput && isInputValid && !isAtEnd; 
                     bool canStepBackward = !isAtFirstPosition && isInputValid;
-                    
-                    // 3. Back To Start: Active when execution has started and input is valid
-                    bool canBackToStart = hasExecutionStarted && isInputValid;
-                    
-                    // 4. Reset: Active when execution has started (not just when input is present)
+                    bool canBackToStart = hasExecutionStarted && isInputValid && !isAtFirstPosition;
                     bool canReset = hasExecutionStarted;
                 }
-                
                 <button type="submit" class="btn btn-primary @(!canStepForward ? "disabled" : "")" 
                         formaction="/Automaton/StepForward" @(!canStepForward ? "disabled" : "")
                         title="@(!canStepForward ? (!hasInput ? "Enter input to start stepping" : !isInputValid ? "Input contains invalid characters" : "Already at end of input") : "Process next symbol")">
@@ -303,180 +286,53 @@ else
 
 @section Scripts {
     <style>
-        /* Custom styling for disabled input during execution */
-        .form-control.disabled {
-            background-color: #f8f9fa;
-            color: #6c757d;
-            border-color: #dee2e6;
-            cursor: not-allowed;
-        }
+        /* Custom styling for readonly (formerly disabled) input during execution */
+        .form-control.disabled { background-color: #f8f9fa; color: #6c757d; border-color: #dee2e6; cursor: not-allowed; }
         
-        .input-lock-message {
-            border-left: 3px solid #ffc107;
-            padding-left: 8px;
-            margin-top: 5px;
-        }
+        .input-lock-message { border-left: 3px solid #ffc107; padding-left: 8px; margin-top: 5px; }
         
-        .input-lock-message i {
-            color: #ffc107;
-        }
+        .input-lock-message i { color: #ffc107; }
     </style>
-    
     <script>
-        // Auto-validate input against alphabet and update button states
         document.getElementById('inputString').addEventListener('input', function() {
             const alphabet = [@Html.Raw(string.Join(",", Model.Alphabet.Select(c => $"'{c}'")))];
-            const supportsEpsilon = @(Model.SupportsEpsilonTransitions.ToString().ToLower());
-            const input = this.value;
-            let isValid = true;
-            
-            // Only validate if input field is not disabled
-            if (!this.disabled) {
-                // Validate input against alphabet
-                for (let char of input) {
-                    if (!alphabet.includes(char)) {
-                        isValid = false;
-                        break;
-                    }
-                }
-                
-                // Update input field visual state
-                this.className = isValid ? 'form-control is-valid' : 'form-control is-invalid';
-                
-                // Update button states dynamically based on input validity
-                updateButtonStates(input, isValid);
-            }
+            const input = this.value; let isValid = true;
+            for (let char of input) { if (!alphabet.includes(char)) { isValid = false; break; } }
+            this.className = (this.className.replace(/\b(is-valid|is-invalid)\b/g, '').trim() + ' ' + (isValid ? 'is-valid' : 'is-invalid')).trim();
+            updateButtonStates(input, isValid);
         });
 
         function updateButtonStates(inputValue, isInputValid) {
-            const hasInput = inputValue && inputValue.length > 0;
-            const position = @Model.Position;
-            const hasExecutionStarted = position > 0 || @(Model.Result != null ? "true" : "false") || 
-                                      @(Model.CurrentStateId != null ? "true" : "false") ||
-                                      (@(Model.CurrentStates != null && Model.CurrentStates.Any() ? "true" : "false"));
+            const hasInput = !!inputValue; const position = @Model.Position; const isDfa = '@Model.Type' === 'DFA';
+            const hasExecutionStarted = (@Model.HasExecuted.ToString().ToLower()) || @(Model.Result != null ? "true" : "false") || (!isDfa && (@(Model.CurrentStates != null && Model.CurrentStates.Any() ? "true" : "false")));
             const isAtEnd = hasInput && position >= inputValue.length;
-            
-            // Get button references
             const stepForwardBtn = document.querySelector('button[formaction="/Automaton/StepForward"]');
             const stepBackwardBtn = document.querySelector('button[formaction="/Automaton/StepBackward"]');
             const executeAllBtn = document.querySelector('button[formaction="/Automaton/ExecuteAll"]');
             const backToStartBtn = document.querySelector('button[formaction="/Automaton/BackToStart"]');
             const resetBtn = document.querySelector('button[formaction="/Automaton/Reset"]');
             const inputField = document.getElementById('inputString');
-            
-            // Calculate button states based on new logic
             const canStepForward = hasInput && isInputValid && !isAtEnd;
             const canExecuteAll = hasInput && isInputValid && !isAtEnd;
             const canStepBackward = position > 0 && isInputValid;
-            const canBackToStart = hasExecutionStarted && isInputValid;
-            const canReset = hasExecutionStarted; // Only when execution started, not just input present
-            
-            // Update input field state - disable when execution has started
+            const canBackToStart = hasExecutionStarted && isInputValid && position > 0;
+            const canReset = hasExecutionStarted;
             updateInputField(inputField, hasExecutionStarted);
-            
-            // Update Step Forward
-            updateButton(stepForwardBtn, canStepForward, {
-                enabled: 'Process next symbol',
-                disabled: !hasInput ? 'Enter input to start stepping' : 
-                         !isInputValid ? 'Input contains invalid characters' : 
-                         'Already at end of input'
-            });
-            
-            // Update Step Backward
-            updateButton(stepBackwardBtn, canStepBackward, {
-                enabled: 'Undo last step',
-                disabled: !isInputValid ? 'Input contains invalid characters' : 
-                         'Already at first position'
-            });
-            
-            // Update Execute All
-            updateButton(executeAllBtn, canExecuteAll, {
-                enabled: 'Run entire input at once',
-                disabled: !hasInput ? 'Enter input to execute' : 
-                         !isInputValid ? 'Input contains invalid characters' : 
-                         'Already at end of input'
-            });
-            
-            // Update Back To Start
-            updateButton(backToStartBtn, canBackToStart, {
-                enabled: 'Reset to beginning of input',
-                disabled: !isInputValid ? 'Input contains invalid characters' : 
-                         'Already at start position'
-            });
-            
-            // Update Reset - Only enabled after execution starts
-            updateButton(resetBtn, canReset, {
-                enabled: 'Clear input and reset execution state',
-                disabled: 'Start execution to enable reset'
-            });
-        }
-        
-        function updateButton(button, canPerformAction, tooltips) {
-            if (canPerformAction) {
-                button.classList.remove('disabled');
-                button.removeAttribute('disabled');
-                button.title = tooltips.enabled;
-            } else {
-                button.classList.add('disabled');
-                button.setAttribute('disabled', 'disabled');
-                button.title = tooltips.disabled;
-            }
+            updateButton(stepForwardBtn, canStepForward, { enabled: 'Process next symbol', disabled: !hasInput ? 'Enter input to start stepping' : !isInputValid ? 'Input contains invalid characters' : 'Already at end of input' });
+            updateButton(stepBackwardBtn, canStepBackward, { enabled: 'Undo last step', disabled: !isInputValid ? 'Input contains invalid characters' : 'Already at first position' });
+            updateButton(executeAllBtn, canExecuteAll, { enabled: 'Run entire input at once', disabled: !hasInput ? 'Enter input to execute' : !isInputValid ? 'Input contains invalid characters' : 'Already at end of input' });
+            updateButton(backToStartBtn, canBackToStart, { enabled: 'Reset to beginning of input', disabled: !isInputValid ? 'Input contains invalid characters' : 'Already at start position' });
+            updateButton(resetBtn, canReset, { enabled: 'Clear input and reset execution state', disabled: 'Start execution to enable reset' });
         }
 
-        function updateInputField(inputField, hasExecutionStarted) {
-            if (hasExecutionStarted) {
-                // Disable input field during execution
-                inputField.setAttribute('disabled', 'disabled');
-                inputField.setAttribute('readonly', 'readonly');
-                inputField.classList.add('disabled');
-                inputField.placeholder = 'Input locked during execution - click Reset to enter new input';
-                
-                // Show lock message if not already present
-                let lockMessage = inputField.parentElement.querySelector('.input-lock-message');
-                if (!lockMessage) {
-                    lockMessage = document.createElement('small');
-                    lockMessage.className = 'text-muted mt-1 d-block input-lock-message';
-                    lockMessage.innerHTML = '<i class="fas fa-lock"></i> Input is locked during execution. Click <strong>Reset</strong> to enter a new word.';
-                    inputField.parentElement.appendChild(lockMessage);
-                }
-            } else {
-                // Enable input field when no execution
-                inputField.removeAttribute('disabled');
-                inputField.removeAttribute('readonly');
-                inputField.classList.remove('disabled');
-                inputField.placeholder = 'Enter a string using the alphabet above...';
-                
-                // Remove lock message
-                let lockMessage = inputField.parentElement.querySelector('.input-lock-message');
-                if (lockMessage) {
-                    lockMessage.remove();
-                }
-            }
+        function updateButton(button, on, titles) { if (on) { button.classList.remove('disabled'); button.removeAttribute('disabled'); button.title = titles.enabled; } else { button.classList.add('disabled'); button.setAttribute('disabled','disabled'); button.title = titles.disabled; } }
+
+        function updateInputField(field, started) {
+            if (started) { field.setAttribute('readonly','readonly'); field.classList.add('disabled'); field.placeholder='Input locked during execution - click Reset to enter new input'; let msg=field.parentElement.querySelector('.input-lock-message'); if(!msg){ msg=document.createElement('small'); msg.className='text-muted mt-1 d-block input-lock-message'; msg.innerHTML='<i class="fas fa-lock"></i> Input is locked during execution. Click <strong>Reset</strong> to enter a new word.'; field.parentElement.appendChild(msg);} }
+            else { field.removeAttribute('readonly'); field.classList.remove('disabled'); field.placeholder='Enter a string using the alphabet above...'; let msg=field.parentElement.querySelector('.input-lock-message'); if(msg) msg.remove(); }
         }
 
-        // Initialize button and input states on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            const inputField = document.getElementById('inputString');
-            const alphabet = [@Html.Raw(string.Join(",", Model.Alphabet.Select(c => $"'{c}'")))];
-            const input = inputField.value;
-            let isValid = true;
-            
-            // Validate current input if field is not disabled
-            if (!inputField.disabled) {
-                for (let char of input) {
-                    if (!alphabet.includes(char)) {
-                        isValid = false;
-                        break;
-                    }
-                }
-                
-                // Set initial input field state
-                inputField.className = isValid ? 'form-control is-valid' : 'form-control is-invalid';
-            }
-            
-            // Initialize button states
-            updateButtonStates(input, isValid);
-        });
+        document.addEventListener('DOMContentLoaded', function(){ const field=document.getElementById('inputString'); const alphabet=[@Html.Raw(string.Join(",", Model.Alphabet.Select(c => $"'{c}'")))]; const input=field.value; let valid=true; for(let ch of input){ if(!alphabet.includes(ch)){ valid=false; break; } } field.className=(field.className.replace(/\b(is-valid|is-invalid)\b/g,'').trim() + (input?(' '+(valid?'is-valid':'is-invalid')):'')); updateButtonStates(input, valid); });
     </script>
 }
 
