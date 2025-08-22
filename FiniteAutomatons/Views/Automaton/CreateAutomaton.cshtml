@@ -4,6 +4,10 @@
     ViewData["Title"] = "Create Automaton";
 }
 
+<style>
+    .badge-epsilon { background-color:#6c757d !important; color:#fff; }
+</style>
+
 <div class="container-fluid">
     <div class="row">
         <div class="col-md-6">
@@ -366,7 +370,7 @@
                                 }
                                 @if (Model.SupportsEpsilonTransitions && Model.Transitions.Any(t => t.Symbol == '\0'))
                                 {
-                                    <span class="badge bg-secondary me-1 mb-1">ε</span>
+                                    <span class="badge badge-epsilon me-1 mb-1">ε</span>
                                 }
                             </p>
                         }
@@ -401,59 +405,7 @@
             if (symbolInput) {
                 symbolInput.value = 'ε';
                 symbolInput.focus();
-                
-                // Debug the inserted epsilon
-                console.log('Epsilon inserted - Symbol value:', symbolInput.value);
-                console.log('Epsilon inserted - Symbol length:', symbolInput.value.length);
-                console.log('Epsilon inserted - Symbol char codes:', symbolInput.value.split('').map(c => c.charCodeAt(0)));
             }
         }
-
-        // Auto-focus next input after entering single character (for non-epsilon NFAs)
-        document.querySelectorAll('input[name="symbol"]').forEach(input => {
-            input.addEventListener('input', function() {
-                const isEpsilonNFA = @(Model.SupportsEpsilonTransitions.ToString().ToLower());
-                if (!isEpsilonNFA && this.value.length >= 1) {
-                    this.value = this.value.charAt(0); // Keep only first character
-                }
-                
-                // Debug logging for epsilon symbol
-                if (this.value) {
-                    console.log('Symbol input value:', this.value);
-                    console.log('Symbol length:', this.value.length);
-                    console.log('Symbol char codes:', this.value.split('').map(c => c.charCodeAt(0)));
-                    
-                    // Check if it matches various epsilon representations
-                    console.log('Matches ε:', this.value === 'ε');
-                    console.log('Matches unicode \\u03B5:', this.value === '\u03B5');
-                    console.log('Char code 949 check:', this.value.length === 1 && this.value.charCodeAt(0) === 949);
-                }
-            });
-        });
-
-        // Debug form submission
-        document.querySelectorAll('form[action*="AddTransition"]').forEach(form => {
-            form.addEventListener('submit', function(e) {
-                const symbolInput = this.querySelector('input[name="symbol"]');
-                if (symbolInput) {
-                    console.log('Form submission - Symbol value:', symbolInput.value);
-                    console.log('Form submission - Symbol length:', symbolInput.value.length);
-                    if (symbolInput.value) {
-                        console.log('Form submission - Symbol char codes:', symbolInput.value.split('').map(c => c.charCodeAt(0)));
-                        console.log('Form submission - Is epsilon (ε):', symbolInput.value === 'ε');
-                        console.log('Form submission - Is unicode epsilon:', symbolInput.value === '\u03B5');
-                    }
-                }
-            });
-        });
-
-        // Auto-generate state ID suggestion
-        document.querySelector('input[name="stateId"]').addEventListener('focus', function() {
-            if (this.value === '') {
-                const existingIds = [@Html.Raw(string.Join(",", Model.States.Select(s => s.Id)))];
-                let suggestedId = existingIds.length > 0 ? Math.max(...existingIds) + 1 : 1;
-                this.placeholder = `Suggested: ${suggestedId}`;
-            }
-        });
     </script>
 }

@@ -176,7 +176,7 @@ public class AutomatonExecutionService : IAutomatonExecutionService
         automaton.StepForward(execState);
         UpdateModelFromState(model, execState);
         model.Result = execState.IsAccepted;
-        model.Alphabet = [.. automaton.Transitions.Select(t => t.Symbol).Where(s => s != '\0').Distinct()];
+        model.Alphabet = [.. automaton.Transitions.Select(t => t.Symbol).Where(s => s != '\0').Distinct().OrderBy(c => c)];
 
         _logger.LogInformation("Executed step forward, position: {Position}, accepted: {IsAccepted}", 
             model.Position, model.IsAccepted);
@@ -202,7 +202,7 @@ public class AutomatonExecutionService : IAutomatonExecutionService
         automaton.StepBackward(execState);
         UpdateModelFromState(model, execState);
         model.Result = execState.IsAccepted;
-        model.Alphabet = [.. automaton.Transitions.Select(t => t.Symbol).Where(s => s != '\0').Distinct()];
+        model.Alphabet = [.. automaton.Transitions.Select(t => t.Symbol).Where(s => s != '\0').Distinct().OrderBy(c => c)];
 
         _logger.LogInformation("Executed step backward, position: {Position}, accepted: {IsAccepted}", 
             model.Position, model.IsAccepted);
@@ -229,7 +229,7 @@ public class AutomatonExecutionService : IAutomatonExecutionService
         automaton.ExecuteAll(execState);
         UpdateModelFromState(model, execState);
         model.Result = execState.IsAccepted;
-        model.Alphabet = [.. automaton.Transitions.Select(t => t.Symbol).Where(s => s != '\0').Distinct()];
+        model.Alphabet = [.. automaton.Transitions.Select(t => t.Symbol).Where(s => s != '\0').Distinct().OrderBy(c => c)];
 
         _logger.LogInformation("Executed all steps, final position: {Position}, accepted: {IsAccepted}", 
             model.Position, model.IsAccepted);
@@ -254,7 +254,7 @@ public class AutomatonExecutionService : IAutomatonExecutionService
         var execState = automaton.StartExecution(model.Input);
         UpdateModelFromState(model, execState);
         model.Result = execState.IsAccepted;
-        model.Alphabet = [.. automaton.Transitions.Select(t => t.Symbol).Where(s => s != '\0').Distinct()];
+        model.Alphabet = [.. automaton.Transitions.Select(t => t.Symbol).Where(s => s != '\0').Distinct().OrderBy(c => c)];
 
         _logger.LogInformation("Reset to start state, position: {Position}", model.Position);
 
@@ -289,7 +289,7 @@ public class AutomatonExecutionService : IAutomatonExecutionService
             .Distinct()
             .ToList();
         
-        model.Alphabet = transitionSymbols;
+        model.Alphabet = transitionSymbols.OrderBy(c => c).ToList();
 
         _logger.LogInformation("Reset execution state while preserving automaton structure");
 

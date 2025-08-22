@@ -267,6 +267,7 @@ public class AutomatonController(
     {
         try
         {
+            NormalizeEpsilonTransitions(model);
             model.HasExecuted = true;
             var updatedModel = executionService.ExecuteStepForward(model);
             updatedModel.HasExecuted = true;
@@ -285,7 +286,7 @@ public class AutomatonController(
     {
         try
         {
-            // Do not clear HasExecuted; user already started a session
+            NormalizeEpsilonTransitions(model);
             var updatedModel = executionService.ExecuteStepBackward(model);
             updatedModel.HasExecuted = model.HasExecuted || updatedModel.Position > 0;
             return View("../Home/Index", updatedModel);
@@ -303,6 +304,7 @@ public class AutomatonController(
     {
         try
         {
+            NormalizeEpsilonTransitions(model);
             model.HasExecuted = true;
             var updatedModel = executionService.ExecuteAll(model);
             updatedModel.HasExecuted = true;
@@ -321,8 +323,8 @@ public class AutomatonController(
     {
         try
         {
+            NormalizeEpsilonTransitions(model);
             var updatedModel = executionService.BackToStart(model);
-            // Keep HasExecuted true so UI knows session happened even if at position 0
             updatedModel.HasExecuted = model.HasExecuted || model.Position > 0 || model.Result != null;
             return View("../Home/Index", updatedModel);
         }
@@ -339,8 +341,8 @@ public class AutomatonController(
     {
         try
         {
+            NormalizeEpsilonTransitions(model);
             var updatedModel = executionService.ResetExecution(model);
-            // Reset resets execution session
             updatedModel.HasExecuted = false;
             return View("../Home/Index", updatedModel);
         }
@@ -357,10 +359,9 @@ public class AutomatonController(
     {
         try
         {
+            NormalizeEpsilonTransitions(model);
             var convertedModel = conversionService.ConvertToDFA(model);
-            // Clear execution state after conversion
             ClearExecutionState(convertedModel);
-
             tempDataService.StoreCustomAutomaton(TempData, convertedModel);
             tempDataService.StoreConversionMessage(TempData, $"Successfully converted {model.TypeDisplayName} to DFA with {convertedModel.States.Count} states.");
             return RedirectToAction("Index", "Home");
@@ -463,5 +464,17 @@ public class AutomatonController(
         model.Position = 0;
         model.IsAccepted = null;
         model.StateHistorySerialized = string.Empty;
+    }
+
+    private static void NormalizeEpsilonTransitions(AutomatonViewModel model)
+    {
+        if (model.Transitions == null) return;
+        foreach (var t in model.Transitions)
+        {
+            if (t.Symbol == '?' || t.Symbol == '?' )
+            {
+                t.Symbol = AutomatonSymbolHelper.EpsilonInternal;
+            }
+        }
     }
 }

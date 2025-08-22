@@ -95,7 +95,7 @@
                 {
                     <input type="hidden" name="Transitions[@i].FromStateId" value="@Model.Transitions[i].FromStateId" />
                     <input type="hidden" name="Transitions[@i].ToStateId" value="@Model.Transitions[i].ToStateId" />
-                    <input type="hidden" name="Transitions[@i].Symbol" value="@Model.Transitions[i].Symbol" />
+                    <input type="hidden" name="Transitions[@i].Symbol" value="@(Model.Transitions[i].Symbol == '\0' ? "ε" : Model.Transitions[i].Symbol.ToString())" />
                 }
                 <input type="hidden" name="Type" value="@Model.Type" />
                 <input type="hidden" name="Input" value="@Model.Input" />
@@ -152,7 +152,14 @@ else
             <div class="card-body">
                 @foreach (var symbol in Model.Alphabet)
                 {
-                    <span class="badge bg-info me-2 mb-1">@symbol</span>
+                    @if (symbol == 'ε')
+                    {
+                        <span class="badge bg-secondary me-2 mb-1">ε</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-info me-2 mb-1">@symbol</span>
+                    }
                 }
                 @if (Model.SupportsEpsilonTransitions && Model.Transitions.Any(t => t.Symbol == '\0'))
                 {
@@ -207,7 +214,7 @@ else
             {
                 <input type="hidden" name="Transitions[@i].FromStateId" value="@Model.Transitions[i].FromStateId" />
                 <input type="hidden" name="Transitions[@i].ToStateId" value="@Model.Transitions[i].ToStateId" />
-                <input type="hidden" name="Transitions[@i].Symbol" value="@Model.Transitions[i].Symbol" />
+                <input type="hidden" name="Transitions[@i].Symbol" value="@(Model.Transitions[i].Symbol == '\0' ? "ε" : Model.Transitions[i].Symbol.ToString())" />
             }
             <input type="hidden" name="Type" value="@Model.Type" />
             <input type="hidden" name="CurrentStateId" value="@Model.CurrentStateId" />
