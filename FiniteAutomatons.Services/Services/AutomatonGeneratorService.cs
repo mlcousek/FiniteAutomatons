@@ -29,9 +29,7 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
         var random = seed.HasValue ? new Random(seed.Value) : this.random;
 
         var alphabet = GenerateAlphabet(alphabetSize);
-
         var states = GenerateStates(stateCount, acceptingStateRatio, random);
-
         var transitions = GenerateTransitions(type, states, transitionCount, alphabet, random);
 
         return new AutomatonViewModel
@@ -138,18 +136,25 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
         var transitions = new List<Transition>();
         var addedTransitions = new HashSet<string>();
 
+        // 1. Ensure basic connectivity
         EnsureConnectivity(states, alphabet, transitions, addedTransitions, random);
 
+        // 2. Ensure each alphabet symbol appears at least once (non-epsilon)
+        EnsureAllSymbolsPresent(type, states, alphabet, transitions, addedTransitions, random);
+
+        // 3. Fill remaining transitions up to requested count (may already exceed if we had to force missing symbols)
         int remainingTransitions = transitionCount - transitions.Count;
-        
         for (int i = 0; i < remainingTransitions; i++)
         {
             var transition = GenerateRandomTransition(type, states, alphabet, addedTransitions, random);
             if (transition != null)
             {
                 transitions.Add(transition);
-                var key = GetTransitionKey(transition);
-                addedTransitions.Add(key);
+                addedTransitions.Add(GetTransitionKey(transition));
+            }
+            else
+            {
+                break; // Cannot generate more without conflicts
             }
         }
 
@@ -181,6 +186,43 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
             {
                 transitions.Add(transition);
                 addedTransitions.Add(key);
+            }
+        }
+    }
+
+    private static void EnsureAllSymbolsPresent(
+        AutomatonType type,
+        List<State> states,
+        List<char> alphabet,
+        List<Transition> transitions,
+        HashSet<string> addedTransitions,
+        Random random)
+    {
+        var present = transitions.Select(t => t.Symbol).Where(c => c != '\0').ToHashSet();
+        foreach (var symbol in alphabet)
+        {
+            if (present.Contains(symbol)) continue;
+
+            // Try to add a transition using this symbol
+            const int maxAttempts = 100;
+            for (int attempt = 0; attempt < maxAttempts; attempt++)
+            {
+                var fromState = states[random.Next(states.Count)].Id;
+                var toState = states[random.Next(states.Count)].Id;
+                var candidate = new Transition { FromStateId = fromState, ToStateId = toState, Symbol = symbol };
+                var key = GetTransitionKey(candidate);
+                if (addedTransitions.Contains(key)) continue;
+
+                if (type == AutomatonType.DFA)
+                {
+                    // Cannot have another transition from same state on same symbol
+                    if (transitions.Any(t => t.FromStateId == fromState && t.Symbol == symbol))
+                        continue;
+                }
+
+                transitions.Add(candidate);
+                addedTransitions.Add(key);
+                break; // placed
             }
         }
     }
@@ -222,9 +264,8 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
             if (addedTransitions.Contains(key))
                 continue;
 
-            if (type == AutomatonType.DFA)
+            if (type == AutomatonType.DFA && symbol != '\0')
             {
-                var deterministicKey = $"{fromState}-{symbol}";
                 var conflictExists = addedTransitions.Any(existing => 
                 {
                     var parts = existing.Split('-');

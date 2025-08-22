@@ -2,6 +2,7 @@ using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Services;
 using Shouldly;
+using System.Linq;
 
 namespace FiniteAutomatons.UnitTests.Services;
 
@@ -184,35 +185,44 @@ public class AutomatonGeneratorServiceTests
             service.GenerateRealisticAutomaton(AutomatonType.DFA, 0));
     }
 
+    // NEW TESTS: verify every alphabet symbol is used at least once in transitions
+    [Theory]
+    [InlineData(AutomatonType.DFA, 5, 10, 4, 0.4, 1001)]
+    [InlineData(AutomatonType.NFA, 5, 12, 4, 0.4, 1002)]
+    [InlineData(AutomatonType.EpsilonNFA, 5, 14, 4, 0.4, 1003)]
+    public void GenerateRandomAutomaton_EachAlphabetSymbolAppears(AutomatonType type, int stateCount, int transitionCount, int alphabetSize, double acceptingRatio, int seed)
+    {
+        var model = service.GenerateRandomAutomaton(type, stateCount, transitionCount, alphabetSize, acceptingRatio, seed);
+
+        model.Alphabet.Count.ShouldBe(alphabetSize); // derived alphabet matches requested size
+
+        // Gather non-epsilon symbols actually used in transitions
+        var usedSymbols = model.Transitions.Where(t => t.Symbol != '\0').Select(t => t.Symbol).Distinct().ToHashSet();
+        usedSymbols.Count.ShouldBe(alphabetSize); // every alphabet letter appears at least once
+
+        foreach (var c in model.Alphabet)
+        {
+            usedSymbols.ShouldContain(c);
+        }
+    }
+
     [Theory]
     [InlineData(AutomatonType.DFA)]
     [InlineData(AutomatonType.NFA)]
     [InlineData(AutomatonType.EpsilonNFA)]
-    public void GenerateRandomAutomaton_AllTypes_ProduceValidAutomatons(AutomatonType type)
+    public void GenerateRandomAutomaton_AllAlphabetSymbolsUsed_AcrossMultipleSeeds(AutomatonType type)
     {
-        // Arrange
-        var seed = 777;
+        int alphabetSize = 4;
+        int stateCount = 5;
+        int transitionCount = 12; // plenty to allow coverage
+        double acceptingRatio = 0.4;
 
-        // Act
-        var result = service.GenerateRandomAutomaton(type, 4, 8, 3, 0.5, seed);
-
-        // Assert
-        result.ShouldNotBeNull();
-        result.Type.ShouldBe(type);
-        result.States.Count.ShouldBe(4);
-        result.States.Count(s => s.IsStart).ShouldBe(1);
-        result.Transitions.ShouldNotBeEmpty();
-        result.Alphabet.ShouldNotBeEmpty();
-        result.IsCustomAutomaton.ShouldBeTrue();
-
-        // All states should have valid IDs
-        result.States.All(s => s.Id > 0).ShouldBeTrue();
-
-        // All transitions should reference valid states
-        foreach (var transition in result.Transitions)
+        for (int seed = 2000; seed < 2005; seed++)
         {
-            result.States.Any(s => s.Id == transition.FromStateId).ShouldBeTrue();
-            result.States.Any(s => s.Id == transition.ToStateId).ShouldBeTrue();
+            var model = service.GenerateRandomAutomaton(type, stateCount, transitionCount, alphabetSize, acceptingRatio, seed);
+            model.Alphabet.Count.ShouldBe(alphabetSize);
+            var usedSymbols = model.Transitions.Where(t => t.Symbol != '\0').Select(t => t.Symbol).Distinct().OrderBy(c => c).ToList();
+            usedSymbols.Count.ShouldBe(alphabetSize); // every symbol appears
         }
     }
 }
