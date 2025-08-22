@@ -1,12 +1,24 @@
 ﻿using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
+using FiniteAutomatons.Core.Models.ViewModel; 
 using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Text.Encodings.Web;
 
 namespace FiniteAutomatons.Core.Models.Serialization;
 
 public static class AutomatonJsonSerializer
 {
-    private static readonly JsonSerializerOptions CachedJsonSerializerOptions = new() { WriteIndented = true };
+    private static readonly JsonSerializerOptions Options = new()
+    {
+        WriteIndented = true,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping // keep ε unescaped
+    };
+
+    // Epsilon aliases (explicit only; do not include plain 'e' or empty string to avoid false positives)
+    private static readonly HashSet<string> EpsilonTokens = new(StringComparer.OrdinalIgnoreCase)
+    { "ε", "eps", "lambda", "\\0", "\0" };
 
     private class StateDto
     {
@@ -22,14 +34,25 @@ public static class AutomatonJsonSerializer
     }
     private class AutomatonDto
     {
+        public int Version { get; set; } = 1; 
+        public string? Type { get; set; }    
         public List<StateDto> States { get; set; } = [];
         public List<TransitionDto> Transitions { get; set; } = [];
     }
 
     public static string Serialize(Automaton automaton)
     {
+        string type = automaton switch
+        {
+            EpsilonNFA => nameof(AutomatonType.EpsilonNFA),
+            NFA => nameof(AutomatonType.NFA),
+            DFA => nameof(AutomatonType.DFA),
+            _ => automaton.GetType().Name
+        };
+
         var dto = new AutomatonDto
         {
+            Type = type,
             States = [.. automaton.States.Select(s => new StateDto
             {
                 Id = s.Id,
@@ -43,87 +66,84 @@ public static class AutomatonJsonSerializer
                 Symbol = t.Symbol == '\0' ? "ε" : t.Symbol.ToString()
             })]
         };
-        return JsonSerializer.Serialize(dto, CachedJsonSerializerOptions);
+        return JsonSerializer.Serialize(dto, Options);
     }
 
     public static Automaton Deserialize(string json)
-    {
-        var dto = JsonSerializer.Deserialize<AutomatonDto>(json, CachedJsonSerializerOptions);
-        if (dto != null)
-        {
-            bool hasEpsilon = dto.Transitions.Any(t => t.Symbol == "ε" || t.Symbol == "eps" || t.Symbol == "e" || t.Symbol == "\\0");
-            bool isNFA = dto.Transitions
-                .GroupBy(t => (t.FromStateId, t.Symbol))
-                .Any(g => g.Count() > 1);
+        => TryDeserialize(json, out var automaton, out var error)
+            ? automaton!
+            : throw new InvalidOperationException(error ?? "Invalid JSON automaton definition.");
 
-            Automaton automaton;
-            if (hasEpsilon)
-            {
-                var epsilonNfa = new EpsilonNFA();
-                foreach (var s in dto.States)
-                {
-                    epsilonNfa.AddState(new State
-                    {
-                        Id = s.Id,
-                        IsStart = s.IsStart,
-                        IsAccepting = s.IsAccepting
-                    });
-                }
-                foreach (var t in dto.Transitions)
-                {
-                    char sym = t.Symbol == "ε" || t.Symbol == "eps" || t.Symbol == "e" || t.Symbol == "\\0" ? '\0' : t.Symbol[0];
-                    epsilonNfa.AddTransition(t.FromStateId, t.ToStateId, sym);
-                }
-                var start = dto.States.FirstOrDefault(s => s.IsStart);
-                if (start != null)
-                    epsilonNfa.SetStartState(start.Id);
-                automaton = epsilonNfa;
-            }
-            else if (isNFA)
-            {
-                var nfa = new NFA();
-                foreach (var s in dto.States)
-                {
-                    nfa.AddState(new State
-                    {
-                        Id = s.Id,
-                        IsStart = s.IsStart,
-                        IsAccepting = s.IsAccepting
-                    });
-                }
-                foreach (var t in dto.Transitions)
-                {
-                    nfa.AddTransition(t.FromStateId, t.ToStateId, t.Symbol[0]);
-                }
-                var start = dto.States.FirstOrDefault(s => s.IsStart);
-                if (start != null)
-                    nfa.SetStartState(start.Id);
-                automaton = nfa;
-            }
-            else
-            {
-                var dfa = new DFA();
-                foreach (var s in dto.States)
-                {
-                    dfa.AddState(new State
-                    {
-                        Id = s.Id,
-                        IsStart = s.IsStart,
-                        IsAccepting = s.IsAccepting
-                    });
-                }
-                foreach (var t in dto.Transitions)
-                {
-                    dfa.AddTransition(t.FromStateId, t.ToStateId, t.Symbol[0]);
-                }
-                var start = dto.States.FirstOrDefault(s => s.IsStart);
-                if (start != null)
-                    dfa.SetStartState(start.Id);
-                automaton = dfa;
-            }
-            return automaton;
+    public static bool TryDeserialize(string json, out Automaton? automaton, out string? error)
+    {
+        automaton = null;
+        error = null;
+        AutomatonDto? dto;
+        try
+        {
+            dto = JsonSerializer.Deserialize<AutomatonDto>(json, Options);
+        }
+        catch (JsonException ex)
+        {
+            error = $"JSON parse error: {ex.Message}";
+            return false;
         }
 
-        throw new InvalidOperationException("Invalid JSON automaton definition.");
+        if (dto == null)
+        {
+            error = "Empty automaton payload.";
+            return false;
+        }
+
+        if (dto.States.Count == 0)
+        {
+            error = "Automaton must contain at least one state.";
+            return false;
+        }
+
+        string resolvedType = dto.Type ?? ResolveTypeHeuristically(dto);
+
+        automaton = resolvedType switch
+        {
+            nameof(AutomatonType.EpsilonNFA) => BuildAutomaton<EpsilonNFA>(dto),
+            nameof(AutomatonType.NFA) => BuildAutomaton<NFA>(dto),
+            nameof(AutomatonType.DFA) => BuildAutomaton<DFA>(dto),
+            _ => BuildAutomaton<DFA>(dto)
+        };
+        return true;
+    }
+
+    private static string ResolveTypeHeuristically(AutomatonDto dto)
+    {
+        bool hasEpsilon = dto.Transitions.Any(t => EpsilonTokens.Contains(t.Symbol));
+        if (hasEpsilon) return nameof(AutomatonType.EpsilonNFA);
+
+        bool nondeterministic = dto.Transitions
+            .GroupBy(t => (t.FromStateId, t.Symbol))
+            .Any(g => g.Count() > 1);
+        return nondeterministic ? nameof(AutomatonType.NFA) : nameof(AutomatonType.DFA);
+    }
+
+    private static T BuildAutomaton<T>(AutomatonDto dto) where T : Automaton, new()
+    {
+        var automaton = new T();
+        foreach (var s in dto.States)
+        {
+            automaton.AddState(new State
+            {
+                Id = s.Id,
+                IsStart = s.IsStart,
+                IsAccepting = s.IsAccepting
+            });
+        }
+        foreach (var t in dto.Transitions)
+        {
+            char sym = EpsilonTokens.Contains(t.Symbol) ? '\0' : t.Symbol[0];
+            automaton.AddTransition(t.FromStateId, t.ToStateId, sym);
+        }
+        var start = dto.States.FirstOrDefault(s => s.IsStart);
+        if (start != null)
+            automaton.SetStartState(start.Id);
+        return automaton;
     }
 }
