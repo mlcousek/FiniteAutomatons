@@ -16,7 +16,6 @@ public static class AutomatonJsonSerializer
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping // keep ε unescaped
     };
 
-    // Epsilon aliases (explicit only; do not include plain 'e' or empty string to avoid false positives)
     private static readonly HashSet<string> EpsilonTokens = new(StringComparer.OrdinalIgnoreCase)
     { "ε", "eps", "lambda", "\\0", "\0" };
 

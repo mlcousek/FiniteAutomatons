@@ -37,19 +37,20 @@ public class AutomatonControllerAdvancedTests
         };
     }
 
-    public static IEnumerable<object[]> EpsilonAcceptedAliases() => new[]
-    {
+    public static IEnumerable<object[]> EpsilonAcceptedAliases() =>
+    [
         // Removed Greek characters that may render as '?' in console and cause duplicate test IDs
-        new object[]{"epsilon"},
-        new object[]{"eps"},
-        new object[]{"e"},
-        new object[]{"lambda"}
-    };
+        ["epsilon"],
+        ["eps"],
+        ["lambda"],
+        ["\\0"], // escaped null sequence
+        ["\0"]    // literal backslash + 0
+    ];
 
-    public static IEnumerable<object[]> EpsilonRejectedAliases() => new[]
-    {
-        new object[]{"epsilon"}
-    };
+    public static IEnumerable<object[]> EpsilonRejectedAliases() =>
+    [
+        ["epsilon"]
+    ];
 
     [Fact]
     public void ChangeAutomatonType_ClearsExecutionState()
@@ -135,8 +136,8 @@ public class AutomatonControllerAdvancedTests
         var model = new AutomatonViewModel
         {
             Type = AutomatonType.DFA,
-            States = new List<State> { new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true } },
-            Transitions = new List<Transition> { new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' } },
+            States = [new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true }],
+            Transitions = [new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' }],
         };
 
         var result = _controllerWithMocks.RemoveTransition(model, 1, 2, "b") as ViewResult;
@@ -151,7 +152,7 @@ public class AutomatonControllerAdvancedTests
         var model = new AutomatonViewModel
         {
             Type = AutomatonType.DFA,
-            States = new List<State> { new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true } }
+            States = [new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true }]
         };
 
         _controllerWithMocks.RemoveTransition(model, 1, 2, "invalidSymbol");
@@ -169,8 +170,8 @@ public class AutomatonControllerAdvancedTests
         var model = new AutomatonViewModel
         {
             Type = AutomatonType.DFA,
-            States = new List<State> { new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true } },
-            Transitions = new List<Transition> { new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' } },
+            States = [new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true }],
+            Transitions = [new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' }],
         };
 
         controller.AddTransition(model, 1, 2, "a");
