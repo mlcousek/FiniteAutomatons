@@ -28,9 +28,11 @@ var dbSettings = new DatabaseSettings();
 builder.Configuration.GetSection("DatabaseSettings").Bind(dbSettings);
 var connectionString = dbSettings.GetConnectionString();
 
+
 // Ensure folder for traces exists
 var tracesPath = Path.Combine(builder.Environment.ContentRootPath, "observability", "traces.log");
 var logsPath = Path.Combine(builder.Environment.ContentRootPath, "observability", "logs.log");
+var auditsPath = Path.Combine(builder.Environment.ContentRootPath, "observability", "audits.log");
 Directory.CreateDirectory(Path.GetDirectoryName(tracesPath) ?? builder.Environment.ContentRootPath);
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -66,6 +68,9 @@ builder.Services.AddOpenTelemetry().WithTracing(tracerProvider =>
 // Register activity file writer to capture activities to a local file
 builder.Services.AddSingleton(new ActivityFileWriter(tracesPath));
 
+// Register audit service
+builder.Services.AddSingleton<IAuditService>(new FileAuditService(auditsPath));
+
 // Add OpenTelemetry logging to file (kept minimal)
 builder.Logging.AddOpenTelemetry(options =>
 {
@@ -91,6 +96,10 @@ builder.Services.AddTransient<NFA>();
 builder.Services.AddTransient<EpsilonNFA>();
 
 var app = builder.Build();
+
+// Audit app start
+var audit = app.Services.GetRequiredService<IAuditService>();
+await audit.AuditAsync("ApplicationStart", "Application started", new Dictionary<string, string?> { ["Environment"] = app.Environment.EnvironmentName });
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
