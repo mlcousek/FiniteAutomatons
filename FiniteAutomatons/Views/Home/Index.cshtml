@@ -238,6 +238,28 @@ else
                 <input type="text" class="form-control @(isInputDisabled ? "disabled" : "")" id="inputString" name="Input" value="@Model.Input" 
                        placeholder="@(isInputDisabled ? "Input locked during execution - click Reset to enter new input" : "Enter a string using the alphabet above...")"
                        @(isInputDisabled ? "readonly" : "") />
+
+                <!-- Input visualization: per-character badges with highlights for processed/current/EOF -->
+                <div id="inputVisualization" class="mt-2 input-visualization p-2" aria-live="polite">
+                    @if (!string.IsNullOrEmpty(Model.Input))
+                    {
+                        for (int i = 0; i < Model.Input.Length; i++)
+                        {
+                            var ch = Model.Input[i];
+                            var cls = i < Model.Position ? "input-highlight-processed" : (i == Model.Position ? "input-highlight-current" : "");
+                            <span class="@cls">@ch</span>
+                        }
+
+                        if (Model.Position >= Model.Input.Length)
+                        {
+                            <span class="input-highlight-eof">▮</span>
+                        }
+                    }
+                    else
+                    {
+                        <small class="text-muted">No input provided</small>
+                    }
+                </div>
             </div>
             
             @for (int i = 0; i < Model.States.Count; i++)
@@ -335,14 +357,79 @@ else
         .input-lock-message { border-left: 3px solid #ffc107; padding-left: 8px; margin-top: 5px; }
         
         .input-lock-message i { color: #ffc107; }
+
+        /* visualization styles (already present in file previously) */
+        @@keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 193, 7, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
+        }
+        
+        .input-visualization {
+            background: linear-gradient(145deg, #f8f9fa, #e9ecef);
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            transition: border-color 0.3s ease;
+            display: inline-block;
+            min-height: 36px;
+            width: 100%;
+        }
+        
+        .input-visualization:hover {
+            border-color: #adb5bd;
+        }
+        
+        .input-visualization span { display: inline-block; margin: 2px 4px; padding: 4px 8px; border-radius: 4px; }
+        
+        .input-highlight-current {
+            background: linear-gradient(145deg, #ffc107, #ffb300) !important;
+            color: #212529 !important;
+            font-weight: 600;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            border-radius: 4px;
+            padding: 2px 6px;
+            margin: 0 1px;
+            box-shadow: 0 2px 4px rgba(255, 193, 7, 0.3);
+        }
+        
+        .input-highlight-eof {
+            background: linear-gradient(145deg, #17a2b8, #138496) !important;
+            color: white !important;
+            font-weight: 600;
+            border-radius: 4px;
+            padding: 2px 6px;
+            margin: 0 2px;
+            box-shadow: 0 2px 4px rgba(23, 162, 184, 0.3);
+        }
+        
+        .input-highlight-processed {
+            color: #6c757d;
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+            background: transparent;
+        }
+        
+        .input-visualization:hover .input-highlight-processed {
+            opacity: 1;
+        }
+        
+        .position-badge {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @@keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
     <script>
         document.getElementById('inputString').addEventListener('input', function() {
-            const alphabet = [@Html.Raw(string.Join(",", Model.Alphabet.Select(c => $"'{c}'")))];
+            const alphabet = [@Html.Raw(string.Join(",", Model.Alphabet.Select(c => $"'{c}'")))] ;
             const input = this.value; let isValid = true;
             for (let char of input) { if (!alphabet.includes(char)) { isValid = false; break; } }
             this.className = (this.className.replace(/\b(is-valid|is-invalid)\b/g, '').trim() + ' ' + (isValid ? 'is-valid' : 'is-invalid')).trim();
             updateButtonStates(input, isValid);
+            renderInputVisualization(input, 0); // position is 0 while editing
         });
 
         function updateButtonStates(inputValue, isInputValid) {
@@ -375,66 +462,27 @@ else
             else { field.removeAttribute('readonly'); field.classList.remove('disabled'); field.placeholder='Enter a string using the alphabet above...'; let msg=field.parentElement.querySelector('.input-lock-message'); if(msg) msg.remove(); }
         }
 
-        document.addEventListener('DOMContentLoaded', function(){ const field=document.getElementById('inputString'); const alphabet=[@Html.Raw(string.Join(",", Model.Alphabet.Select(c => $"'{c}'")))]; const input=field.value; let valid=true; for(let ch of input){ if(!alphabet.includes(ch)){ valid=false; break; } } field.className=(field.className.replace(/\b(is-valid|is-invalid)\b/g,'').trim() + (input?(' '+(valid?'is-valid':'is-invalid')):'')); updateButtonStates(input, valid); });
+        // Render per-character visualization into #inputVisualization
+        function renderInputVisualization(value, position) {
+            const container = document.getElementById('inputVisualization');
+            if (!container) return;
+            container.innerHTML = '';
+            if (!value || value.length === 0) {
+                const small = document.createElement('small'); small.className = 'text-muted'; small.textContent = 'No input provided'; container.appendChild(small); return;
+            }
+            for (let i = 0; i < value.length; i++) {
+                const span = document.createElement('span');
+                span.textContent = value[i];
+                if (i < position) span.className = 'input-highlight-processed';
+                else if (i === position) span.className = 'input-highlight-current';
+                container.appendChild(span);
+            }
+            if (position >= value.length) {
+                const eof = document.createElement('span'); eof.className = 'input-highlight-eof'; eof.textContent = '▮'; container.appendChild(eof);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function(){ const field=document.getElementById('inputString'); const alphabet=[@Html.Raw(string.Join(",", Model.Alphabet.Select(c => $"'{c}'")))]; const input=field.value; let valid=true; for(let ch of input){ if(!alphabet.includes(ch)){ valid=false; break; } } field.className=(field.className.replace(/\b(is-valid|is-invalid)\b/g,'').trim() + (input?(' '+(valid?'is-valid':'is-invalid')):'')); updateButtonStates(input, valid); renderInputVisualization(input, @Model.Position); });
     </script>
-    
-    <style>
-        @@keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7); }
-            70% { box-shadow: 0 0 0 10px rgba(255, 193, 7, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0); }
-        }
-        
-        .input-visualization {
-            background: linear-gradient(145deg, #f8f9fa, #e9ecef);
-            border: 2px solid #dee2e6;
-            border-radius: 8px;
-            transition: border-color 0.3s ease;
-        }
-        
-        .input-visualization:hover {
-            border-color: #adb5bd;
-        }
-        
-        .input-highlight-current {
-            background: linear-gradient(145deg, #ffc107, #ffb300) !important;
-            color: #212529 !important;
-            font-weight: 600;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
-            border-radius: 4px;
-            padding: 2px 6px;
-            margin: 0 1px;
-            box-shadow: 0 2px 4px rgba(255, 193, 7, 0.3);
-        }
-        
-        .input-highlight-eof {
-            background: linear-gradient(145deg, #17a2b8, #138496) !important;
-            color: white !important;
-            font-weight: 600;
-            border-radius: 4px;
-            padding: 2px 6px;
-            margin: 0 2px;
-            box-shadow: 0 2px 4px rgba(23, 162, 184, 0.3);
-        }
-        
-        .input-highlight-processed {
-            color: #6c757d;
-            opacity: 0.7;
-            transition: opacity 0.3s ease;
-        }
-        
-        .input-visualization:hover .input-highlight-processed {
-            opacity: 1;
-        }
-        
-        .position-badge {
-            animation: fadeIn 0.5s ease-in;
-        }
-        
-        @@keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-    </style>
 }
 
