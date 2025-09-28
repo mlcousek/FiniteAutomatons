@@ -68,7 +68,7 @@ builder.Services.AddOpenTelemetry().WithTracing(tracerProvider =>
 // Register activity file writer to capture activities to a local file
 builder.Services.AddSingleton(new ActivityFileWriter(tracesPath));
 
-// Register audit service
+// Register audit service (moved to Services project)
 builder.Services.AddSingleton<IAuditService>(new FileAuditService(auditsPath));
 
 // Add OpenTelemetry logging to file (kept minimal)
