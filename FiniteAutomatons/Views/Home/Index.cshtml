@@ -234,7 +234,21 @@ else
                     // Execution considered started only after at least one step (Position>0) or a Result was produced
                     bool executionStarted = Model.HasExecuted || Model.Result != null || (Model.Type != AutomatonType.DFA && Model.CurrentStates != null && Model.CurrentStates.Any());
                     bool isInputDisabled = executionStarted; // lock only after actual progress
+
+                    // Only keep usable alphabet symbols server-side for any future needs
+                    var alphabetList = Model.Alphabet ?? new List<char>();
+                    var usableSymbols = alphabetList.Where(c => c != 'ε').ToList();
                 }
+
+                <div class="mb-2">
+                    <label class="form-label">Quick actions</label>
+                    <div>
+                        <button type="button" id="randomSuggestion" class="btn btn-outline-info" title="Generate random string">Generate Random</button>
+                        <button type="button" id="generateAccepting" class="btn btn-outline-success ms-2" title="Generate accepting string">Generate Accepting</button>
+                        <small class="text-muted ms-2">Generate random or an accepting string from the automaton (length limit applied).</small>
+                    </div>
+                </div>
+
                 <input type="text" class="form-control @(isInputDisabled ? "disabled" : "")" id="inputString" name="Input" value="@Model.Input" 
                        placeholder="@(isInputDisabled ? "Input locked during execution - click Reset to enter new input" : "Enter a string using the alphabet above...")"
                        @(isInputDisabled ? "readonly" : "") />
@@ -354,9 +368,9 @@ else
         /* Custom styling for readonly (formerly disabled) input during execution */
         .form-control.disabled { background-color: #f8f9fa; color: #6c757d; border-color: #dee2e6; cursor: not-allowed; }
         
-        .input-lock-message { border-left: 3px solid #ffc107; padding-left: 8px; margin-top: 5px; }
+        .input-lock-message { border-left: 3px solid #FFC107; padding-left: 8px; margin-top: 5px; }
         
-        .input-lock-message i { color: #ffc107; }
+        .input-lock-message i { color: #FFC107; }
 
         /* visualization styles (already present in file previously) */
         @@keyframes pulse {
@@ -423,13 +437,133 @@ else
         }
     </style>
     <script>
+        // Serialize alphabet safely for JS usage
+        const alphabet = @Html.Raw(System.Text.Json.JsonSerializer.Serialize((Model.Alphabet ?? new List<char>()).Where(c => c != 'ε').Select(c => c.ToString()).ToList()));
+        // Serialize states and transitions for generating accepting strings
+        const jsStates = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.States != null ? Model.States.Select(s => new { Id = s.Id, IsStart = s.IsStart, IsAccepting = s.IsAccepting }) : System.Linq.Enumerable.Empty<object>()));
+        const jsTransitions = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Transitions != null ? Model.Transitions.Select(t => new { From = t.FromStateId, To = t.ToStateId, Symbol = t.Symbol == '\0' ? null : t.Symbol.ToString() }) : System.Linq.Enumerable.Empty<object>()));
+
+        function isInputAllowedByAlphabet(input) {
+            if (!input) return true; // empty string is allowed
+            for (let ch of input) { if (!alphabet.includes(ch)) return false; }
+            return true;
+        }
+
         document.getElementById('inputString').addEventListener('input', function() {
-            const alphabet = [@Html.Raw(string.Join(",", Model.Alphabet.Select(c => $"'{c}'")))] ;
-            const input = this.value; let isValid = true;
-            for (let char of input) { if (!alphabet.includes(char)) { isValid = false; break; } }
+            const input = this.value; let isValid = isInputAllowedByAlphabet(input);
             this.className = (this.className.replace(/\b(is-valid|is-invalid)\b/g, '').trim() + ' ' + (isValid ? 'is-valid' : 'is-invalid')).trim();
             updateButtonStates(input, isValid);
             renderInputVisualization(input, 0); // position is 0 while editing
+        });
+
+        function applySuggestion(value) {
+            const field = document.getElementById('inputString');
+            // empty string should clear the input
+            field.value = value || '';
+            field.dispatchEvent(new Event('input'));
+        }
+
+        document.getElementById('randomSuggestion').addEventListener('click', function() {
+            const minLen = 1, maxLen = 8;
+            const len = Math.floor(Math.random() * (maxLen - minLen + 1)) + minLen;
+            let out = '';
+            if (alphabet.length === 0) { out = ''; }
+            else {
+                for (let i = 0; i < len; i++) {
+                    out += alphabet[Math.floor(Math.random() * alphabet.length)];
+                }
+            }
+            applySuggestion(out);
+        });
+
+        // Generate accepting string using BFS (shortest by symbol count), up to maxLen
+        // Collect accepting strings up to maxLen and provide varied outputs on repeated clicks
+        let _acceptingCache = null; // array of strings
+        let _acceptingIndex = 0;
+
+        function collectAcceptingStrings(maxLen = 8, limit = 1000) {
+            const starts = jsStates.filter(s => s.IsStart).map(s => s.Id);
+            const acceptingSet = new Set(jsStates.filter(s => s.IsAccepting).map(s => s.Id));
+            if (!starts || starts.length === 0) return [];
+            const map = new Map();
+            for (const t of jsTransitions) {
+                if (!map.has(t.From)) map.set(t.From, []);
+                map.get(t.From).push({ to: t.To, symbol: t.Symbol });
+            }
+
+            const results = new Set();
+            const queue = [];
+            const visited = new Set();
+            for (const s of starts) queue.push({ state: s, str: '' });
+
+            while (queue.length && results.size < limit) {
+                const node = queue.shift();
+                const key = node.state + '|' + node.str;
+                if (visited.has(key)) continue;
+                visited.add(key);
+
+                if (acceptingSet.has(node.state)) {
+                    results.add(node.str);
+                }
+
+                if (node.str.length >= maxLen) continue;
+
+                const trans = map.get(node.state) || [];
+                // epsilon transitions (symbol == null)
+                for (const t of trans) {
+                    if (t.symbol == null) {
+                        queue.push({ state: t.to, str: node.str });
+                    }
+                }
+                // non-epsilon transitions
+                for (const t of trans) {
+                    if (t.symbol != null) {
+                        queue.push({ state: t.to, str: node.str + t.symbol });
+                    }
+                }
+
+                if (visited.size > 20000) break; // safety
+            }
+
+            return Array.from(results);
+        }
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        document.getElementById('generateAccepting').addEventListener('click', function() {
+            const maxLen = 8;
+            if (!_acceptingCache) {
+                _acceptingCache = collectAcceptingStrings(maxLen, 1000);
+                if (_acceptingCache.length === 0) {
+                    alert('No accepting string found up to length ' + maxLen + '.');
+                    return;
+                }
+                shuffle(_acceptingCache);
+                _acceptingIndex = 0;
+            }
+            // If cache only has one element, regenerate with larger depth to try to get more
+            if (_acceptingCache.length === 1) {
+                const extended = collectAcceptingStrings(Math.max(12, maxLen * 2), 2000);
+                if (extended.length > 1) {
+                    _acceptingCache = extended;
+                    shuffle(_acceptingCache);
+                    _acceptingIndex = 0;
+                }
+            }
+
+            if (_acceptingCache.length === 0) {
+                alert('No accepting string available.');
+                return;
+            }
+
+            const value = _acceptingCache[_acceptingIndex % _acceptingCache.length];
+            _acceptingIndex = (_acceptingIndex + 1) % _acceptingCache.length;
+            applySuggestion(value);
         });
 
         function updateButtonStates(inputValue, isInputValid) {
@@ -482,7 +616,7 @@ else
             }
         }
 
-        document.addEventListener('DOMContentLoaded', function(){ const field=document.getElementById('inputString'); const alphabet=[@Html.Raw(string.Join(",", Model.Alphabet.Select(c => $"'{c}'")))]; const input=field.value; let valid=true; for(let ch of input){ if(!alphabet.includes(ch)){ valid=false; break; } } field.className=(field.className.replace(/\b(is-valid|is-invalid)\b/g,'').trim() + (input?(' '+(valid?'is-valid':'is-invalid')):'')); updateButtonStates(input, valid); renderInputVisualization(input, @Model.Position); });
+        document.addEventListener('DOMContentLoaded', function(){ const field=document.getElementById('inputString'); const input=field.value; let valid=true; for(let ch of input){ if(!isInputAllowedByAlphabet(ch)){ valid=false; break; } } field.className=(field.className.replace(/\b(is-valid|is-invalid)\b/g,'').trim() + (input?(' '+(valid?'is-valid':'is-invalid')):'')); updateButtonStates(input, valid); renderInputVisualization(input, @Model.Position); });
     </script>
 }
 
