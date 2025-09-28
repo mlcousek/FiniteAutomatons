@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.Json;
+using System.Collections.Concurrent;
 
 namespace FiniteAutomatons.Observability;
 
@@ -7,6 +8,8 @@ public sealed class ActivityFileWriter
 {
     private readonly string _path;
     private readonly object _lock = new();
+    private readonly ConcurrentQueue<string> _recent = new();
+    private const int RecentLimit = 200;
 
     public ActivityFileWriter(string path)
     {
@@ -27,6 +30,21 @@ public sealed class ActivityFileWriter
         ActivitySource.AddActivityListener(listener);
     }
 
+    // Expose path for tests and diagnostics
+    public string FilePath => _path;
+
+    // Expose recent in-memory entries for tests to avoid filesystem reliance
+    public IReadOnlyCollection<string> GetRecentEntries()
+    {
+        return _recent.ToArray();
+    }
+
+    private void EnqueueRecent(string line)
+    {
+        _recent.Enqueue(line);
+        while (_recent.Count > RecentLimit && _recent.TryDequeue(out _)) { }
+    }
+
     private void WriteActivity(Activity activity, bool started)
     {
         lock (_lock)
@@ -45,7 +63,19 @@ public sealed class ActivityFileWriter
             };
 
             var line = JsonSerializer.Serialize(record);
-            File.AppendAllLines(_path, new[] { line });
+
+            // Append to file
+            try
+            {
+                File.AppendAllLines(_path, new[] { line });
+            }
+            catch
+            {
+                // Swallow I/O errors in production to avoid impacting app flow; tests will use in-memory entries.
+            }
+
+            // Keep in-memory cache
+            EnqueueRecent(line);
         }
     }
 }

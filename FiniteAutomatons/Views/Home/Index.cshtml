@@ -64,23 +64,21 @@
             <div>
                 @if (Model.Type == AutomatonType.DFA)
                 {
-                    <strong>Current State:</strong> 
-                    <span class="badge bg-primary fs-6">State @Model.CurrentStateId</span><br />
+                    <strong>Current State:</strong> @Model.CurrentStateId <span class="badge bg-primary fs-6">State @Model.CurrentStateId</span><br />
                 }
                 else
                 {
-                    <strong>Current States:</strong> 
+                    <strong>Current States:</strong>
                     @if (Model.CurrentStates != null && Model.CurrentStates.Any())
                     {
                         @foreach (var stateId in Model.CurrentStates)
                         {
-                            <span class="badge bg-primary fs-6 me-1">State @stateId</span>
+                            @stateId <span class="badge bg-primary fs-6 me-1">State @stateId</span>
                         }
                     }
                     <br />
                 }
-                <strong>Current Position:</strong> 
-                <span class="badge bg-secondary fs-6">@Model.Position</span>
+                <strong>Current Position:</strong> @Model.Position <span class="badge bg-secondary fs-6">@Model.Position</span>
                 @if (!string.IsNullOrEmpty(Model.Input))
                 {
                     <span class="text-muted">/ @Model.Input.Length</span>

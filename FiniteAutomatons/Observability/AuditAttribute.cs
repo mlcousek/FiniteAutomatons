@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc.Filters;
+using System.Diagnostics;
 
 namespace FiniteAutomatons.Observability;
 
@@ -22,6 +23,9 @@ public sealed class AuditAttribute : Attribute, IAsyncActionFilter
             data[kv.Key] = kv.Value?.ToString();
         }
 
+        string? traceId = Activity.Current?.TraceId.ToString();
+        if (traceId != null) data["TraceId"] = traceId;
+
         if (auditService != null)
         {
             await auditService.AuditAsync("ActionStart", $"Starting {route}", data);
@@ -30,9 +34,11 @@ public sealed class AuditAttribute : Attribute, IAsyncActionFilter
         var executed = await next();
 
         var result = executed.Result?.ToString();
+        var endData = new Dictionary<string, string?>();
+        if (traceId != null) endData["TraceId"] = traceId;
         if (auditService != null)
         {
-            await auditService.AuditAsync("ActionEnd", $"Finished {route} - {result}");
+            await auditService.AuditAsync("ActionEnd", $"Finished {route} - {result}", endData);
         }
     }
 }

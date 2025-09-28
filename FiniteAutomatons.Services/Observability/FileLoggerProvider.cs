@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 
 namespace FiniteAutomatons.Observability;
 
@@ -42,7 +43,10 @@ public sealed class FileLoggerProvider : ILoggerProvider
         public bool IsEnabled(LogLevel logLevel) => true;
         public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
         {
-            var line = $"[{DateTime.UtcNow:O}] {logLevel} {_category} - {formatter(state, exception)}";
+            // Capture current trace id for correlation if present
+            var traceId = Activity.Current?.TraceId.ToString();
+            var tracePart = string.IsNullOrWhiteSpace(traceId) ? "" : $" [Trace:{traceId}]";
+            var line = $"[{DateTime.UtcNow:O}] {logLevel} {_category}{tracePart} - {formatter(state, exception)}";
             _queue.Add(line);
         }
     }

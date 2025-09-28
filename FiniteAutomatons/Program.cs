@@ -11,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using OpenTelemetry.Exporter;
 using System.Text;
 
 // Set console encoding to UTF-8 to properly display Unicode characters like ?
@@ -27,7 +28,6 @@ if (File.Exists(Path.Combine(builder.Environment.ContentRootPath, "dev.json")))
 var dbSettings = new DatabaseSettings();
 builder.Configuration.GetSection("DatabaseSettings").Bind(dbSettings);
 var connectionString = dbSettings.GetConnectionString();
-
 
 // Ensure folder for traces exists
 var tracesPath = Path.Combine(builder.Environment.ContentRootPath, "observability", "traces.log");
@@ -65,20 +65,35 @@ builder.Services.AddOpenTelemetry().WithTracing(tracerProvider =>
         .AddConsoleExporter();
 });
 
-// Register activity file writer to capture activities to a local file
-builder.Services.AddSingleton(new ActivityFileWriter(tracesPath));
+if (builder.Environment.IsDevelopment())
+{
+    // In development/tests use in-memory activity collector
+    var collector = new InMemoryActivityCollector();
+    builder.Services.AddSingleton(collector);
+    builder.Services.AddSingleton<InMemoryActivityCollector>(collector);
 
-// Register audit service (moved to Services project)
-builder.Services.AddSingleton<IAuditService>(new FileAuditService(auditsPath));
+    // In-memory audit
+    var inMemAudit = new InMemoryAuditService();
+    builder.Services.AddSingleton<IAuditService>(inMemAudit);
+    builder.Services.AddSingleton<InMemoryAuditService>(inMemAudit);
+}
+else
+{
+    // Register activity file writer to capture activities to a local file
+    builder.Services.AddSingleton(new ActivityFileWriter(tracesPath));
+
+    // Register audit service (moved to Services project)
+    builder.Services.AddSingleton<IAuditService>(new FileAuditService(auditsPath));
+
+    // Simple file logger
+    builder.Logging.AddProvider(new FileLoggerProvider(logsPath));
+}
 
 // Add OpenTelemetry logging to file (kept minimal)
 builder.Logging.AddOpenTelemetry(options =>
 {
     options.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(builder.Environment.ApplicationName ?? "FiniteAutomatons"));
 });
-
-// Simple file logger
-builder.Logging.AddProvider(new FileLoggerProvider(logsPath));
 
 builder.Services.AddScoped<IExecuteService, ExecuteService>();
 builder.Services.AddScoped<IAutomatonGeneratorService, AutomatonGeneratorService>();
@@ -115,6 +130,19 @@ else
 
 app.UseHttpsRedirection();
 app.UseRouting();
+
+// Development-only test endpoint for correlation tests
+if (app.Environment.IsDevelopment())
+{
+    app.MapGet("/_tests/audit-correlation", async (IAuditService audit) =>
+    {
+        if (audit != null)
+        {
+            await audit.AuditAsync("TestEndpoint", "Correlation test called");
+        }
+        return Results.Ok();
+    }).WithDisplayName("TestAuditEndpoint");
+}
 
 app.UseAuthorization();
 
