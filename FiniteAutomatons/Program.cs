@@ -1,13 +1,17 @@
 using FiniteAutomatons.Core.Models.Database;
 using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Data;
+using FiniteAutomatons.Filters;
+using FiniteAutomatons.Observability;
 using FiniteAutomatons.Services.Interfaces;
 using FiniteAutomatons.Services.Services;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using System.Text;
 using Microsoft.AspNetCore.Mvc;
-using FiniteAutomatons.Filters;
+using Microsoft.EntityFrameworkCore;
+using OpenTelemetry.Logs;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
+using System.Text;
 
 // Set console encoding to UTF-8 to properly display Unicode characters like ?
 Console.OutputEncoding = Encoding.UTF8;
@@ -24,9 +28,10 @@ var dbSettings = new DatabaseSettings();
 builder.Configuration.GetSection("DatabaseSettings").Bind(dbSettings);
 var connectionString = dbSettings.GetConnectionString();
 
-//var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-
-//var connectionString = "Server=finite_automatons_db,1433;Database=finite_automatons_db;User Id=sa;Password=myStong_Password123#;Trust Server Certificate=True";
+// Ensure folder for traces exists
+var tracesPath = Path.Combine(builder.Environment.ContentRootPath, "observability", "traces.log");
+var logsPath = Path.Combine(builder.Environment.ContentRootPath, "observability", "logs.log");
+Directory.CreateDirectory(Path.GetDirectoryName(tracesPath) ?? builder.Environment.ContentRootPath);
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
@@ -47,6 +52,28 @@ builder.Services.AddControllersWithViews(o =>
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
+
+// Add OpenTelemetry tracing (console exporter for local/dev)
+builder.Services.AddOpenTelemetry().WithTracing(tracerProvider =>
+{
+    tracerProvider
+        .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(builder.Environment.ApplicationName ?? "FiniteAutomatons"))
+        .AddAspNetCoreInstrumentation()
+        .AddHttpClientInstrumentation()
+        .AddConsoleExporter();
+});
+
+// Register activity file writer to capture activities to a local file
+builder.Services.AddSingleton(new ActivityFileWriter(tracesPath));
+
+// Add OpenTelemetry logging to file (kept minimal)
+builder.Logging.AddOpenTelemetry(options =>
+{
+    options.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(builder.Environment.ApplicationName ?? "FiniteAutomatons"));
+});
+
+// Simple file logger
+builder.Logging.AddProvider(new FileLoggerProvider(logsPath));
 
 builder.Services.AddScoped<IExecuteService, ExecuteService>();
 builder.Services.AddScoped<IAutomatonGeneratorService, AutomatonGeneratorService>();

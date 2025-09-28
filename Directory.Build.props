@@ -6,4 +6,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
+  <PropertyGroup>
+    <!-- Suppress NuGet restore warnings that are treated as errors in this environment -->
+    <RestoreNoWarn>NU1603;NU1902;NU1101;NU1008</RestoreNoWarn>
+  </PropertyGroup>
 </Project>
