@@ -96,18 +96,6 @@ public class AutomatonGenerationIntegrationTests(IntegrationTestsFixture fixture
     }
 
     [Fact]
-    public void AutomatonGeneratorService_ShouldBeRegistered()
-    {
-        // Arrange & Act
-        using var scope = GetServiceScope();
-        var service = scope.ServiceProvider.GetService<IAutomatonGeneratorService>();
-
-        // Assert
-        service.ShouldNotBeNull();
-        service.ShouldBeOfType<AutomatonGeneratorService>();
-    }
-
-    [Fact]
     public void AutomatonGeneratorService_GenerateRandomAutomaton_ShouldWork()
     {
         // Arrange

@@ -96,13 +96,38 @@ builder.Logging.AddOpenTelemetry(options =>
 });
 
 builder.Services.AddScoped<IExecuteService, ExecuteService>();
-builder.Services.AddScoped<IAutomatonGeneratorService, AutomatonGeneratorService>();
+// register concrete generator and decorated interface
+builder.Services.AddScoped<AutomatonGeneratorService>();
+builder.Services.AddScoped<IAutomatonGeneratorService>(sp =>
+{
+    var inner = sp.GetRequiredService<AutomatonGeneratorService>();
+    var audit = sp.GetRequiredService<IAuditService>();
+    return new FiniteAutomatons.Services.Observability.AutomatonGeneratorServiceAuditorDecorator(inner, audit);
+});
+
 builder.Services.AddScoped<IAutomatonTempDataService, AutomatonTempDataService>();
 builder.Services.AddScoped<IHomeAutomatonService, HomeAutomatonService>();
 builder.Services.AddScoped<IAutomatonValidationService, AutomatonValidationService>();
-builder.Services.AddScoped<IAutomatonConversionService, AutomatonConversionService>();
+// register concrete conversion and decorated interface
+builder.Services.AddScoped<AutomatonConversionService>();
+builder.Services.AddScoped<IAutomatonConversionService>(sp =>
+{
+    var inner = sp.GetRequiredService<AutomatonConversionService>();
+    var audit = sp.GetRequiredService<IAuditService>();
+    return new FiniteAutomatons.Services.Observability.AutomatonConversionServiceAuditorDecorator(inner, audit);
+});
+
+// register concrete execution service
+builder.Services.AddScoped<AutomatonExecutionService>();
+// register decorated interface
+builder.Services.AddScoped<IAutomatonExecutionService>(sp =>
+{
+    var inner = sp.GetRequiredService<AutomatonExecutionService>();
+    var audit = sp.GetRequiredService<IAuditService>();
+    return new FiniteAutomatons.Services.Observability.AutomatonExecutionServiceAuditorDecorator(inner, audit);
+});
+
 builder.Services.AddScoped<IAutomatonBuilderService, AutomatonBuilderService>();
-builder.Services.AddScoped<IAutomatonExecutionService, AutomatonExecutionService>();
 builder.Services.AddScoped<IAutomatonEditingService, AutomatonEditingService>();
 
 // Register automaton types
