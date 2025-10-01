@@ -123,7 +123,49 @@ if (app.Environment.IsDevelopment())
 }
 else
 {
-    app.UseExceptionHandler("/Home/Error");
+    // Use global exception handler in non-development environments
+    app.UseExceptionHandler(errorApp =>
+    {
+        errorApp.Run(async context =>
+        {
+            var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+            var auditSvc = context.RequestServices.GetService<IAuditService>();
+
+            var feature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerPathFeature>();
+            var exception = feature?.Error;
+            var path = feature?.Path;
+
+            if (exception != null)
+            {
+                logger.LogError(exception, "Unhandled exception occurred while processing request for {Path}", path);
+                if (auditSvc != null)
+                {
+                    await auditSvc.AuditAsync("UnhandledException", path ?? "unknown", new Dictionary<string, string?> { ["Exception"] = exception.ToString() });
+                }
+            }
+
+            // Return ProblemDetails for API clients
+            context.Response.StatusCode = 500;
+            var accept = context.Request.Headers["Accept"].ToString();
+            if (accept != null && accept.Contains("application/json", StringComparison.OrdinalIgnoreCase))
+            {
+                var problem = new ProblemDetails
+                {
+                    Status = 500,
+                    Title = "An unexpected error occurred",
+                    Detail = "An internal server error occurred."
+                };
+                context.Response.ContentType = "application/problem+json";
+                await System.Text.Json.JsonSerializer.SerializeAsync(context.Response.Body, problem);
+            }
+            else
+            {
+                // For browser requests, redirect to friendly error page
+                context.Response.Redirect("/Home/Error");
+            }
+        });
+    });
+
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }

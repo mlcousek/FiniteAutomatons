@@ -30,56 +30,29 @@ public class AutomatonController(
     [HttpPost]
     public IActionResult CreateAutomaton(AutomatonViewModel model)
     {
-        if (!ModelState.IsValid)
+        logger.LogInformation("CreateAutomaton POST Type={Type} States={States} Transitions={Transitions}",
+            model.Type, model.States.Count, model.Transitions.Count);
+
+        var (isValid, errors) = validationService.ValidateAutomaton(model);
+        if (!isValid)
         {
+            foreach (var e in errors) ModelState.AddModelError(string.Empty, e);
             return View(model);
         }
 
-        try
-        {
-            logger.LogInformation("CreateAutomaton POST Type={Type} States={States} Transitions={Transitions}",
-                model.Type, model.States.Count, model.Transitions.Count);
-
-            var (isValid, errors) = validationService.ValidateAutomaton(model);
-            if (!isValid)
-            {
-                foreach (var e in errors) ModelState.AddModelError(string.Empty, e);
-                return View(model);
-            }
-
-            model.IsCustomAutomaton = true;
-            tempDataService.StoreCustomAutomaton(TempData, model);
-            return RedirectToAction("Index", "Home");
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error creating automaton");
-            ModelState.AddModelError(string.Empty, "An error occurred while creating the automaton.");
-            return View(model);
-        }
+        model.IsCustomAutomaton = true;
+        tempDataService.StoreCustomAutomaton(TempData, model);
+        return RedirectToAction("Index", "Home");
     }
 
     [HttpPost]
     public IActionResult ChangeAutomatonType(AutomatonViewModel model, AutomatonType newType)
     {
-        if (!ModelState.IsValid)
-        {
-            return View(model);
-        }
-        try
-        {
-            if (model.Type == newType) return View("CreateAutomaton", model);
-            var (converted, warnings) = conversionService.ConvertAutomatonType(model, newType);
-            foreach (var w in warnings) ModelState.AddModelError(string.Empty, w);
-            converted.ClearExecutionState();
-            return View("CreateAutomaton", converted);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error changing automaton type");
-            ModelState.AddModelError(string.Empty, "An error occurred while changing the automaton type.");
-            return View("CreateAutomaton", model);
-        }
+        if (model.Type == newType) return View("CreateAutomaton", model);
+        var (converted, warnings) = conversionService.ConvertAutomatonType(model, newType);
+        foreach (var w in warnings) ModelState.AddModelError(string.Empty, w);
+        converted.ClearExecutionState();
+        return View("CreateAutomaton", converted);
     }
 
     [HttpPost]
@@ -133,131 +106,53 @@ public class AutomatonController(
     [HttpPost]
     public IActionResult StepForward([FromForm] AutomatonViewModel model)
     {
-        if (!ModelState.IsValid)
-        {
-            return View(model);
-        }
-        try
-        {
-            model.HasExecuted = true;
-            var updated = executionService.ExecuteStepForward(model);
-            updated.HasExecuted = true;
-            return View("../Home/Index", updated);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error in StepForward");
-            tempDataService.StoreErrorMessage(TempData, "An error occurred while stepping forward.");
-            return View("../Home/Index", model);
-        }
+        model.HasExecuted = true;
+        var updated = executionService.ExecuteStepForward(model);
+        updated.HasExecuted = true;
+        return View("../Home/Index", updated);
     }
 
     [HttpPost]
     public IActionResult StepBackward([FromForm] AutomatonViewModel model)
     {
-        if (!ModelState.IsValid)
-        {
-            return View(model);
-        }
-        try
-        {
-            var updated = executionService.ExecuteStepBackward(model);
-            updated.HasExecuted = model.HasExecuted || updated.Position > 0;
-            return View("../Home/Index", updated);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error in StepBackward");
-            tempDataService.StoreErrorMessage(TempData, "An error occurred while stepping backward.");
-            return View("../Home/Index", model);
-        }
+        var updated = executionService.ExecuteStepBackward(model);
+        updated.HasExecuted = model.HasExecuted || updated.Position > 0;
+        return View("../Home/Index", updated);
     }
 
     [HttpPost]
     public IActionResult ExecuteAll([FromForm] AutomatonViewModel model)
     {
-        if (!ModelState.IsValid)
-        {
-            return View(model);
-        }
-        try
-        {
-            model.HasExecuted = true;
-            var updated = executionService.ExecuteAll(model);
-            updated.HasExecuted = true;
-            return View("../Home/Index", updated);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error in ExecuteAll");
-            tempDataService.StoreErrorMessage(TempData, "An error occurred while executing the automaton.");
-            return View("../Home/Index", model);
-        }
+        model.HasExecuted = true;
+        var updated = executionService.ExecuteAll(model);
+        updated.HasExecuted = true;
+        return View("../Home/Index", updated);
     }
 
     [HttpPost]
     public IActionResult BackToStart([FromForm] AutomatonViewModel model)
     {
-        if (!ModelState.IsValid)
-        {
-            return View(model);
-        }
-        try
-        {
-            var updated = executionService.BackToStart(model);
-            updated.HasExecuted = model.HasExecuted || model.Position > 0 || model.Result != null;
-            return View("../Home/Index", updated);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error in BackToStart");
-            tempDataService.StoreErrorMessage(TempData, "An error occurred while resetting to start.");
-            return View("../Home/Index", model);
-        }
+        var updated = executionService.BackToStart(model);
+        updated.HasExecuted = model.HasExecuted || model.Position > 0 || model.Result != null;
+        return View("../Home/Index", updated);
     }
 
     [HttpPost]
     public IActionResult Reset([FromForm] AutomatonViewModel model)
     {
-        if (!ModelState.IsValid)
-        {
-            return View(model);
-        }
-        try
-        {
-            var updated = executionService.ResetExecution(model);
-            updated.HasExecuted = false;
-            return View("../Home/Index", updated);
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error in Reset");
-            tempDataService.StoreErrorMessage(TempData, "An error occurred while resetting.");
-            return View("../Home/Index", model);
-        }
+        var updated = executionService.ResetExecution(model);
+        updated.HasExecuted = false;
+        return View("../Home/Index", updated);
     }
 
     [HttpPost]
     public IActionResult ConvertToDFA([FromForm] AutomatonViewModel model)
     {
-        if (!ModelState.IsValid)
-        {
-            return View(model);
-        }
-        try
-        {
-            var converted = conversionService.ConvertToDFA(model);
-            converted.ClearExecutionState();
-            tempDataService.StoreCustomAutomaton(TempData, converted);
-            tempDataService.StoreConversionMessage(TempData, $"Successfully converted {model.TypeDisplayName} to DFA with {converted.States.Count} states.");
-            return RedirectToAction("Index", "Home");
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error in ConvertToDFA");
-            tempDataService.StoreErrorMessage(TempData, $"Failed to convert to DFA: {ex.Message}");
-            return View("../Home/Index", model);
-        }
+        var converted = conversionService.ConvertToDFA(model);
+        converted.ClearExecutionState();
+        tempDataService.StoreCustomAutomaton(TempData, converted);
+        tempDataService.StoreConversionMessage(TempData, $"Successfully converted {model.TypeDisplayName} to DFA with {converted.States.Count} states.");
+        return RedirectToAction("Index", "Home");
     }
 
     // GET generator page
@@ -273,57 +168,31 @@ public class AutomatonController(
     [HttpPost]
     public IActionResult GenerateRandomAutomaton(RandomAutomatonGenerationViewModel model)
     {
-        if (!ModelState.IsValid)
+        logger.LogInformation("Generating random automaton Type={Type} States={States} Transitions={Transitions}",
+            model.Type, model.StateCount, model.TransitionCount);
+        if (!generatorService.ValidateGenerationParameters(model.Type, model.StateCount, model.TransitionCount, model.AlphabetSize))
         {
+            ModelState.AddModelError(string.Empty, "Invalid generation parameters. Please check your input values.");
             return View(model);
         }
-        try
-        {
-            logger.LogInformation("Generating random automaton Type={Type} States={States} Transitions={Transitions}",
-                model.Type, model.StateCount, model.TransitionCount);
-            if (!generatorService.ValidateGenerationParameters(model.Type, model.StateCount, model.TransitionCount, model.AlphabetSize))
-            {
-                ModelState.AddModelError(string.Empty, "Invalid generation parameters. Please check your input values.");
-                return View(model);
-            }
-            var generated = generatorService.GenerateRandomAutomaton(model.Type, model.StateCount, model.TransitionCount, model.AlphabetSize, model.AcceptingStateRatio, model.Seed);
-            tempDataService.StoreCustomAutomaton(TempData, generated);
-            tempDataService.StoreConversionMessage(TempData, $"Successfully generated random {model.Type} with {generated.States.Count} states and {generated.Transitions.Count} transitions.");
-            return RedirectToAction("Index", "Home");
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error generating random automaton");
-            ModelState.AddModelError(string.Empty, $"An error occurred while generating the automaton: {ex.Message}");
-            return View(model);
-        }
+        var generated = generatorService.GenerateRandomAutomaton(model.Type, model.StateCount, model.TransitionCount, model.AlphabetSize, model.AcceptingStateRatio, model.Seed);
+        tempDataService.StoreCustomAutomaton(TempData, generated);
+        tempDataService.StoreConversionMessage(TempData, $"Successfully generated random {model.Type} with {generated.States.Count} states and {generated.Transitions.Count} transitions.");
+        return RedirectToAction("Index", "Home");
     }
 
     [HttpPost]
     public IActionResult GenerateRealisticAutomaton(AutomatonType type, int stateCount, int? seed = null)
     {
-        if (!ModelState.IsValid)
+        logger.LogInformation("Generating realistic automaton Type={Type} States={States}", type, stateCount);
+        if (stateCount < 1 || stateCount > 20)
         {
+            tempDataService.StoreErrorMessage(TempData, "State count must be between 1 and 20.");
             return RedirectToAction("GenerateRandomAutomaton");
         }
-        try
-        {
-            logger.LogInformation("Generating realistic automaton Type={Type} States={States}", type, stateCount);
-            if (stateCount < 1 || stateCount > 20)
-            {
-                tempDataService.StoreErrorMessage(TempData, "State count must be between 1 and 20.");
-                return RedirectToAction("GenerateRandomAutomaton");
-            }
-            var generated = generatorService.GenerateRealisticAutomaton(type, stateCount, seed);
-            tempDataService.StoreCustomAutomaton(TempData, generated);
-            tempDataService.StoreConversionMessage(TempData, $"Successfully generated realistic {type} with {generated.States.Count} states and {generated.Transitions.Count} transitions.");
-            return RedirectToAction("Index", "Home");
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error generating realistic automaton");
-            tempDataService.StoreErrorMessage(TempData, $"An error occurred while generating the automaton: {ex.Message}");
-            return RedirectToAction("GenerateRandomAutomaton");
-        }
+        var generated = generatorService.GenerateRealisticAutomaton(type, stateCount, seed);
+        tempDataService.StoreCustomAutomaton(TempData, generated);
+        tempDataService.StoreConversionMessage(TempData, $"Successfully generated realistic {type} with {generated.States.Count} states and {generated.Transitions.Count} transitions.");
+        return RedirectToAction("Index", "Home");
     }
 }
