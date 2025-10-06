@@ -30,6 +30,11 @@ public class AutomatonController(
     [HttpPost]
     public IActionResult CreateAutomaton(AutomatonViewModel model)
     {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
         try
         {
             logger.LogInformation("CreateAutomaton POST Type={Type} States={States} Transitions={Transitions}",
@@ -57,6 +62,10 @@ public class AutomatonController(
     [HttpPost]
     public IActionResult ChangeAutomatonType(AutomatonViewModel model, AutomatonType newType)
     {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
         try
         {
             if (model.Type == newType) return View("CreateAutomaton", model);
@@ -76,6 +85,10 @@ public class AutomatonController(
     [HttpPost]
     public IActionResult AddState(AutomatonViewModel model, int stateId, bool isStart, bool isAccepting)
     {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
         var (ok, err) = editingService.AddState(model, stateId, isStart, isAccepting);
         if (!ok) ModelState.AddModelError(string.Empty, err!);
         return View("CreateAutomaton", model);
@@ -84,6 +97,10 @@ public class AutomatonController(
     [HttpPost]
     public IActionResult RemoveState(AutomatonViewModel model, int stateId)
     {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
         var (ok, err) = editingService.RemoveState(model, stateId);
         if (!ok) ModelState.AddModelError(string.Empty, err!);
         return View("CreateAutomaton", model);
@@ -92,6 +109,10 @@ public class AutomatonController(
     [HttpPost]
     public IActionResult AddTransition(AutomatonViewModel model, int fromStateId, int toStateId, string symbol)
     {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
         var (ok, _, err) = editingService.AddTransition(model, fromStateId, toStateId, symbol);
         if (!ok) ModelState.AddModelError(string.Empty, err!);
         return View("CreateAutomaton", model);
@@ -100,6 +121,10 @@ public class AutomatonController(
     [HttpPost]
     public IActionResult RemoveTransition(AutomatonViewModel model, int fromStateId, int toStateId, string symbol)
     {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
         var (ok, err) = editingService.RemoveTransition(model, fromStateId, toStateId, symbol);
         if (!ok) ModelState.AddModelError(string.Empty, err!);
         return View("CreateAutomaton", model);
@@ -108,6 +133,10 @@ public class AutomatonController(
     [HttpPost]
     public IActionResult StepForward([FromForm] AutomatonViewModel model)
     {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
         try
         {
             model.HasExecuted = true;
@@ -126,6 +155,10 @@ public class AutomatonController(
     [HttpPost]
     public IActionResult StepBackward([FromForm] AutomatonViewModel model)
     {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
         try
         {
             var updated = executionService.ExecuteStepBackward(model);
@@ -143,6 +176,10 @@ public class AutomatonController(
     [HttpPost]
     public IActionResult ExecuteAll([FromForm] AutomatonViewModel model)
     {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
         try
         {
             model.HasExecuted = true;
@@ -161,6 +198,10 @@ public class AutomatonController(
     [HttpPost]
     public IActionResult BackToStart([FromForm] AutomatonViewModel model)
     {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
         try
         {
             var updated = executionService.BackToStart(model);
@@ -178,6 +219,10 @@ public class AutomatonController(
     [HttpPost]
     public IActionResult Reset([FromForm] AutomatonViewModel model)
     {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
         try
         {
             var updated = executionService.ResetExecution(model);
@@ -195,6 +240,10 @@ public class AutomatonController(
     [HttpPost]
     public IActionResult ConvertToDFA([FromForm] AutomatonViewModel model)
     {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
         try
         {
             var converted = conversionService.ConvertToDFA(model);
@@ -224,6 +273,10 @@ public class AutomatonController(
     [HttpPost]
     public IActionResult GenerateRandomAutomaton(RandomAutomatonGenerationViewModel model)
     {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
         try
         {
             logger.LogInformation("Generating random automaton Type={Type} States={States} Transitions={Transitions}",
@@ -249,6 +302,10 @@ public class AutomatonController(
     [HttpPost]
     public IActionResult GenerateRealisticAutomaton(AutomatonType type, int stateCount, int? seed = null)
     {
+        if (!ModelState.IsValid)
+        {
+            return RedirectToAction("GenerateRandomAutomaton");
+        }
         try
         {
             logger.LogInformation("Generating realistic automaton Type={Type} States={States}", type, stateCount);
