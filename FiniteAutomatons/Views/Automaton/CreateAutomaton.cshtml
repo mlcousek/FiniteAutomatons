@@ -26,14 +26,12 @@
                 </div>
             }
 
-            <!-- Automaton Type Selection -->
             <div class="card mb-3">
                 <div class="card-header bg-info text-white">
                     <h5 class="mb-0"><i class="fas fa-cog"></i> Automaton Type</h5>
                 </div>
                 <div class="card-body">
                     <form asp-controller="Automaton" asp-action="ChangeAutomatonType" method="post" id="automatonTypeForm">
-                        <!-- Hidden fields for preserving state during type change -->
                         @for (int i = 0; i < Model.States.Count; i++)
                         {
                             <input type="hidden" name="States[@i].Id" value="@Model.States[i].Id" />
@@ -70,14 +68,12 @@
                 </div>
             </div>
 
-            <!-- Add State Form -->
             <div class="card mb-3">
                 <div class="card-header bg-primary text-white">
                     <h5 class="mb-0"><i class="fas fa-circle"></i> Add State</h5>
                 </div>
                 <div class="card-body">
                     <form asp-controller="Automaton" asp-action="AddState" method="post">
-                        <!-- Manually generate hidden fields for States -->
                         @for (int i = 0; i < Model.States.Count; i++)
                         {
                             <input type="hidden" name="States[@i].Id" value="@Model.States[i].Id" />
@@ -85,7 +81,6 @@
                             <input type="hidden" name="States[@i].IsAccepting" value="@Model.States[i].IsAccepting.ToString().ToLower()" />
                         }
                         
-                        <!-- Manually generate hidden fields for Transitions -->
                         @for (int i = 0; i < Model.Transitions.Count; i++)
                         {
                             <input type="hidden" name="Transitions[@i].FromStateId" value="@Model.Transitions[i].FromStateId" />
@@ -93,13 +88,11 @@
                             <input type="hidden" name="Transitions[@i].Symbol" value="@(Model.Transitions[i].Symbol == '\0' ? "ε" : Model.Transitions[i].Symbol.ToString())" />
                         }
                         
-                        <!-- Manually generate hidden fields for Alphabet -->
                         @for (int i = 0; i < Model.Alphabet.Count; i++)
                         {
                             <input type="hidden" name="Alphabet[@i]" value="@Model.Alphabet[i]" />
                         }
                         
-                        <!-- Include automaton type and custom flag -->
                         <input type="hidden" name="Type" value="@Model.Type" />
                         <input type="hidden" name="IsCustomAutomaton" value="@Model.IsCustomAutomaton.ToString().ToLower()" />
                         
@@ -130,14 +123,12 @@
                 </div>
             </div>
 
-            <!-- Add Transition Form -->
             <div class="card mb-3">
                 <div class="card-header bg-success text-white">
                     <h5 class="mb-0"><i class="fas fa-arrow-right"></i> Add Transition</h5>
                 </div>
                 <div class="card-body">
                     <form asp-controller="Automaton" asp-action="AddTransition" method="post">
-                        <!-- Hidden fields for preservation -->
                         @for (int i = 0; i < Model.States.Count; i++)
                         {
                             <input type="hidden" name="States[@i].Id" value="@Model.States[i].Id" />
@@ -162,9 +153,9 @@
                                 <label for="fromStateId" class="form-label">From State:</label>
                                 <select name="fromStateId" class="form-control" required>
                                     <option value="">Select...</option>
-                                    @foreach (var state in Model.States)
+                                    @foreach (var id in Model.States.Select(state => state.Id))
                                     {
-                                        <option value="@state.Id">State @state.Id</option>
+                                        <option value="@id">State @id</option>
                                     }
                                 </select>
                             </div>
@@ -172,9 +163,9 @@
                                 <label for="toStateId" class="form-label">To State:</label>
                                 <select name="toStateId" class="form-control" required>
                                     <option value="">Select...</option>
-                                    @foreach (var state in Model.States)
+                                    @foreach (var id in Model.States.Select(state => state.Id))
                                     {
-                                        <option value="@state.Id">State @state.Id</option>
+                                        <option value="@id">State @id</option>
                                     }
                                 </select>
                             </div>
@@ -212,14 +203,12 @@
                 </div>
             </div>
 
-            <!-- Create Automaton Button -->
             <div class="card">
                 <div class="card-header bg-warning">
                     <h5 class="mb-0"><i class="fas fa-check"></i> Finalize Automaton</h5>
                 </div>
                 <div class="card-body">
                     <form asp-controller="Automaton" asp-action="CreateAutomaton" method="post">
-                        <!-- Hidden fields -->
                         @for (int i = 0; i < Model.States.Count; i++)
                         {
                             <input type="hidden" name="States[@i].Id" value="@Model.States[i].Id" />
@@ -251,7 +240,6 @@
         </div>
 
         <div class="col-md-6">
-            <!-- Current Automaton Preview -->
             <div class="card">
                 <div class="card-header bg-info text-white">
                     <h5 class="mb-0"><i class="fas fa-eye"></i> Automaton Preview</h5>
@@ -271,7 +259,6 @@
                                             @if (state.IsStart) { <span class="badge bg-primary">Start</span> }
                                             @if (state.IsAccepting) { <span class="badge bg-success">Accept</span> }
                                             <form asp-controller="Automaton" asp-action="RemoveState" method="post" class="d-inline">
-                                                <!-- Hidden fields for state removal -->
                                                 @for (int i = 0; i < Model.States.Count; i++)
                                                 {
                                                     <input type="hidden" name="States[@i].Id" value="@Model.States[i].Id" />
@@ -391,7 +378,6 @@
 
 @section Scripts {
     <script>
-        // Function to automatically change automaton type when dropdown changes
         function changeAutomatonType() {
             const form = document.getElementById('automatonTypeForm');
             if (form) {
@@ -399,7 +385,6 @@
             }
         }
 
-        // Function to insert epsilon symbol
         function insertEpsilon() {
             const symbolInput = document.getElementById('symbolInput');
             if (symbolInput) {

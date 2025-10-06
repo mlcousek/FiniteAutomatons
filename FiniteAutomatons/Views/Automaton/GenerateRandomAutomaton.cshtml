@@ -177,7 +177,6 @@
 </div>
 
 <script>
-    // Update transition constraints based on automaton type and parameters
     function updateTransitionConstraints() {
         const type = document.getElementById('automatonType').value;
         const stateCount = parseInt(document.getElementById('stateCount').value) || 1;
@@ -197,7 +196,6 @@
         transitionInput.min = minTransitions;
         transitionInput.max = maxTransitions;
         
-        // Adjust current value if it's outside the new range
         const currentValue = parseInt(transitionInput.value) || 0;
         if (currentValue < minTransitions) {
             transitionInput.value = minTransitions;
@@ -206,12 +204,10 @@
         }
     }
     
-    // Update constraints when values change
     document.getElementById('automatonType').addEventListener('change', updateTransitionConstraints);
     document.getElementById('stateCount').addEventListener('input', updateTransitionConstraints);
     document.getElementById('alphabetSize').addEventListener('input', updateTransitionConstraints);
     
-    // Initialize constraints on page load
     updateTransitionConstraints();
 </script>
 

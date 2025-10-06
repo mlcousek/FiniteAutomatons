@@ -46,14 +46,12 @@ public class NFA : Automaton
 
         state.Position--;
 
-        // Restore the previous set of states from the history stack
         if (state.StateHistory.Count > 0)
         {
             state.CurrentStates = state.StateHistory.Pop();
         }
         else
         {
-            // Fallback: recalculate from start if history is missing
             state.CurrentStates = GetInitialStates();
             for (int i = 0; i < state.Position; i++)
             {
@@ -104,25 +102,21 @@ public class NFA : Automaton
     {
         var dfa = new DFA();
 
-        // 1. Gather all input symbols (excluding epsilon, if present)
         var symbols = Transitions
             .Select(t => t.Symbol)
             .Where(s => s != '\0')
             .Distinct()
             .ToList();
 
-        // 2. Subset construction: map each set of NFA states to a DFA state id
         var stateSetToId = new Dictionary<string, int>();
         var idToStateSet = new Dictionary<int, HashSet<int>>();
         int nextDfaStateId = 1;
 
-        // Helper to get a unique key for a set of states
         static string SetKey(HashSet<int> set)
         {
             return string.Join(",", set.OrderBy(x => x));
         }
 
-        // 3. Start with the initial NFA state set
         var initialSet = GetInitialStates();
         var queue = new Queue<HashSet<int>>();
         queue.Enqueue(initialSet);
@@ -131,7 +125,6 @@ public class NFA : Automaton
         stateSetToId[initialKey] = nextDfaStateId;
         idToStateSet[nextDfaStateId] = [.. initialSet];
 
-        // Add DFA start state
         dfa.AddState(new State
         {
             Id = nextDfaStateId,
@@ -141,7 +134,6 @@ public class NFA : Automaton
         dfa.SetStartState(nextDfaStateId);
         nextDfaStateId++;
 
-        // 4. Process the queue
         while (queue.Count > 0)
         {
             var currentSet = queue.Dequeue();
@@ -150,7 +142,6 @@ public class NFA : Automaton
 
             foreach (var symbol in symbols)
             {
-                // Compute the set of NFA states reachable from any state in currentSet on 'symbol'
                 var nextSet = new HashSet<int>();
                 foreach (var nfaState in currentSet)
                 {
@@ -166,10 +157,10 @@ public class NFA : Automaton
                     continue;
 
                 var nextKey = SetKey(nextSet);
-                if (!stateSetToId.ContainsKey(nextKey))
+                if (!stateSetToId.TryGetValue(nextKey, out int value))
                 {
-                    // New DFA state for this set
-                    stateSetToId[nextKey] = nextDfaStateId;
+                    value = nextDfaStateId;
+                    stateSetToId[nextKey] = value;
                     idToStateSet[nextDfaStateId] = [.. nextSet];
 
                     dfa.AddState(new State
@@ -182,8 +173,7 @@ public class NFA : Automaton
                     nextDfaStateId++;
                 }
 
-                // Add DFA transition
-                dfa.AddTransition(currentDfaId, stateSetToId[nextKey], symbol);
+                dfa.AddTransition(currentDfaId, value, symbol);
             }
         }
 

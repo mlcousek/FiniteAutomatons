@@ -109,7 +109,6 @@
     </div>
 }
 
-<!-- Automaton Visualization -->
 @if (Model.IsCustomAutomaton)
 {
     <div class="alert alert-success">
@@ -118,7 +117,6 @@
         @if (Model.Type != AutomatonType.DFA)
         {
             <form asp-controller="Automaton" asp-action="ConvertToDFA" method="post" class="d-inline ms-2">
-                <!-- Include all model data for conversion -->
                 @for (int i = 0; i < Model.States.Count; i++)
                 {
                     <input type="hidden" name="States[@i].Id" value="@Model.States[i].Id" />
@@ -229,11 +227,9 @@ else
             <div class="mb-3">
                 <label for="inputString" class="form-label">Input String</label>
                 @{
-                    // Execution considered started only after at least one step (Position>0) or a Result was produced
                     bool executionStarted = Model.HasExecuted || Model.Result != null || (Model.Type != AutomatonType.DFA && Model.CurrentStates != null && Model.CurrentStates.Any());
-                    bool isInputDisabled = executionStarted; // lock only after actual progress
+                    bool isInputDisabled = executionStarted; 
 
-                    // Only keep usable alphabet symbols server-side for any future needs
                     var alphabetList = Model.Alphabet ?? new List<char>();
                     var usableSymbols = alphabetList.Where(c => c != 'ε').ToList();
                 }
@@ -251,14 +247,25 @@ else
                        placeholder="@(isInputDisabled ? "Input locked during execution - click Reset to enter new input" : "Enter a string using the alphabet above...")"
                        @(isInputDisabled ? "readonly" : "") />
 
-                <!-- Input visualization: per-character badges with highlights for processed/current/EOF -->
                 <div id="inputVisualization" class="mt-2 input-visualization p-2" aria-live="polite">
                     @if (!string.IsNullOrEmpty(Model.Input))
                     {
                         for (int i = 0; i < Model.Input.Length; i++)
                         {
                             var ch = Model.Input[i];
-                            var cls = i < Model.Position ? "input-highlight-processed" : (i == Model.Position ? "input-highlight-current" : "");
+                            string cls;
+                            if (i < Model.Position)
+                            {
+                                cls = "input-highlight-processed";
+                            }
+                            else if (i == Model.Position)
+                            {
+                                cls = "input-highlight-current";
+                            }
+                            else
+                            {
+                                cls = "";
+                            }
                             <span class="@cls">@ch</span>
                         }
 
@@ -311,7 +318,6 @@ else
                     {
                         isInputValid = Model.Input.All(c => Model.Alphabet.Contains(c));
                     }
-                    // Permit step forward even after a rejection when user stepped back
                     bool canStepForward = hasInput && isInputValid && !isAtEnd; 
                     bool canExecuteAll = hasInput && isInputValid && !isAtEnd; 
                     bool canStepBackward = !isAtFirstPosition && isInputValid;
@@ -363,14 +369,12 @@ else
 
 @section Scripts {
     <style>
-        /* Custom styling for readonly (formerly disabled) input during execution */
         .form-control.disabled { background-color: #f8f9fa; color: #6c757d; border-color: #dee2e6; cursor: not-allowed; }
         
         .input-lock-message { border-left: 3px solid #FFC107; padding-left: 8px; margin-top: 5px; }
         
         .input-lock-message i { color: #FFC107; }
 
-        /* visualization styles (already present in file previously) */
         @@keyframes pulse {
             0% { box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.7); }
             70% { box-shadow: 0 0 0 10px rgba(255, 193, 7, 0); }
@@ -435,14 +439,12 @@ else
         }
     </style>
     <script>
-        // Serialize alphabet safely for JS usage
         const alphabet = @Html.Raw(System.Text.Json.JsonSerializer.Serialize((Model.Alphabet ?? new List<char>()).Where(c => c != 'ε').Select(c => c.ToString()).ToList()));
-        // Serialize states and transitions for generating accepting strings
         const jsStates = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.States != null ? Model.States.Select(s => new { Id = s.Id, IsStart = s.IsStart, IsAccepting = s.IsAccepting }) : System.Linq.Enumerable.Empty<object>()));
         const jsTransitions = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Transitions != null ? Model.Transitions.Select(t => new { From = t.FromStateId, To = t.ToStateId, Symbol = t.Symbol == '\0' ? null : t.Symbol.ToString() }) : System.Linq.Enumerable.Empty<object>()));
 
         function isInputAllowedByAlphabet(input) {
-            if (!input) return true; // empty string is allowed
+            if (!input) return true; 
             for (let ch of input) { if (!alphabet.includes(ch)) return false; }
             return true;
         }
@@ -451,12 +453,11 @@ else
             const input = this.value; let isValid = isInputAllowedByAlphabet(input);
             this.className = (this.className.replace(/\b(is-valid|is-invalid)\b/g, '').trim() + ' ' + (isValid ? 'is-valid' : 'is-invalid')).trim();
             updateButtonStates(input, isValid);
-            renderInputVisualization(input, 0); // position is 0 while editing
+            renderInputVisualization(input, 0); 
         });
 
         function applySuggestion(value) {
             const field = document.getElementById('inputString');
-            // empty string should clear the input
             field.value = value || '';
             field.dispatchEvent(new Event('input'));
         }
@@ -474,8 +475,6 @@ else
             applySuggestion(out);
         });
 
-        // Generate accepting string using BFS (shortest by symbol count), up to maxLen
-        // Collect accepting strings up to maxLen and provide varied outputs on repeated clicks
         let _acceptingCache = null; // array of strings
         let _acceptingIndex = 0;
 
@@ -507,13 +506,11 @@ else
                 if (node.str.length >= maxLen) continue;
 
                 const trans = map.get(node.state) || [];
-                // epsilon transitions (symbol == null)
                 for (const t of trans) {
                     if (t.symbol == null) {
                         queue.push({ state: t.to, str: node.str });
                     }
                 }
-                // non-epsilon transitions
                 for (const t of trans) {
                     if (t.symbol != null) {
                         queue.push({ state: t.to, str: node.str + t.symbol });
@@ -544,7 +541,6 @@ else
                 shuffle(_acceptingCache);
                 _acceptingIndex = 0;
             }
-            // If cache only has one element, regenerate with larger depth to try to get more
             if (_acceptingCache.length === 1) {
                 const extended = collectAcceptingStrings(Math.max(12, maxLen * 2), 2000);
                 if (extended.length > 1) {
@@ -594,7 +590,6 @@ else
             else { field.removeAttribute('readonly'); field.classList.remove('disabled'); field.placeholder='Enter a string using the alphabet above...'; let msg=field.parentElement.querySelector('.input-lock-message'); if(msg) msg.remove(); }
         }
 
-        // Render per-character visualization into #inputVisualization
         function renderInputVisualization(value, position) {
             const container = document.getElementById('inputVisualization');
             if (!container) return;
@@ -617,4 +612,3 @@ else
         document.addEventListener('DOMContentLoaded', function(){ const field=document.getElementById('inputString'); const input=field.value; let valid=true; for(let ch of input){ if(!isInputAllowedByAlphabet(ch)){ valid=false; break; } } field.className=(field.className.replace(/\b(is-valid|is-invalid)\b/g,'').trim() + (input?(' '+(valid?'is-valid':'is-invalid')):'')); updateButtonStates(input, valid); renderInputVisualization(input, @Model.Position); });
     </script>
 }
-

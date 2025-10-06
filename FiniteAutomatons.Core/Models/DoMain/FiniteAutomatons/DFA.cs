@@ -1,4 +1,6 @@
-﻿namespace FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
+﻿using System.Linq;
+
+namespace FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 
 public class DFA : Automaton
 {
@@ -102,10 +104,11 @@ public class DFA : Automaton
             while (queue.Count > 0)
             {
                 var current = queue.Dequeue();
-                foreach (var t in Transitions.Where(t => t.FromStateId == current))
+                foreach (var t in from t in Transitions.Where(t => t.FromStateId == current)
+                                  where reachable.Add(t.ToStateId)
+                                  select t)
                 {
-                    if (reachable.Add(t.ToStateId))
-                        queue.Enqueue(t.ToStateId);
+                    queue.Enqueue(t.ToStateId);
                 }
             }
 
@@ -168,7 +171,6 @@ public class DFA : Automaton
 
             foreach (var group in partitions)
             {
-                var rep = reachableStates.First(s => group.Contains(s.Id));
                 foreach (var oldId in group)
                     stateMap[oldId] = newId;
 

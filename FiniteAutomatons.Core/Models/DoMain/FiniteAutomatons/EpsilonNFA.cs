@@ -1,4 +1,6 @@
-﻿namespace FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
+﻿using System.Linq;
+
+namespace FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 
 public class EpsilonNFA : NFA
 {
@@ -12,13 +14,11 @@ public class EpsilonNFA : NFA
             var state = stack.Pop();
             var epsilonTransitions = Transitions
                 .Where(t => t.FromStateId == state && t.Symbol == '\0');
-
-            foreach (var transition in epsilonTransitions)
+            foreach (var transition in from transition in epsilonTransitions
+                                       where closure.Add(transition.ToStateId)
+                                       select transition)
             {
-                if (closure.Add(transition.ToStateId))
-                {
-                    stack.Push(transition.ToStateId);
-                }
+                stack.Push(transition.ToStateId);
             }
         }
 
@@ -46,7 +46,6 @@ public class EpsilonNFA : NFA
             return;
         }
 
-        // Push the current states to history (before processing the next step)
         state.StateHistory.Push(state.CurrentStates != null ? [.. state.CurrentStates] : []);
 
         char symbol = state.Input[state.Position];
@@ -80,14 +79,12 @@ public class EpsilonNFA : NFA
 
         state.Position--;
 
-        // Restore the previous set of states from the history stack
         if (state.StateHistory.Count > 0)
         {
             state.CurrentStates = state.StateHistory.Pop();
         }
         else
         {
-            // Fallback: recalculate from start if history is missing
             state.CurrentStates = GetInitialStates();
             for (int i = 0; i < state.Position; i++)
             {
@@ -137,12 +134,11 @@ public class EpsilonNFA : NFA
     {
         var nfa = new NFA();
 
-        // 1. Copy all states, preserving IDs and accepting/start flags
-        foreach (var state in States)
+        foreach (var stateId in States.Select(state => state.Id))
         {
-            // Accepting if any state in its epsilon-closure is accepting
-            var closure = EpsilonClosure([state.Id]);
+            var closure = EpsilonClosure([stateId]);
             bool isAccepting = closure.Any(id => States.First(s => s.Id == id).IsAccepting);
+            var state = States.First(s => s.Id == stateId);
             nfa.AddState(new State
             {
                 Id = state.Id,
@@ -153,19 +149,17 @@ public class EpsilonNFA : NFA
                 nfa.SetStartState(state.Id);
         }
 
-        // 2. For each state and each symbol (except epsilon), add transitions according to epsilon-closure
         var symbols = Transitions
             .Where(t => t.Symbol != '\0')
             .Select(t => t.Symbol)
             .Distinct()
             .ToList();
 
-        foreach (var state in States)
+        foreach (var stateId in States.Select(state => state.Id))
         {
-            var fromClosure = EpsilonClosure([state.Id]);
+            var fromClosure = EpsilonClosure([stateId]);
             foreach (var symbol in symbols)
             {
-                // All states reachable from the closure of 'state' via 'symbol'
                 var toStates = new HashSet<int>();
                 foreach (var closureState in fromClosure)
                 {
@@ -173,14 +167,13 @@ public class EpsilonNFA : NFA
                         .Where(t => t.FromStateId == closureState && t.Symbol == symbol);
                     foreach (var t in transitions)
                     {
-                        // Add all states in the epsilon-closure of the target
                         foreach (var target in EpsilonClosure([t.ToStateId]))
                             toStates.Add(target);
                     }
                 }
                 foreach (var to in toStates)
                 {
-                    nfa.AddTransition(state.Id, to, symbol);
+                    nfa.AddTransition(stateId, to, symbol);
                 }
             }
         }
