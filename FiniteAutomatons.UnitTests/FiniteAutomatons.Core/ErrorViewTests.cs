@@ -53,4 +53,3 @@ public class ErrorViewModelTests
         result.ShouldBeFalse();
     }
 }
-

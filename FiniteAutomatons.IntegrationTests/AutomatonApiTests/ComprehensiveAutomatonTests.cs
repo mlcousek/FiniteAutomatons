@@ -1,4 +1,3 @@
-using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.ViewModel;
 using Shouldly;
 using System.Net;
@@ -36,11 +35,9 @@ public class ComprehensiveAutomatonTests(IntegrationTestsFixture fixture) : Inte
             ],
         };
 
-        // Create automaton
         var createResponse = await PostAutomatonForm(client, "/Automaton/CreateAutomaton", dfaModel);
         createResponse.StatusCode.ShouldBeOneOf(HttpStatusCode.OK, HttpStatusCode.Redirect);
 
-        // Test execution with various inputs
         var testCases = new[]
         {
             ("a", true),     // Ends in accepting state
@@ -87,11 +84,9 @@ public class ComprehensiveAutomatonTests(IntegrationTestsFixture fixture) : Inte
             ],
         };
 
-        // Create automaton
         var createResponse = await PostAutomatonForm(client, "/Automaton/CreateAutomaton", nfaModel);
         createResponse.StatusCode.ShouldBeOneOf(HttpStatusCode.OK, HttpStatusCode.Redirect);
 
-        // Test execution
         nfaModel.Input = "a";
         var response = await PostAutomatonForm(client, "/Automaton/ExecuteAll", nfaModel);
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -119,11 +114,9 @@ public class ComprehensiveAutomatonTests(IntegrationTestsFixture fixture) : Inte
             ],
         };
 
-        // Create automaton
         var createResponse = await PostAutomatonForm(client, "/Automaton/CreateAutomaton", epsilonModel);
         createResponse.StatusCode.ShouldBeOneOf(HttpStatusCode.OK, HttpStatusCode.Redirect);
 
-        // Test execution - empty string should be accepted due to epsilon closure
         epsilonModel.Input = "";
         var response = await PostAutomatonForm(client, "/Automaton/ExecuteAll", epsilonModel);
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -153,7 +146,6 @@ public class ComprehensiveAutomatonTests(IntegrationTestsFixture fixture) : Inte
             Input = "ab"
         };
 
-        // Test step-by-step operations
         var step1 = await PostAutomatonForm(client, "/Automaton/StepForward", dfaModel);
         step1.StatusCode.ShouldBe(HttpStatusCode.OK);
 
@@ -190,9 +182,7 @@ public class ComprehensiveAutomatonTests(IntegrationTestsFixture fixture) : Inte
         convertResponse.StatusCode.ShouldBeOneOf(HttpStatusCode.OK, HttpStatusCode.Redirect);
     }
 
-    #region Helper Methods
-
-    private async Task<HttpResponseMessage> PostAutomatonForm(HttpClient client, string url, AutomatonViewModel model)
+    private static async Task<HttpResponseMessage> PostAutomatonForm(HttpClient client, string url, AutomatonViewModel model)
     {
         var formData = new List<KeyValuePair<string, string>>
         {
@@ -221,7 +211,6 @@ public class ComprehensiveAutomatonTests(IntegrationTestsFixture fixture) : Inte
             formData.Add(new("IsAccepted", model.IsAccepted.Value.ToString().ToLower()));
         }
 
-        // Add states
         for (int i = 0; i < model.States.Count; i++)
         {
             var state = model.States[i];
@@ -230,7 +219,6 @@ public class ComprehensiveAutomatonTests(IntegrationTestsFixture fixture) : Inte
             formData.Add(new($"States[{i}].IsAccepting", state.IsAccepting.ToString().ToLower()));
         }
 
-        // Add transitions
         for (int i = 0; i < model.Transitions.Count; i++)
         {
             var transition = model.Transitions[i];
@@ -239,7 +227,6 @@ public class ComprehensiveAutomatonTests(IntegrationTestsFixture fixture) : Inte
             formData.Add(new($"Transitions[{i}].Symbol", transition.Symbol == '\0' ? "?" : transition.Symbol.ToString()));
         }
 
-        // Add alphabet
         for (int i = 0; i < model.Alphabet.Count; i++)
         {
             formData.Add(new($"Alphabet[{i}]", model.Alphabet[i].ToString()));
@@ -248,6 +235,4 @@ public class ComprehensiveAutomatonTests(IntegrationTestsFixture fixture) : Inte
         var formContent = new FormUrlEncodedContent(formData);
         return await client.PostAsync(url, formContent);
     }
-
-    #endregion
 }

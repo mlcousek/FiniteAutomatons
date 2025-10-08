@@ -8,13 +8,11 @@ public class MockAutomatonTempDataService : IAutomatonTempDataService
 {
     public (bool Success, AutomatonViewModel? Model) TryGetCustomAutomaton(ITempDataDictionary tempData)
     {
-        // For testing, return false to simulate no custom automaton found
         return (false, null);
     }
 
     public void StoreCustomAutomaton(ITempDataDictionary tempData, AutomatonViewModel model)
     {
-        // Mock implementation - just store as JSON like the real service
         var modelJson = System.Text.Json.JsonSerializer.Serialize(model);
         tempData["CustomAutomaton"] = modelJson;
     }

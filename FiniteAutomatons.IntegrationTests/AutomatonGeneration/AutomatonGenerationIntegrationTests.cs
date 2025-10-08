@@ -1,8 +1,5 @@
-using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.ViewModel;
-using FiniteAutomatons.IntegrationTests;
 using FiniteAutomatons.Services.Interfaces;
-using FiniteAutomatons.Services.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
 using System.Net;
@@ -53,13 +50,11 @@ public class AutomatonGenerationIntegrationTests(IntegrationTestsFixture fixture
         
         if (postResponse.StatusCode == HttpStatusCode.OK)
         {
-            // If OK, check that the form was processed (not an error)
             var content = await postResponse.Content.ReadAsStringAsync();
             content.ShouldNotContain("Error occurred");
         }
         else
         {
-            // If redirect, should go to home page
             postResponse.Headers.Location?.ToString().ShouldContain("/");
         }
     }
@@ -84,13 +79,11 @@ public class AutomatonGenerationIntegrationTests(IntegrationTestsFixture fixture
         
         if (response.StatusCode == HttpStatusCode.OK)
         {
-            // If OK, check that the form was processed (not an error)
             var content = await response.Content.ReadAsStringAsync();
             content.ShouldNotContain("Error occurred");
         }
         else
         {
-            // If redirect, should go to home page
             response.Headers.Location?.ToString().ShouldContain("/");
         }
     }
@@ -133,6 +126,6 @@ public class AutomatonGenerationIntegrationTests(IntegrationTestsFixture fixture
         result.States.Count.ShouldBe(4);
         result.States.Count(s => s.IsStart).ShouldBe(1);
         result.IsCustomAutomaton.ShouldBeTrue();
-        result.Transitions.Count.ShouldBeGreaterThanOrEqualTo(4); // At least for connectivity
+        result.Transitions.Count.ShouldBeGreaterThanOrEqualTo(4);
     }
 }

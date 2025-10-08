@@ -1,8 +1,6 @@
-using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Services;
 using Shouldly;
-using System.Linq;
 
 namespace FiniteAutomatons.UnitTests.Services;
 
@@ -29,7 +27,7 @@ public class AutomatonGeneratorServiceTests
     public void ValidateGenerationParameters_TooManyTransitionsForDFA_ReturnsFalse()
     {
         // Act
-        var result = service.ValidateGenerationParameters(AutomatonType.DFA, 3, 10, 2); // Max would be 3*2=6
+        var result = service.ValidateGenerationParameters(AutomatonType.DFA, 3, 10, 2); 
 
         // Assert
         result.ShouldBeFalse();
@@ -62,13 +60,9 @@ public class AutomatonGeneratorServiceTests
         result.Alphabet.Count.ShouldBe(2);
         result.IsCustomAutomaton.ShouldBeTrue();
 
-        // Should have exactly one start state
         result.States.Count(s => s.IsStart).ShouldBe(1);
-
-        // Should have at least one accepting state
         result.States.Count(s => s.IsAccepting).ShouldBeGreaterThan(0);
 
-        // All transition symbols should be in alphabet
         foreach (var transition in result.Transitions)
         {
             if (transition.Symbol != '\0') // Not epsilon
@@ -82,7 +76,7 @@ public class AutomatonGeneratorServiceTests
     public void GenerateRandomAutomaton_NFA_CreatesValidAutomaton()
     {
         // Arrange
-        var seed = 54321; // Fixed seed for reproducible test
+        var seed = 54321; 
 
         // Act
         var result = service.GenerateRandomAutomaton(AutomatonType.NFA, 3, 5, 2, 0.33, seed);
@@ -94,7 +88,6 @@ public class AutomatonGeneratorServiceTests
         result.Transitions.Count.ShouldBeLessThanOrEqualTo(5);
         result.Alphabet.Count.ShouldBe(2);
 
-        // Should have exactly one start state
         result.States.Count(s => s.IsStart).ShouldBe(1);
     }
 
@@ -113,10 +106,7 @@ public class AutomatonGeneratorServiceTests
         result.States.Count.ShouldBe(4);
         result.Alphabet.Count.ShouldBe(3);
 
-        // Should have exactly one start state
         result.States.Count(s => s.IsStart).ShouldBe(1);
-
-        // May have epsilon transitions (symbol = '\0')
         var hasEpsilonTransitions = result.Transitions.Any(t => t.Symbol == '\0');
         // Note: This is probabilistic, so we just check it doesn't crash
     }
@@ -136,7 +126,6 @@ public class AutomatonGeneratorServiceTests
         result1.Transitions.Count.ShouldBe(result2.Transitions.Count);
         result1.Alphabet.Count.ShouldBe(result2.Alphabet.Count);
 
-        // States should be identical
         for (int i = 0; i < result1.States.Count; i++)
         {
             result1.States[i].Id.ShouldBe(result2.States[i].Id);
@@ -155,15 +144,12 @@ public class AutomatonGeneratorServiceTests
         result.ShouldNotBeNull();
         result.Type.ShouldBe(AutomatonType.DFA);
         result.States.Count.ShouldBe(5);
-        result.Transitions.Count.ShouldBeGreaterThanOrEqualTo(5); // At least state count for connectivity
-        result.Alphabet.Count.ShouldBeInRange(3, 6); // Realistic alphabet size
+        result.Transitions.Count.ShouldBeGreaterThanOrEqualTo(5); 
+        result.Alphabet.Count.ShouldBeInRange(3, 6);
 
-        // Should have exactly one start state
         result.States.Count(s => s.IsStart).ShouldBe(1);
-
-        // Should have reasonable number of accepting states
         var acceptingCount = result.States.Count(s => s.IsAccepting);
-        acceptingCount.ShouldBeInRange(1, 4); // 20-60% of 5 states
+        acceptingCount.ShouldBeInRange(1, 4); 
     }
 
     [Fact]
@@ -174,7 +160,7 @@ public class AutomatonGeneratorServiceTests
             service.GenerateRandomAutomaton(AutomatonType.DFA, 0, 5, 2));
 
         Should.Throw<ArgumentException>(() => 
-            service.GenerateRandomAutomaton(AutomatonType.DFA, 3, 10, 2)); // Too many transitions for DFA
+            service.GenerateRandomAutomaton(AutomatonType.DFA, 3, 10, 2)); 
     }
 
     [Fact]
@@ -185,7 +171,6 @@ public class AutomatonGeneratorServiceTests
             service.GenerateRealisticAutomaton(AutomatonType.DFA, 0));
     }
 
-    // NEW TESTS: verify every alphabet symbol is used at least once in transitions
     [Theory]
     [InlineData(AutomatonType.DFA, 5, 10, 4, 0.4, 1001)]
     [InlineData(AutomatonType.NFA, 5, 12, 4, 0.4, 1002)]
@@ -194,11 +179,10 @@ public class AutomatonGeneratorServiceTests
     {
         var model = service.GenerateRandomAutomaton(type, stateCount, transitionCount, alphabetSize, acceptingRatio, seed);
 
-        model.Alphabet.Count.ShouldBe(alphabetSize); // derived alphabet matches requested size
+        model.Alphabet.Count.ShouldBe(alphabetSize); 
 
-        // Gather non-epsilon symbols actually used in transitions
         var usedSymbols = model.Transitions.Where(t => t.Symbol != '\0').Select(t => t.Symbol).Distinct().ToHashSet();
-        usedSymbols.Count.ShouldBe(alphabetSize); // every alphabet letter appears at least once
+        usedSymbols.Count.ShouldBe(alphabetSize); 
 
         foreach (var c in model.Alphabet)
         {
@@ -214,7 +198,7 @@ public class AutomatonGeneratorServiceTests
     {
         int alphabetSize = 4;
         int stateCount = 5;
-        int transitionCount = 12; // plenty to allow coverage
+        int transitionCount = 12; 
         double acceptingRatio = 0.4;
 
         for (int seed = 2000; seed < 2005; seed++)
@@ -222,7 +206,7 @@ public class AutomatonGeneratorServiceTests
             var model = service.GenerateRandomAutomaton(type, stateCount, transitionCount, alphabetSize, acceptingRatio, seed);
             model.Alphabet.Count.ShouldBe(alphabetSize);
             var usedSymbols = model.Transitions.Where(t => t.Symbol != '\0').Select(t => t.Symbol).Distinct().OrderBy(c => c).ToList();
-            usedSymbols.Count.ShouldBe(alphabetSize); // every symbol appears
+            usedSymbols.Count.ShouldBe(alphabetSize); 
         }
     }
 }

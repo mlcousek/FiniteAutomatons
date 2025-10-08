@@ -270,7 +270,6 @@ public class AutomatonCreationIntegrationTests(IntegrationTestsFixture fixture) 
         // Arrange
         var client = GetHttpClient();
 
-        // Add first state (start)
         var firstStateData = new List<KeyValuePair<string, string>>
         {
             new("stateId", "1"),
@@ -282,11 +281,9 @@ public class AutomatonCreationIntegrationTests(IntegrationTestsFixture fixture) 
         var response1 = await client.PostAsync("/Automaton/AddState", new FormUrlEncodedContent(firstStateData));
         var html1 = await response1.Content.ReadAsStringAsync();
 
-        // Verify first state is added and marked as start
         Assert.Contains("State 1", html1);
         Assert.Contains("Start", html1);
 
-        // Add second state (accepting) - THIS IS THE CRITICAL TEST
         var secondStateData = new List<KeyValuePair<string, string>>
         {
             new("States[0].Id", "1"),
@@ -304,15 +301,10 @@ public class AutomatonCreationIntegrationTests(IntegrationTestsFixture fixture) 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response2.StatusCode);
 
-        // CRITICAL: Both states should be present
         Assert.Contains("State 1", html2);
         Assert.Contains("State 2", html2);
-
-        // CRITICAL: First state should still be marked as start
         Assert.Contains("Start", html2); // State 1 should still have Start badge
         Assert.Contains("Accept", html2); // State 2 should have Accept badge
-
-        // Verify state count
         Assert.Contains("States (2)", html2);
     }
 }

@@ -34,7 +34,6 @@ public class AutomatonTests
         Should.Throw<InvalidOperationException>(() => builder.WithState(state2));
     }
 
-#nullable disable
     [Fact]
     public void AddState_NullState_ShouldThrowArgumentNullException()
     {
@@ -42,9 +41,8 @@ public class AutomatonTests
         var automaton = new TestAutomatonBuilder().Build();
 
         // Act & Assert
-        Should.Throw<ArgumentNullException>(() => automaton.AddState(null));
+        Should.Throw<ArgumentNullException>(() => automaton.AddState(null!));
     }
-#nullable enable
 
     [Fact]
     public void SetStartState_ValidStateId_ShouldSetStartState()
@@ -98,7 +96,6 @@ public class AutomatonTests
         result.ShouldContain(transition);
     }
 
-#nullable disable
     [Fact]
     public void AddTransition_NullTransition_ShouldThrowArgumentNullException()
     {
@@ -106,9 +103,8 @@ public class AutomatonTests
         var automaton = new TestAutomatonBuilder().Build();
 
         // Act & Assert
-        Should.Throw<ArgumentNullException>(() => automaton.AddTransition(null));
+        Should.Throw<ArgumentNullException>(() => automaton.AddTransition(null!));
     }
-#nullable enable
 
     [Fact]
     public void AddTransition_InvalidFromStateId_ShouldThrowArgumentException()
@@ -290,4 +286,3 @@ public class TestAutomatonBuilder
         }
     }
 }
-

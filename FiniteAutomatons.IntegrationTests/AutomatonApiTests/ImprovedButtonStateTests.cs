@@ -1,4 +1,3 @@
-using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.ViewModel;
 using Shouldly;
 using System.Net;
@@ -13,10 +12,6 @@ public class ImprovedButtonStateTests(IntegrationTestsFixture fixture) : Integra
     {
         var client = GetHttpClient();
 
-        // Test that reset is only enabled after execution starts
-        // This verifies our logic change from "hasInput" to "hasExecutionStarted"
-        
-        // Create a simple DFA
         var dfaModel = new AutomatonViewModel
         {
             Type = AutomatonType.DFA,
@@ -34,26 +29,18 @@ public class ImprovedButtonStateTests(IntegrationTestsFixture fixture) : Integra
             IsCustomAutomaton = true
         };
 
-        // Step forward to start execution
         var response = await PostAutomatonForm(client, "/Automaton/StepForward", dfaModel);
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         var content = await response.Content.ReadAsStringAsync();
         
-        // After stepping forward, execution has started, so Reset should be available
-        // We can verify this by checking that Reset button doesn't have "disabled" class
         content.ShouldContain("formaction=\"/Automaton/Reset\"");
-        
-        // The page should show current execution state
         content.ShouldContain("Current State");
     }
 
     [Fact]
     public async Task InputValidation_ButtonLogicWorksCorrectly()
     {
-        // This test verifies our button state logic through server-side validation
-        // The actual input validation UI behavior is tested by JavaScript and our unit tests
-        
         var client = GetHttpClient();
 
         var dfaModel = new AutomatonViewModel
@@ -73,18 +60,16 @@ public class ImprovedButtonStateTests(IntegrationTestsFixture fixture) : Integra
             IsCustomAutomaton = true
         };
 
-        // Valid input should allow stepping forward
         var response = await PostAutomatonForm(client, "/Automaton/StepForward", dfaModel);
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         var content = await response.Content.ReadAsStringAsync();
         
-        // Should show successful execution
         content.ShouldNotContain("Error occurred");
         content.ShouldContain("Current State");
     }
 
-    private async Task<HttpResponseMessage> PostAutomatonForm(HttpClient client, string url, AutomatonViewModel model)
+    private static async Task<HttpResponseMessage> PostAutomatonForm(HttpClient client, string url, AutomatonViewModel model)
     {
         var formData = new List<KeyValuePair<string, string>>
         {
@@ -113,7 +98,6 @@ public class ImprovedButtonStateTests(IntegrationTestsFixture fixture) : Integra
             formData.Add(new("IsAccepted", model.IsAccepted.Value.ToString().ToLower()));
         }
 
-        // Add states
         for (int i = 0; i < model.States.Count; i++)
         {
             var state = model.States[i];
@@ -122,7 +106,6 @@ public class ImprovedButtonStateTests(IntegrationTestsFixture fixture) : Integra
             formData.Add(new($"States[{i}].IsAccepting", state.IsAccepting.ToString().ToLower()));
         }
 
-        // Add transitions
         for (int i = 0; i < model.Transitions.Count; i++)
         {
             var transition = model.Transitions[i];
@@ -131,7 +114,6 @@ public class ImprovedButtonStateTests(IntegrationTestsFixture fixture) : Integra
             formData.Add(new($"Transitions[{i}].Symbol", transition.Symbol == '\0' ? "?" : transition.Symbol.ToString()));
         }
 
-        // Add alphabet
         for (int i = 0; i < model.Alphabet.Count; i++)
         {
             formData.Add(new($"Alphabet[{i}]", model.Alphabet[i].ToString()));

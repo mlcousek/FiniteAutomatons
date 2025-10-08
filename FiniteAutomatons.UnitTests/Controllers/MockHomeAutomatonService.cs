@@ -1,4 +1,3 @@
-using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Interfaces;
 
@@ -8,7 +7,6 @@ public class MockHomeAutomatonService : IHomeAutomatonService
 {
     public AutomatonViewModel GenerateDefaultAutomaton()
     {
-        // Return a predictable test automaton
         return new AutomatonViewModel
         {
             Type = AutomatonType.DFA,

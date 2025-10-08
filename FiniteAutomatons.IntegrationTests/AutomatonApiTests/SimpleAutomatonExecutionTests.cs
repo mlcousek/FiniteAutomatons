@@ -1,4 +1,3 @@
-using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.ViewModel;
 using Shouldly;
 using System.Net;
@@ -31,7 +30,6 @@ public class SimpleAutomatonExecutionTests(IntegrationTestsFixture fixture) : In
 
         var client = GetHttpClient();
 
-        // Test cases
         var testCases = new[]
         {
             ("a", true),     // Ends with 'a'
@@ -83,7 +81,6 @@ public class SimpleAutomatonExecutionTests(IntegrationTestsFixture fixture) : In
 
         var client = GetHttpClient();
 
-        // Test cases
         var testCases = new[]
         {
             ("ab", true),    // Can reach accepting state
@@ -134,7 +131,6 @@ public class SimpleAutomatonExecutionTests(IntegrationTestsFixture fixture) : In
 
         var client = GetHttpClient();
 
-        // Test cases
         var testCases = new[]
         {
             ("a", true),     // Through epsilon transition then 'a'
@@ -236,7 +232,6 @@ public class SimpleAutomatonExecutionTests(IntegrationTestsFixture fixture) : In
         else
         {
             var content = await response.Content.ReadAsStringAsync();
-            // Check that it's not an error response
             content.ShouldNotContain("Error occurred");
         }
     }
@@ -279,9 +274,7 @@ public class SimpleAutomatonExecutionTests(IntegrationTestsFixture fixture) : In
         }
     }
 
-    #region Helper Methods
-
-    private async Task<HttpResponseMessage> PostAutomatonForm(HttpClient client, string url, AutomatonViewModel model)
+    private static async Task<HttpResponseMessage> PostAutomatonForm(HttpClient client, string url, AutomatonViewModel model)
     {
         var formData = new List<KeyValuePair<string, string>>
         {
@@ -310,7 +303,6 @@ public class SimpleAutomatonExecutionTests(IntegrationTestsFixture fixture) : In
             formData.Add(new("IsAccepted", model.IsAccepted.Value.ToString().ToLower()));
         }
 
-        // Add states
         for (int i = 0; i < model.States.Count; i++)
         {
             var state = model.States[i];
@@ -319,7 +311,6 @@ public class SimpleAutomatonExecutionTests(IntegrationTestsFixture fixture) : In
             formData.Add(new($"States[{i}].IsAccepting", state.IsAccepting.ToString().ToLower()));
         }
 
-        // Add transitions
         for (int i = 0; i < model.Transitions.Count; i++)
         {
             var transition = model.Transitions[i];
@@ -328,7 +319,6 @@ public class SimpleAutomatonExecutionTests(IntegrationTestsFixture fixture) : In
             formData.Add(new($"Transitions[{i}].Symbol", transition.Symbol == '\0' ? "?" : transition.Symbol.ToString()));
         }
 
-        // Add alphabet
         for (int i = 0; i < model.Alphabet.Count; i++)
         {
             formData.Add(new($"Alphabet[{i}]", model.Alphabet[i].ToString()));
@@ -337,6 +327,4 @@ public class SimpleAutomatonExecutionTests(IntegrationTestsFixture fixture) : In
         var formContent = new FormUrlEncodedContent(formData);
         return await client.PostAsync(url, formContent);
     }
-
-    #endregion
 }

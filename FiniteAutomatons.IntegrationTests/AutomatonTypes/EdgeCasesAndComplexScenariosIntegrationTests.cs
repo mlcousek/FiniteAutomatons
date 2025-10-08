@@ -3,9 +3,6 @@ namespace FiniteAutomatons.IntegrationTests.AutomatonTypes;
 [Collection("Integration Tests")]
 public class EdgeCasesAndComplexScenariosIntegrationTests(IntegrationTestsFixture fixture) : IntegrationTestsBase(fixture)
 {
-
-    #region Edge Cases and Boundary Conditions
-
     [Fact]
     public async Task EpsilonNFA_OnlyEpsilonTransitions_AcceptsEmptyString()
     {
@@ -25,7 +22,6 @@ public class EdgeCasesAndComplexScenariosIntegrationTests(IntegrationTestsFixtur
             new("States[2].IsStart", "false"),
             new("States[2].IsAccepting", "true"),
             
-            // Only epsilon transitions
             new("Transitions[0].FromStateId", "1"),
             new("Transitions[0].ToStateId", "2"),
             new("Transitions[0].Symbol", "\0"),
@@ -38,7 +34,6 @@ public class EdgeCasesAndComplexScenariosIntegrationTests(IntegrationTestsFixtur
 
         await client.PostAsync("/Automaton/CreateAutomaton", new FormUrlEncodedContent(epsilonOnlyNfaData));
 
-        // Check if automaton was created successfully
         var homeResponse = await client.GetAsync("/Home");
         var homeHtml = await homeResponse.Content.ReadAsStringAsync();
 
@@ -56,7 +51,7 @@ public class EdgeCasesAndComplexScenariosIntegrationTests(IntegrationTestsFixtur
 
             Assert.Contains("Accepted", html);
             Assert.Contains("Current States:", html);
-            Assert.Contains("3", html); // Should reach accepting state through epsilon closure
+            Assert.Contains("3", html); 
         }
         else
         {
@@ -67,7 +62,6 @@ public class EdgeCasesAndComplexScenariosIntegrationTests(IntegrationTestsFixtur
     [Fact]
     public async Task NFA_SelfLoopOnlyAutomaton_InfiniteLanguage()
     {
-        // Test NFA with only self-loops accepting infinite language
         var client = GetHttpClient();
 
         var selfLoopNfaData = new List<KeyValuePair<string, string>>
@@ -77,7 +71,6 @@ public class EdgeCasesAndComplexScenariosIntegrationTests(IntegrationTestsFixtur
             new("States[0].IsStart", "true"),
             new("States[0].IsAccepting", "true"), // Both start and accepting
             
-            // Self-loops on multiple symbols
             new("Transitions[0].FromStateId", "1"),
             new("Transitions[0].ToStateId", "1"),
             new("Transitions[0].Symbol", "a"),
@@ -95,7 +88,6 @@ public class EdgeCasesAndComplexScenariosIntegrationTests(IntegrationTestsFixtur
 
         await client.PostAsync("/Automaton/CreateAutomaton", new FormUrlEncodedContent(selfLoopNfaData));
 
-        // Test various strings - all should be accepted
         var testInputs = new[] { "", "a", "abc", "cba", "aaaaaa", "bcbcbc", "abcabcabc" };
 
         foreach (var input in testInputs)
@@ -116,7 +108,6 @@ public class EdgeCasesAndComplexScenariosIntegrationTests(IntegrationTestsFixtur
     [Fact]
     public async Task EpsilonNFA_EpsilonCycles_HandledCorrectly()
     {
-        // Test ?-NFA with epsilon cycles (potential infinite loops)
         var client = GetHttpClient();
 
         var cyclicEpsilonNfaData = new List<KeyValuePair<string, string>>
@@ -165,14 +156,12 @@ public class EdgeCasesAndComplexScenariosIntegrationTests(IntegrationTestsFixtur
         var html = await response.Content.ReadAsStringAsync();
         Assert.Contains("Accepted", html);
 
-        // Should handle epsilon cycles without infinite loops
         Assert.True(executionTime.TotalSeconds < 5, "Epsilon cycle handling took too long - possible infinite loop");
     }
 
     [Fact]
     public async Task NFA_AllStatesAccepting_UniversalLanguage()
     {
-        // Test NFA where all states are accepting (universal language)
         var client = GetHttpClient();
 
         var universalNfaData = new List<KeyValuePair<string, string>>
@@ -188,7 +177,6 @@ public class EdgeCasesAndComplexScenariosIntegrationTests(IntegrationTestsFixtur
             new("States[2].IsStart", "false"),
             new("States[2].IsAccepting", "true"),
             
-            // Transitions covering all symbols between all states
             new("Transitions[0].FromStateId", "1"),
             new("Transitions[0].ToStateId", "2"),
             new("Transitions[0].Symbol", "a"),
@@ -214,7 +202,6 @@ public class EdgeCasesAndComplexScenariosIntegrationTests(IntegrationTestsFixtur
 
         await client.PostAsync("/Automaton/CreateAutomaton", new FormUrlEncodedContent(universalNfaData));
 
-        // Test many different strings - all should be accepted
         var testInputs = new[] { "", "a", "b", "ab", "ba", "aaaa", "bbbb", "abab", "baba", "aabbbaaba" };
 
         foreach (var input in testInputs)
@@ -232,14 +219,9 @@ public class EdgeCasesAndComplexScenariosIntegrationTests(IntegrationTestsFixtur
         }
     }
 
-    #endregion
-
-    #region Complex State Space Exploration
-
     [Fact]
     public async Task NFA_ExponentialStateSpace_ManagedEfficiently()
     {
-        // Create NFA where nondeterministic choices lead to exponential state space in equivalent DFA
         var client = GetHttpClient();
 
         var exponentialNfaData = new List<KeyValuePair<string, string>>
@@ -261,7 +243,6 @@ public class EdgeCasesAndComplexScenariosIntegrationTests(IntegrationTestsFixtur
             new("States[4].IsStart", "false"),
             new("States[4].IsAccepting", "true"),
             
-            // Create nondeterministic structure: each 'a' can stay or advance
             new("Transitions[0].FromStateId", "1"),
             new("Transitions[0].ToStateId", "1"),
             new("Transitions[0].Symbol", "a"),
@@ -287,7 +268,6 @@ public class EdgeCasesAndComplexScenariosIntegrationTests(IntegrationTestsFixtur
             new("Transitions[7].ToStateId", "5"),
             new("Transitions[7].Symbol", "a"),
             
-            // Add some 'b' transitions for complexity
             new("Transitions[8].FromStateId", "1"),
             new("Transitions[8].ToStateId", "3"),
             new("Transitions[8].Symbol", "b"),
@@ -304,7 +284,6 @@ public class EdgeCasesAndComplexScenariosIntegrationTests(IntegrationTestsFixtur
 
         await client.PostAsync("/Automaton/CreateAutomaton", new FormUrlEncodedContent(exponentialNfaData));
 
-        // Test with strings that explore the exponential state space
         var complexInputs = new[]
         {
             ("aaaa", true),      // Should reach accepting state
@@ -341,7 +320,6 @@ public class EdgeCasesAndComplexScenariosIntegrationTests(IntegrationTestsFixtur
                 Assert.Contains("Rejected", html);
             }
 
-            // Should handle exponential complexity efficiently
             Assert.True(executionTime.TotalSeconds < 5,
                 $"Complex NFA execution took too long for input '{input}': {executionTime.TotalSeconds} seconds");
         }
@@ -350,7 +328,6 @@ public class EdgeCasesAndComplexScenariosIntegrationTests(IntegrationTestsFixtur
     [Fact]
     public async Task EpsilonNFA_DeepEpsilonChains_CorrectClosure()
     {
-        // Test ?-NFA with deep chains of epsilon transitions
         var client = GetHttpClient();
 
         var deepEpsilonNfaData = new List<KeyValuePair<string, string>>
@@ -411,7 +388,6 @@ public class EdgeCasesAndComplexScenariosIntegrationTests(IntegrationTestsFixtur
 
         await client.PostAsync("/Automaton/CreateAutomaton", new FormUrlEncodedContent(deepEpsilonNfaData));
 
-        // Check if automaton was created successfully
         var homeResponse = await client.GetAsync("/Home");
         var homeHtml = await homeResponse.Content.ReadAsStringAsync();
 
@@ -429,7 +405,7 @@ public class EdgeCasesAndComplexScenariosIntegrationTests(IntegrationTestsFixtur
 
             Assert.Contains("Accepted", html);
             Assert.Contains("Current States:", html);
-            Assert.Contains("7", html); // Should reach the final accepting state through deep epsilon closure
+            Assert.Contains("7", html); 
         }
         else
         {
@@ -437,14 +413,10 @@ public class EdgeCasesAndComplexScenariosIntegrationTests(IntegrationTestsFixtur
         }
     }
 
-    #endregion
-
-    #region Complex Language Constructions
-
     [Fact]
     public async Task NFA_RegexLikePatterns_QuantifiersAndAlternation()
     {
-        // Create NFA equivalent to regex: (a|b)*a(a|b)
+        // Create NFA equivalent to regex: (a|b)*a(a|b)  //TODO regex
         // Language: strings ending with 'a' followed by any symbol
         var client = GetHttpClient();
 
@@ -531,8 +503,6 @@ public class EdgeCasesAndComplexScenariosIntegrationTests(IntegrationTestsFixtur
     [Fact]
     public async Task EpsilonNFA_NestedStructures_ComplexLanguage()
     {
-        // Create ?-NFA for nested structure language: properly nested 'a' and 'b' (simplified)
-        // Like balanced parentheses but with 'a' as open and 'b' as close
         var client = GetHttpClient();
 
         var nestedNfaData = new List<KeyValuePair<string, string>>
@@ -551,7 +521,6 @@ public class EdgeCasesAndComplexScenariosIntegrationTests(IntegrationTestsFixtur
             new("States[3].IsStart", "false"),
             new("States[3].IsAccepting", "false"),
             
-            // Transitions for balanced structure
             new("Transitions[0].FromStateId", "1"),
             new("Transitions[0].ToStateId", "2"),
             new("Transitions[0].Symbol", "a"), // open
@@ -565,7 +534,6 @@ public class EdgeCasesAndComplexScenariosIntegrationTests(IntegrationTestsFixtur
             new("Transitions[3].ToStateId", "2"),
             new("Transitions[3].Symbol", "b"), // close one level
             
-            // Error transitions (too many closes)
             new("Transitions[4].FromStateId", "1"),
             new("Transitions[4].ToStateId", "4"),
             new("Transitions[4].Symbol", "b"), // close without open
@@ -576,7 +544,6 @@ public class EdgeCasesAndComplexScenariosIntegrationTests(IntegrationTestsFixtur
             new("Transitions[6].ToStateId", "4"),
             new("Transitions[6].Symbol", "b"), // stuck in error
             
-            // Epsilon transitions for more complex structure
             new("Transitions[7].FromStateId", "1"),
             new("Transitions[7].ToStateId", "1"),
             new("Transitions[7].Symbol", "\0"), // can stay balanced
@@ -587,7 +554,6 @@ public class EdgeCasesAndComplexScenariosIntegrationTests(IntegrationTestsFixtur
 
         await client.PostAsync("/Automaton/CreateAutomaton", new FormUrlEncodedContent(nestedNfaData));
 
-        // Test balanced/unbalanced strings
         var nestedTests = new[]
         {
             ("", true),         // empty is balanced
@@ -624,6 +590,4 @@ public class EdgeCasesAndComplexScenariosIntegrationTests(IntegrationTestsFixtur
             }
         }
     }
-
-    #endregion
 }

@@ -190,8 +190,6 @@ public class NFATests
         nfa.Execute("b").ShouldBeFalse();
     }
 
-    ////////// Execute All tests for NFA
-
     [Fact]
     public void ExecuteAll_ProcessesEntireInputAndSetsIsAccepted()
     {
@@ -225,8 +223,6 @@ public class NFATests
         state.Position.ShouldBe(0);
         state.IsAccepted.ShouldBe(true);
     }
-
-    ////////// Step Forward tests for NFA
 
     [Fact]
     public void StepForward_ValidTransition_UpdatesStatesAndPosition()
@@ -277,8 +273,6 @@ public class NFATests
         state.IsAccepted.ShouldBe(true);
     }
 
-    //////////// Start Execution tests for NFA
-
     [Fact]
     public void StartExecution_WithValidStartState_ShouldInitializeStateCorrectly()
     {
@@ -325,8 +319,6 @@ public class NFATests
         execState.IsAccepted.ShouldBeNull();
         execState.IsFinished.ShouldBeTrue();
     }
-
-    ////////// Step Backward tests for NFA
 
     [Fact]
     public void StepBackward_AfterStepForward_RestoresPreviousStateAndPosition()
@@ -401,7 +393,6 @@ public class NFATests
         state.CurrentStates.ShouldContain(1);
     }
 
-    // Aditional test for Epsilon NFA 
     [Fact]
     public void StepForward_PushesCurrentStatesToHistory_NFA()
     {
@@ -489,7 +480,7 @@ public class NFATests
         var state = nfa.StartExecution("a");
         nfa.StepForward(state); // Move to state 2, pos 1
         state.IsAccepted = true; // Simulate acceptance
-        state.StateHistory.Push(new HashSet<int> { 1 }); // Simulate history
+        state.StateHistory.Push([1]); // Simulate history
 
         // Act
         nfa.BackToStart(state);
@@ -631,10 +622,8 @@ public class NFATests
         dfa.Execute("b").ShouldBeTrue();
         dfa.Execute("").ShouldBeFalse();
 
-        // DFA should have no more states than 2^NFA states (here, at most 4)
         dfa.States.Count.ShouldBeLessThanOrEqualTo(4);
 
-        // DFA should have a single start state
         dfa.States.Count(s => s.IsStart).ShouldBe(1);
     }
 

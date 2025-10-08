@@ -3,21 +3,19 @@ using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Interfaces;
 using FiniteAutomatons.Services.Services;
-using FiniteAutomatons.UnitTests.Controllers;
-using Microsoft.Extensions.Logging;
 using Shouldly;
 
 namespace FiniteAutomatons.UnitTests.Services;
 
 public class AutomatonConversionServiceTests
 {
-    private readonly AutomatonConversionService _service;
+    private readonly AutomatonConversionService service;
 
     public AutomatonConversionServiceTests()
     {
         var mockBuilderService = new MockAutomatonBuilderService();
         var logger = new TestLogger<AutomatonConversionService>();
-        _service = new AutomatonConversionService(mockBuilderService, logger);
+        service = new AutomatonConversionService(mockBuilderService, logger);
     }
 
     [Fact]
@@ -39,7 +37,7 @@ public class AutomatonConversionServiceTests
         };
 
         // Act
-        var (convertedModel, warnings) = _service.ConvertAutomatonType(model, AutomatonType.NFA);
+        var (convertedModel, warnings) = service.ConvertAutomatonType(model, AutomatonType.NFA);
 
         // Assert
         convertedModel.Type.ShouldBe(AutomatonType.NFA);
@@ -68,7 +66,7 @@ public class AutomatonConversionServiceTests
         };
 
         // Act
-        var (convertedModel, warnings) = _service.ConvertAutomatonType(model, AutomatonType.NFA);
+        var (convertedModel, warnings) = service.ConvertAutomatonType(model, AutomatonType.NFA);
 
         // Assert
         convertedModel.Type.ShouldBe(AutomatonType.NFA);
@@ -91,7 +89,7 @@ public class AutomatonConversionServiceTests
         };
 
         // Act
-        var result = _service.ConvertToDFA(model);
+        var result = service.ConvertToDFA(model);
 
         // Assert
         result.ShouldBe(model);
@@ -102,7 +100,6 @@ public class MockAutomatonBuilderService : IAutomatonBuilderService
 {
     public Automaton CreateAutomatonFromModel(AutomatonViewModel model)
     {
-        // Mock implementation - return a DFA for simplicity
         var dfa = new DFA();
         foreach (var state in model.States ?? [])
         {

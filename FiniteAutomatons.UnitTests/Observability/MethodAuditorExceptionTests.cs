@@ -19,9 +19,6 @@ public class MethodAuditorExceptionTests
             {
                 await Task.Delay(1);
                 throw new InvalidOperationException("boom");
-#pragma warning disable CS0162
-                return Task.FromResult(0);
-#pragma warning restore CS0162
             });
         });
 

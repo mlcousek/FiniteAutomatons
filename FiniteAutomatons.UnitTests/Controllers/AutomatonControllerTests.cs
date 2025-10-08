@@ -1,12 +1,10 @@
 using FiniteAutomatons.Controllers;
 using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.ViewModel;
-using FiniteAutomatons.Services.Interfaces;
 using FiniteAutomatons.Services.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
-using Microsoft.Extensions.Logging;
 using Shouldly;
 
 namespace FiniteAutomatons.UnitTests.Controllers;
@@ -28,7 +26,6 @@ public class AutomatonControllerTests
         controller = new AutomatonController(logger, mockGeneratorService, mockTempDataService,
             mockValidationService, mockConversionService, mockExecutionService, mockEditingService);
 
-        // Setup TempData
         var httpContext = new DefaultHttpContext();
         var tempData = new TempDataDictionary(httpContext, new TestTempDataProvider());
         controller.TempData = tempData;

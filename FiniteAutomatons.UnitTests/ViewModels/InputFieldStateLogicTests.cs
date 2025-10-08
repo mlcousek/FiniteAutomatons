@@ -1,4 +1,3 @@
-using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.ViewModel;
 using Shouldly;
 
@@ -24,9 +23,8 @@ public class InputFieldStateLogicTests
         // Act & Assert - Test the input field logic from the view
         bool isInputDisabled = model.Position > 0 || model.Result != null ||
                              (model.Type == AutomatonType.DFA && model.CurrentStateId != null) ||
-                             (model.Type != AutomatonType.DFA && model.CurrentStates != null && model.CurrentStates.Any());
+                             (model.Type != AutomatonType.DFA && model.CurrentStates != null && model.CurrentStates.Count != 0);
 
-        // Input field should be enabled at start
         isInputDisabled.ShouldBeFalse();
     }
 
@@ -48,9 +46,8 @@ public class InputFieldStateLogicTests
         // Act & Assert
         bool isInputDisabled = model.Position > 0 || model.Result != null ||
                              (model.Type == AutomatonType.DFA && model.CurrentStateId != null) ||
-                             (model.Type != AutomatonType.DFA && model.CurrentStates != null && model.CurrentStates.Any());
+                             (model.Type != AutomatonType.DFA && model.CurrentStates != null && model.CurrentStates.Count != 0);
 
-        // Input field should be disabled during execution
         isInputDisabled.ShouldBeTrue();
     }
 
@@ -72,9 +69,8 @@ public class InputFieldStateLogicTests
         // Act & Assert
         bool isInputDisabled = model.Position > 0 || model.Result != null ||
                              (model.Type == AutomatonType.DFA && model.CurrentStateId != null) ||
-                             (model.Type != AutomatonType.DFA && model.CurrentStates != null && model.CurrentStates.Any());
+                             (model.Type != AutomatonType.DFA && model.CurrentStates != null && model.CurrentStates.Count != 0);
 
-        // Input field should be disabled when result is present
         isInputDisabled.ShouldBeTrue();
     }
 
@@ -96,9 +92,8 @@ public class InputFieldStateLogicTests
         // Act & Assert
         bool isInputDisabled = model.Position > 0 || model.Result != null ||
                              (model.Type == AutomatonType.DFA && model.CurrentStateId != null) ||
-                             (model.Type != AutomatonType.DFA && model.CurrentStates != null && model.CurrentStates.Any());
+                             (model.Type != AutomatonType.DFA && model.CurrentStates != null && model.CurrentStates.Count != 0);
 
-        // Input field should be disabled when current states are set
         isInputDisabled.ShouldBeTrue();
     }
 
@@ -120,9 +115,8 @@ public class InputFieldStateLogicTests
         // Act & Assert
         bool isInputDisabled = model.Position > 0 || model.Result != null ||
                              (model.Type == AutomatonType.DFA && model.CurrentStateId != null) ||
-                             (model.Type != AutomatonType.DFA && model.CurrentStates != null && model.CurrentStates.Any());
+                             (model.Type != AutomatonType.DFA && model.CurrentStates != null && model.CurrentStates.Count != 0);
 
-        // Input field should be enabled after reset
         isInputDisabled.ShouldBeFalse();
     }
 }

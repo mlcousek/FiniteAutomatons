@@ -1,5 +1,4 @@
-﻿using FiniteAutomatons.Core.Models.DoMain;
-using FiniteAutomatons.Core.Models.ViewModel;
+﻿using FiniteAutomatons.Core.Models.ViewModel;
 using Shouldly;
 using System.Net;
 
@@ -13,7 +12,6 @@ public class ResetFunctionalityTests(IntegrationTestsFixture fixture) : Integrat
     {
         var client = GetHttpClient();
 
-        // Create a simple DFA with alphabet
         var dfaModel = new AutomatonViewModel
         {
             Type = AutomatonType.DFA,
@@ -34,25 +32,20 @@ public class ResetFunctionalityTests(IntegrationTestsFixture fixture) : Integrat
             IsCustomAutomaton = true
         };
 
-        // Test Reset action
         var response = await PostAutomatonForm(client, "/Automaton/Reset", dfaModel);
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         var content = await response.Content.ReadAsStringAsync();
         
-        // Verify alphabet is preserved - should still show 'a' and 'b' badges
         content.ShouldContain("<span class=\"badge bg-info me-2 mb-1\">a</span>");
         content.ShouldContain("<span class=\"badge bg-info me-2 mb-1\">b</span>");
         
-        // Verify states are preserved
         content.ShouldContain("State 1");
         content.ShouldContain("State 2");
         
-        // Verify transitions are preserved
         content.ShouldContain("1 --a--> 2");
         content.ShouldContain("2 --b--> 1");
         
-        // Verify input is cleared (no value in input field)
         content.ShouldNotContain("value=\"ababab\"");
     }
 
@@ -85,14 +78,11 @@ public class ResetFunctionalityTests(IntegrationTestsFixture fixture) : Integrat
 
         var content = await response.Content.ReadAsStringAsync();
         
-        // Should show 'a' in alphabet
         content.ShouldContain("<span class=\"badge bg-info me-2 mb-1\">a</span>");
         
-        // Should show epsilon transition
         content.ShouldContain("1 --&#x3B5;--> 2");
         content.ShouldContain("1 --a--> 2");
         
-        // Input should be cleared
         content.ShouldNotContain("value=\"test\"");
     }
 
@@ -119,10 +109,9 @@ public class ResetFunctionalityTests(IntegrationTestsFixture fixture) : Integrat
 
         var content = await response.Content.ReadAsStringAsync();
         content.ShouldContain("State 1");
-        // Should not crash and should work normally
     }
 
-    private async Task<HttpResponseMessage> PostAutomatonForm(HttpClient client, string url, AutomatonViewModel model)
+    private static async Task<HttpResponseMessage> PostAutomatonForm(HttpClient client, string url, AutomatonViewModel model)
     {
         var formData = new List<KeyValuePair<string, string>>
         {
@@ -151,7 +140,6 @@ public class ResetFunctionalityTests(IntegrationTestsFixture fixture) : Integrat
             formData.Add(new("IsAccepted", model.IsAccepted.Value.ToString().ToLower()));
         }
 
-        // Add states
         for (int i = 0; i < model.States.Count; i++)
         {
             var state = model.States[i];
@@ -160,7 +148,6 @@ public class ResetFunctionalityTests(IntegrationTestsFixture fixture) : Integrat
             formData.Add(new($"States[{i}].IsAccepting", state.IsAccepting.ToString().ToLower()));
         }
 
-        // Add transitions
         for (int i = 0; i < model.Transitions.Count; i++)
         {
             var transition = model.Transitions[i];
@@ -169,7 +156,6 @@ public class ResetFunctionalityTests(IntegrationTestsFixture fixture) : Integrat
             formData.Add(new($"Transitions[{i}].Symbol", transition.Symbol == '\0' ? "?" : transition.Symbol.ToString()));
         }
 
-        // Add alphabet
         for (int i = 0; i < model.Alphabet.Count; i++)
         {
             formData.Add(new($"Alphabet[{i}]", model.Alphabet[i].ToString()));

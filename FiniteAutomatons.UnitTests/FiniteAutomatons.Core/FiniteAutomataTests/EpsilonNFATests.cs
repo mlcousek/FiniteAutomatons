@@ -6,8 +6,6 @@ namespace FiniteAutomatons.UnitTests.FiniteAutomatons.Core.FiniteAutomataTests;
 
 public class EpsilonNFATests
 {
-    ////////// Execute method tests for EpsilonNFA
-    ///
     [Fact]
     public void Execute_ValidInput_ShouldReturnTrue()
     {
@@ -233,8 +231,6 @@ public class EpsilonNFATests
         result.ShouldBeTrue();
     }
 
-    ////////// Execute All tests for EpsilonNFA
-
     [Fact]
     public void ExecuteAll_ProcessesEntireInputAndSetsIsAccepted()
     {
@@ -268,8 +264,6 @@ public class EpsilonNFATests
         state.Position.ShouldBe(0);
         state.IsAccepted.ShouldBe(true);
     }
-
-    ////////// Step Forward tests for EpsilonNFA
 
     [Fact]
     public void StepForward_ValidTransition_UpdatesStatesAndPosition()
@@ -320,8 +314,6 @@ public class EpsilonNFATests
 
         state.IsAccepted.ShouldBe(true);
     }
-
-    ////////// Step Backward tests for EpsilonNFA
 
     [Fact]
     public void StepBackward_AfterStepForward_RestoresPreviousStateAndPosition_WithEpsilon()
@@ -419,8 +411,6 @@ public class EpsilonNFATests
         state.CurrentStates.Count.ShouldBe(1);
     }
 
-    //////////// Start Execution tests for EpsilonNFA
-
     [Fact]
     public void StartExecution_WithValidStartState_ShouldInitializeStateCorrectly()
     {
@@ -468,7 +458,6 @@ public class EpsilonNFATests
         execState.IsFinished.ShouldBeTrue();
     }
 
-    // Additional tests for history
     [Fact]
     public void StepForward_PushesCurrentStatesToHistory_EpsilonNFA()
     {
@@ -565,7 +554,7 @@ public class EpsilonNFATests
         var state = enfa.StartExecution("a");
         enfa.StepForward(state); // Move forward, change state
         state.IsAccepted = true; // Simulate acceptance
-        state.StateHistory.Push(new HashSet<int> { 1, 2 }); // Simulate history
+        state.StateHistory.Push([1, 2]); // Simulate history
 
         // Act
         enfa.BackToStart(state);
@@ -675,8 +664,6 @@ public class EpsilonNFATests
         bState.Position.ShouldBe(1);
         bState.IsAccepted.ShouldBe(true);
     }
-
-    ///////// EpsilonNFA to NFA conversion tests
 
     [Fact]
     public void ToNFA_RemovesEpsilonTransitionsAndPreservesLanguage()

@@ -4,9 +4,8 @@ using Shouldly;
 
 namespace FiniteAutomatons.UnitTests.FiniteAutomatons.Core.FiniteAutomataTests;
 
-public class DFATests
+public class DFATests  //TODO implement this builder to other tests
 {
-    ////////// Execute method tests for DFA
 
     [Fact]
     public void Execute_ValidInput_ShouldReturnTrue()
@@ -86,7 +85,7 @@ public class DFATests
             .Build();
 
         // Act
-        var result = dfa.Execute("a"); // Ends in state 2, which is not accepting
+        var result = dfa.Execute("a"); 
 
         // Assert
         result.ShouldBeFalse();
@@ -186,7 +185,6 @@ public class DFATests
         result.ShouldBe(expected);
     }
 
-    ////////// Execute All tests for DFA
 
     [Fact]
     public void ExecuteAll_ProcessesEntireInputAndSetsIsAccepted()
@@ -227,8 +225,6 @@ public class DFATests
         state.Position.ShouldBe(0);
         state.IsAccepted.ShouldBe(true);
     }
-
-    ////////// Step Forward tests for DFA
 
     [Fact]
     public void StepForward_ValidTransition_UpdatesStateAndPosition()
@@ -291,8 +287,6 @@ public class DFATests
         state.IsAccepted.ShouldBe(true);
     }
 
-    //////////// Start Execution tests for DFA
-
     [Fact]
     public void StartExecution_WithValidStartState_ShouldInitializeStateCorrectly()
     {
@@ -343,11 +337,8 @@ public class DFATests
         execState.Input.ShouldBe("");
         execState.Position.ShouldBe(0);
         execState.IsAccepted.ShouldBeNull();
-        // For empty input, execution is immediately finished
         execState.IsFinished.ShouldBeTrue();
     }
-
-    ////////// Step Backward tests for DFA
 
     [Fact]
     public void StepBackward_FromMiddleOfInput_ShouldMoveBackOneStep()
@@ -461,8 +452,6 @@ public class DFATests
         state.CurrentStateId.ShouldBe(1);
         state.IsAccepted.ShouldBeNull();
     }
-
-    // Additional tests 
 
     [Fact]
     public void StepForward_PushesStateToHistory()
@@ -641,8 +630,6 @@ public class DFATests
         state.IsAccepted.ShouldBe(false);
     }
 
-    //////////// Minimalization tests for DFA
-
     [Fact]
     public void MinimalizeDFA_RemovesEquivalentStates_SimpleCase()
     {
@@ -665,7 +652,6 @@ public class DFATests
         // Assert: Should have only 3 states (merging 1 and 2 is not possible, but unreachable states are removed)
         minimized.States.Count.ShouldBe(2);
 
-        // Language should be preserved
         minimized.Execute("ab").ShouldBeTrue();
         minimized.Execute("b").ShouldBeTrue();
         minimized.Execute("aab").ShouldBeTrue();

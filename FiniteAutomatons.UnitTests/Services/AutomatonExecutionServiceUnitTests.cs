@@ -12,17 +12,17 @@ internal class NullLogger2<T> : ILogger<T>
 {
     public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
     public bool IsEnabled(LogLevel logLevel) => false;
-    public void Log<TState>(LogLevel logLevel, Microsoft.Extensions.Logging.EventId eventId, TState state, System.Exception? exception, System.Func<TState, System.Exception?, string> formatter) { }
+    public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) { }
 }
 
 public class AutomatonExecutionServiceUnitTests
 {
-    private readonly AutomatonExecutionService _service;
+    private readonly AutomatonExecutionService service;
 
     public AutomatonExecutionServiceUnitTests()
     {
         var builder = new AutomatonBuilderService(new NullLogger2<AutomatonBuilderService>());
-        _service = new AutomatonExecutionService(builder, new NullLogger2<AutomatonExecutionService>());
+        service = new AutomatonExecutionService(builder, new NullLogger2<AutomatonExecutionService>());
     }
 
     [Fact]
@@ -38,7 +38,7 @@ public class AutomatonExecutionServiceUnitTests
             CurrentStateId = 1
         };
 
-        _service.ExecuteStepForward(model);
+        service.ExecuteStepForward(model);
         model.Position.ShouldBe(1);
     }
 
@@ -53,7 +53,7 @@ public class AutomatonExecutionServiceUnitTests
             Input = "aaa"
         };
 
-        _service.ExecuteAll(model);
+        service.ExecuteAll(model);
         model.Position.ShouldBe(3);
         model.IsAccepted.ShouldNotBeNull();
         model.IsAccepted!.Value.ShouldBeTrue();

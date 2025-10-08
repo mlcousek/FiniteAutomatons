@@ -1,12 +1,8 @@
-using System.Linq;
-using System.Threading.Tasks;
 using FiniteAutomatons.Observability;
 using FiniteAutomatons.Services.Observability;
 using FiniteAutomatons.Services.Services;
 using FiniteAutomatons.Core.Models.ViewModel;
-using FiniteAutomatons.Core.Models.DoMain;
 using Shouldly;
-using Xunit;
 using Microsoft.Extensions.Logging;
 
 namespace FiniteAutomatons.UnitTests.Observability;

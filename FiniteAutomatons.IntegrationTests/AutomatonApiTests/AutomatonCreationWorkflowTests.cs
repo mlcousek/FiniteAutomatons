@@ -8,8 +8,6 @@ namespace FiniteAutomatons.IntegrationTests.AutomatonApiTests;
 [Collection("Integration Tests")]
 public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : IntegrationTestsBase(fixture)
 {
-    #region Automaton Creation Workflow Tests
-
     [Fact]
     public async Task CreateAutomatonWorkflow_DFA_CompleteProcess_ShouldWork()
     {
@@ -35,10 +33,7 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
             ],
         };
 
-        // Try to create the DFA
         var finalizeResponse = await PostAutomatonForm(client, "/Automaton/CreateAutomaton", model);
-        
-        // Should either redirect (success) or return OK with validation info
         finalizeResponse.StatusCode.ShouldBeOneOf(HttpStatusCode.OK, HttpStatusCode.Redirect);
         
         if (finalizeResponse.StatusCode == HttpStatusCode.Redirect)
@@ -47,7 +42,6 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
         }
         else
         {
-            // If OK, check that it's not due to a critical error
             var content = await finalizeResponse.Content.ReadAsStringAsync();
             content.ShouldNotContain("Error occurred");
         }
@@ -75,10 +69,7 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
             ],
         };
 
-        // Try to create the NFA directly
         var finalizeResponse = await PostAutomatonForm(client, "/Automaton/CreateAutomaton", nfaModel);
-        
-        // Should either redirect (success) or return OK with validation info
         finalizeResponse.StatusCode.ShouldBeOneOf(HttpStatusCode.OK, HttpStatusCode.Redirect);
         
         if (finalizeResponse.StatusCode == HttpStatusCode.Redirect)
@@ -87,7 +78,6 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
         }
         else
         {
-            // If OK, check that it's not due to a critical error
             var content = await finalizeResponse.Content.ReadAsStringAsync();
             content.ShouldNotContain("Error occurred");
         }
@@ -114,10 +104,7 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
             ],
         };
 
-        // Try to create the Epsilon NFA directly
         var finalizeResponse = await PostAutomatonForm(client, "/Automaton/CreateAutomaton", epsilonModel);
-        
-        // Should either redirect (success) or return OK with validation info
         finalizeResponse.StatusCode.ShouldBeOneOf(HttpStatusCode.OK, HttpStatusCode.Redirect);
         
         if (finalizeResponse.StatusCode == HttpStatusCode.Redirect)
@@ -126,7 +113,6 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
         }
         else
         {
-            // If OK, check that it's not due to a critical error
             var content = await finalizeResponse.Content.ReadAsStringAsync();
             content.ShouldNotContain("Error occurred");
         }
@@ -151,12 +137,10 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
             ],
         };
 
-        // Change type to NFA
         var changeTypeResponse = await PostChangeAutomatonType(client, dfaModel, AutomatonType.NFA);
         changeTypeResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         var content = await changeTypeResponse.Content.ReadAsStringAsync();
-        // Should preserve states and transitions
         content.ShouldContain("State 1");
         content.ShouldContain("State 2");
     }
@@ -202,15 +186,8 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
 
         var changeTypeResponse = await PostChangeAutomatonType(client, epsilonModel, AutomatonType.NFA);
         changeTypeResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
-
-        // Should show warning about epsilon transitions being removed
-        var content = await changeTypeResponse.Content.ReadAsStringAsync();
-        // The epsilon transition should be filtered out
+        _ = await changeTypeResponse.Content.ReadAsStringAsync();
     }
-
-    #endregion
-
-    #region Validation Tests
 
     [Fact]
     public async Task CreateAutomaton_NoStates_ShouldShowValidationError()
@@ -327,8 +304,6 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         var content = await response.Content.ReadAsStringAsync();
-        // Should either show validation error or handle gracefully
-        // The validation message might appear in different forms
         var hasValidationError = content.Contains("cannot have epsilon transitions") ||
                                 content.Contains("epsilon") ||
                                 content.Contains("validation") ||
@@ -337,10 +312,6 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
         
         hasValidationError.ShouldBeTrue("Expected validation error for DFA with epsilon transitions");
     }
-
-    #endregion
-
-    #region State and Transition Management Tests
 
     [Fact]
     public async Task AddState_DuplicateId_ShouldShowError()
@@ -356,7 +327,6 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
             ]
         };
 
-        // Try to add another state with same ID
         var response = await PostAddState(client, model, 1, false, true);
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
@@ -450,7 +420,6 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         var content = await response.Content.ReadAsStringAsync();
-        // Should not contain the removed state or its transitions
         content.ShouldNotContain("State 2");
     }
 
@@ -474,29 +443,22 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
             ],
         };
 
-        // Remove transition using 'a', alphabet should still contain 'a' if it's the only one
         var response = await PostRemoveTransition(client, model, 1, 2, "a");
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
-
-    #endregion
-
-    #region Edge Cases and Error Handling
 
     [Fact]
     public async Task AutomatonOperations_MalformedData_ShouldHandleGracefully()
     {
         var client = GetHttpClient();
 
-        // Test with malformed form data
-        var formData = new FormUrlEncodedContent(new[]
-        {
+        var formData = new FormUrlEncodedContent(
+        [
             new KeyValuePair<string, string>("Type", "INVALID_TYPE"),
             new KeyValuePair<string, string>("Input", "test")
-        });
+        ]);
 
         var response = await client.PostAsync("/Automaton/ExecuteAll", formData);
-        // Should handle gracefully, not crash
         response.StatusCode.ShouldBeOneOf(HttpStatusCode.OK, HttpStatusCode.BadRequest);
     }
 
@@ -532,11 +494,7 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
-    #endregion
-
-    #region Helper Methods
-
-    private async Task<HttpResponseMessage> PostAddState(HttpClient client, AutomatonViewModel model, int stateId, bool isStart, bool isAccepting)
+    private static async Task<HttpResponseMessage> PostAddState(HttpClient client, AutomatonViewModel model, int stateId, bool isStart, bool isAccepting)
     {
         var formData = new List<KeyValuePair<string, string>>
         {
@@ -552,7 +510,7 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
         return await client.PostAsync("/Automaton/AddState", formContent);
     }
 
-    private async Task<HttpResponseMessage> PostAddTransition(HttpClient client, AutomatonViewModel model, int fromStateId, int toStateId, string symbol)
+    private static async Task<HttpResponseMessage> PostAddTransition(HttpClient client, AutomatonViewModel model, int fromStateId, int toStateId, string symbol)
     {
         var formData = new List<KeyValuePair<string, string>>
         {
@@ -568,7 +526,7 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
         return await client.PostAsync("/Automaton/AddTransition", formContent);
     }
 
-    private async Task<HttpResponseMessage> PostRemoveState(HttpClient client, AutomatonViewModel model, int stateId)
+    private static async Task<HttpResponseMessage> PostRemoveState(HttpClient client, AutomatonViewModel model, int stateId)
     {
         var formData = new List<KeyValuePair<string, string>>
         {
@@ -582,7 +540,7 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
         return await client.PostAsync("/Automaton/RemoveState", formContent);
     }
 
-    private async Task<HttpResponseMessage> PostRemoveTransition(HttpClient client, AutomatonViewModel model, int fromStateId, int toStateId, string symbol)
+    private static async Task<HttpResponseMessage> PostRemoveTransition(HttpClient client, AutomatonViewModel model, int fromStateId, int toStateId, string symbol)
     {
         var formData = new List<KeyValuePair<string, string>>
         {
@@ -598,7 +556,7 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
         return await client.PostAsync("/Automaton/RemoveTransition", formContent);
     }
 
-    private async Task<HttpResponseMessage> PostChangeAutomatonType(HttpClient client, AutomatonViewModel model, AutomatonType newType)
+    private static async Task<HttpResponseMessage> PostChangeAutomatonType(HttpClient client, AutomatonViewModel model, AutomatonType newType)
     {
         var formData = new List<KeyValuePair<string, string>>
         {
@@ -611,7 +569,7 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
         return await client.PostAsync("/Automaton/ChangeAutomatonType", formContent);
     }
 
-    private async Task<HttpResponseMessage> PostAutomatonForm(HttpClient client, string url, AutomatonViewModel model)
+    private static async Task<HttpResponseMessage> PostAutomatonForm(HttpClient client, string url, AutomatonViewModel model)
     {
         var formData = new List<KeyValuePair<string, string>>
         {
@@ -627,7 +585,6 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
 
     private static void AddModelDataToForm(List<KeyValuePair<string, string>> formData, AutomatonViewModel model)
     {
-        // Add states
         for (int i = 0; i < model.States.Count; i++)
         {
             var state = model.States[i];
@@ -636,7 +593,6 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
             formData.Add(new($"States[{i}].IsAccepting", state.IsAccepting.ToString().ToLower()));
         }
 
-        // Add transitions
         for (int i = 0; i < model.Transitions.Count; i++)
         {
             var transition = model.Transitions[i];
@@ -645,7 +601,6 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
             formData.Add(new($"Transitions[{i}].Symbol", transition.Symbol == '\0' ? "?" : transition.Symbol.ToString()));
         }
 
-        // Add alphabet
         for (int i = 0; i < model.Alphabet.Count; i++)
         {
             formData.Add(new($"Alphabet[{i}]", model.Alphabet[i].ToString()));
@@ -664,6 +619,4 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
             Transitions = [],
         };
     }
-
-    #endregion
 }

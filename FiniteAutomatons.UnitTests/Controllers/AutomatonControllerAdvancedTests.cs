@@ -1,9 +1,7 @@
 using FiniteAutomatons.Controllers;
-using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Core.Utilities;
 using FiniteAutomatons.Services.Services;
-using FiniteAutomatons.Services.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
@@ -11,10 +9,10 @@ using Shouldly;
 
 namespace FiniteAutomatons.UnitTests.Controllers;
 
-public class AutomatonControllerAdvancedTests
+public class AutomatonControllerAdvancedTests   //TODO refactore tests, introduce builders and edit mocks
 {
-    private readonly AutomatonController _controllerWithRealValidation;
-    private readonly AutomatonController _controllerWithMocks;
+    private readonly AutomatonController controllerWithRealValidation;
+    private readonly AutomatonController controllerWithMocks;
 
     public AutomatonControllerAdvancedTests()
     {
@@ -25,13 +23,13 @@ public class AutomatonControllerAdvancedTests
         var mockExecution = new MockAutomatonExecutionService();
         var editingService = new AutomatonEditingService(realValidation, new TestLogger<AutomatonEditingService>());
 
-        _controllerWithRealValidation = new AutomatonController(new TestLogger<AutomatonController>(), mockGenerator, mockTempData, realValidation, mockConversion, mockExecution, editingService)
+        controllerWithRealValidation = new AutomatonController(new TestLogger<AutomatonController>(), mockGenerator, mockTempData, realValidation, mockConversion, mockExecution, editingService)
         {
             TempData = new TempDataDictionary(new DefaultHttpContext(), new TestTempDataProvider())
         };
 
         var mockEditing = new AutomatonEditingService(new MockAutomatonValidationService(), new TestLogger<AutomatonEditingService>());
-        _controllerWithMocks = new AutomatonController(new TestLogger<AutomatonController>(), mockGenerator, mockTempData, new MockAutomatonValidationService(), mockConversion, mockExecution, mockEditing)
+        controllerWithMocks = new AutomatonController(new TestLogger<AutomatonController>(), mockGenerator, mockTempData, new MockAutomatonValidationService(), mockConversion, mockExecution, mockEditing)
         {
             TempData = new TempDataDictionary(new DefaultHttpContext(), new TestTempDataProvider())
         };
@@ -39,12 +37,11 @@ public class AutomatonControllerAdvancedTests
 
     public static IEnumerable<object[]> EpsilonAcceptedAliases() =>
     [
-        // Removed Greek characters that may render as '?' in console and cause duplicate test IDs
         ["epsilon"],
         ["eps"],
         ["lambda"],
-        ["\\0"], // escaped null sequence
-        ["\0"]    // literal backslash + 0
+        ["\\0"], 
+        ["\0"]    
     ];
 
     public static IEnumerable<object[]> EpsilonRejectedAliases() =>
@@ -67,7 +64,7 @@ public class AutomatonControllerAdvancedTests
             StateHistorySerialized = "[ [1] ]"
         };
 
-        var result = _controllerWithMocks.ChangeAutomatonType(model, AutomatonType.NFA) as ViewResult;
+        var result = controllerWithMocks.ChangeAutomatonType(model, AutomatonType.NFA) as ViewResult;
         var vm = result!.Model as AutomatonViewModel;
         vm!.Type.ShouldBe(AutomatonType.NFA);
         vm.Input.ShouldBe(string.Empty);
@@ -93,7 +90,7 @@ public class AutomatonControllerAdvancedTests
             IsAccepted = false
         };
 
-        var result = _controllerWithMocks.ConvertToDFA(model) as RedirectToActionResult;
+        var result = controllerWithMocks.ConvertToDFA(model) as RedirectToActionResult;
         result.ShouldNotBeNull();
     }
 
@@ -107,7 +104,7 @@ public class AutomatonControllerAdvancedTests
             States = [ new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true } ]
         };
 
-        var result = _controllerWithRealValidation.AddTransition(model, 1, 2, alias) as ViewResult;
+        var result = controllerWithRealValidation.AddTransition(model, 1, 2, alias) as ViewResult;
         var vm = result!.Model as AutomatonViewModel;
         vm!.Transitions.Count.ShouldBe(1, customMessage: $"Alias '{alias}' should produce one epsilon transition");
         vm.Transitions[0].Symbol.ShouldBe(AutomatonSymbolHelper.EpsilonInternal);
@@ -124,10 +121,10 @@ public class AutomatonControllerAdvancedTests
             States = [ new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true } ]
         };
 
-        var result = _controllerWithRealValidation.AddTransition(model, 1, 2, alias) as ViewResult;
+        var result = controllerWithRealValidation.AddTransition(model, 1, 2, alias) as ViewResult;
         var vm = result!.Model as AutomatonViewModel;
         vm!.Transitions.ShouldBeEmpty();
-        _controllerWithRealValidation.ModelState.IsValid.ShouldBeFalse();
+        controllerWithRealValidation.ModelState.IsValid.ShouldBeFalse();
     }
 
     [Fact]
@@ -140,8 +137,8 @@ public class AutomatonControllerAdvancedTests
             Transitions = [new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' }],
         };
 
-        var result = _controllerWithMocks.RemoveTransition(model, 1, 2, "b") as ViewResult;
-        _controllerWithMocks.ModelState.IsValid.ShouldBeFalse();
+        var result = controllerWithMocks.RemoveTransition(model, 1, 2, "b") as ViewResult;
+        controllerWithMocks.ModelState.IsValid.ShouldBeFalse();
         var vm = result!.Model as AutomatonViewModel;
         vm!.Transitions.Count.ShouldBe(1);
     }
@@ -155,8 +152,8 @@ public class AutomatonControllerAdvancedTests
             States = [new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true }]
         };
 
-        _controllerWithMocks.RemoveTransition(model, 1, 2, "invalidSymbol");
-        _controllerWithMocks.ModelState.IsValid.ShouldBeFalse();
+        controllerWithMocks.RemoveTransition(model, 1, 2, "invalidSymbol");
+        controllerWithMocks.ModelState.IsValid.ShouldBeFalse();
     }
 
     [Fact]

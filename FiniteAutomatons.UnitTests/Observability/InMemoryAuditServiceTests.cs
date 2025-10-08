@@ -1,10 +1,5 @@
-using System;
-using System.Linq;
 using FiniteAutomatons.Observability;
 using Shouldly;
-using Xunit;
-using System.Threading.Tasks;
-using System.Collections.Generic;
 using System.Diagnostics;
 
 namespace FiniteAutomatons.UnitTests.Observability;
@@ -16,7 +11,6 @@ public class InMemoryAuditServiceTests
     {
         var svc = new InMemoryAuditService();
 
-        // Ensure no entries initially
         svc.GetAll().Count.ShouldBe(0);
 
         await svc.AuditAsync("EventA", "MessageA");

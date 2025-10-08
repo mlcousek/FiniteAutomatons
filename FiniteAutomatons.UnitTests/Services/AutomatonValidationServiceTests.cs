@@ -1,19 +1,17 @@
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Services;
-using FiniteAutomatons.UnitTests.Controllers;
-using Microsoft.Extensions.Logging;
 using Shouldly;
 
 namespace FiniteAutomatons.UnitTests.Services;
 
 public class AutomatonValidationServiceTests
 {
-    private readonly AutomatonValidationService _service;
+    private readonly AutomatonValidationService service;
 
     public AutomatonValidationServiceTests()
     {
         var logger = new TestLogger<AutomatonValidationService>();
-        _service = new AutomatonValidationService(logger);
+        service = new AutomatonValidationService(logger);
     }
 
     [Fact]
@@ -35,7 +33,7 @@ public class AutomatonValidationServiceTests
         };
 
         // Act
-        var (isValid, errors) = _service.ValidateAutomaton(model);
+        var (isValid, errors) = service.ValidateAutomaton(model);
 
         // Assert
         isValid.ShouldBeTrue();
@@ -54,7 +52,7 @@ public class AutomatonValidationServiceTests
         };
 
         // Act
-        var (isValid, errors) = _service.ValidateAutomaton(model);
+        var (isValid, errors) = service.ValidateAutomaton(model);
 
         // Assert
         isValid.ShouldBeFalse();
@@ -76,7 +74,7 @@ public class AutomatonValidationServiceTests
         };
 
         // Act
-        var (isValid, errors) = _service.ValidateAutomaton(model);
+        var (isValid, errors) = service.ValidateAutomaton(model);
 
         // Assert
         isValid.ShouldBeFalse();
@@ -96,7 +94,7 @@ public class AutomatonValidationServiceTests
         };
 
         // Act
-        var (isValid, errorMessage) = _service.ValidateStateAddition(model, 1, false);
+        var (isValid, errorMessage) = service.ValidateStateAddition(model, 1, false);
 
         // Assert
         isValid.ShouldBeFalse();
@@ -119,7 +117,7 @@ public class AutomatonValidationServiceTests
         };
 
         // Act
-        var (isValid, processedSymbol, errorMessage) = _service.ValidateTransitionAddition(model, 1, 2, "a");
+        var (isValid, processedSymbol, errorMessage) = service.ValidateTransitionAddition(model, 1, 2, "a");
 
         // Assert
         isValid.ShouldBeTrue();
@@ -143,7 +141,7 @@ public class AutomatonValidationServiceTests
         };
 
         // Act
-        var (isValid, processedSymbol, errorMessage) = _service.ValidateTransitionAddition(model, 1, 2, "?");
+        var (isValid, _, errorMessage) = service.ValidateTransitionAddition(model, 1, 2, "?");
 
         // Assert
         isValid.ShouldBeFalse();

@@ -1,4 +1,3 @@
-using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Services;
 using FiniteAutomatons.UnitTests.Controllers;
@@ -9,21 +8,21 @@ namespace FiniteAutomatons.UnitTests.Services;
 
 public class HomeAutomatonServiceTests
 {
-    private readonly HomeAutomatonService _service;
-    private readonly MockAutomatonGeneratorService _mockGeneratorService;
+    private readonly HomeAutomatonService service;
+    private readonly MockAutomatonGeneratorService mockGeneratorService;
 
     public HomeAutomatonServiceTests()
     {
-        _mockGeneratorService = new MockAutomatonGeneratorService();
+        mockGeneratorService = new MockAutomatonGeneratorService();
         var logger = new TestLogger<HomeAutomatonService>();
-        _service = new HomeAutomatonService(_mockGeneratorService, logger);
+        service = new HomeAutomatonService(mockGeneratorService, logger);
     }
 
     [Fact]
     public void GenerateDefaultAutomaton_ShouldReturnValidAutomaton()
     {
         // Act
-        var result = _service.GenerateDefaultAutomaton();
+        var result = service.GenerateDefaultAutomaton();
 
         // Assert
         result.ShouldNotBeNull();
@@ -38,7 +37,7 @@ public class HomeAutomatonServiceTests
     public void CreateFallbackAutomaton_ShouldReturnSimpleDFA()
     {
         // Act
-        var result = _service.CreateFallbackAutomaton();
+        var result = service.CreateFallbackAutomaton();
 
         // Assert
         result.ShouldNotBeNull();
@@ -59,10 +58,9 @@ public class HomeAutomatonServiceTests
         
         for (int i = 0; i < 5; i++)
         {
-            var result = _service.GenerateDefaultAutomaton();
+            var result = service.GenerateDefaultAutomaton();
             results.Add((result.Type, result.States.Count));
             
-            // Each should be valid
             result.ShouldNotBeNull();
             result.States.Count.ShouldBeGreaterThan(0);
             result.States.Count(s => s.IsStart).ShouldBe(1);

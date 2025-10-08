@@ -31,7 +31,6 @@ public class AutomatonsWebApplicationFactory<TProgram>(string dbConnetionString)
         builder.UseEnvironment("Development");
         builder.ConfigureServices(services =>
         {
-            // Remove the existing DbContext registration
             var descriptor = services.SingleOrDefault(
                 d => d.ServiceType == typeof(DbContextOptions<ApplicationDbContext>));
             if (descriptor != null)
@@ -39,22 +38,16 @@ public class AutomatonsWebApplicationFactory<TProgram>(string dbConnetionString)
                 services.Remove(descriptor);
             }
 
-            // Add a new DbContext registration for the test database
             services.AddDbContext<ApplicationDbContext>(options =>
             {
-                // options.UseSqlServer("Server=localhost,1433;Database=TestDb;User Id=sa;Password=YourStrong!Passw0rd;");
                 options.UseSqlServer(dbConnetionString);
             });
 
-            // Build the service provider
             var serviceProvider = services.BuildServiceProvider();
 
-            // Create the test database
-            using (var scope = serviceProvider.CreateScope())
-            {
-                var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-                db.Database.EnsureCreated();
-            }
+            using var scope = serviceProvider.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            db.Database.EnsureCreated();
         });
     }
 }

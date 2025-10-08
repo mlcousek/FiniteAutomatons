@@ -1,25 +1,21 @@
-using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Services;
 using FiniteAutomatons.Services.Interfaces;
-using Microsoft.Extensions.Logging;
 using Shouldly;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using FiniteAutomatons.Controllers;
 using Microsoft.AspNetCore.Mvc;
 using FiniteAutomatons.Core.Utilities;
-using FiniteAutomatons.UnitTests.Controllers; // for mock services & TestTempDataProvider
+using FiniteAutomatons.UnitTests.Controllers; 
 using FiniteAutomatons.UnitTests.TestHelpers;
-using System;
-using System.Collections.Generic;
 
 namespace FiniteAutomatons.UnitTests.Services;
 
 public class AutomatonExecutionServiceTests
 {
-    private readonly IAutomatonBuilderService _builderService = new AutomatonBuilderService(NullLogger<AutomatonBuilderService>.Instance);
-    private AutomatonExecutionService CreateService() => new(_builderService, NullLogger<AutomatonExecutionService>.Instance);
+    private readonly IAutomatonBuilderService builderService = new AutomatonBuilderService(NullLogger<AutomatonBuilderService>.Instance);
+    private AutomatonExecutionService CreateService() => new(builderService, NullLogger<AutomatonExecutionService>.Instance);
 
     [Fact]
     public void ResetExecution_ClearsState_PreservesStructureAndAlphabet()
@@ -113,7 +109,6 @@ public class AutomatonExecutionServiceTests
     [Fact]
     public void RemoveStartState_AutoAssignsNewStart_InController()
     {
-        // Use controller to exercise logic
         var controller = BuildControllerWithRealValidation();
         var model = new AutomatonViewModel
         {
@@ -125,15 +120,15 @@ public class AutomatonExecutionServiceTests
         var vm = result!.Model as AutomatonViewModel;
         vm!.States.Count.ShouldBe(1);
         vm.States[0].Id.ShouldBe(2);
-        vm.States[0].IsStart.ShouldBeTrue(); // reassigned
+        vm.States[0].IsStart.ShouldBeTrue(); 
     }
 
-    public static IEnumerable<object[]> EpsilonAliasCases() => new[]
-    {
-        new object[]{"?", true},
-        new object[]{"epsilon", true},
-        new object[]{"a", false}
-    };
+    public static IEnumerable<object[]> EpsilonAliasCases() =>
+    [
+        ["?", true],
+        ["epsilon", true],
+        ["a", false]
+    ];
 
     [Theory]
     [MemberData(nameof(EpsilonAliasCases))]

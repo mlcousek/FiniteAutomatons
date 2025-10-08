@@ -1,11 +1,6 @@
-using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.ViewModel;
 using Shouldly;
 using System.Net;
-using System.Collections.Generic;
-using System.Net.Http;
-using System.Threading.Tasks;
-using System.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using FiniteAutomatons.Observability;
 
@@ -103,9 +98,8 @@ public class AuditIntegrationTests(IntegrationTestsFixture fixture) : Integratio
         end.ShouldNotBeNull();
     }
 
-    #region Helper Methods
 
-    private async Task<HttpResponseMessage> PostAutomatonForm(HttpClient client, string url, AutomatonViewModel model)
+    private static async Task<HttpResponseMessage> PostAutomatonForm(HttpClient client, string url, AutomatonViewModel model)
     {
         var formData = new List<KeyValuePair<string, string>>
         {
@@ -134,7 +128,6 @@ public class AuditIntegrationTests(IntegrationTestsFixture fixture) : Integratio
             formData.Add(new("IsAccepted", model.IsAccepted.Value.ToString().ToLower()));
         }
 
-        // Add states
         for (int i = 0; i < model.States.Count; i++)
         {
             var state = model.States[i];
@@ -143,7 +136,6 @@ public class AuditIntegrationTests(IntegrationTestsFixture fixture) : Integratio
             formData.Add(new($"States[{i}].IsAccepting", state.IsAccepting.ToString().ToLower()));
         }
 
-        // Add transitions
         for (int i = 0; i < model.Transitions.Count; i++)
         {
             var transition = model.Transitions[i];
@@ -152,7 +144,6 @@ public class AuditIntegrationTests(IntegrationTestsFixture fixture) : Integratio
             formData.Add(new($"Transitions[{i}].Symbol", transition.Symbol == '\0' ? "?" : transition.Symbol.ToString()));
         }
 
-        // Add alphabet
         for (int i = 0; i < model.Alphabet.Count; i++)
         {
             formData.Add(new($"Alphabet[{i}]", model.Alphabet[i].ToString()));
@@ -161,6 +152,4 @@ public class AuditIntegrationTests(IntegrationTestsFixture fixture) : Integratio
         var formContent = new FormUrlEncodedContent(formData);
         return await client.PostAsync(url, formContent);
     }
-
-    #endregion
 }

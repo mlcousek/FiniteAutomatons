@@ -41,7 +41,6 @@ public class MockAutomatonExecutionService : IAutomatonExecutionService
 
     public void EnsureProperStateInitialization(AutomatonViewModel model, Automaton automaton)
     {
-        // Mock implementation - basic initialization
         if (model.Type == AutomatonType.DFA)
         {
             model.CurrentStateId ??= model.States?.FirstOrDefault(s => s.IsStart)?.Id;
@@ -67,7 +66,7 @@ public class MockAutomatonExecutionService : IAutomatonExecutionService
     public AutomatonViewModel ExecuteAll(AutomatonViewModel model)
     {
         model.Position = model.Input?.Length ?? 0;
-        model.Result = true; // Mock result
+        model.Result = true; 
         return model;
     }
 
@@ -80,11 +79,9 @@ public class MockAutomatonExecutionService : IAutomatonExecutionService
 
     public AutomatonViewModel ResetExecution(AutomatonViewModel model)
     {
-        // Ensure collections are initialized
         model.States ??= [];
         model.Transitions ??= [];
 
-        // Only reset the execution state and input, NOT the automaton structure
         model.Input = string.Empty;
         model.Position = 0;
         model.Result = null;
@@ -93,9 +90,8 @@ public class MockAutomatonExecutionService : IAutomatonExecutionService
         model.IsAccepted = null;
         model.StateHistorySerialized = string.Empty;
 
-        // Preserve the automaton's alphabet - rebuild it from transitions (excluding epsilon transitions)
         var transitionSymbols = model.Transitions
-            .Where(t => t.Symbol != '\0') // Exclude epsilon transitions
+            .Where(t => t.Symbol != '\0') 
             .Select(t => t.Symbol)
             .Distinct()
             .ToList();

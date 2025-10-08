@@ -1,4 +1,3 @@
-using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.ViewModel;
 using Shouldly;
 using System.Net;
@@ -13,7 +12,6 @@ public class InputFieldBehaviorTests(IntegrationTestsFixture fixture) : Integrat
     {
         var client = GetHttpClient();
 
-        // Create a simple DFA and step forward to start execution
         var dfaModel = new AutomatonViewModel
         {
             Type = AutomatonType.DFA,
@@ -31,15 +29,12 @@ public class InputFieldBehaviorTests(IntegrationTestsFixture fixture) : Integrat
             IsCustomAutomaton = true
         };
 
-        // Step forward to start execution
         var response = await PostAutomatonForm(client, "/Automaton/StepForward", dfaModel);
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         var content = await response.Content.ReadAsStringAsync();
         
         content.ShouldContain("readonly");
-        
-        // Should show execution state
         content.ShouldContain("Current State");
     }
 
@@ -48,7 +43,6 @@ public class InputFieldBehaviorTests(IntegrationTestsFixture fixture) : Integrat
     {
         var client = GetHttpClient();
 
-        // Start with an automaton that has execution state
         var dfaModel = new AutomatonViewModel
         {
             Type = AutomatonType.DFA,
@@ -69,7 +63,6 @@ public class InputFieldBehaviorTests(IntegrationTestsFixture fixture) : Integrat
             HasExecuted = true
         };
 
-        // Reset to clear execution state
         var response = await PostAutomatonForm(client, "/Automaton/Reset", dfaModel);
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
@@ -109,7 +102,6 @@ public class InputFieldBehaviorTests(IntegrationTestsFixture fixture) : Integrat
             formData.Add(new("IsAccepted", model.IsAccepted.Value.ToString().ToLower()));
         }
 
-        // Add states
         for (int i = 0; i < model.States.Count; i++)
         {
             var state = model.States[i];
@@ -118,7 +110,6 @@ public class InputFieldBehaviorTests(IntegrationTestsFixture fixture) : Integrat
             formData.Add(new($"States[{i}].IsAccepting", state.IsAccepting.ToString().ToLower()));
         }
 
-        // Add transitions
         for (int i = 0; i < model.Transitions.Count; i++)
         {
             var transition = model.Transitions[i];
@@ -127,7 +118,6 @@ public class InputFieldBehaviorTests(IntegrationTestsFixture fixture) : Integrat
             formData.Add(new($"Transitions[{i}].Symbol", transition.Symbol == '\0' ? "?" : transition.Symbol.ToString()));
         }
 
-        // Add alphabet
         for (int i = 0; i < model.Alphabet.Count; i++)
         {
             formData.Add(new($"Alphabet[{i}]", model.Alphabet[i].ToString()));

@@ -8,8 +8,6 @@ namespace FiniteAutomatons.IntegrationTests.AutomatonApiTests;
 [Collection("Integration Tests")]
 public class AutomatonConversionAndAdvancedTests(IntegrationTestsFixture fixture) : IntegrationTestsBase(fixture)
 {
-    #region Conversion Tests
-
     [Fact]
     public async Task ConvertNFAToDFA_SimpleCase_ShouldWork()
     {
@@ -113,12 +111,8 @@ public class AutomatonConversionAndAdvancedTests(IntegrationTestsFixture fixture
 
         // Convert DFA to DFA (should be no-op)
         var convertResponse = await PostAutomatonForm(client, "/Automaton/ConvertToDFA", dfaModel);
-        convertResponse.StatusCode.ShouldBe(HttpStatusCode.OK); // Should just return the same view
+        convertResponse.StatusCode.ShouldBe(HttpStatusCode.OK); 
     }
-
-    #endregion
-
-    #region Advanced Automaton Patterns
 
     [Fact]
     public async Task ComplexDFA_LanguageOfStringsWithOddNumberOfAs_ShouldWork()
@@ -291,16 +285,11 @@ public class AutomatonConversionAndAdvancedTests(IntegrationTestsFixture fixture
         }
     }
 
-    #endregion
-
-    #region Performance and Scalability Tests
-
     [Fact]
     public async Task LargeAutomaton_ManyStatesAndTransitions_ShouldPerformWell()
     {
         var client = GetHttpClient();
 
-        // Create large automaton with 50 states
         var states = new List<State>();
         var transitions = new List<Transition>();
 
@@ -356,9 +345,7 @@ public class AutomatonConversionAndAdvancedTests(IntegrationTestsFixture fixture
         }
         else
         {
-            // If creation returned OK, it might be due to validation issues with such a large automaton
             var content = await createResponse.Content.ReadAsStringAsync();
-            // Just ensure no critical errors occurred
             content.ShouldNotContain("Error occurred");
         }
     }
@@ -368,11 +355,9 @@ public class AutomatonConversionAndAdvancedTests(IntegrationTestsFixture fixture
     {
         var client = GetHttpClient();
 
-        // Create NFA with many nondeterministic transitions from start state
         var states = new List<State> { new() { Id = 1, IsStart = true, IsAccepting = false } };
         var transitions = new List<Transition>();
 
-        // Add 10 possible transitions from start state on 'a'
         for (int i = 2; i <= 11; i++)
         {
             states.Add(new State { Id = i, IsStart = false, IsAccepting = i == 11 });
@@ -400,16 +385,10 @@ public class AutomatonConversionAndAdvancedTests(IntegrationTestsFixture fixture
         }
         else
         {
-            // If creation returned OK, it might be due to validation issues with such a large automaton
             var content = await createResponse.Content.ReadAsStringAsync();
-            // Just ensure no critical errors occurred
             content.ShouldNotContain("Error occurred");
         }
     }
-
-    #endregion
-
-    #region Real-World Language Recognition Tests
 
     [Fact]
     public async Task DFA_RecognizeBinaryNumbersDivisibleByThree_ShouldWork()
@@ -455,8 +434,6 @@ public class AutomatonConversionAndAdvancedTests(IntegrationTestsFixture fixture
             ("111", true),   // 7 not divisible by 3... wait, that's wrong
             ("1100", true)   // 12 divisible by 3
         };
-
-        // Note: Some test cases above might need verification of the binary-to-decimal conversion
 
         foreach (var (input, expected) in testCases)
         {
@@ -534,11 +511,7 @@ public class AutomatonConversionAndAdvancedTests(IntegrationTestsFixture fixture
         }
     }
 
-    #endregion
-
-    #region Helper Methods
-
-    private async Task<HttpResponseMessage> PostAutomatonForm(HttpClient client, string url, AutomatonViewModel model)
+    private static async Task<HttpResponseMessage> PostAutomatonForm(HttpClient client, string url, AutomatonViewModel model)
     {
         var formData = new List<KeyValuePair<string, string>>
         {
@@ -594,6 +567,4 @@ public class AutomatonConversionAndAdvancedTests(IntegrationTestsFixture fixture
         var formContent = new FormUrlEncodedContent(formData);
         return await client.PostAsync(url, formContent);
     }
-
-    #endregion
 }

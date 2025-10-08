@@ -1,7 +1,5 @@
 using FiniteAutomatons.Controllers;
-using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.ViewModel;
-using FiniteAutomatons.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
@@ -21,7 +19,6 @@ public class HomeControllerTests
         var mockHomeAutomatonService = new MockHomeAutomatonService();
         controller = new HomeController(logger, mockTempDataService, mockHomeAutomatonService);
 
-        // Setup HttpContext and TempData
         var httpContext = new DefaultHttpContext
         {
             TraceIdentifier = "test-trace-id"
@@ -45,10 +42,9 @@ public class HomeControllerTests
         var model = result.Model as AutomatonViewModel;
         model.ShouldNotBeNull();
         
-        // Should return a generated automaton (using mock service)
         model.States.Count.ShouldBeGreaterThan(0);
         model.States.Count(s => s.IsStart).ShouldBe(1);
-        model.IsCustomAutomaton.ShouldBeFalse(); // Should be marked as default (non-custom)
+        model.IsCustomAutomaton.ShouldBeFalse(); 
         model.Alphabet.ShouldNotBeEmpty();
         model.Transitions.ShouldNotBeNull();
     }
@@ -96,19 +92,19 @@ public class TestLogger<T> : ILogger<T>
 
 public class TestTempDataProvider : ITempDataProvider
 {
-    private readonly Dictionary<string, object?> _data = [];
+    private readonly Dictionary<string, object?> data = [];
 
     public IDictionary<string, object?> LoadTempData(HttpContext context)
     {
-        return _data;
+        return data;
     }
 
     public void SaveTempData(HttpContext context, IDictionary<string, object?> values)
     {
-        _data.Clear();
+        data.Clear();
         foreach (var kvp in values)
         {
-            _data[kvp.Key] = kvp.Value;
+            data[kvp.Key] = kvp.Value;
         }
     }
 }

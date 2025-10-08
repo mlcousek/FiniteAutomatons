@@ -9,12 +9,11 @@ public class ButtonStateLogicTests
     [Fact]
     public void ButtonStates_BasicPosition_AllButtonsDisabled()
     {
-        // Arrange - Basic position: no input, no execution started
+        // Arrange 
         var model = new AutomatonViewModel
         {
             Type = AutomatonType.DFA,
             States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
-            // No transitions -> empty alphabet fine for empty input case
             Transitions = [],
             Input = string.Empty,
             Position = 0,
@@ -22,7 +21,7 @@ public class ButtonStateLogicTests
             Result = null
         };
 
-        // Act & Assert - Test the logic from the view
+        // Act & Assert 
         bool hasInput = !string.IsNullOrEmpty(model.Input);
         bool isAtFirstPosition = model.Position == 0;
         bool hasExecutionStarted = model.Position > 0 || model.Result != null ||
@@ -30,7 +29,6 @@ public class ButtonStateLogicTests
                                  (model.Type != AutomatonType.DFA && model.CurrentStates != null && model.CurrentStates.Count != 0);
         bool isAtEnd = hasInput && model.Position >= model.Input.Length;
         
-        // Input validation
         bool isInputValid = true;
         if (hasInput && model.Alphabet != null && model.Alphabet.Any())
         {
@@ -41,14 +39,13 @@ public class ButtonStateLogicTests
         bool canExecuteAll = hasInput && isInputValid && !isAtEnd && model.Result != false;
         bool canStepBackward = !isAtFirstPosition && isInputValid;
         bool canBackToStart = hasExecutionStarted && isInputValid;
-        bool canReset = hasExecutionStarted; // Changed: only when execution started
+        bool canReset = hasExecutionStarted; 
 
-        // All should be disabled in basic position
         canStepForward.ShouldBeFalse();
         canExecuteAll.ShouldBeFalse();
         canStepBackward.ShouldBeFalse();
         canBackToStart.ShouldBeFalse();
-        canReset.ShouldBeFalse(); // Reset should be disabled until execution starts
+        canReset.ShouldBeFalse(); 
     }
 
     [Fact]
@@ -182,7 +179,6 @@ public class ButtonStateLogicTests
         bool canBackToStart = hasExecutionStarted && isInputValid;
         bool canReset = hasExecutionStarted;
 
-        // Most buttons should be enabled
         isInputValid.ShouldBeTrue();
         canStepForward.ShouldBeTrue(); // Not at end
         canExecuteAll.ShouldBeTrue(); // Not at end
@@ -230,7 +226,6 @@ public class ButtonStateLogicTests
         bool canBackToStart = hasExecutionStarted && isInputValid;
         bool canReset = hasExecutionStarted;
 
-        // Forward buttons disabled, back buttons enabled
         isInputValid.ShouldBeTrue();
         canStepForward.ShouldBeFalse(); // At end
         canExecuteAll.ShouldBeFalse(); // At end
@@ -278,7 +273,6 @@ public class ButtonStateLogicTests
         bool canBackToStart = hasExecutionStarted && isInputValid;
         bool canReset = hasExecutionStarted;
 
-        // All buttons should be disabled due to invalid input
         isInputValid.ShouldBeFalse(); // 'x' is not in alphabet
         canStepForward.ShouldBeFalse();
         canExecuteAll.ShouldBeFalse();

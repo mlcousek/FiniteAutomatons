@@ -25,7 +25,6 @@ public class MockAutomatonConversionService : IAutomatonConversionService
             return model;
         }
 
-        // Mock conversion - just change the type
         return new AutomatonViewModel
         {
             Type = AutomatonType.DFA,

@@ -15,7 +15,6 @@ public class ObservabilityTests
         var svc = new FileAuditService(path);
         await svc.AuditAsync("TestEvent", "This is a test", new Dictionary<string, string?> { ["K"] = "V" });
 
-        // allow for filesystem flush
         await Task.Delay(50);
 
         File.Exists(path).ShouldBeTrue();

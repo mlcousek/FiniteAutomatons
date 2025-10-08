@@ -1,14 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Services;
-using FiniteAutomatons.UnitTests.FiniteAutomatons.Core.FiniteAutomataTests; // for DFABuilder
 using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;
-using Xunit;
 
 namespace FiniteAutomatons.UnitTests.FiniteAutomatons.Core.AdditionalTests;
 
@@ -17,30 +12,29 @@ public class AutomatonBuilderAndDFASupplementalTests
     private static AutomatonViewModel BaseModel(AutomatonType type) => new()
     {
         Type = type,
-        States = new List<State>(),
-        Transitions = new List<Transition>(),
+        States = [],
+        Transitions = [],
     };
 
-    // Local minimal DFA builder (duplicated lightweight for isolation)
     private class LocalDfaBuilder
     {
-        private readonly DFA _dfa = new();
+        private readonly DFA dfa = new();
         public LocalDfaBuilder WithState(int id, bool isStart = false, bool isAccepting = false)
-        { _dfa.AddState(new State { Id = id, IsStart = isStart, IsAccepting = isAccepting }); return this; }
+        { dfa.AddState(new State { Id = id, IsStart = isStart, IsAccepting = isAccepting }); return this; }
         public LocalDfaBuilder WithTransition(int from, int to, char symbol)
-        { _dfa.AddTransition(from, to, symbol); return this; }
-        public DFA Build() => _dfa;
+        { dfa.AddTransition(from, to, symbol); return this; }
+        public DFA Build() => dfa;
     }
 
     [Fact]
     public void CreateAutomatonFromModel_DFA_BuildsCorrectAutomaton()
     {
         var model = BaseModel(AutomatonType.DFA);
-        model.States.AddRange(new[]
-        {
+        model.States.AddRange(
+        [
             new State { Id = 1, IsStart = true, IsAccepting = false },
             new State { Id = 2, IsStart = false, IsAccepting = true }
-        });
+        ]);
         model.Transitions.Add(new Transition { FromStateId = 1, ToStateId = 2, Symbol = 'a' });
 
         var svc = new AutomatonBuilderService(new NullLogger<AutomatonBuilderService>());
@@ -54,13 +48,13 @@ public class AutomatonBuilderAndDFASupplementalTests
     public void CreateAutomatonFromModel_NFA_BuildsCorrectAutomaton()
     {
         var model = BaseModel(AutomatonType.NFA);
-        model.States.AddRange(new[]
-        {
+        model.States.AddRange(
+        [
             new State { Id = 1, IsStart = true, IsAccepting = false },
             new State { Id = 2, IsStart = false, IsAccepting = true }
-        });
+        ]);
         model.Transitions.Add(new Transition { FromStateId = 1, ToStateId = 2, Symbol = 'a' });
-        model.Transitions.Add(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'a' }); // nondeterminism same symbol to two targets
+        model.Transitions.Add(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'a' }); 
 
         var svc = new AutomatonBuilderService(new NullLogger<AutomatonBuilderService>());
         var automaton = svc.CreateAutomatonFromModel(model) as NFA;
@@ -73,11 +67,11 @@ public class AutomatonBuilderAndDFASupplementalTests
     public void CreateAutomatonFromModel_EpsilonNFA_PreservesEpsilonTransitions()
     {
         var model = BaseModel(AutomatonType.EpsilonNFA);
-        model.States.AddRange(new[]
-        {
+        model.States.AddRange(
+        [
             new State { Id = 1, IsStart = true, IsAccepting = false },
             new State { Id = 2, IsStart = false, IsAccepting = true }
-        });
+        ]);
         model.Transitions.Add(new Transition { FromStateId = 1, ToStateId = 2, Symbol = '\0' }); // epsilon internal
 
         var svc = new AutomatonBuilderService(new NullLogger<AutomatonBuilderService>());
@@ -90,11 +84,11 @@ public class AutomatonBuilderAndDFASupplementalTests
     public void CreateAutomatonFromModel_MultipleStartStates_Throws()
     {
         var model = BaseModel(AutomatonType.DFA);
-        model.States.AddRange(new[]
-        {
+        model.States.AddRange(
+        [
             new State { Id = 1, IsStart = true, IsAccepting = false },
             new State { Id = 2, IsStart = true, IsAccepting = true }
-        });
+        ]);
 
         var svc = new AutomatonBuilderService(new NullLogger<AutomatonBuilderService>());
         Should.Throw<InvalidOperationException>(() => svc.CreateAutomatonFromModel(model));
@@ -120,13 +114,12 @@ public class AutomatonBuilderAndDFASupplementalTests
             .Build();
 
         var exec = dfa.StartExecution("a");
-        dfa.StepForward(exec); // push history, move to state 2, pos1
-        exec.StateHistory.Clear(); // simulate lost history
+        dfa.StepForward(exec); 
+        exec.StateHistory.Clear(); 
 
-        // StepBackward triggers fallback recomputation (history empty, position>0)
         dfa.StepBackward(exec);
         exec.Position.ShouldBe(0);
-        exec.CurrentStateId.ShouldBe(1); // recomputed from input prefix length 0
+        exec.CurrentStateId.ShouldBe(1); 
         exec.IsAccepted.ShouldBeNull();
     }
 

@@ -5,9 +5,6 @@ namespace FiniteAutomatons.IntegrationTests.AutomatonTypes;
 [Collection("Integration Tests")]
 public class AdvancedAutomatonOperationsIntegrationTests(IntegrationTestsFixture fixture) : IntegrationTestsBase(fixture)
 {
-
-    #region Large Scale Automaton Tests
-
     [Fact]
     public async Task CreateLargeNFA_10States_ComplexTransitionStructure()
     {
@@ -20,7 +17,6 @@ public class AdvancedAutomatonOperationsIntegrationTests(IntegrationTestsFixture
             new("Type", "NFA")
         };
 
-        // Add 10 states
         for (int i = 1; i <= 10; i++)
         {
             largeNfaData.AddRange(
@@ -31,10 +27,8 @@ public class AdvancedAutomatonOperationsIntegrationTests(IntegrationTestsFixture
             ]);
         }
 
-        // Add complex transition structure
         var transitions = new (int, int, char)[]
         {
-            // Main path transitions
             (1, 2, 'b'), (1, 3, 'a'),
             (2, 2, 'b'), (2, 4, 'a'),
             (3, 5, 'b'), (3, 6, 'a'),
@@ -46,13 +40,11 @@ public class AdvancedAutomatonOperationsIntegrationTests(IntegrationTestsFixture
             (9, 10, 'b'), (9, 10, 'a'),
             (10, 10, 'b'), (10, 10, 'a'),
             
-            // Nondeterministic choices
             (1, 1, 'b'), (2, 3, 'b'),
             (3, 4, 'a'), (4, 5, 'a'),
             (5, 6, 'b'), (6, 9, 'b')
         };
 
-        // Add all transitions
         for (int i = 0; i < transitions.Length; i++)
         {
             largeNfaData.AddRange(
@@ -71,10 +63,8 @@ public class AdvancedAutomatonOperationsIntegrationTests(IntegrationTestsFixture
         ]);
         _ = await client.PostAsync("/Automaton/CreateAutomaton", new FormUrlEncodedContent(largeNfaData));
 
-        // Wait a moment for any redirects to complete
         await Task.Delay(100);
 
-        // Verify large NFA creation by checking the home page
         var homeResponse = await client.GetAsync("/Home");
         var homeHtml = await homeResponse.Content.ReadAsStringAsync();
 
@@ -85,8 +75,6 @@ public class AdvancedAutomatonOperationsIntegrationTests(IntegrationTestsFixture
         }
         else
         {
-            // If the large automaton creation failed (possibly due to form size limits), 
-            // just verify the app is still working
             Assert.True(homeHtml.Contains("Welcome to the Automaton Simulator"),
                 "Large automaton creation may have failed due to form size limits, but app should still work");
         }
@@ -95,7 +83,6 @@ public class AdvancedAutomatonOperationsIntegrationTests(IntegrationTestsFixture
     [Fact]
     public async Task LargeEpsilonNFA_MultipleEpsilonPaths_PerformanceTest()
     {
-        // Create a large ?-NFA to test epsilon closure performance
         var client = GetHttpClient();
 
         var largeEpsilonNfaData = new List<KeyValuePair<string, string>>
@@ -103,7 +90,6 @@ public class AdvancedAutomatonOperationsIntegrationTests(IntegrationTestsFixture
             new("Type", "EpsilonNFA")
         };
 
-        // Create 8 states with complex epsilon transitions
         var states = new[] { 1, 2, 3, 4, 5, 6, 7, 8 };
         for (int i = 0; i < states.Length; i++)
         {
@@ -115,7 +101,6 @@ public class AdvancedAutomatonOperationsIntegrationTests(IntegrationTestsFixture
             ]);
         }
 
-        // Create epsilon transitions forming a complex graph
         var epsilonTransitions = new[]
         {
             (1, 2), (1, 3), (1, 4),  // Fan out from start
@@ -136,7 +121,6 @@ public class AdvancedAutomatonOperationsIntegrationTests(IntegrationTestsFixture
             ]);
         }
 
-        // Add a few regular transitions
         var regularTransitions = new[]
         {
             (8, 8, 'a'), (8, 8, 'b')  // Self-loops on final state
@@ -162,16 +146,13 @@ public class AdvancedAutomatonOperationsIntegrationTests(IntegrationTestsFixture
         ]);
         _ = await client.PostAsync("/Automaton/CreateAutomaton", new FormUrlEncodedContent(largeEpsilonNfaData));
 
-        // Wait a moment for any redirects to complete
         await Task.Delay(100);
 
-        // Check if automaton was created successfully
         var homeResponse = await client.GetAsync("/Home");
         var homeHtml = await homeResponse.Content.ReadAsStringAsync();
 
         if (homeHtml.Contains("Custom Automaton"))
         {
-            // Test execution with empty string (should be accepted due to epsilon closure)
             var executeData = new List<KeyValuePair<string, string>>
             {
                 new("Type", "EpsilonNFA"),
@@ -187,27 +168,19 @@ public class AdvancedAutomatonOperationsIntegrationTests(IntegrationTestsFixture
             var executeHtml = await executeResponse.Content.ReadAsStringAsync();
             Assert.Contains("Accepted", executeHtml);
 
-            // Performance assertion - should complete within reasonable time
             Assert.True(executionTime.TotalSeconds < 5, $"Execution took too long: {executionTime.TotalSeconds} seconds");
         }
         else
         {
-            // Skip the performance test if automaton creation failed (likely due to form size limits)
             Assert.True(true, "Skipping performance test because large epsilon NFA creation failed");
         }
     }
 
-    #endregion
-
-    #region Multi-Step Type Conversion Workflows
-
     [Fact]
     public async Task ComplexConversionWorkflow_EpsilonNFA_To_NFA_To_DFA()
     {
-        // Create an ?-NFA, convert to NFA, then to DFA, testing the full conversion pipeline
         var client = GetHttpClient();
 
-        // Step 1: Create ?-NFA
         var epsilonNfaData = new List<KeyValuePair<string, string>>
         {
             new("Type", "EpsilonNFA"),
@@ -224,7 +197,6 @@ public class AdvancedAutomatonOperationsIntegrationTests(IntegrationTestsFixture
             new("States[3].IsStart", "false"),
             new("States[3].IsAccepting", "true"),
             
-            // Epsilon transitions creating parallel paths
             new("Transitions[0].FromStateId", "1"),
             new("Transitions[0].ToStateId", "2"),
             new("Transitions[0].Symbol", "\0"),
@@ -232,7 +204,6 @@ public class AdvancedAutomatonOperationsIntegrationTests(IntegrationTestsFixture
             new("Transitions[1].ToStateId", "3"),
             new("Transitions[1].Symbol", "\0"),
             
-            // Regular transitions
             new("Transitions[2].FromStateId", "2"),
             new("Transitions[2].ToStateId", "4"),
             new("Transitions[2].Symbol", "a"),
@@ -247,7 +218,6 @@ public class AdvancedAutomatonOperationsIntegrationTests(IntegrationTestsFixture
 
         await client.PostAsync("/Automaton/CreateAutomaton", new FormUrlEncodedContent(epsilonNfaData));
 
-        // Verify ?-NFA creation
         var homeResponse1 = await client.GetAsync("/Home");
         var homeHtml1 = await homeResponse1.Content.ReadAsStringAsync();
 
@@ -255,7 +225,6 @@ public class AdvancedAutomatonOperationsIntegrationTests(IntegrationTestsFixture
         {
             Assert.Contains("Epsilon Nondeterministic Finite Automaton", homeHtml1);
 
-            // Step 2: Convert ?-NFA to DFA (which goes through NFA internally)
             var convertData = new List<KeyValuePair<string, string>>
             {
                 new("Type", "EpsilonNFA"),
@@ -269,13 +238,11 @@ public class AdvancedAutomatonOperationsIntegrationTests(IntegrationTestsFixture
                        convertResponse.StatusCode == HttpStatusCode.Found ||
                        convertResponse.StatusCode == HttpStatusCode.SeeOther);
 
-            // Step 3: Verify conversion to DFA
             var homeResponse2 = await client.GetAsync("/Home");
             var homeHtml2 = await homeResponse2.Content.ReadAsStringAsync();
             Assert.Contains("Deterministic Finite Automaton (DFA)", homeHtml2);
             Assert.Contains("Successfully converted", homeHtml2);
 
-            // Step 4: Test that the converted DFA still recognizes the same language
             var testData = new List<KeyValuePair<string, string>>
             {
                 new("Input", "a"),
@@ -295,10 +262,7 @@ public class AdvancedAutomatonOperationsIntegrationTests(IntegrationTestsFixture
     [Fact]
     public async Task TypeConversion_PreservesLanguageRecognition()
     {
-        // Test that type conversions preserve the language recognition properties
         var client = GetHttpClient();
-
-        // Create NFA that accepts strings ending with "ab"
         var originalNfaData = new List<KeyValuePair<string, string>>
         {
             new("Type", "NFA"),
@@ -331,7 +295,6 @@ public class AdvancedAutomatonOperationsIntegrationTests(IntegrationTestsFixture
 
         await client.PostAsync("/Automaton/CreateAutomaton", new FormUrlEncodedContent(originalNfaData));
 
-        // Test cases for language ending with "ab"
         var testCases = new[]
         {
             ("ab", true),
@@ -344,7 +307,6 @@ public class AdvancedAutomatonOperationsIntegrationTests(IntegrationTestsFixture
             ("aba", false)
         };
 
-        // Test original NFA
         foreach (var (input, shouldAccept) in testCases)
         {
             var testData = new List<KeyValuePair<string, string>>
@@ -367,7 +329,6 @@ public class AdvancedAutomatonOperationsIntegrationTests(IntegrationTestsFixture
             }
         }
 
-        // Convert to DFA
         var convertData = new List<KeyValuePair<string, string>>
         {
             new("Type", "NFA"),
@@ -376,7 +337,6 @@ public class AdvancedAutomatonOperationsIntegrationTests(IntegrationTestsFixture
 
         await client.PostAsync("/Automaton/ConvertToDFA", new FormUrlEncodedContent(convertData));
 
-        // Test converted DFA with same test cases
         foreach (var (input, shouldAccept) in testCases)
         {
             var testData = new List<KeyValuePair<string, string>>
@@ -399,10 +359,6 @@ public class AdvancedAutomatonOperationsIntegrationTests(IntegrationTestsFixture
         }
     }
 
-    #endregion
-
-    #region Stress Testing and Performance
-
     [Fact]
     public async Task StressTest_MultipleAutomatonCreations_SequentialOperations()
     {
@@ -413,7 +369,6 @@ public class AdvancedAutomatonOperationsIntegrationTests(IntegrationTestsFixture
 
         foreach (var type in automatonTypes)
         {
-            // Create a simple automaton of each type
             var automatonData = new List<KeyValuePair<string, string>>
             {
                 new("Type", type),
@@ -430,13 +385,11 @@ public class AdvancedAutomatonOperationsIntegrationTests(IntegrationTestsFixture
                        createResponse.StatusCode == HttpStatusCode.Found ||
                        createResponse.StatusCode == HttpStatusCode.SeeOther);
 
-            // Check if automaton was created successfully
             var homeResponse = await client.GetAsync("/Home");
             var homeHtml = await homeResponse.Content.ReadAsStringAsync();
 
             if (homeHtml.Contains("Custom Automaton"))
             {
-                // Execute on the created automaton
                 var executeData = new List<KeyValuePair<string, string>>
                 {
                     new("Input", ""),
@@ -447,7 +400,6 @@ public class AdvancedAutomatonOperationsIntegrationTests(IntegrationTestsFixture
                 var executeHtml = await executeResponse.Content.ReadAsStringAsync();
                 Assert.Contains("Accepted", executeHtml);
 
-                // Verify the correct type is displayed
                 switch (type)
                 {
                     case "DFA":
@@ -463,7 +415,6 @@ public class AdvancedAutomatonOperationsIntegrationTests(IntegrationTestsFixture
             }
             else
             {
-                // If automaton creation failed, just verify the app is still working
                 Assert.True(homeHtml.Contains("Welcome to the Automaton Simulator"),
                     $"Automaton creation for {type} failed, but app should still work");
             }
@@ -476,7 +427,6 @@ public class AdvancedAutomatonOperationsIntegrationTests(IntegrationTestsFixture
         // Test NFA performance with long input strings
         var client = GetHttpClient();
 
-        // Create a simple NFA
         var nfaData = new List<KeyValuePair<string, string>>
         {
             new("Type", "NFA"),
@@ -498,7 +448,6 @@ public class AdvancedAutomatonOperationsIntegrationTests(IntegrationTestsFixture
 
         await client.PostAsync("/Automaton/CreateAutomaton", new FormUrlEncodedContent(nfaData));
 
-        // Test with increasingly long strings
         var stringLengths = new[] { 10, 50, 100 };
 
         foreach (var length in stringLengths)
@@ -520,15 +469,10 @@ public class AdvancedAutomatonOperationsIntegrationTests(IntegrationTestsFixture
             var html = await response.Content.ReadAsStringAsync();
             Assert.Contains("Accepted", html);
 
-            // Performance assertion - should complete within reasonable time even for long strings
             Assert.True(executionTime.TotalSeconds < 10,
                 $"Execution with input length {length} took too long: {executionTime.TotalSeconds} seconds");
         }
     }
-
-    #endregion
-
-    #region Complex Real-World Scenarios
 
     [Fact]
     public async Task RealWorldScenario_EmailValidationNFA()
@@ -723,6 +667,4 @@ public class AdvancedAutomatonOperationsIntegrationTests(IntegrationTestsFixture
             }
         }
     }
-
-    #endregion
 }

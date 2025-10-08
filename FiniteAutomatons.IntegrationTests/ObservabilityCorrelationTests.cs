@@ -11,16 +11,13 @@ public class ObservabilityCorrelationTests(IntegrationTestsFixture fixture) : In
     {
         var client = GetHttpClient();
 
-        // Call dedicated test endpoint (registered only in Development)
         var response = await client.GetAsync("/_tests/audit-correlation");
         response.EnsureSuccessStatusCode();
 
-        // Inspect in-memory collectors
         using var scope = GetServiceScope();
         var audit = scope.ServiceProvider.GetRequiredService<Observability.InMemoryAuditService>();
         var collector = scope.ServiceProvider.GetRequiredService<Services.Observability.InMemoryActivityCollector>();
 
-        // Give some time for Activity listeners to capture
         await Task.Delay(100);
 
         var auditEntries = audit.GetAll();
@@ -29,7 +26,6 @@ public class ObservabilityCorrelationTests(IntegrationTestsFixture fixture) : In
         var traceEntries = collector.GetAll();
         traceEntries.ShouldNotBeEmpty();
 
-        // Find the latest audit entry with EventType 'TestEndpoint'
         var lastAudit = auditEntries.Where(a => a.EventType == "TestEndpoint").Last();
         var lastTrace = traceEntries.Last();
 

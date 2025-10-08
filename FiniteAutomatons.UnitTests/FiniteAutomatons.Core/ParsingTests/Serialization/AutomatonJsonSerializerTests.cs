@@ -2,8 +2,6 @@ using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.Serialization;
 using Shouldly;
-using System.Text.Json;
-using System.Collections.Generic;
 
 namespace FiniteAutomatons.UnitTests.FiniteAutomatons.Core.ParsingTests.Serialization;
 

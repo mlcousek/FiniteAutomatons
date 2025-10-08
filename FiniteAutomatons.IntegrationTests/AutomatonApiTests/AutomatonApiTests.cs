@@ -148,15 +148,12 @@ public class AutomatonApiTests(IntegrationTestsFixture fixture) : IntegrationTes
         var html = await response.Content.ReadAsStringAsync();
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         
-        // Debug: Check what we actually get for Current State
         if (html.Contains("Current State:</strong> 2"))
         {
-            // Continue with the test...
             Assert.Contains("Current State:</strong> 2", html);
         }
         else if (html.Contains("Current State:</strong>"))
         {
-            // Find what state it actually shows
             var stateMatch = Regex.Match(html, @"Current State:</strong>\s*(\d+)");
             if (stateMatch.Success)
             {
@@ -172,7 +169,6 @@ public class AutomatonApiTests(IntegrationTestsFixture fixture) : IntegrationTes
             Assert.Fail("No Current State section found in HTML");
         }
 
-        // Update model from response
         UpdateModelFromHtml(model, html);
 
         // Step 2: StepForward again (with 'b' should move to state 5, not 3!)
@@ -181,7 +177,6 @@ public class AutomatonApiTests(IntegrationTestsFixture fixture) : IntegrationTes
         html = await response.Content.ReadAsStringAsync();
         Assert.Contains("Current State:</strong> 5", html);
 
-        // Update model from response
         UpdateModelFromHtml(model, html);
 
         // Step 3: StepBackward (should move back to state 2)
