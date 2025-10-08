@@ -10,21 +10,16 @@ using FiniteAutomatons.Controllers;
 using Microsoft.AspNetCore.Mvc;
 using FiniteAutomatons.Core.Utilities;
 using FiniteAutomatons.UnitTests.Controllers; // for mock services & TestTempDataProvider
+using FiniteAutomatons.UnitTests.TestHelpers;
+using System;
+using System.Collections.Generic;
 
 namespace FiniteAutomatons.UnitTests.Services;
 
-// Simple no-op test logger
-internal class NullLogger<T> : ILogger<T>
-{
-    public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
-    public bool IsEnabled(LogLevel logLevel) => false;
-    public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter) { }
-}
-
 public class AutomatonExecutionServiceTests
 {
-    private readonly IAutomatonBuilderService _builderService = new AutomatonBuilderService(new NullLogger<AutomatonBuilderService>());
-    private AutomatonExecutionService CreateService() => new(_builderService, new NullLogger<AutomatonExecutionService>());
+    private readonly IAutomatonBuilderService _builderService = new AutomatonBuilderService(NullLogger<AutomatonBuilderService>.Instance);
+    private AutomatonExecutionService CreateService() => new(_builderService, NullLogger<AutomatonExecutionService>.Instance);
 
     [Fact]
     public void ResetExecution_ClearsState_PreservesStructureAndAlphabet()
@@ -144,7 +139,7 @@ public class AutomatonExecutionServiceTests
     [MemberData(nameof(EpsilonAliasCases))]
     public void Validation_EpsilonAliases_OnlyAllowedInEpsilonNFA(string symbol, bool isEpsilon)
     {
-        var validation = new AutomatonValidationService(new NullLogger<AutomatonValidationService>());
+        var validation = new FiniteAutomatons.Services.Services.AutomatonValidationService(NullLogger<FiniteAutomatons.Services.Services.AutomatonValidationService>.Instance);
         var epsilonModel = new AutomatonViewModel { Type = AutomatonType.EpsilonNFA, States = [ new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true } ] };
         var dfaModel = new AutomatonViewModel { Type = AutomatonType.DFA, States = [ new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true } ] };
 
@@ -168,7 +163,7 @@ public class AutomatonExecutionServiceTests
     [Fact]
     public void Builder_AddingSecondStartState_ShouldThrow()
     {
-        var builder = new AutomatonBuilderService(new NullLogger<AutomatonBuilderService>());
+        var builder = new AutomatonBuilderService(NullLogger<AutomatonBuilderService>.Instance);
         var model = new AutomatonViewModel
         {
             Type = AutomatonType.DFA,
@@ -197,7 +192,7 @@ public class AutomatonExecutionServiceTests
 
     private AutomatonController BuildControllerWithRealValidation()
     {
-        var controller = new AutomatonController(new NullLogger<AutomatonController>(), new MockAutomatonGeneratorService(), new MockAutomatonTempDataService(), new AutomatonValidationService(new NullLogger<AutomatonValidationService>()), new MockAutomatonConversionService(), new MockAutomatonExecutionService(), new AutomatonEditingService(new AutomatonValidationService(new NullLogger<AutomatonValidationService>()), new NullLogger<AutomatonEditingService>()))
+        var controller = new AutomatonController(NullLogger<AutomatonController>.Instance, new MockAutomatonGeneratorService(), new MockAutomatonTempDataService(), new AutomatonValidationService(NullLogger<AutomatonValidationService>.Instance), new MockAutomatonConversionService(), new MockAutomatonExecutionService(), new AutomatonEditingService(new AutomatonValidationService(NullLogger<AutomatonValidationService>.Instance), NullLogger<AutomatonEditingService>.Instance))
         {
             TempData = new TempDataDictionary(new DefaultHttpContext(), new TestTempDataProvider())
         };
