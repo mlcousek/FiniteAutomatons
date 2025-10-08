@@ -15,6 +15,8 @@ using OpenTelemetry.Trace;
 using System.Text;
 using System.Diagnostics;
 
+namespace FiniteAutomatons;
+
 public partial class Program
 {
     public static async Task Main(string[] args)
@@ -44,7 +46,7 @@ public partial class Program
             await audit.AuditAsync("ApplicationStart", "Application started", new Dictionary<string, string?> { ["Environment"] = app.Environment.EnvironmentName });
         }
 
-        ConfigureRequestPipeline(app, observabilityPaths);
+        ConfigureRequestPipeline(app);
 
         await app.RunAsync();
     }
@@ -112,19 +114,19 @@ public partial class Program
             // In development/tests use in-memory activity collector
             var collector = new InMemoryActivityCollector();
             builder.Services.AddSingleton(collector);
-            builder.Services.AddSingleton<InMemoryActivityCollector>(collector);
+            builder.Services.AddSingleton(collector);
 
             // In-memory audit
             var inMemAudit = new InMemoryAuditService();
             builder.Services.AddSingleton<IAuditService>(inMemAudit);
-            builder.Services.AddSingleton<InMemoryAuditService>(inMemAudit);
+            builder.Services.AddSingleton(inMemAudit);
 
             // Register ActivityListener to forward activities to in-memory collector
             var listener = new ActivityListener
             {
                 ShouldListenTo = _ => true,
-                Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded,
-                SampleUsingParentId = (ref ActivityCreationOptions<string> _) => ActivitySamplingResult.AllDataAndRecorded,
+                Sample = (ref _) => ActivitySamplingResult.AllDataAndRecorded,
+                SampleUsingParentId = (ref _) => ActivitySamplingResult.AllDataAndRecorded,
                 ActivityStarted = a => collector.Add(a),
                 ActivityStopped = a => collector.Add(a)
             };
@@ -175,7 +177,7 @@ public partial class Program
         {
             var inner = sp.GetRequiredService<AutomatonConversionService>();
             var audit = sp.GetRequiredService<IAuditService>();
-            return new FiniteAutomatons.Services.Observability.AutomatonConversionServiceAuditorDecorator(inner, audit);
+            return new AutomatonConversionServiceAuditorDecorator(inner, audit);
         });
 
         // register concrete execution service and decorator
@@ -196,7 +198,7 @@ public partial class Program
         services.AddTransient<EpsilonNFA>();
     }
 
-    private static void ConfigureRequestPipeline(WebApplication app, (string Traces, string Logs, string Audits) observabilityPaths)
+    private static void ConfigureRequestPipeline(WebApplication app)
     {
         // Configure the HTTP request pipeline.
         if (app.Environment.IsDevelopment())
