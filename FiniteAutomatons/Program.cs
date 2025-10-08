@@ -15,226 +15,269 @@ using OpenTelemetry.Trace;
 using System.Text;
 using System.Diagnostics;
 
-// Set console encoding to UTF-8 to properly display Unicode characters like ?
-Console.OutputEncoding = Encoding.UTF8;
-Console.InputEncoding = Encoding.UTF8;
-
-var builder = WebApplication.CreateBuilder(args);
-
-if (File.Exists(Path.Combine(builder.Environment.ContentRootPath, "dev.json")))
+public partial class Program
 {
-    builder.Configuration.AddJsonFile("dev.json", optional: true, reloadOnChange: true);
-}
-
-var dbSettings = new DatabaseSettings();
-builder.Configuration.GetSection("DatabaseSettings").Bind(dbSettings);
-var connectionString = dbSettings.GetConnectionString();
-
-// Ensure folder for traces exists
-var tracesPath = Path.Combine(builder.Environment.ContentRootPath, "observability", "traces.log");
-var logsPath = Path.Combine(builder.Environment.ContentRootPath, "observability", "logs.log");
-var auditsPath = Path.Combine(builder.Environment.ContentRootPath, "observability", "audits.log");
-Directory.CreateDirectory(Path.GetDirectoryName(tracesPath) ?? builder.Environment.ContentRootPath);
-
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(connectionString));
-builder.Services.AddDatabaseDeveloperPageExceptionFilter();
-
-builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
-    .AddEntityFrameworkStores<ApplicationDbContext>();
-builder.Services.AddControllersWithViews(o =>
-{
-    if (builder.Environment.IsProduction())
+    public static async Task Main(string[] args)
     {
-        o.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
-    }
-    o.Filters.Add<AutomatonModelFilter>();
-});
+        // Set console encoding to UTF-8 to properly display Unicode characters like ?
+        Console.OutputEncoding = Encoding.UTF8;
+        Console.InputEncoding = Encoding.UTF8;
 
-// Configure logging with better Unicode support
-builder.Logging.ClearProviders();
-builder.Logging.AddConsole();
-builder.Logging.AddDebug();
+        var builder = WebApplication.CreateBuilder(args);
 
-// Add OpenTelemetry tracing (console exporter for local/dev)
-builder.Services.AddOpenTelemetry().WithTracing(tracerProvider =>
-{
-    tracerProvider
-        .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(builder.Environment.ApplicationName ?? "FiniteAutomatons"))
-        .AddAspNetCoreInstrumentation()
-        .AddHttpClientInstrumentation()
-        .AddConsoleExporter();
-});
+        ConfigureConfiguration(builder);
 
-if (builder.Environment.IsDevelopment())
-{
-    // In development/tests use in-memory activity collector
-    var collector = new InMemoryActivityCollector();
-    builder.Services.AddSingleton(collector);
-    builder.Services.AddSingleton<InMemoryActivityCollector>(collector);
+        var dbSettings = new DatabaseSettings();
+        builder.Configuration.GetSection("DatabaseSettings").Bind(dbSettings);
+        var connectionString = dbSettings.GetConnectionString();
 
-    // In-memory audit
-    var inMemAudit = new InMemoryAuditService();
-    builder.Services.AddSingleton<IAuditService>(inMemAudit);
-    builder.Services.AddSingleton<InMemoryAuditService>(inMemAudit);
+        var observabilityPaths = EnsureObservabilityPaths(builder.Environment.ContentRootPath);
 
-    // Register ActivityListener to forward activities to in-memory collector
-    var listener = new ActivityListener
-    {
-        ShouldListenTo = _ => true,
-        Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded,
-        SampleUsingParentId = (ref ActivityCreationOptions<string> _) => ActivitySamplingResult.AllDataAndRecorded,
-        ActivityStarted = a => collector.Add(a),
-        ActivityStopped = a => collector.Add(a)
-    };
-    ActivitySource.AddActivityListener(listener);
-}
-else
-{
-    // Register activity file writer to capture activities to a local file
-    builder.Services.AddSingleton(new ActivityFileWriter(tracesPath));
+        ConfigureServices(builder, connectionString, observabilityPaths);
 
-    // Register audit service (moved to Services project)
-    builder.Services.AddSingleton<IAuditService>(new FileAuditService(auditsPath));
+        var app = builder.Build();
 
-    // Simple file logger
-    builder.Logging.AddProvider(new FileLoggerProvider(logsPath));
-}
-
-// Add OpenTelemetry logging to file (kept minimal)
-builder.Logging.AddOpenTelemetry(options =>
-{
-    options.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(builder.Environment.ApplicationName ?? "FiniteAutomatons"));
-});
-
-builder.Services.AddScoped<IExecuteService, ExecuteService>();
-// register concrete generator and decorated interface
-builder.Services.AddScoped<AutomatonGeneratorService>();
-builder.Services.AddScoped<IAutomatonGeneratorService>(sp =>
-{
-    var inner = sp.GetRequiredService<AutomatonGeneratorService>();
-    var audit = sp.GetRequiredService<IAuditService>();
-    return new AutomatonGeneratorServiceAuditorDecorator(inner, audit);
-});
-
-builder.Services.AddScoped<IAutomatonTempDataService, AutomatonTempDataService>();
-builder.Services.AddScoped<IHomeAutomatonService, HomeAutomatonService>();
-builder.Services.AddScoped<IAutomatonValidationService, AutomatonValidationService>();
-// register concrete conversion and decorated interface
-builder.Services.AddScoped<AutomatonConversionService>();
-builder.Services.AddScoped<IAutomatonConversionService>(sp =>
-{
-    var inner = sp.GetRequiredService<AutomatonConversionService>();
-    var audit = sp.GetRequiredService<IAuditService>();
-    return new FiniteAutomatons.Services.Observability.AutomatonConversionServiceAuditorDecorator(inner, audit);
-});
-
-// register concrete execution service
-builder.Services.AddScoped<AutomatonExecutionService>();
-// register decorated interface
-builder.Services.AddScoped<IAutomatonExecutionService>(sp =>
-{
-    var inner = sp.GetRequiredService<AutomatonExecutionService>();
-    var audit = sp.GetRequiredService<IAuditService>();
-    return new AutomatonExecutionServiceAuditorDecorator(inner, audit);
-});
-
-builder.Services.AddScoped<IAutomatonBuilderService, AutomatonBuilderService>();
-builder.Services.AddScoped<IAutomatonEditingService, AutomatonEditingService>();
-
-// Register automaton types
-builder.Services.AddTransient<DFA>();
-builder.Services.AddTransient<NFA>();
-builder.Services.AddTransient<EpsilonNFA>();
-
-var app = builder.Build();
-
-// Audit app start
-var audit = app.Services.GetRequiredService<IAuditService>();
-await audit.AuditAsync("ApplicationStart", "Application started", new Dictionary<string, string?> { ["Environment"] = app.Environment.EnvironmentName });
-
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseMigrationsEndPoint();
-}
-else
-{
-    // Use global exception handler in non-development environments
-    app.UseExceptionHandler(errorApp =>
-    {
-        errorApp.Run(async context =>
+        // Audit app start
+        using (var scope = app.Services.CreateScope())
         {
-            var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
-            var auditSvc = context.RequestServices.GetService<IAuditService>();
-
-            var feature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerPathFeature>();
-            var exception = feature?.Error;
-            var path = feature?.Path;
-
-            if (exception != null)
-            {
-                logger.LogError(exception, "Unhandled exception occurred while processing request for {Path}", path);
-                if (auditSvc != null)
-                {
-                    await auditSvc.AuditAsync("UnhandledException", path ?? "unknown", new Dictionary<string, string?> { ["Exception"] = exception.ToString() });
-                }
-            }
-
-            // Return ProblemDetails for API clients
-            context.Response.StatusCode = 500;
-            var accept = context.Request.Headers.Accept.ToString();
-            if (accept != null && accept.Contains("application/json", StringComparison.OrdinalIgnoreCase))
-            {
-                var problem = new ProblemDetails
-                {
-                    Status = 500,
-                    Title = "An unexpected error occurred",
-                    Detail = "An internal server error occurred."
-                };
-                context.Response.ContentType = "application/problem+json";
-                await System.Text.Json.JsonSerializer.SerializeAsync(context.Response.Body, problem);
-            }
-            else
-            {
-                // For browser requests, redirect to friendly error page
-                context.Response.Redirect("/Home/Error");
-            }
-        });
-    });
-
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-    app.UseHsts();
-}
-
-app.UseHttpsRedirection();
-app.UseRouting();
-
-// Development-only test endpoint for correlation tests
-if (app.Environment.IsDevelopment())
-{
-    app.MapGet("/_tests/audit-correlation", async (IAuditService audit) =>
-    {
-        if (audit != null)
-        {
-            await audit.AuditAsync("TestEndpoint", "Correlation test called");
+            var audit = scope.ServiceProvider.GetRequiredService<IAuditService>();
+            await audit.AuditAsync("ApplicationStart", "Application started", new Dictionary<string, string?> { ["Environment"] = app.Environment.EnvironmentName });
         }
-        return Results.Ok();
-    }).WithDisplayName("TestAuditEndpoint");
+
+        ConfigureRequestPipeline(app, observabilityPaths);
+
+        await app.RunAsync();
+    }
+
+    // --------------------------- Helper methods ---------------------------
+
+    private static void ConfigureConfiguration(WebApplicationBuilder builder)
+    {
+        // Optional local developer configuration
+        if (File.Exists(Path.Combine(builder.Environment.ContentRootPath, "dev.json")))
+        {
+            builder.Configuration.AddJsonFile("dev.json", optional: true, reloadOnChange: true);
+        }
+    }
+
+    private static (string Traces, string Logs, string Audits) EnsureObservabilityPaths(string contentRoot)
+    {
+        var tracesPath = Path.Combine(contentRoot, "observability", "traces.log");
+        var logsPath = Path.Combine(contentRoot, "observability", "logs.log");
+        var auditsPath = Path.Combine(contentRoot, "observability", "audits.log");
+
+        var dir = Path.GetDirectoryName(tracesPath) ?? contentRoot;
+        Directory.CreateDirectory(dir);
+
+        return (tracesPath, logsPath, auditsPath);
+    }
+
+    private static void ConfigureServices(WebApplicationBuilder builder, string connectionString, (string Traces, string Logs, string Audits) observabilityPaths)
+    {
+        // Database and Identity
+        builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connectionString));
+        builder.Services.AddDatabaseDeveloperPageExceptionFilter();
+
+        builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
+            .AddEntityFrameworkStores<ApplicationDbContext>();
+
+        // MVC and filters
+        builder.Services.AddControllersWithViews(o =>
+        {
+            if (builder.Environment.IsProduction())
+            {
+                o.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
+            }
+            o.Filters.Add<AutomatonModelFilter>();
+        });
+
+        // Logging providers
+        builder.Logging.ClearProviders();
+        builder.Logging.AddConsole();
+        builder.Logging.AddDebug();
+
+        // OpenTelemetry tracing (console exporter for local/dev)
+        builder.Services.AddOpenTelemetry().WithTracing(tracerProvider =>
+        {
+            tracerProvider
+                .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(builder.Environment.ApplicationName ?? "FiniteAutomatons"))
+                .AddAspNetCoreInstrumentation()
+                .AddHttpClientInstrumentation()
+                .AddConsoleExporter();
+        });
+
+        // Observability: development uses in-memory collectors, otherwise file-based
+        if (builder.Environment.IsDevelopment())
+        {
+            // In development/tests use in-memory activity collector
+            var collector = new InMemoryActivityCollector();
+            builder.Services.AddSingleton(collector);
+            builder.Services.AddSingleton<InMemoryActivityCollector>(collector);
+
+            // In-memory audit
+            var inMemAudit = new InMemoryAuditService();
+            builder.Services.AddSingleton<IAuditService>(inMemAudit);
+            builder.Services.AddSingleton<InMemoryAuditService>(inMemAudit);
+
+            // Register ActivityListener to forward activities to in-memory collector
+            var listener = new ActivityListener
+            {
+                ShouldListenTo = _ => true,
+                Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded,
+                SampleUsingParentId = (ref ActivityCreationOptions<string> _) => ActivitySamplingResult.AllDataAndRecorded,
+                ActivityStarted = a => collector.Add(a),
+                ActivityStopped = a => collector.Add(a)
+            };
+            ActivitySource.AddActivityListener(listener);
+        }
+        else
+        {
+            // Register activity file writer to capture activities to a local file
+            builder.Services.AddSingleton(new ActivityFileWriter(observabilityPaths.Traces));
+
+            // Register audit service (moved to Services project)
+            builder.Services.AddSingleton<IAuditService>(new FileAuditService(observabilityPaths.Audits));
+
+            // Simple file logger
+            builder.Logging.AddProvider(new FileLoggerProvider(observabilityPaths.Logs));
+        }
+
+        // Add OpenTelemetry logging to file (kept minimal)
+        builder.Logging.AddOpenTelemetry(options =>
+        {
+            options.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(builder.Environment.ApplicationName ?? "FiniteAutomatons"));
+        });
+
+        // Application services
+        RegisterApplicationServices(builder.Services);
+    }
+
+    private static void RegisterApplicationServices(IServiceCollection services)
+    {
+        services.AddScoped<IExecuteService, ExecuteService>();
+
+        // register concrete generator and decorated interface
+        services.AddScoped<AutomatonGeneratorService>();
+        services.AddScoped<IAutomatonGeneratorService>(sp =>
+        {
+            var inner = sp.GetRequiredService<AutomatonGeneratorService>();
+            var audit = sp.GetRequiredService<IAuditService>();
+            return new AutomatonGeneratorServiceAuditorDecorator(inner, audit);
+        });
+
+        services.AddScoped<IAutomatonTempDataService, AutomatonTempDataService>();
+        services.AddScoped<IHomeAutomatonService, HomeAutomatonService>();
+        services.AddScoped<IAutomatonValidationService, AutomatonValidationService>();
+
+        // register concrete conversion and decorated interface
+        services.AddScoped<AutomatonConversionService>();
+        services.AddScoped<IAutomatonConversionService>(sp =>
+        {
+            var inner = sp.GetRequiredService<AutomatonConversionService>();
+            var audit = sp.GetRequiredService<IAuditService>();
+            return new FiniteAutomatons.Services.Observability.AutomatonConversionServiceAuditorDecorator(inner, audit);
+        });
+
+        // register concrete execution service and decorator
+        services.AddScoped<AutomatonExecutionService>();
+        services.AddScoped<IAutomatonExecutionService>(sp =>
+        {
+            var inner = sp.GetRequiredService<AutomatonExecutionService>();
+            var audit = sp.GetRequiredService<IAuditService>();
+            return new AutomatonExecutionServiceAuditorDecorator(inner, audit);
+        });
+
+        services.AddScoped<IAutomatonBuilderService, AutomatonBuilderService>();
+        services.AddScoped<IAutomatonEditingService, AutomatonEditingService>();
+
+        // Register automaton types
+        services.AddTransient<DFA>();
+        services.AddTransient<NFA>();
+        services.AddTransient<EpsilonNFA>();
+    }
+
+    private static void ConfigureRequestPipeline(WebApplication app, (string Traces, string Logs, string Audits) observabilityPaths)
+    {
+        // Configure the HTTP request pipeline.
+        if (app.Environment.IsDevelopment())
+        {
+            app.UseMigrationsEndPoint();
+        }
+        else
+        {
+            // Use global exception handler in non-development environments
+            app.UseExceptionHandler(errorApp =>
+            {
+                errorApp.Run(async context =>
+                {
+                    var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+                    var auditSvc = context.RequestServices.GetService<IAuditService>();
+
+                    var feature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerPathFeature>();
+                    var exception = feature?.Error;
+                    var path = feature?.Path;
+
+                    if (exception != null)
+                    {
+                        logger.LogError(exception, "Unhandled exception occurred while processing request for {Path}", path);
+                        if (auditSvc != null)
+                        {
+                            await auditSvc.AuditAsync("UnhandledException", path ?? "unknown", new Dictionary<string, string?> { ["Exception"] = exception.ToString() });
+                        }
+                    }
+
+                    // Return ProblemDetails for API clients
+                    context.Response.StatusCode = 500;
+                    var accept = context.Request.Headers.Accept.ToString();
+                    if (accept != null && accept.Contains("application/json", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var problem = new ProblemDetails
+                        {
+                            Status = 500,
+                            Title = "An unexpected error occurred",
+                            Detail = "An internal server error occurred."
+                        };
+                        context.Response.ContentType = "application/problem+json";
+                        await System.Text.Json.JsonSerializer.SerializeAsync(context.Response.Body, problem);
+                    }
+                    else
+                    {
+                        // For browser requests, redirect to friendly error page
+                        context.Response.Redirect("/Home/Error");
+                    }
+                });
+            });
+
+            // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+            app.UseHsts();
+        }
+
+        app.UseHttpsRedirection();
+        app.UseRouting();
+
+        // Development-only test endpoint for correlation tests
+        if (app.Environment.IsDevelopment())
+        {
+            app.MapGet("/_tests/audit-correlation", async (IAuditService audit) =>
+            {
+                if (audit != null)
+                {
+                    await audit.AuditAsync("TestEndpoint", "Correlation test called");
+                }
+                return Results.Ok();
+            }).WithDisplayName("TestAuditEndpoint");
+        }
+
+        app.UseAuthorization();
+
+        app.MapStaticAssets();
+
+        app.MapControllerRoute(
+            name: "default",
+            pattern: "{controller=Home}/{action=Index}/{id?}")
+            .WithStaticAssets();
+
+        app.MapRazorPages()
+           .WithStaticAssets();
+    }
 }
-
-app.UseAuthorization();
-
-app.MapStaticAssets();
-
-app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}")
-    .WithStaticAssets();
-
-app.MapRazorPages()
-   .WithStaticAssets();
-
-await app.RunAsync();
-
-public partial class Program { }
