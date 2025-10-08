@@ -13,6 +13,7 @@ using OpenTelemetry.Logs;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using System.Text;
+using System.Diagnostics;
 
 // Set console encoding to UTF-8 to properly display Unicode characters like ?
 Console.OutputEncoding = Encoding.UTF8;
@@ -76,6 +77,17 @@ if (builder.Environment.IsDevelopment())
     var inMemAudit = new InMemoryAuditService();
     builder.Services.AddSingleton<IAuditService>(inMemAudit);
     builder.Services.AddSingleton<InMemoryAuditService>(inMemAudit);
+
+    // Register ActivityListener to forward activities to in-memory collector
+    var listener = new ActivityListener
+    {
+        ShouldListenTo = _ => true,
+        Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded,
+        SampleUsingParentId = (ref ActivityCreationOptions<string> _) => ActivitySamplingResult.AllDataAndRecorded,
+        ActivityStarted = a => collector.Add(a),
+        ActivityStopped = a => collector.Add(a)
+    };
+    ActivitySource.AddActivityListener(listener);
 }
 else
 {
@@ -102,7 +114,7 @@ builder.Services.AddScoped<IAutomatonGeneratorService>(sp =>
 {
     var inner = sp.GetRequiredService<AutomatonGeneratorService>();
     var audit = sp.GetRequiredService<IAuditService>();
-    return new FiniteAutomatons.Services.Observability.AutomatonGeneratorServiceAuditorDecorator(inner, audit);
+    return new AutomatonGeneratorServiceAuditorDecorator(inner, audit);
 });
 
 builder.Services.AddScoped<IAutomatonTempDataService, AutomatonTempDataService>();
