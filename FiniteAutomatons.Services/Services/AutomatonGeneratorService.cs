@@ -86,8 +86,6 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
         return true;
     }
 
-    #region Private Helper Methods
-
     private static List<char> GenerateAlphabet(int size)
     {
         var alphabet = new List<char>();
@@ -136,13 +134,10 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
         var transitions = new List<Transition>();
         var addedTransitions = new HashSet<string>();
 
-        // 1. Ensure basic connectivity
         EnsureConnectivity(states, alphabet, transitions, addedTransitions, random);
 
-        // 2. Ensure each alphabet symbol appears at least once (non-epsilon)
         EnsureAllSymbolsPresent(type, states, alphabet, transitions, addedTransitions, random);
 
-        // 3. Fill remaining transitions up to requested count (may already exceed if we had to force missing symbols)
         int remainingTransitions = transitionCount - transitions.Count;
         for (int i = 0; i < remainingTransitions; i++)
         {
@@ -154,7 +149,7 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
             }
             else
             {
-                break; // Cannot generate more without conflicts
+                break;
             }
         }
 
@@ -203,7 +198,6 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
         {
             if (present.Contains(symbol)) continue;
 
-            // Try to add a transition using this symbol
             const int maxAttempts = 100;
             for (int attempt = 0; attempt < maxAttempts; attempt++)
             {
@@ -215,14 +209,13 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
 
                 if (type == AutomatonType.DFA)
                 {
-                    // Cannot have another transition from same state on same symbol
                     if (transitions.Any(t => t.FromStateId == fromState && t.Symbol == symbol))
                         continue;
                 }
 
                 transitions.Add(candidate);
                 addedTransitions.Add(key);
-                break; // placed
+                break; 
             }
         }
     }
@@ -279,7 +272,7 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
             return transition;
         }
 
-        return null; // Could not generate a valid transition
+        return null; 
     }
 
     private static string GetTransitionKey(Transition transition)
@@ -287,5 +280,5 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
         return $"{transition.FromStateId}-{transition.Symbol}-{transition.ToStateId}";
     }
 
-    #endregion
+
 }

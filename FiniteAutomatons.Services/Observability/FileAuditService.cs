@@ -5,19 +5,18 @@ namespace FiniteAutomatons.Observability;
 
 public sealed class FileAuditService : IAuditService
 {
-    private readonly string _path;
-    private readonly object _lock = new();
+    private readonly string path;
+    private readonly Lock fileLock = new();
 
     public FileAuditService(string path)
     {
-        _path = path ?? throw new ArgumentNullException(nameof(path));
-        var dir = Path.GetDirectoryName(_path);
+        this.path = path ?? throw new ArgumentNullException(nameof(path));
+        var dir = Path.GetDirectoryName(this.path);
         if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
     }
 
     public Task AuditAsync(string eventType, string message, IDictionary<string, string?>? data = null)
     {
-        // Try to capture current activity trace id for correlation
         string? traceId = Activity.Current?.TraceId.ToString();
 
         var record = new
@@ -30,7 +29,7 @@ public sealed class FileAuditService : IAuditService
         };
 
         var line = JsonSerializer.Serialize(record);
-        lock (_lock) { File.AppendAllLines(_path, new[] { line }); }
+        lock (fileLock) { File.AppendAllLines(path, [line]); }
         return Task.CompletedTask;
     }
 }

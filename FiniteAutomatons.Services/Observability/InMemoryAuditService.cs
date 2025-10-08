@@ -7,7 +7,7 @@ namespace FiniteAutomatons.Observability;
 
 public sealed class InMemoryAuditService : IAuditService
 {
-    private readonly ConcurrentQueue<AuditRecord> _entries = new();
+    private readonly ConcurrentQueue<AuditRecord> entries = new();
 
     public Task AuditAsync(string eventType, string message, IDictionary<string, string?>? data = null)
     {
@@ -20,31 +20,31 @@ public sealed class InMemoryAuditService : IAuditService
             TraceId = Activity.Current?.TraceId.ToString()
         };
 
-        _entries.Enqueue(record);
+        entries.Enqueue(record);
         return Task.CompletedTask;
     }
 
-    public IReadOnlyCollection<AuditRecord> GetAll() => _entries.ToArray();
+    public IReadOnlyCollection<AuditRecord> GetAll() => [.. entries];
 
     public IEnumerable<AuditRecord> GetByEventType(string eventType)
     {
-        return _entries.Where(e => string.Equals(e.EventType, eventType, StringComparison.OrdinalIgnoreCase)).ToArray();
+        return [.. entries.Where(e => string.Equals(e.EventType, eventType, StringComparison.OrdinalIgnoreCase))];
     }
 
     public IEnumerable<AuditRecord> GetByTimeRange(DateTime fromUtc, DateTime toUtc)
     {
-        return _entries.Where(e => e.Timestamp >= fromUtc && e.Timestamp <= toUtc).ToArray();
+        return [.. entries.Where(e => e.Timestamp >= fromUtc && e.Timestamp <= toUtc)];
     }
 
     public IEnumerable<AuditRecord> GetByTraceId(string traceId)
     {
         if (string.IsNullOrEmpty(traceId)) return Array.Empty<AuditRecord>();
-        return _entries.Where(e => string.Equals(e.TraceId, traceId, StringComparison.OrdinalIgnoreCase)).ToArray();
+        return [.. entries.Where(e => string.Equals(e.TraceId, traceId, StringComparison.OrdinalIgnoreCase))];
     }
 
     public bool TryGetLatestByEventType(string eventType, out AuditRecord? record)
     {
-        record = _entries.Where(e => string.Equals(e.EventType, eventType, StringComparison.OrdinalIgnoreCase)).LastOrDefault();
+        record = entries.Where(e => string.Equals(e.EventType, eventType, StringComparison.OrdinalIgnoreCase)).LastOrDefault();
         return record != null;
     }
 
@@ -55,11 +55,11 @@ public sealed class InMemoryAuditService : IAuditService
             record = null;
             return false;
         }
-        record = _entries.Where(e => string.Equals(e.TraceId, traceId, StringComparison.OrdinalIgnoreCase)).LastOrDefault();
+        record = entries.Where(e => string.Equals(e.TraceId, traceId, StringComparison.OrdinalIgnoreCase)).LastOrDefault();
         return record != null;
     }
 
-    public void Clear() { while(_entries.TryDequeue(out _)) { } }
+    public void Clear() { while(entries.TryDequeue(out _)) { } }
 }
 
 public sealed class AuditRecord

@@ -27,7 +27,6 @@ public class RandomAutomatonGenerationViewModel
     [Display(Name = "Random Seed (optional)")]
     public int? Seed { get; set; }
 
-    // Helper properties for display
     public string TypeDisplayName => Type switch
     {
         AutomatonType.DFA => "Deterministic Finite Automaton (DFA)",

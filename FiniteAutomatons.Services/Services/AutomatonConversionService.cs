@@ -37,7 +37,6 @@ public class AutomatonConversionService(IAutomatonBuilderService builderService,
             case (AutomatonType.DFA, AutomatonType.NFA):
             case (AutomatonType.DFA, AutomatonType.EpsilonNFA):
             case (AutomatonType.NFA, AutomatonType.EpsilonNFA):
-                // These conversions are generally safe (adding more flexibility)
                 break;
         }
 
@@ -47,14 +46,8 @@ public class AutomatonConversionService(IAutomatonBuilderService builderService,
         return (convertedModel, warnings);
     }
 
-    /// <summary>
-    /// Converts any automaton type to DFA
-    /// </summary>
-    /// <param name="model">The source automaton model</param>
-    /// <returns>The converted DFA model</returns>
     public AutomatonViewModel ConvertToDFA(AutomatonViewModel model)
     {
-        // Ensure collections are initialized
         model.States ??= [];
         model.Transitions ??= [];
 
@@ -75,7 +68,6 @@ public class AutomatonConversionService(IAutomatonBuilderService builderService,
         else if (automaton is EpsilonNFA enfa)
         {
             logger.LogInformation("Converting EpsilonNFA to DFA via NFA");
-            // Convert EpsilonNFA -> NFA -> DFA
             var intermediateNFA = enfa.ToNFA();
             convertedDFA = intermediateNFA.ToDFA();
         }
@@ -84,7 +76,6 @@ public class AutomatonConversionService(IAutomatonBuilderService builderService,
             throw new InvalidOperationException("Cannot convert this automaton type to DFA");
         }
 
-        // Create new model with converted DFA
         var convertedModel = new AutomatonViewModel
         {
             Type = AutomatonType.DFA,

@@ -2,7 +2,6 @@
 using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Globalization;
 using FiniteAutomatons.Core.Utilities;
 
 namespace FiniteAutomatons.Core.Models.Serialization;
@@ -22,7 +21,7 @@ public static class AutomatonCustomTextSerializer
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
 
     private static readonly HashSet<string> EpsilonAliases = AutomatonSymbolHelper.EpsilonAliases
-        .Concat(["\\0", "\0"]) // ensure legacy sequences remain
+        .Concat(["\\0", "\0"]) 
         .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
     private sealed record ParsedDefinition(
@@ -74,14 +73,11 @@ public static class AutomatonCustomTextSerializer
         {
             var from = nameMap[t.FromStateId];
             var to = nameMap[t.ToStateId];
-            // Use ASCII-safe alias 'eps' for epsilon to avoid glyph loss in non-UTF8 contexts
             string symbol = t.Symbol == '\0' ? "eps" : t.Symbol.ToString();
             sb.AppendLine($"{from}:{symbol}>{to}");
         }
         return sb.ToString();
     }
-
-    // ----------------- Parsing / Validation -----------------
 
     private static ParsedDefinition Parse(string input)
     {

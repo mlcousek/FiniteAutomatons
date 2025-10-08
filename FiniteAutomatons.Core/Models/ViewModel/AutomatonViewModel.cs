@@ -17,13 +17,11 @@ public class AutomatonViewModel
     public List<State> States { get; set; } = [];
     public List<Transition> Transitions { get; set; } = [];
 
-    // Derived alphabet (distinct, sorted, excludes epsilon). Always computed from transitions.
-    public IReadOnlyList<char> Alphabet => Transitions
+    public IReadOnlyList<char> Alphabet => [.. Transitions
         .Where(t => t.Symbol != '\0')
         .Select(t => t.Symbol)
         .Distinct()
-        .OrderBy(c => c)
-        .ToList();
+        .OrderBy(c => c)];
 
     public string Input { get; set; } = string.Empty;
     public bool? Result { get; set; }

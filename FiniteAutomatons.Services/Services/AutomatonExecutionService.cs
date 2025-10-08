@@ -6,25 +6,17 @@ using System.Text.Json;
 
 namespace FiniteAutomatons.Services.Services;
 
-/// <summary>
-/// Service for handling automaton execution operations
-/// </summary>
 public class AutomatonExecutionService : IAutomatonExecutionService
 {
-    private readonly IAutomatonBuilderService _builderService;
-    private readonly ILogger<AutomatonExecutionService> _logger;
+    private readonly IAutomatonBuilderService builderService;
+    private readonly ILogger<AutomatonExecutionService> logger;
 
     public AutomatonExecutionService(IAutomatonBuilderService builderService, ILogger<AutomatonExecutionService> logger)
     {
-        _builderService = builderService;
-        _logger = logger;
+        this.builderService = builderService;
+        this.logger = logger;
     }
 
-    /// <summary>
-    /// Reconstructs execution state from a view model
-    /// </summary>
-    /// <param name="model">The automaton view model</param>
-    /// <returns>The reconstructed execution state</returns>
     public AutomatonExecutionState ReconstructState(AutomatonViewModel model)
     {
         // Ensure model has required collections initialized
@@ -77,7 +69,7 @@ public class AutomatonExecutionService : IAutomatonExecutionService
             }
             catch (JsonException ex)
             {
-                _logger.LogWarning(ex, "Failed to deserialize state history, starting with empty history");
+                logger.LogWarning(ex, "Failed to deserialize state history, starting with empty history");
                 // If deserialization fails, start with empty history
                 state.StateHistory.Clear();
             }
@@ -142,7 +134,7 @@ public class AutomatonExecutionService : IAutomatonExecutionService
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogWarning(ex, "Failed to initialize state using StartExecution, using fallback");
+                        logger.LogWarning(ex, "Failed to initialize state using StartExecution, using fallback");
                         // Fallback if StartExecution fails
                         model.CurrentStates = [startState.Id];
                     }
@@ -168,14 +160,14 @@ public class AutomatonExecutionService : IAutomatonExecutionService
         model.Transitions ??= [];
         model.Input ??= "";
 
-        var automaton = _builderService.CreateAutomatonFromModel(model);
+        var automaton = builderService.CreateAutomatonFromModel(model);
         EnsureProperStateInitialization(model, automaton);
         var execState = ReconstructState(model);
         automaton.StepForward(execState);
         UpdateModelFromState(model, execState);
         model.Result = execState.IsAccepted;
 
-        _logger.LogInformation("Executed step forward, position: {Position}, accepted: {IsAccepted}", 
+        logger.LogInformation("Executed step forward, position: {Position}, accepted: {IsAccepted}", 
             model.Position, model.IsAccepted);
 
         return model;
@@ -193,13 +185,13 @@ public class AutomatonExecutionService : IAutomatonExecutionService
         model.Transitions ??= [];
         model.Input ??= "";
 
-        var automaton = _builderService.CreateAutomatonFromModel(model);
+        var automaton = builderService.CreateAutomatonFromModel(model);
         var execState = ReconstructState(model);
         automaton.StepBackward(execState);
         UpdateModelFromState(model, execState);
         model.Result = execState.IsAccepted;
 
-        _logger.LogInformation("Executed step backward, position: {Position}, accepted: {IsAccepted}", 
+        logger.LogInformation("Executed step backward, position: {Position}, accepted: {IsAccepted}", 
             model.Position, model.IsAccepted);
 
         return model;
@@ -217,14 +209,14 @@ public class AutomatonExecutionService : IAutomatonExecutionService
         model.Transitions ??= [];
         model.Input ??= "";
 
-        var automaton = _builderService.CreateAutomatonFromModel(model);
+        var automaton = builderService.CreateAutomatonFromModel(model);
         EnsureProperStateInitialization(model, automaton);
         var execState = ReconstructState(model);
         automaton.ExecuteAll(execState);
         UpdateModelFromState(model, execState);
         model.Result = execState.IsAccepted;
 
-        _logger.LogInformation("Executed all steps, final position: {Position}, accepted: {IsAccepted}", 
+        logger.LogInformation("Executed all steps, final position: {Position}, accepted: {IsAccepted}", 
             model.Position, model.IsAccepted);
 
         return model;
@@ -242,12 +234,12 @@ public class AutomatonExecutionService : IAutomatonExecutionService
         model.Transitions ??= [];
         model.Input ??= "";
 
-        var automaton = _builderService.CreateAutomatonFromModel(model);
+        var automaton = builderService.CreateAutomatonFromModel(model);
         var execState = automaton.StartExecution(model.Input);
         UpdateModelFromState(model, execState);
         model.Result = execState.IsAccepted;
 
-        _logger.LogInformation("Reset to start state, position: {Position}", model.Position);
+        logger.LogInformation("Reset to start state, position: {Position}", model.Position);
 
         return model;
     }
@@ -279,7 +271,7 @@ public class AutomatonExecutionService : IAutomatonExecutionService
             .Distinct()
             .ToList();
         
-        _logger.LogInformation("Reset execution state while preserving automaton structure");
+        logger.LogInformation("Reset execution state while preserving automaton structure");
 
         return model;
     }

@@ -6,18 +6,17 @@ namespace FiniteAutomatons.Observability;
 
 public sealed class ActivityFileWriter
 {
-    private readonly string _path;
-    private readonly object _lock = new();
-    private readonly ConcurrentQueue<string> _recent = new();
+    private readonly string path;
+    private readonly Lock fileLock = new();
+    private readonly ConcurrentQueue<string> recent = new();
     private const int RecentLimit = 200;
 
     public ActivityFileWriter(string path)
     {
-        _path = path ?? throw new ArgumentNullException(nameof(path));
-        var dir = Path.GetDirectoryName(_path);
+        this.path = path ?? throw new ArgumentNullException(nameof(path));
+        var dir = Path.GetDirectoryName(this.path);
         if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
 
-        // Subscribe to Activity events
         ActivityListener listener = new()
         {
             ShouldListenTo = a => true,
@@ -30,24 +29,22 @@ public sealed class ActivityFileWriter
         ActivitySource.AddActivityListener(listener);
     }
 
-    // Expose path for tests and diagnostics
-    public string FilePath => _path;
+    public string FilePath => path;
 
-    // Expose recent in-memory entries for tests to avoid filesystem reliance
     public IReadOnlyCollection<string> GetRecentEntries()
     {
-        return _recent.ToArray();
+        return [.. recent];
     }
 
     private void EnqueueRecent(string line)
     {
-        _recent.Enqueue(line);
-        while (_recent.Count > RecentLimit && _recent.TryDequeue(out _)) { }
+        recent.Enqueue(line);
+        while (recent.Count > RecentLimit && recent.TryDequeue(out _)) { }
     }
 
     private void WriteActivity(Activity activity, bool started)
     {
-        lock (_lock)
+        lock (fileLock)
         {
             var record = new
             {
@@ -57,17 +54,16 @@ public sealed class ActivityFileWriter
                 Name = activity.DisplayName,
                 Kind = activity.Kind.ToString(),
                 Start = activity.StartTimeUtc,
-                Duration = activity.Duration,
+                activity.Duration,
                 Tags = activity.TagObjects?.ToDictionary(t => t.Key, t => t.Value?.ToString() ?? string.Empty),
                 Started = started
             };
 
             var line = JsonSerializer.Serialize(record);
 
-            // Append to file
             try
             {
-                File.AppendAllLines(_path, new[] { line });
+                File.AppendAllLines(path, [line]);
             }
             catch
             {

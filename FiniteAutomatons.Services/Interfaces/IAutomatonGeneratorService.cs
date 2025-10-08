@@ -1,4 +1,3 @@
-using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.ViewModel;
 
 namespace FiniteAutomatons.Services.Interfaces;
@@ -9,7 +8,7 @@ public interface IAutomatonGeneratorService
         AutomatonType type,
         int stateCount,
         int transitionCount,
-        int alphabetSize = 3,
+        int alphabetSize = 4,   //TODO introduce constants
         double acceptingStateRatio = 0.3,
         int? seed = null);
 
