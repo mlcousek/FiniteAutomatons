@@ -125,8 +125,8 @@ public partial class Program
             var listener = new ActivityListener
             {
                 ShouldListenTo = _ => true,
-                Sample = (ref _) => ActivitySamplingResult.AllDataAndRecorded,
-                SampleUsingParentId = (ref _) => ActivitySamplingResult.AllDataAndRecorded,
+                Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded,
+                SampleUsingParentId = (ref ActivityCreationOptions<string> _) => ActivitySamplingResult.AllDataAndRecorded,
                 ActivityStarted = a => collector.Add(a),
                 ActivityStopped = a => collector.Add(a)
             };
