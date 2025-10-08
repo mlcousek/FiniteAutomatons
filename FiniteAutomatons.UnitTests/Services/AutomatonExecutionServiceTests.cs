@@ -139,7 +139,7 @@ public class AutomatonExecutionServiceTests
     [MemberData(nameof(EpsilonAliasCases))]
     public void Validation_EpsilonAliases_OnlyAllowedInEpsilonNFA(string symbol, bool isEpsilon)
     {
-        var validation = new FiniteAutomatons.Services.Services.AutomatonValidationService(NullLogger<FiniteAutomatons.Services.Services.AutomatonValidationService>.Instance);
+        var validation = new AutomatonValidationService(NullLogger<AutomatonValidationService>.Instance);
         var epsilonModel = new AutomatonViewModel { Type = AutomatonType.EpsilonNFA, States = [ new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true } ] };
         var dfaModel = new AutomatonViewModel { Type = AutomatonType.DFA, States = [ new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true } ] };
 
