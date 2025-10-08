@@ -4,6 +4,7 @@ using FiniteAutomatons.Data;
 using FiniteAutomatons.Filters;
 using FiniteAutomatons.Observability;
 using FiniteAutomatons.Services.Interfaces;
+using FiniteAutomatons.Services.Observability;
 using FiniteAutomatons.Services.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -11,7 +12,6 @@ using Microsoft.EntityFrameworkCore;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
-using OpenTelemetry.Exporter;
 using System.Text;
 
 // Set console encoding to UTF-8 to properly display Unicode characters like ?
@@ -124,7 +124,7 @@ builder.Services.AddScoped<IAutomatonExecutionService>(sp =>
 {
     var inner = sp.GetRequiredService<AutomatonExecutionService>();
     var audit = sp.GetRequiredService<IAuditService>();
-    return new FiniteAutomatons.Services.Observability.AutomatonExecutionServiceAuditorDecorator(inner, audit);
+    return new AutomatonExecutionServiceAuditorDecorator(inner, audit);
 });
 
 builder.Services.AddScoped<IAutomatonBuilderService, AutomatonBuilderService>();
@@ -171,7 +171,7 @@ else
 
             // Return ProblemDetails for API clients
             context.Response.StatusCode = 500;
-            var accept = context.Request.Headers["Accept"].ToString();
+            var accept = context.Request.Headers.Accept.ToString();
             if (accept != null && accept.Contains("application/json", StringComparison.OrdinalIgnoreCase))
             {
                 var problem = new ProblemDetails

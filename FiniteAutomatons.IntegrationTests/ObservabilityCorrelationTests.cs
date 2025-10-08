@@ -17,8 +17,8 @@ public class ObservabilityCorrelationTests(IntegrationTestsFixture fixture) : In
 
         // Inspect in-memory collectors
         using var scope = GetServiceScope();
-        var audit = scope.ServiceProvider.GetRequiredService<FiniteAutomatons.Observability.InMemoryAuditService>();
-        var collector = scope.ServiceProvider.GetRequiredService<FiniteAutomatons.Observability.InMemoryActivityCollector>();
+        var audit = scope.ServiceProvider.GetRequiredService<Observability.InMemoryAuditService>();
+        var collector = scope.ServiceProvider.GetRequiredService<Services.Observability.InMemoryActivityCollector>();
 
         // Give some time for Activity listeners to capture
         await Task.Delay(100);

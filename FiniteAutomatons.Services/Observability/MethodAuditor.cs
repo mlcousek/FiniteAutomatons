@@ -1,7 +1,7 @@
 using FiniteAutomatons.Observability;
 using System.Diagnostics;
 
-namespace FiniteAutomatons.Services.Observability;
+namespace FiniteAutomatons.Observability;
 
 public static class MethodAuditor
 {

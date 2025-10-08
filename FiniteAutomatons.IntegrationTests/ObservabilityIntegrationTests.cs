@@ -71,7 +71,7 @@ public class ObservabilityIntegrationTests(IntegrationTestsFixture fixture) : In
 
         using var scope = GetServiceScope();
 
-        var collector = scope.ServiceProvider.GetService<FiniteAutomatons.Observability.InMemoryActivityCollector>();
+        var collector = scope.ServiceProvider.GetService<Services.Observability.InMemoryActivityCollector>();
         if (collector != null)
         {
             // Wait for activities

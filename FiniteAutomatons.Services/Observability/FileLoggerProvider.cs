@@ -7,8 +7,8 @@ namespace FiniteAutomatons.Services.Observability;
 public sealed class FileLoggerProvider : ILoggerProvider
 {
     private readonly string path;
-    private readonly BlockingCollection<string> queue = [];
-    private readonly CancellationTokenSource cts = new();
+    private readonly BlockingCollection<string> queue = new BlockingCollection<string>();
+    private readonly CancellationTokenSource cts = new CancellationTokenSource();
 
     public FileLoggerProvider(string path)
     {
@@ -32,10 +32,16 @@ public sealed class FileLoggerProvider : ILoggerProvider
         }
     }
 
-    private sealed class FileLogger(BlockingCollection<string> queue, string category) : ILogger
+    private sealed class FileLogger : ILogger
     {
-        private readonly BlockingCollection<string> queue = queue;
-        private readonly string category = category;
+        private readonly BlockingCollection<string> queue;
+        private readonly string category;
+
+        public FileLogger(BlockingCollection<string> queue, string category)
+        {
+            this.queue = queue;
+            this.category = category;
+        }
 
         IDisposable? ILogger.BeginScope<TState>(TState state) => null;
         public bool IsEnabled(LogLevel logLevel) => true;
