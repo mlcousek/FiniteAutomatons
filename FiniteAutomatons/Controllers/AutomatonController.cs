@@ -1,8 +1,7 @@
-using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.ViewModel;
+using FiniteAutomatons.Core.Utilities;
 using FiniteAutomatons.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using FiniteAutomatons.Core.Utilities;
 
 namespace FiniteAutomatons.Controllers;
 
@@ -30,6 +29,11 @@ public class AutomatonController(
     [HttpPost]
     public IActionResult CreateAutomaton(AutomatonViewModel model)
     {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
         logger.LogInformation("CreateAutomaton POST Type={Type} States={States} Transitions={Transitions}",
             model.Type, model.States.Count, model.Transitions.Count);
 
@@ -48,6 +52,11 @@ public class AutomatonController(
     [HttpPost]
     public IActionResult ChangeAutomatonType(AutomatonViewModel model, AutomatonType newType)
     {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
         if (model.Type == newType) return View("CreateAutomaton", model);
         var (converted, warnings) = conversionService.ConvertAutomatonType(model, newType);
         foreach (var w in warnings) ModelState.AddModelError(string.Empty, w);
@@ -106,6 +115,11 @@ public class AutomatonController(
     [HttpPost]
     public IActionResult StepForward([FromForm] AutomatonViewModel model)
     {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
         model.HasExecuted = true;
         var updated = executionService.ExecuteStepForward(model);
         updated.HasExecuted = true;
@@ -115,6 +129,11 @@ public class AutomatonController(
     [HttpPost]
     public IActionResult StepBackward([FromForm] AutomatonViewModel model)
     {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
         var updated = executionService.ExecuteStepBackward(model);
         updated.HasExecuted = model.HasExecuted || updated.Position > 0;
         return View("../Home/Index", updated);
@@ -123,6 +142,11 @@ public class AutomatonController(
     [HttpPost]
     public IActionResult ExecuteAll([FromForm] AutomatonViewModel model)
     {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
         model.HasExecuted = true;
         var updated = executionService.ExecuteAll(model);
         updated.HasExecuted = true;
@@ -132,6 +156,11 @@ public class AutomatonController(
     [HttpPost]
     public IActionResult BackToStart([FromForm] AutomatonViewModel model)
     {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
         var updated = executionService.BackToStart(model);
         updated.HasExecuted = model.HasExecuted || model.Position > 0 || model.Result != null;
         return View("../Home/Index", updated);
@@ -140,6 +169,11 @@ public class AutomatonController(
     [HttpPost]
     public IActionResult Reset([FromForm] AutomatonViewModel model)
     {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
         var updated = executionService.ResetExecution(model);
         updated.HasExecuted = false;
         return View("../Home/Index", updated);
@@ -148,6 +182,11 @@ public class AutomatonController(
     [HttpPost]
     public IActionResult ConvertToDFA([FromForm] AutomatonViewModel model)
     {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
         var converted = conversionService.ConvertToDFA(model);
         converted.ClearExecutionState();
         tempDataService.StoreCustomAutomaton(TempData, converted);
@@ -168,6 +207,11 @@ public class AutomatonController(
     [HttpPost]
     public IActionResult GenerateRandomAutomaton(RandomAutomatonGenerationViewModel model)
     {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
         logger.LogInformation("Generating random automaton Type={Type} States={States} Transitions={Transitions}",
             model.Type, model.StateCount, model.TransitionCount);
         if (!generatorService.ValidateGenerationParameters(model.Type, model.StateCount, model.TransitionCount, model.AlphabetSize))
@@ -184,6 +228,11 @@ public class AutomatonController(
     [HttpPost]
     public IActionResult GenerateRealisticAutomaton(AutomatonType type, int stateCount, int? seed = null)
     {
+        if (!ModelState.IsValid)
+        {
+            return View("GenerateRandomAutomaton");
+        }
+
         logger.LogInformation("Generating realistic automaton Type={Type} States={States}", type, stateCount);
         if (stateCount < 1 || stateCount > 20)
         {
