@@ -1,6 +1,4 @@
-﻿using System.Linq;
-
-namespace FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
+﻿namespace FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 
 public class EpsilonNFA : NFA
 {
@@ -39,36 +37,21 @@ public class EpsilonNFA : NFA
     {
         if (state.IsFinished || state.Position >= state.Input.Length)
         {
-            if (state.CurrentStates != null)
-            {
-                state.IsAccepted = state.CurrentStates.Any(s => States.Any(st => st.Id == s && st.IsAccepting));
-            }
+            FinalizeAcceptanceIfFinished(state);
             return;
         }
 
-        state.StateHistory.Push(state.CurrentStates != null ? [.. state.CurrentStates] : []);
+        PushCurrentStatesToHistory(state);
 
         char symbol = state.Input[state.Position];
-        var nextStates = new HashSet<int>();
-
-        foreach (var currentState in state.CurrentStates ?? [])
-        {
-            var transitions = Transitions
-                .Where(t => t.FromStateId == currentState && t.Symbol == symbol);
-
-            foreach (var transition in transitions)
-            {
-                nextStates.Add(transition.ToStateId);
-            }
-        }
+        var nextStates = ComputeNextStates(state.CurrentStates, symbol);
 
         state.CurrentStates = ProcessNextStates(nextStates);
         state.Position++;
 
         if (state.Position >= state.Input.Length)
         {
-            state.IsAccepted = state.CurrentStates != null &&
-                state.CurrentStates.Any(s => States.Any(st => st.Id == s && st.IsAccepting));
+            EvaluateAcceptance(state);
         }
     }
 
@@ -85,22 +68,7 @@ public class EpsilonNFA : NFA
         }
         else
         {
-            state.CurrentStates = GetInitialStates();
-            for (int i = 0; i < state.Position; i++)
-            {
-                char symbol = state.Input[i];
-                var nextStates = new HashSet<int>();
-                foreach (var currentState in state.CurrentStates ?? [])
-                {
-                    var transitions = Transitions
-                        .Where(t => t.FromStateId == currentState && t.Symbol == symbol);
-                    foreach (var transition in transitions)
-                    {
-                        nextStates.Add(transition.ToStateId);
-                    }
-                }
-                state.CurrentStates = ProcessNextStates(nextStates);
-            }
+            RecomputeStatesUpToPosition(state);
         }
 
         state.IsAccepted = null;
@@ -110,8 +78,7 @@ public class EpsilonNFA : NFA
     {
         if (state.Input.Length == 0)
         {
-            state.IsAccepted = state.CurrentStates != null &&
-                state.CurrentStates.Any(s => States.Any(st => st.Id == s && st.IsAccepting));
+            EvaluateAcceptance(state);
             return;
         }
 
@@ -185,5 +152,62 @@ public class EpsilonNFA : NFA
     public void AddEpsilonTransition(int fromStateId, int toStateId)
     {
         AddTransition(fromStateId, toStateId, '\0');
+    }
+
+    private void FinalizeAcceptanceIfFinished(AutomatonExecutionState state)
+    {
+        if (state.CurrentStates != null)
+        {
+            state.IsAccepted = state.CurrentStates.Any(s => States.Any(st => st.Id == s && st.IsAccepting));
+        }
+    }
+
+    private static void PushCurrentStatesToHistory(AutomatonExecutionState state)
+    {
+        state.StateHistory.Push(state.CurrentStates != null ? [.. state.CurrentStates] : []);
+    }
+
+    private HashSet<int> ComputeNextStates(HashSet<int>? currentStates, char symbol)
+    {
+        var nextStates = new HashSet<int>();
+
+        foreach (var currentState in currentStates ?? [])
+        {
+            var transitions = Transitions
+                .Where(t => t.FromStateId == currentState && t.Symbol == symbol);
+
+            foreach (var transition in transitions)
+            {
+                nextStates.Add(transition.ToStateId);
+            }
+        }
+
+        return nextStates;
+    }
+
+    private void EvaluateAcceptance(AutomatonExecutionState state)
+    {
+        state.IsAccepted = state.CurrentStates != null &&
+            state.CurrentStates.Any(s => States.Any(st => st.Id == s && st.IsAccepting));
+    }
+
+    private void RecomputeStatesUpToPosition(AutomatonExecutionState state)
+    {
+        state.CurrentStates = GetInitialStates();
+        for (int i = 0; i < state.Position; i++)
+        {
+            char symbol = state.Input[i];
+            var nextStates = new HashSet<int>();
+            foreach (var currentState in state.CurrentStates ?? [])
+            {
+                var transitions = Transitions
+                    .Where(t => t.FromStateId == currentState && t.Symbol == symbol);
+                foreach (var transition in transitions)
+                {
+                    nextStates.Add(transition.ToStateId);
+                }
+            }
+            state.CurrentStates = ProcessNextStates(nextStates);
+        }
     }
 }

@@ -18,21 +18,15 @@ public class DFA : Automaton
 
         PushCurrentStateToHistory(state);
 
-        char symbol = state.Input[state.Position];
+        var symbol = state.Input[state.Position];
         var transition = GetTransition(state.CurrentStateId.Value, symbol);
 
-        if (transition == null)
+        if (!TryAdvanceState(state, transition))
         {
-            // no transition for current symbol -> reject and finish execution
-            state.IsAccepted = false;
-            state.Position = state.Input.Length;
-            return;
+            return; // state updated inside TryAdvanceState when failed
         }
 
-        state.CurrentStateId = transition.ToStateId;
-        state.Position++;
-
-        if (state.Position >= state.Input.Length)
+        if (IsAtInputEnd(state))
         {
             state.IsAccepted = IsAcceptingState(state.CurrentStateId);
         }
@@ -136,42 +130,74 @@ public class DFA : Automaton
         }
     }
 
+    private static bool TryAdvanceState(AutomatonExecutionState state, Transition? transition)
+    {
+        if (transition == null)
+        {
+            // no transition for current symbol -> reject and finish execution
+            state.IsAccepted = false;
+            state.Position = state.Input.Length;
+            return false;
+        }
+
+        state.CurrentStateId = transition.ToStateId;
+        state.Position++;
+        return true;
+    }
+
+    private static bool IsAtInputEnd(AutomatonExecutionState state) => state.Position >= state.Input.Length;
+
+    // ---------------- Minimization (refactored into discrete steps) ----------------
+
     private DFA PerformMinimization()
     {
-        var startState = States.FirstOrDefault(s => s.IsStart)?.Id;
-        if (startState == null)
-            throw new InvalidOperationException("No start state defined.");
+        var startState = States.FirstOrDefault(s => s.IsStart)?.Id
+            ?? throw new InvalidOperationException("No start state defined.");
 
-        // 1) Compute reachable states from the start
+        var (reachableStates, reachableTransitions) = ComputeReachable(startState);
+        var partitions = CreateInitialPartitions(reachableStates);
+        var symbols = reachableTransitions.Select(t => t.Symbol).Distinct().ToList();
+        partitions = RefinePartitions(partitions, reachableTransitions, symbols);
+        return BuildMinimizedDfa(partitions, reachableStates, reachableTransitions, startState, symbols);
+    }
+
+    private (List<State> reachableStates, List<Transition> reachableTransitions) ComputeReachable(int startStateId)
+    {
         var reachable = new HashSet<int>();
         var queue = new Queue<int>();
-        queue.Enqueue(startState.Value);
-        reachable.Add(startState.Value);
+        queue.Enqueue(startStateId);
+        reachable.Add(startStateId);
 
         while (queue.Count > 0)
         {
             var cur = queue.Dequeue();
-            foreach (var t in from t in Transitions.Where(t => t.FromStateId == cur)
-                              where reachable.Add(t.ToStateId)
-                              select t)
+            foreach (var t in Transitions.Where(t => t.FromStateId == cur))
             {
-                queue.Enqueue(t.ToStateId);
+                if (reachable.Add(t.ToStateId))
+                {
+                    queue.Enqueue(t.ToStateId);
+                }
             }
         }
 
         var reachableStates = States.Where(s => reachable.Contains(s.Id)).ToList();
         var reachableTransitions = Transitions.Where(t => reachable.Contains(t.FromStateId) && reachable.Contains(t.ToStateId)).ToList();
+        return (reachableStates, reachableTransitions);
+    }
 
-        // 2) Initial partition: accepting vs non-accepting
+    private static List<HashSet<int>> CreateInitialPartitions(List<State> reachableStates)
+    {
         var accepting = reachableStates.Where(s => s.IsAccepting).Select(s => s.Id).ToHashSet();
         var nonAccepting = reachableStates.Where(s => !s.IsAccepting).Select(s => s.Id).ToHashSet();
 
         var partitions = new List<HashSet<int>>();
         if (accepting.Count > 0) partitions.Add([.. accepting]);
         if (nonAccepting.Count > 0) partitions.Add([.. nonAccepting]);
+        return partitions;
+    }
 
-        var symbols = reachableTransitions.Select(t => t.Symbol).Distinct().ToList();
-
+    private static List<HashSet<int>> RefinePartitions(List<HashSet<int>> partitions, List<Transition> transitions, List<char> symbols)
+    {
         bool changed;
         do
         {
@@ -180,7 +206,6 @@ public class DFA : Automaton
 
             foreach (var group in partitions)
             {
-                // Map signature -> states
                 var splits = new Dictionary<string, HashSet<int>>();
 
                 foreach (var stateId in group)
@@ -188,23 +213,17 @@ public class DFA : Automaton
                     var signatureParts = new List<string>(symbols.Count);
                     foreach (var sym in symbols)
                     {
-                        var target = reachableTransitions.FirstOrDefault(t => t.FromStateId == stateId && t.Symbol == sym)?.ToStateId;
-                        if (target == null)
-                        {
-                            signatureParts.Add("null");
-                        }
-                        else
-                        {
-                            var partIdx = partitions.FindIndex(p => p.Contains(target.Value));
-                            signatureParts.Add(partIdx.ToString());
-                        }
+                        var target = transitions.FirstOrDefault(t => t.FromStateId == stateId && t.Symbol == sym)?.ToStateId;
+                        signatureParts.Add(target == null ? "null" : partitions.FindIndex(p => p.Contains(target.Value)).ToString());
                     }
 
                     var signature = string.Join("|", signatureParts);
-                    if (!splits.ContainsKey(signature))
-                        splits[signature] = [];
-
-                    splits[signature].Add(stateId);
+                    if (!splits.TryGetValue(signature, out var bucket))
+                    {
+                        bucket = [];
+                        splits[signature] = bucket;
+                    }
+                    bucket.Add(stateId);
                 }
 
                 if (splits.Count == 1)
@@ -222,7 +241,11 @@ public class DFA : Automaton
             partitions = newPartitions;
         } while (changed);
 
-        // 3) Build minimized DFA
+        return partitions;
+    }
+
+    private static DFA BuildMinimizedDfa(List<HashSet<int>> partitions, List<State> reachableStates, List<Transition> reachableTransitions, int startStateId, List<char> symbols)
+    {
         var stateMap = new Dictionary<int, int>();
         var minimizedDfa = new DFA();
         int newId = 1;
@@ -238,7 +261,7 @@ public class DFA : Automaton
             minimizedDfa.AddState(new State
             {
                 Id = newId,
-                IsStart = group.Contains(startState.Value),
+                IsStart = group.Contains(startStateId),
                 IsAccepting = repState.IsAccepting
             });
 
@@ -246,10 +269,8 @@ public class DFA : Automaton
         }
 
         // Ensure start state is set
-        var startGroup = partitions.First(p => p.Contains(startState.Value));
-        minimizedDfa.SetStartState(stateMap[startGroup.First()]);
+        minimizedDfa.SetStartState(stateMap[startStateId]);
 
-        // add transitions
         foreach (var group in partitions)
         {
             var rep = group.First();
