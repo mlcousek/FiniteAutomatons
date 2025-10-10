@@ -38,14 +38,32 @@ public class AutomatonEditingService(IAutomatonValidationService validationServi
         return (true, null);
     }
 
-    public (bool Ok, char ProcessedSymbol, string? Error) AddTransition(AutomatonViewModel model, int fromId, int toId, string symbol)
+    public (bool Ok, char ProcessedSymbol, string? Error) AddTransition(AutomatonViewModel model, int fromId, int toId, string symbol, string? stackPop = null, string? stackPush = null)
     {
         model.EnsureInitialized();
         var (ok, processed, error) = validation.ValidateTransitionAddition(model, fromId, toId, symbol ?? string.Empty);
         if (!ok) return (false, '\0', error);
-        model.Transitions.Add(new Transition { FromStateId = fromId, ToStateId = toId, Symbol = processed });
+
+        // Validate PDA stack inputs if model.Type == PDA
+        char? stackPopChar = null;
+        if (model.Type == AutomatonType.PDA)
+        {
+            if (!string.IsNullOrEmpty(stackPop))
+            {
+                // allow epsilon token or single char
+                if (AutomatonSymbolHelper.IsEpsilon(stackPop))
+                    stackPopChar = '\0';
+                else if (stackPop.Trim().Length == 1)
+                    stackPopChar = stackPop.Trim()[0];
+                else
+                    return (false, '\0', "Stack pop must be a single character or epsilon.");
+            }
+        }
+
+        var transition = new Transition { FromStateId = fromId, ToStateId = toId, Symbol = processed, StackPop = stackPopChar, StackPush = string.IsNullOrWhiteSpace(stackPush) ? null : stackPush };
+        model.Transitions.Add(transition);
         model.ClearExecutionState(keepInput: true);
-        logger.LogInformation("Added transition {From}->{To} '{Sym}'", fromId, toId, processed == AutomatonSymbolHelper.EpsilonInternal ? AutomatonSymbolHelper.EpsilonDisplay : processed);
+        logger.LogInformation("Added transition {From}->{To} '{Sym}' pop='{Pop}' push='{Push}'", fromId, toId, processed == AutomatonSymbolHelper.EpsilonInternal ? AutomatonSymbolHelper.EpsilonDisplay : processed, stackPopChar == null ? "null" : (stackPopChar == '\0' ? "?" : stackPopChar.ToString()), stackPush);
         return (true, processed, null);
     }
 

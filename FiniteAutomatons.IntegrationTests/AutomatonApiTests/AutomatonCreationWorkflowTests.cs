@@ -619,4 +619,53 @@ public class AutomatonCreationWorkflowTests(IntegrationTestsFixture fixture) : I
             Transitions = [],
         };
     }
+
+    [Fact]
+    public async Task CreateAutomatonWorkflow_PDA_CompleteProcess_ShouldWork()
+    {
+        var client = GetHttpClient();
+
+        // Step 1: Get the creation page
+        var getResponse = await client.GetAsync("/Automaton/CreateAutomaton");
+        getResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        // Build a simple PDA: one state (start+accepting) with push on '(' and pop on ')'
+        var form = new List<KeyValuePair<string, string>>
+        {
+            new("Type", "PDA"),
+            new("IsCustomAutomaton", "true")
+        };
+
+        // States
+        form.Add(new KeyValuePair<string,string>("States[0].Id","1"));
+        form.Add(new KeyValuePair<string,string>("States[0].IsStart","true"));
+        form.Add(new KeyValuePair<string,string>("States[0].IsAccepting","true"));
+
+        // Transition 0: on '(' push '(' (no stack pop condition)
+        form.Add(new KeyValuePair<string,string>("Transitions[0].FromStateId","1"));
+        form.Add(new KeyValuePair<string,string>("Transitions[0].ToStateId","1"));
+        form.Add(new KeyValuePair<string,string>("Transitions[0].Symbol","("));
+        // omit StackPop to indicate null (no condition)
+        form.Add(new KeyValuePair<string,string>("Transitions[0].StackPush","("));
+
+        // Transition 1: on ')' pop '(' (no push)
+        form.Add(new KeyValuePair<string,string>("Transitions[1].FromStateId","1"));
+        form.Add(new KeyValuePair<string,string>("Transitions[1].ToStateId","1"));
+        form.Add(new KeyValuePair<string,string>("Transitions[1].Symbol",")"));
+        form.Add(new KeyValuePair<string,string>("Transitions[1].StackPop","("));
+        // omit StackPush for no push
+
+        var finalizeResponse = await client.PostAsync("/Automaton/CreateAutomaton", new FormUrlEncodedContent(form));
+        finalizeResponse.StatusCode.ShouldBeOneOf(HttpStatusCode.OK, HttpStatusCode.Redirect);
+
+        if (finalizeResponse.StatusCode == HttpStatusCode.Redirect)
+        {
+            finalizeResponse.Headers.Location?.ToString().ShouldContain("/");
+        }
+        else
+        {
+            var content = await finalizeResponse.Content.ReadAsStringAsync();
+            content.ShouldNotContain("Error occurred");
+        }
+    }
 }

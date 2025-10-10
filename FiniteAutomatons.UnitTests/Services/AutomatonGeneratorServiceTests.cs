@@ -209,4 +209,54 @@ public class AutomatonGeneratorServiceTests
             usedSymbols.Count.ShouldBe(alphabetSize); 
         }
     }
+
+    // --- PDA-specific tests ---
+
+    [Fact]
+    public void GenerateRandomAutomaton_PDA_CreatesValidPDA()
+    {
+        var seed = 4242;
+        var result = service.GenerateRandomAutomaton(AutomatonType.PDA, 4, 10, 3, 0.3, seed);
+
+        result.ShouldNotBeNull();
+        result.Type.ShouldBe(AutomatonType.PDA);
+        result.States.Count.ShouldBe(4);
+        result.Alphabet.Count.ShouldBe(3);
+        result.Transitions.Count.ShouldBeLessThanOrEqualTo(10);
+        result.States.Count(s => s.IsStart).ShouldBe(1);
+
+        // Ensure transitions include valid stack information (may be null for some)
+        foreach (var t in result.Transitions)
+        {
+            // StackPop may be null or a char; StackPush may be null or non-empty string
+            if (t.StackPop.HasValue)
+            {
+                // '\0' is not used for StackPop here; if present it's allowed
+                t.StackPop.Value.ShouldBeOfType<char>();
+            }
+            if (t.StackPush != null)
+            {
+                t.StackPush.Length.ShouldBeGreaterThan(0);
+            }
+        }
+
+        // Ensure determinism: no two transitions share the same (FromStateId, Symbol, StackPop)
+        var duplicates = result.Transitions
+            .GroupBy(x => (x.FromStateId, x.Symbol, Pop: x.StackPop.HasValue ? x.StackPop.Value : (char?)null))
+            .Where(g => g.Count() > 1)
+            .ToList();
+
+        duplicates.Count.ShouldBe(0);
+    }
+
+    [Fact]
+    public void GenerateRealisticAutomaton_PDA_ShouldWork()
+    {
+        var result = service.GenerateRealisticAutomaton(AutomatonType.PDA, 5, 1234);
+        result.ShouldNotBeNull();
+        result.Type.ShouldBe(AutomatonType.PDA);
+        result.States.Count.ShouldBe(5);
+        result.Transitions.Count.ShouldBeGreaterThanOrEqualTo(5);
+        result.Alphabet.Count.ShouldBeGreaterThan(0);
+    }
 }

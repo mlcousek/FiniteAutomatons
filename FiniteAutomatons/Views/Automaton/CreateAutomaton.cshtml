@@ -6,6 +6,7 @@
 
 <style>
     .badge-epsilon { background-color:#6c757d !important; color:#fff; }
+    .field-error { color: #b02a37; font-size: 0.9rem; }
 </style>
 
 <div class="container-fluid">
@@ -56,11 +57,13 @@
                                 var dfaSelected = Model.Type == AutomatonType.DFA ? "selected" : "";
                                 var nfaSelected = Model.Type == AutomatonType.NFA ? "selected" : "";
                                 var epsilonNfaSelected = Model.Type == AutomatonType.EpsilonNFA ? "selected" : "";
+                                var pdaSelected = Model.Type == AutomatonType.PDA ? "selected" : "";
                             }
                             <select name="newType" id="newType" class="form-control" onchange="changeAutomatonType()">
                                 <option value="DFA" selected="@dfaSelected">DFA - Deterministic Finite Automaton</option>
                                 <option value="NFA" selected="@nfaSelected">NFA - Nondeterministic Finite Automaton</option>
                                 <option value="EpsilonNFA" selected="@epsilonNfaSelected">ε-NFA - Epsilon Nondeterministic Finite Automaton</option>
+                                <option value="PDA" selected="@pdaSelected">PDA - Pushdown Automaton</option>
                             </select>
                         </div>
                         <small class="text-muted">Current: <strong>@Model.TypeDisplayName</strong></small>
@@ -128,7 +131,7 @@
                     <h5 class="mb-0"><i class="fas fa-arrow-right"></i> Add Transition</h5>
                 </div>
                 <div class="card-body">
-                    <form asp-controller="Automaton" asp-action="AddTransition" method="post">
+                    <form id="addTransitionForm" asp-controller="Automaton" asp-action="AddTransition" method="post">
                         @for (int i = 0; i < Model.States.Count; i++)
                         {
                             <input type="hidden" name="States[@i].Id" value="@Model.States[i].Id" />
@@ -184,6 +187,23 @@
                                             ε
                                         </button>
                                     }
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                @* PDA-specific stack pop/push inputs *@
+                                <div id="pdaStackFields" style="display:@(Model.Type == AutomatonType.PDA ? "block" : "none");">
+                                    <div class="row">
+                                        <div class="col-12">
+                                            <label class="form-label">Stack pop (optional for PDA):</label>
+                                            <input type="text" name="newTransitionStackPop" class="form-control" placeholder="e.g., ( or ε" value="@Model.NewTransitionStackPop" />
+                                            <div id="stackPopError" class="field-error" role="alert" aria-live="polite" style="display:none;"></div>
+                                        </div>
+                                        <div class="col-12 mt-2">
+                                            <label class="form-label">Stack push (optional for PDA):</label>
+                                            <input type="text" name="newTransitionStackPush" class="form-control" placeholder="e.g., ( or (X" value="@Model.NewTransitionStackPush" />
+                                            <div id="stackPushError" class="field-error" role="alert" aria-live="polite" style="display:none;"></div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             <div class="col-md-3">
@@ -392,5 +412,92 @@
                 symbolInput.focus();
             }
         }
+
+        function updatePDAFieldsVisibility() {
+            // Determine current type: prefer the newType selector if present (it posts back), otherwise fall back to hidden Type input in transition form
+            const typeSelect = document.getElementById('newType');
+            let currentType = null;
+            if (typeSelect) currentType = typeSelect.value;
+            if (!currentType) {
+                const hiddenType = document.querySelector('form[action$="AddTransition"] input[name="Type"]') || document.querySelector('input[name="Type"]');
+                if (hiddenType) currentType = hiddenType.value;
+            }
+
+            const pdaFields = document.getElementById('pdaStackFields');
+            if (!pdaFields) return;
+            if (currentType === 'PDA') {
+                pdaFields.style.display = 'block';
+            } else {
+                pdaFields.style.display = 'none';
+            }
+        }
+
+        function isEpsilonToken(val) {
+            if (!val) return false;
+            const t = val.trim().toLowerCase();
+            return t === 'ε' || t === 'eps' || t === 'epsilon' || t === '\\0' || t === '\0' || t === 'e';
+        }
+
+        function validateAddTransitionForm(e) {
+            const pdaFields = document.getElementById('pdaStackFields');
+            if (!pdaFields || pdaFields.style.display === 'none') return true; // nothing to validate
+
+            const popInput = document.querySelector('input[name="newTransitionStackPop"]');
+            const pushInput = document.querySelector('input[name="newTransitionStackPush"]');
+            const popVal = popInput ? popInput.value.trim() : '';
+            const pushVal = pushInput ? pushInput.value.trim() : '';
+
+            let valid = true;
+            const popErr = document.getElementById('stackPopError');
+            const pushErr = document.getElementById('stackPushError');
+            popErr.style.display = 'none'; popErr.textContent = '';
+            pushErr.style.display = 'none'; pushErr.textContent = '';
+
+            // Validate stack pop: empty or epsilon token or single char
+            if (popVal.length > 0) {
+                if (isEpsilonToken(popVal)) {
+                    // ok
+                } else if (popVal.length === 1) {
+                    // ok
+                } else {
+                    popErr.textContent = 'Stack pop must be a single character or epsilon (ε).';
+                    popErr.style.display = 'block';
+                    valid = false;
+                }
+            }
+
+            // Validate stack push: empty or 1-5 characters (no whitespace)
+            if (pushVal.length > 0) {
+                if (pushVal.length > 5) {
+                    pushErr.textContent = 'Stack push must be at most 5 characters.';
+                    pushErr.style.display = 'block';
+                    valid = false;
+                } else if (/\s/.test(pushVal)) {
+                    pushErr.textContent = 'Stack push cannot contain whitespace.';
+                    pushErr.style.display = 'block';
+                    valid = false;
+                }
+            }
+
+            if (!valid) {
+                e.preventDefault();
+                return false;
+            }
+
+            return true;
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            updatePDAFieldsVisibility();
+            const typeSelect = document.getElementById('newType');
+            if (typeSelect) {
+                typeSelect.addEventListener('change', updatePDAFieldsVisibility);
+            }
+
+            const addForm = document.getElementById('addTransitionForm');
+            if (addForm) {
+                addForm.addEventListener('submit', validateAddTransitionForm);
+            }
+        });
     </script>
 }

@@ -60,6 +60,37 @@ public class AutomatonGenerationIntegrationTests(IntegrationTestsFixture fixture
     }
 
     [Fact]
+    public async Task GenerateRandomAutomaton_POST_PDA_ShouldGenerateAndRedirect()
+    {
+        // Arrange
+        var client = GetHttpClient();
+        var formData = new List<KeyValuePair<string, string>>
+        {
+            new("Type", "PDA"),
+            new("StateCount", "4"),
+            new("TransitionCount", "8"),
+            new("AlphabetSize", "3"),
+            new("AcceptingStateRatio", "0.4"),
+            new("Seed", "4242")
+        };
+
+        // Act
+        var postResponse = await client.PostAsync("/Automaton/GenerateRandomAutomaton", new FormUrlEncodedContent(formData));
+
+        // Assert
+        postResponse.StatusCode.ShouldBeOneOf(HttpStatusCode.OK, HttpStatusCode.Redirect, HttpStatusCode.Found);
+        if (postResponse.StatusCode == HttpStatusCode.OK)
+        {
+            var content = await postResponse.Content.ReadAsStringAsync();
+            content.ShouldNotContain("Error occurred");
+        }
+        else
+        {
+            postResponse.Headers.Location?.ToString().ShouldContain("/");
+        }
+    }
+
+    [Fact]
     public async Task GenerateRealisticAutomaton_DFA_ShouldWork()
     {
         // Arrange

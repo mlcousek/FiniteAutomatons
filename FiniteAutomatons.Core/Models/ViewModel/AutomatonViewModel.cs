@@ -34,6 +34,11 @@ public class AutomatonViewModel
     public string StateHistorySerialized { get; set; } = string.Empty; // for round-tripping state history
     public string? StackSerialized { get; set; } // PDA stack serialization (top-first JSON array of chars)
     public bool IsCustomAutomaton { get; set; } = false;
+
+    // For create page: temporary inputs for PDA transitions
+    public string? NewTransitionStackPop { get; set; }
+    public string? NewTransitionStackPush { get; set; }
+
     public string CurrentStatesDisplay => CurrentStates != null && CurrentStates.Count != 0
         ? string.Join(", ", CurrentStates.OrderBy(x => x))
         : CurrentStateId?.ToString() ?? "";

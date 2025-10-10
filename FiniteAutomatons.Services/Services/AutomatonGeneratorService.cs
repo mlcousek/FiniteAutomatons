@@ -59,7 +59,7 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
         int maxTransitions = Math.Min(stateCount * alphabetSize, stateCount * stateCount); 
         int transitionCount = random.Next(minTransitions, Math.Max(minTransitions + 1, maxTransitions / 2));
         
-        if (type == AutomatonType.EpsilonNFA)
+        if (type == AutomatonType.EpsilonNFA || type == AutomatonType.PDA)
         {
             transitionCount += random.Next(1, Math.Max(2, stateCount / 3));
         }
@@ -134,7 +134,7 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
         var transitions = new List<Transition>();
         var addedTransitions = new HashSet<string>();
 
-        EnsureConnectivity(states, alphabet, transitions, addedTransitions, random);
+        EnsureConnectivity(type, states, alphabet, transitions, addedTransitions, random);
 
         EnsureAllSymbolsPresent(type, states, alphabet, transitions, addedTransitions, random);
 
@@ -157,6 +157,7 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
     }
 
     private static void EnsureConnectivity(
+        AutomatonType type,
         List<State> states,
         List<char> alphabet,
         List<Transition> transitions,
@@ -176,11 +177,87 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
                 Symbol = symbol
             };
 
+            if (type == AutomatonType.PDA)
+            {
+                // For connectivity, create simple PDA moves: push on symbol (no pop)
+                transition.StackPop = null;
+                transition.StackPush = symbol.ToString();
+            }
+
             var key = GetTransitionKey(transition);
             if (!addedTransitions.Contains(key))
             {
                 transitions.Add(transition);
                 addedTransitions.Add(key);
+            }
+        }
+
+        // If PDA, additionally create some matching push/pop pairs to produce useful PDA patterns
+        if (type == AutomatonType.PDA)
+        {
+            CreateMatchingPushPopPairs(states, alphabet, transitions, addedTransitions, random);
+        }
+    }
+
+    private static void CreateMatchingPushPopPairs(List<State> states, List<char> alphabet, List<Transition> transitions, HashSet<string> addedTransitions, Random random)
+    {
+        // Decide number of pairs: at most alphabet.Count / 2, at least 1
+        int pairCount = Math.Max(1, alphabet.Count / 2);
+        pairCount = Math.Min(pairCount, Math.Max(1, alphabet.Count));
+
+        // Use distinct stack symbols for each pair (uppercase letters)
+        for (int i = 0; i < pairCount; i++)
+        {
+            // pick two distinct input symbols to act as push and pop triggers
+            char pushInput = alphabet[random.Next(alphabet.Count)];
+            char popInput = alphabet[random.Next(alphabet.Count)];
+            if (alphabet.Count > 1)
+            {
+                int attempts = 0;
+                while (popInput == pushInput && attempts++ < 10)
+                {
+                    popInput = alphabet[random.Next(alphabet.Count)];
+                }
+            }
+
+            // choose a stack symbol (uppercase letter A..Z based on i)
+            char stackSym = (char)('A' + (i % 26));
+            string stackPushStr = stackSym.ToString();
+
+            // create a push transition (no stack pop condition)
+            var fromPush = states[random.Next(states.Count)].Id;
+            var toPush = states[random.Next(states.Count)].Id;
+            var pushTrans = new Transition
+            {
+                FromStateId = fromPush,
+                ToStateId = toPush,
+                Symbol = pushInput,
+                StackPop = null,
+                StackPush = stackPushStr
+            };
+            var keyPush = GetTransitionKey(pushTrans);
+            if (!addedTransitions.Contains(keyPush))
+            {
+                transitions.Add(pushTrans);
+                addedTransitions.Add(keyPush);
+            }
+
+            // create a pop transition (requires stackSym on top)
+            var fromPop = states[random.Next(states.Count)].Id;
+            var toPop = states[random.Next(states.Count)].Id;
+            var popTrans = new Transition
+            {
+                FromStateId = fromPop,
+                ToStateId = toPop,
+                Symbol = popInput,
+                StackPop = stackSym,
+                StackPush = null
+            };
+            var keyPop = GetTransitionKey(popTrans);
+            if (!addedTransitions.Contains(keyPop))
+            {
+                transitions.Add(popTrans);
+                addedTransitions.Add(keyPop);
             }
         }
     }
@@ -204,6 +281,14 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
                 var fromState = states[random.Next(states.Count)].Id;
                 var toState = states[random.Next(states.Count)].Id;
                 var candidate = new Transition { FromStateId = fromState, ToStateId = toState, Symbol = symbol };
+
+                if (type == AutomatonType.PDA)
+                {
+                    // create a basic PDA candidate: either push or pop pattern
+                    candidate.StackPop = null;
+                    candidate.StackPush = symbol.ToString();
+                }
+
                 var key = GetTransitionKey(candidate);
                 if (addedTransitions.Contains(key)) continue;
 
@@ -227,7 +312,7 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
         HashSet<string> addedTransitions,
         Random random)
     {
-        int maxAttempts = 100; 
+        int maxAttempts = 200; 
         
         for (int attempt = 0; attempt < maxAttempts; attempt++)
         {
@@ -251,6 +336,32 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
                 ToStateId = toState,
                 Symbol = symbol
             };
+
+            if (type == AutomatonType.PDA)
+            {
+                // Decide stackPop: either null (no condition) or a symbol from alphabet
+                if (random.NextDouble() < 0.5)
+                {
+                    transition.StackPop = null;
+                }
+                else
+                {
+                    transition.StackPop = alphabet[random.Next(alphabet.Count)];
+                }
+
+                // Decide stackPush: either null (no push) or a short string of 1-2 symbols
+                if (random.NextDouble() < 0.6)
+                {
+                    transition.StackPush = null;
+                }
+                else
+                {
+                    int len = random.Next(1, 3);
+                    var sb = new System.Text.StringBuilder();
+                    for (int i = 0; i < len; i++) sb.Append(alphabet[random.Next(alphabet.Count)]);
+                    transition.StackPush = sb.ToString();
+                }
+            }
 
             var key = GetTransitionKey(transition);
             
@@ -277,7 +388,9 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
 
     private static string GetTransitionKey(Transition transition)
     {
-        return $"{transition.FromStateId}-{transition.Symbol}-{transition.ToStateId}";
+        // Use FromStateId + Symbol + StackPop as uniqueness key to enforce deterministic PDA constraints
+        var pop = transition.StackPop.HasValue ? transition.StackPop.Value.ToString() : "_";
+        return $"{transition.FromStateId}-{transition.Symbol}-{pop}";
     }
 
 
