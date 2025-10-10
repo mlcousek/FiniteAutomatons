@@ -187,7 +187,7 @@ public class AutomatonExecutionServiceTests
 
     private AutomatonController BuildControllerWithRealValidation()
     {
-        var controller = new AutomatonController(NullLogger<AutomatonController>.Instance, new MockAutomatonGeneratorService(), new MockAutomatonTempDataService(), new AutomatonValidationService(NullLogger<AutomatonValidationService>.Instance), new MockAutomatonConversionService(), new MockAutomatonExecutionService(), new AutomatonEditingService(new AutomatonValidationService(NullLogger<AutomatonValidationService>.Instance), NullLogger<AutomatonEditingService>.Instance))
+        var controller = new AutomatonController(NullLogger<AutomatonController>.Instance, new MockAutomatonGeneratorService(), new MockAutomatonTempDataService(), new AutomatonValidationService(NullLogger<AutomatonValidationService>.Instance), new MockAutomatonConversionService(), new MockAutomatonExecutionService(), new AutomatonEditingService(new AutomatonValidationService(NullLogger<AutomatonValidationService>.Instance), NullLogger<AutomatonEditingService>.Instance), new MockAutomatonFileService())
         {
             TempData = new TempDataDictionary(new DefaultHttpContext(), new TestTempDataProvider())
         };

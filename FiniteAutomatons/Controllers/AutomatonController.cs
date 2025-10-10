@@ -2,6 +2,7 @@ using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Core.Utilities;
 using FiniteAutomatons.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
 
 namespace FiniteAutomatons.Controllers;
 
@@ -12,7 +13,8 @@ public class AutomatonController(
     IAutomatonValidationService validationService,
     IAutomatonConversionService conversionService,
     IAutomatonExecutionService executionService,
-    IAutomatonEditingService editingService) : Controller
+    IAutomatonEditingService editingService,
+    IAutomatonFileService fileService) : Controller
 {
     private readonly ILogger<AutomatonController> logger = logger;
     private readonly IAutomatonGeneratorService generatorService = generatorService;
@@ -21,6 +23,7 @@ public class AutomatonController(
     private readonly IAutomatonConversionService conversionService = conversionService;
     private readonly IAutomatonExecutionService executionService = executionService;
     private readonly IAutomatonEditingService editingService = editingService;
+    private readonly IAutomatonFileService fileService = fileService;
 
     // GET create page
     public IActionResult CreateAutomaton() => View(new AutomatonViewModel());
@@ -193,5 +196,37 @@ public class AutomatonController(
         tempDataService.StoreCustomAutomaton(TempData, generated);
         tempDataService.StoreConversionMessage(TempData, $"Successfully generated realistic {type} with {generated.States.Count} states and {generated.Transitions.Count} transitions.");
         return RedirectToAction("Index", "Home");
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> ImportAutomaton(IFormFile upload)
+    {
+        if (upload == null)
+        {
+            ModelState.AddModelError(string.Empty, "No file uploaded.");
+            return View("CreateAutomaton", new AutomatonViewModel());
+        }
+        var (ok, model, error) = await fileService.LoadFromFileAsync(upload);
+        if (!ok || model == null)
+        {
+            ModelState.AddModelError(string.Empty, error ?? "Failed to load automaton.");
+            return View("CreateAutomaton", new AutomatonViewModel());
+        }
+        tempDataService.StoreCustomAutomaton(TempData, model);
+        return RedirectToAction("Index", "Home");
+    }
+
+    [HttpPost]
+    public IActionResult ExportJson([FromForm] AutomatonViewModel model)
+    {
+        var (name, content) = fileService.ExportJson(model);
+        return File(System.Text.Encoding.UTF8.GetBytes(content), "application/json", name);
+    }
+
+    [HttpPost]
+    public IActionResult ExportText([FromForm] AutomatonViewModel model)
+    {
+        var (name, content) = fileService.ExportText(model);
+        return File(System.Text.Encoding.UTF8.GetBytes(content), "text/plain", name);
     }
 }

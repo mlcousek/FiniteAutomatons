@@ -1,0 +1,12 @@
+$states:
+q0
+q1
+
+$initial:
+q0
+
+$accepting:
+q1
+
+$transitions:
+q0:eps>q1

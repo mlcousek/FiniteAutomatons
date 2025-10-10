@@ -1,0 +1,6 @@
+{
+  "Version":1,
+  "Type":"DFA",
+  "States":[{"Id":1,"IsStart":true,"IsAccepting":false},{"Id":2,"IsStart":false,"IsAccepting":true}],
+  "Transitions":[{"FromStateId":1,"ToStateId":2,"Symbol":"a"},{"FromStateId":2,"ToStateId":2,"Symbol":"a"}]
+}

@@ -24,7 +24,7 @@ public class AutomatonControllerResetTests
         var mockExecutionService = new MockAutomatonExecutionService();
         var editing = new AutomatonEditingService(new MockAutomatonValidationService(), new TestLogger<AutomatonEditingService>());
         controller = new AutomatonController(logger, mockGeneratorService, mockTempDataService,
-            mockValidationService, mockConversionService, mockExecutionService, editing)
+            mockValidationService, mockConversionService, mockExecutionService, editing, new MockAutomatonFileService())
         {
             TempData = new TempDataDictionary(new DefaultHttpContext(), new TestTempDataProvider())
         };

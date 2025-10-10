@@ -54,6 +54,57 @@
         </a>
         <small class="text-muted ms-2">Or explore the randomly generated automaton below</small>
     </div>
+    <hr />
+    <div class="row g-3 mt-2">
+        <div class="col-md-6">
+            <form asp-controller="Automaton" asp-action="ImportAutomaton" method="post" enctype="multipart/form-data" class="d-flex align-items-center gap-2" id="importForm">
+                <input type="file" name="upload" accept=".json,.txt" class="form-control form-control-sm" />
+                <button type="submit" class="btn btn-sm btn-outline-primary" title="Load automaton from file">
+                    <i class="fas fa-file-upload"></i> Load
+                </button>
+            </form>
+        </div>
+        <div class="col-md-6 text-end">
+            <div class="btn-group" role="group">
+                <form asp-controller="Automaton" asp-action="ExportJson" method="post" class="d-inline" id="exportJsonForm">
+                    @for (int i = 0; i < Model.States.Count; i++)
+                    {
+                        <input type="hidden" name="States[@i].Id" value="@Model.States[i].Id" />
+                        <input type="hidden" name="States[@i].IsStart" value="@(Model.States[i].IsStart.ToString().ToLower())" />
+                        <input type="hidden" name="States[@i].IsAccepting" value="@(Model.States[i].IsAccepting.ToString().ToLower())" />
+                    }
+                    @for (int i = 0; i < Model.Transitions.Count; i++)
+                    {
+                        <input type="hidden" name="Transitions[@i].FromStateId" value="@Model.Transitions[i].FromStateId" />
+                        <input type="hidden" name="Transitions[@i].ToStateId" value="@Model.Transitions[i].ToStateId" />
+                        <input type="hidden" name="Transitions[@i].Symbol" value="@(Model.Transitions[i].Symbol == '\0' ? "ε" : Model.Transitions[i].Symbol.ToString())" />
+                    }
+                    <input type="hidden" name="Type" value="@Model.Type" />
+                    <button type="submit" class="btn btn-sm btn-outline-secondary" title="Download JSON definition">
+                        <i class="fas fa-file-code"></i> Export JSON
+                    </button>
+                </form>
+                <form asp-controller="Automaton" asp-action="ExportText" method="post" class="d-inline" id="exportTextForm">
+                    @for (int i = 0; i < Model.States.Count; i++)
+                    {
+                        <input type="hidden" name="States[@i].Id" value="@Model.States[i].Id" />
+                        <input type="hidden" name="States[@i].IsStart" value="@(Model.States[i].IsStart.ToString().ToLower())" />
+                        <input type="hidden" name="States[@i].IsAccepting" value="@(Model.States[i].IsAccepting.ToString().ToLower())" />
+                    }
+                    @for (int i = 0; i < Model.Transitions.Count; i++)
+                    {
+                        <input type="hidden" name="Transitions[@i].FromStateId" value="@Model.Transitions[i].FromStateId" />
+                        <input type="hidden" name="Transitions[@i].ToStateId" value="@Model.Transitions[i].ToStateId" />
+                        <input type="hidden" name="Transitions[@i].Symbol" value="@(Model.Transitions[i].Symbol == '\0' ? "ε" : Model.Transitions[i].Symbol.ToString())" />
+                    }
+                    <input type="hidden" name="Type" value="@Model.Type" />
+                    <button type="submit" class="btn btn-sm btn-outline-secondary" title="Download custom text definition">
+                        <i class="fas fa-file-alt"></i> Export Text
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
 
 @if (Model.CurrentStateId != null || (Model.CurrentStates != null && Model.CurrentStates.Any()))
