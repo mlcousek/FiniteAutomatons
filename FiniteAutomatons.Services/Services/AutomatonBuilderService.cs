@@ -28,6 +28,7 @@ public class AutomatonBuilderService(ILogger<AutomatonBuilderService> logger) : 
             AutomatonType.DFA => CreateDFA(model),
             AutomatonType.NFA => CreateNFA(model),
             AutomatonType.EpsilonNFA => CreateEpsilonNFA(model),
+            AutomatonType.PDA => CreatePDA(model),
             _ => throw new ArgumentException($"Unsupported automaton type: {model.Type}")
         };
     }
@@ -108,5 +109,31 @@ public class AutomatonBuilderService(ILogger<AutomatonBuilderService> logger) : 
             enfa.States.Count, enfa.Transitions.Count);
         
         return enfa;
+    }
+
+    public PDA CreatePDA(AutomatonViewModel model)
+    {
+        var pda = new PDA();
+
+        foreach (var state in model.States ?? [])
+        {
+            pda.States.Add(state);
+        }
+
+        foreach (var transition in model.Transitions ?? [])
+        {
+            pda.Transitions.Add(transition);
+        }
+
+        var startState = model.States?.FirstOrDefault(s => s.IsStart);
+        if (startState != null)
+        {
+            pda.SetStartState(startState.Id);
+        }
+
+        logger.LogInformation("Created PDA with {StateCount} states and {TransitionCount} transitions", 
+            pda.States.Count, pda.Transitions.Count);
+        
+        return pda;
     }
 }

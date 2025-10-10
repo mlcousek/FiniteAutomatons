@@ -30,6 +30,8 @@ public static class AutomatonJsonSerializer
         public int FromStateId { get; set; }
         public int ToStateId { get; set; }
         public string Symbol { get; set; } = string.Empty;
+        public string? StackPop { get; set; } // PDA only
+        public string? StackPush { get; set; } // PDA only
     }
     private class AutomatonDto
     {
@@ -46,6 +48,7 @@ public static class AutomatonJsonSerializer
             EpsilonNFA => nameof(AutomatonType.EpsilonNFA),
             NFA => nameof(AutomatonType.NFA),
             DFA => nameof(AutomatonType.DFA),
+            PDA => nameof(AutomatonType.PDA),
             _ => automaton.GetType().Name
         };
 
@@ -62,7 +65,9 @@ public static class AutomatonJsonSerializer
             {
                 FromStateId = t.FromStateId,
                 ToStateId = t.ToStateId,
-                Symbol = t.Symbol == '\0' ? "ε" : t.Symbol.ToString()
+                Symbol = t.Symbol == '\0' ? "ε" : t.Symbol.ToString(),
+                StackPop = t.StackPop.HasValue ? (t.StackPop.Value == '\0' ? "ε" : t.StackPop.Value.ToString()) : null,
+                StackPush = t.StackPush
             })]
         };
         return JsonSerializer.Serialize(dto, Options);
@@ -107,6 +112,7 @@ public static class AutomatonJsonSerializer
             nameof(AutomatonType.EpsilonNFA) => BuildAutomaton<EpsilonNFA>(dto),
             nameof(AutomatonType.NFA) => BuildAutomaton<NFA>(dto),
             nameof(AutomatonType.DFA) => BuildAutomaton<DFA>(dto),
+            nameof(AutomatonType.PDA) => BuildAutomaton<PDA>(dto),
             _ => BuildAutomaton<DFA>(dto)
         };
         return true;
@@ -114,6 +120,9 @@ public static class AutomatonJsonSerializer
 
     private static string ResolveTypeHeuristically(AutomatonDto dto)
     {
+        bool hasStackInfo = dto.Transitions.Any(t => t.StackPop != null || t.StackPush != null);
+        if (hasStackInfo) return nameof(AutomatonType.PDA);
+
         bool hasEpsilon = dto.Transitions.Any(t => EpsilonTokens.Contains(t.Symbol));
         if (hasEpsilon) return nameof(AutomatonType.EpsilonNFA);
 
@@ -138,7 +147,15 @@ public static class AutomatonJsonSerializer
         foreach (var t in dto.Transitions)
         {
             char sym = EpsilonTokens.Contains(t.Symbol) ? '\0' : t.Symbol[0];
-            automaton.AddTransition(t.FromStateId, t.ToStateId, sym);
+            var transition = new Transition
+            {
+                FromStateId = t.FromStateId,
+                ToStateId = t.ToStateId,
+                Symbol = sym,
+                StackPop = string.IsNullOrEmpty(t.StackPop) ? null : (EpsilonTokens.Contains(t.StackPop) ? '\0' : t.StackPop[0]),
+                StackPush = t.StackPush
+            };
+            automaton.AddTransition(transition);
         }
         var start = dto.States.FirstOrDefault(s => s.IsStart);
         if (start != null)

@@ -14,4 +14,6 @@ public interface IAutomatonBuilderService
     NFA CreateNFA(AutomatonViewModel model);
 
     EpsilonNFA CreateEpsilonNFA(AutomatonViewModel model);
+
+    PDA CreatePDA(AutomatonViewModel model);
 }

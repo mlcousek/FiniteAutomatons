@@ -3,39 +3,73 @@ using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Interfaces;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
+using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 
 namespace FiniteAutomatons.Services.Services;
 
-public class AutomatonExecutionService : IAutomatonExecutionService
+public class AutomatonExecutionService(IAutomatonBuilderService builderService, ILogger<AutomatonExecutionService> logger) : IAutomatonExecutionService
 {
-    private readonly IAutomatonBuilderService builderService;
-    private readonly ILogger<AutomatonExecutionService> logger;
-
-    public AutomatonExecutionService(IAutomatonBuilderService builderService, ILogger<AutomatonExecutionService> logger)
-    {
-        this.builderService = builderService;
-        this.logger = logger;
-    }
+    private readonly IAutomatonBuilderService builderService = builderService;
+    private readonly ILogger<AutomatonExecutionService> logger = logger;
 
     public AutomatonExecutionState ReconstructState(AutomatonViewModel model)
     {
-        // Ensure model has required collections initialized
         model.States ??= [];
         model.Transitions ??= [];
 
         AutomatonExecutionState state;
 
-        if (model.Type == AutomatonType.DFA)
+        if (model.Type == AutomatonType.DFA || model.Type == AutomatonType.PDA)
         {
-            state = new AutomatonExecutionState(model.Input ?? "", model.CurrentStateId)
+            if (model.Type == AutomatonType.PDA)
             {
-                Position = model.Position,
-                IsAccepted = model.IsAccepted
-            };
+                var pdaState = new PDAExecutionState(model.Input ?? string.Empty, model.CurrentStateId)
+                {
+                    Position = model.Position,
+                    IsAccepted = model.IsAccepted
+                };
+                // Deserialize stack
+                if (!string.IsNullOrEmpty(model.StackSerialized))
+                {
+                    try
+                    {
+                        var stackArray = JsonSerializer.Deserialize<List<char>>(model.StackSerialized) ?? [];
+                        pdaState.Stack = new Stack<char>(stackArray.Reverse<char>()); // incoming top-first; Stack enumerates top-first, so reverse to push bottom-first
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogWarning(ex, "Failed to deserialize PDA stack; initializing empty.");
+                    }
+                }
+                // Deserialize PDA history if present (list of snapshots)
+                if (!string.IsNullOrEmpty(model.StateHistorySerialized))
+                {
+                    try
+                    {
+                        var snaps = JsonSerializer.Deserialize<List<PDAExecutionState.Snapshot>>(model.StateHistorySerialized) ?? [];
+                        for (int i = snaps.Count - 1; i >= 0; i--)
+                        {
+                            pdaState.History.Push(snaps[i]);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogWarning(ex, "Failed to deserialize PDA history");
+                    }
+                }
+                state = pdaState;
+            }
+            else
+            {
+                state = new AutomatonExecutionState(model.Input ?? "", model.CurrentStateId)
+                {
+                    Position = model.Position,
+                    IsAccepted = model.IsAccepted
+                };
+            }
         }
         else
         {
-            // For NFA and EpsilonNFA, use CurrentStates
             state = new AutomatonExecutionState(model.Input ?? "", null, model.CurrentStates ?? [])
             {
                 Position = model.Position,
@@ -43,14 +77,12 @@ public class AutomatonExecutionService : IAutomatonExecutionService
             };
         }
 
-        // Deserialize StateHistory if present
-        if (!string.IsNullOrEmpty(model.StateHistorySerialized))
+        if (model.Type != AutomatonType.PDA && !string.IsNullOrEmpty(model.StateHistorySerialized))
         {
             try
             {
                 if (model.Type == AutomatonType.DFA)
                 {
-                    // DFA uses List<List<int>> where each inner list has one element
                     var stackList = JsonSerializer.Deserialize<List<List<int>>>(model.StateHistorySerialized) ?? [];
                     for (int i = stackList.Count - 1; i >= 0; i--)
                     {
@@ -59,7 +91,6 @@ public class AutomatonExecutionService : IAutomatonExecutionService
                 }
                 else
                 {
-                    // NFA/EpsilonNFA uses List<HashSet<int>>
                     var stackList = JsonSerializer.Deserialize<List<HashSet<int>>>(model.StateHistorySerialized) ?? [];
                     for (int i = stackList.Count - 1; i >= 0; i--)
                     {
@@ -70,7 +101,6 @@ public class AutomatonExecutionService : IAutomatonExecutionService
             catch (JsonException ex)
             {
                 logger.LogWarning(ex, "Failed to deserialize state history, starting with empty history");
-                // If deserialization fails, start with empty history
                 state.StateHistory.Clear();
             }
         }
@@ -78,17 +108,12 @@ public class AutomatonExecutionService : IAutomatonExecutionService
         return state;
     }
 
-    /// <summary>
-    /// Updates a view model from execution state
-    /// </summary>
-    /// <param name="model">The automaton view model to update</param>
-    /// <param name="state">The current execution state</param>
     public void UpdateModelFromState(AutomatonViewModel model, AutomatonExecutionState state)
     {
         model.Position = state.Position;
         model.IsAccepted = state.IsAccepted;
 
-        if (model.Type == AutomatonType.DFA)
+        if (model.Type == AutomatonType.DFA || model.Type == AutomatonType.PDA)
         {
             model.CurrentStateId = state.CurrentStateId;
             model.CurrentStates = null;
@@ -99,28 +124,30 @@ public class AutomatonExecutionService : IAutomatonExecutionService
             model.CurrentStates = state.CurrentStates ?? [];
         }
 
-        // Serialize StateHistory
-        var stackArray = state.StateHistory.ToArray(); // This gives us [top, ..., bottom]
-        var stackList = stackArray.Select(s => s.ToList()).ToList();
-        model.StateHistorySerialized = JsonSerializer.Serialize(stackList);
+        if (model.Type == AutomatonType.PDA && state is PDAExecutionState pdaState)
+        {
+            // Serialize stack (top-first)
+            model.StackSerialized = JsonSerializer.Serialize(pdaState.Stack.ToArray());
+            // Serialize history snapshots
+            model.StateHistorySerialized = JsonSerializer.Serialize(pdaState.History.ToArray());
+        }
+        else
+        {
+            var stackArray = state.StateHistory.ToArray();
+            var stackList = stackArray.Select(s => s.ToList()).ToList();
+            model.StateHistorySerialized = JsonSerializer.Serialize(stackList);
+        }
     }
 
-    /// <summary>
-    /// Ensures proper state initialization for an automaton
-    /// </summary>
-    /// <param name="model">The automaton view model</param>
-    /// <param name="automaton">The automaton instance</param>
     public void EnsureProperStateInitialization(AutomatonViewModel model, Automaton automaton)
     {
-        // Ensure proper state initialization based on automaton type
-        if (model.Type == AutomatonType.DFA)
+        if (model.Type == AutomatonType.DFA || model.Type == AutomatonType.PDA)
         {
             model.CurrentStateId ??= model.States?.FirstOrDefault(s => s.IsStart)?.Id;
             model.CurrentStates = null;
         }
         else
         {
-            // For NFA and EpsilonNFA, initialize with proper start state closure
             if (model.CurrentStates == null || model.CurrentStates.Count == 0)
             {
                 var startState = model.States?.FirstOrDefault(s => s.IsStart);
@@ -128,14 +155,12 @@ public class AutomatonExecutionService : IAutomatonExecutionService
                 {
                     try
                     {
-                        // Use StartExecution to properly initialize the state
                         var tempState = automaton.StartExecution("");
                         model.CurrentStates = tempState.CurrentStates ?? [startState.Id];
                     }
                     catch (Exception ex)
                     {
                         logger.LogWarning(ex, "Failed to initialize state using StartExecution, using fallback");
-                        // Fallback if StartExecution fails
                         model.CurrentStates = [startState.Id];
                     }
                 }
@@ -148,14 +173,8 @@ public class AutomatonExecutionService : IAutomatonExecutionService
         }
     }
 
-    /// <summary>
-    /// Executes a single step forward in the automaton
-    /// </summary>
-    /// <param name="model">The automaton view model</param>
-    /// <returns>The updated model after step execution</returns>
     public AutomatonViewModel ExecuteStepForward(AutomatonViewModel model)
     {
-        // Ensure collections are initialized
         model.States ??= [];
         model.Transitions ??= [];
         model.Input ??= "";
@@ -173,14 +192,8 @@ public class AutomatonExecutionService : IAutomatonExecutionService
         return model;
     }
 
-    /// <summary>
-    /// Executes a single step backward in the automaton
-    /// </summary>
-    /// <param name="model">The automaton view model</param>
-    /// <returns>The updated model after step execution</returns>
     public AutomatonViewModel ExecuteStepBackward(AutomatonViewModel model)
     {
-        // Ensure collections are initialized
         model.States ??= [];
         model.Transitions ??= [];
         model.Input ??= "";
@@ -197,14 +210,8 @@ public class AutomatonExecutionService : IAutomatonExecutionService
         return model;
     }
 
-    /// <summary>
-    /// Executes the automaton to completion
-    /// </summary>
-    /// <param name="model">The automaton view model</param>
-    /// <returns>The updated model after full execution</returns>
     public AutomatonViewModel ExecuteAll(AutomatonViewModel model)
     {
-        // Ensure collections are initialized
         model.States ??= [];
         model.Transitions ??= [];
         model.Input ??= "";
@@ -222,14 +229,8 @@ public class AutomatonExecutionService : IAutomatonExecutionService
         return model;
     }
 
-    /// <summary>
-    /// Resets the automaton to the start state
-    /// </summary>
-    /// <param name="model">The automaton view model</param>
-    /// <returns>The updated model after reset</returns>
     public AutomatonViewModel BackToStart(AutomatonViewModel model)
     {
-        // Ensure collections are initialized
         model.States ??= [];
         model.Transitions ??= [];
         model.Input ??= "";
@@ -244,18 +245,11 @@ public class AutomatonExecutionService : IAutomatonExecutionService
         return model;
     }
 
-    /// <summary>
-    /// Resets the execution state while preserving automaton structure
-    /// </summary>
-    /// <param name="model">The automaton view model</param>
-    /// <returns>The updated model after reset</returns>
     public AutomatonViewModel ResetExecution(AutomatonViewModel model)
     {
-        // Ensure collections are initialized
         model.States ??= [];
         model.Transitions ??= [];
 
-        // Only reset the execution state and input, NOT the automaton structure
         model.Input = string.Empty;
         model.Result = null;
         model.CurrentStateId = null;
@@ -263,14 +257,8 @@ public class AutomatonExecutionService : IAutomatonExecutionService
         model.Position = 0;
         model.IsAccepted = null;
         model.StateHistorySerialized = string.Empty;
+        model.StackSerialized = null;
 
-        // Preserve the automaton's alphabet - rebuild it from transitions
-        var transitionSymbols = model.Transitions
-            .Where(t => t.Symbol != '\0') // Exclude epsilon transitions
-            .Select(t => t.Symbol)
-            .Distinct()
-            .ToList();
-        
         logger.LogInformation("Reset execution state while preserving automaton structure");
 
         return model;

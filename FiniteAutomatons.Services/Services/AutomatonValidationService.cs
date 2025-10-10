@@ -51,6 +51,18 @@ public class AutomatonValidationService(ILogger<AutomatonValidationService> logg
             }
         }
 
+        if (model.Type == AutomatonType.PDA)
+        {
+            var grouped = model.Transitions
+                .GroupBy(t => new { t.FromStateId, Symbol = t.Symbol, Stack = t.StackPop ?? '\0' })
+                .Where(g => g.Count() > 1)
+                .ToList();
+            if (grouped.Count > 0)
+            {
+                errors.Add("PDA must be deterministic: multiple transitions with same (state, input symbol, stack pop) detected.");
+            }
+        }
+
         var isValid = errors.Count == 0;
         logger.LogInformation("Automaton validation completed: {IsValid}, Errors: {ErrorCount}", isValid, errors.Count);
 
@@ -95,9 +107,9 @@ public class AutomatonValidationService(ILogger<AutomatonValidationService> logg
         if (AutomatonSymbolHelper.IsEpsilon(symbol))
         {
             logger.LogInformation("Epsilon transition detected");
-            if (model.Type != AutomatonType.EpsilonNFA)
+            if (model.Type != AutomatonType.EpsilonNFA && model.Type != AutomatonType.PDA)
             {
-                return (false, AutomatonSymbolHelper.EpsilonInternal, $"Epsilon transitions ({AutomatonSymbolHelper.EpsilonDisplay}) are only allowed in Epsilon NFAs. Please change the automaton type or use a different symbol.");
+                return (false, AutomatonSymbolHelper.EpsilonInternal, $"Epsilon transitions ({AutomatonSymbolHelper.EpsilonDisplay}) are only allowed in Epsilon NFAs or PDAs. Please change the automaton type or use a different symbol.");
             }
             transitionSymbol = AutomatonSymbolHelper.EpsilonInternal;
         }
@@ -107,7 +119,7 @@ public class AutomatonValidationService(ILogger<AutomatonValidationService> logg
         }
         else
         {
-            return (false, AutomatonSymbolHelper.EpsilonInternal, $"Symbol must be a single character or epsilon ({AutomatonSymbolHelper.EpsilonDisplay}) for Epsilon NFA.");
+            return (false, AutomatonSymbolHelper.EpsilonInternal, $"Symbol must be a single character or epsilon ({AutomatonSymbolHelper.EpsilonDisplay}) for Epsilon NFA / PDA.");
         }
 
         if (model.Type == AutomatonType.DFA &&

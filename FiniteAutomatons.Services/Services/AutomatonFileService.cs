@@ -60,9 +60,16 @@ public class AutomatonFileService(ILogger<AutomatonFileService> logger) : IAutom
 
         var vm = new AutomatonViewModel
         {
-            Type = automaton is EpsilonNFA ? AutomatonType.EpsilonNFA : automaton is NFA ? AutomatonType.NFA : AutomatonType.DFA,
+            Type = automaton switch
+            {
+                EpsilonNFA => AutomatonType.EpsilonNFA,
+                NFA => AutomatonType.NFA,
+                DFA => AutomatonType.DFA,
+                PDA => AutomatonType.PDA,
+                _ => AutomatonType.DFA
+            },
             States = automaton.States.Select(s => new State { Id = s.Id, IsStart = s.IsStart, IsAccepting = s.IsAccepting }).ToList(),
-            Transitions = automaton.Transitions.Select(t => new Transition { FromStateId = t.FromStateId, ToStateId = t.ToStateId, Symbol = t.Symbol }).ToList(),
+            Transitions = automaton.Transitions.Select(t => new Transition { FromStateId = t.FromStateId, ToStateId = t.ToStateId, Symbol = t.Symbol, StackPop = t.StackPop, StackPush = t.StackPush }).ToList(),
             IsCustomAutomaton = true
         };
 
@@ -94,12 +101,13 @@ public class AutomatonFileService(ILogger<AutomatonFileService> logger) : IAutom
             AutomatonType.DFA => new DFA(),
             AutomatonType.NFA => new NFA(),
             AutomatonType.EpsilonNFA => new EpsilonNFA(),
+            AutomatonType.PDA => new PDA(),
             _ => new DFA()
         };
         foreach (var s in model.States)
             automaton.AddState(new State { Id = s.Id, IsStart = s.IsStart, IsAccepting = s.IsAccepting });
         foreach (var t in model.Transitions)
-            automaton.AddTransition(t.FromStateId, t.ToStateId, t.Symbol);
+            automaton.AddTransition(new Transition { FromStateId = t.FromStateId, ToStateId = t.ToStateId, Symbol = t.Symbol, StackPop = t.StackPop, StackPush = t.StackPush });
         var start = model.States.FirstOrDefault(s => s.IsStart);
         if (start != null)
             automaton.SetStartState(start.Id);

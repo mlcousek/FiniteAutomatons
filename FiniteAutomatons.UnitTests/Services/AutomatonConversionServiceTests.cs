@@ -141,4 +141,14 @@ public class MockAutomatonBuilderService : IAutomatonBuilderService
         }
         return enfa;
     }
+
+    public PDA CreatePDA(AutomatonViewModel model)
+    {
+        var pda = new PDA();
+        foreach (var state in model.States ?? [])
+        {
+            pda.States.Add(state);
+        }
+        return pda;
+    }
 }
