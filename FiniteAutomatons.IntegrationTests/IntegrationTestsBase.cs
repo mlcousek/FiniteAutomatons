@@ -18,4 +18,6 @@ public abstract class IntegrationTestsBase(IntegrationTestsFixture fixture)
         var scope = appFactory.Services.CreateScope();
         return scope;
     }
+
+    protected IServiceProvider GetServices() => fixture.AutomatonsWebApplicationFactory.Services;
 }

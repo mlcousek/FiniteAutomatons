@@ -4,8 +4,9 @@ using FiniteAutomatons.Data;
 using FiniteAutomatons.Filters;
 using FiniteAutomatons.Observability;
 using FiniteAutomatons.Services.Interfaces;
-using FiniteAutomatons.Services.Observability;
 using FiniteAutomatons.Services.Services;
+using FiniteAutomatons.Services.Observability;
+using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -197,6 +198,9 @@ public partial class Program
         services.AddTransient<DFA>();
         services.AddTransient<NFA>();
         services.AddTransient<EpsilonNFA>();
+
+        // Register regex -> automaton service
+        services.AddScoped<IRegexToAutomatonService, RegexToAutomatonService>();
     }
 
     private static void ConfigureRequestPipeline(WebApplication app)
@@ -269,6 +273,31 @@ public partial class Program
                 }
                 return Results.Ok();
             }).WithDisplayName("TestAuditEndpoint");
+
+            // New endpoint: build automaton from regex (development/testing only)
+            app.MapPost("/_tests/build-from-regex", async (HttpRequest req, IRegexToAutomatonService regexService) =>
+            {
+                using var sr = new StreamReader(req.Body);
+                var body = await sr.ReadToEndAsync();
+                if (string.IsNullOrWhiteSpace(body)) return Results.BadRequest("Empty body, expected raw regex string");
+                try
+                {
+                    var enfa = regexService.BuildEpsilonNfaFromRegex(body.Trim());
+                    // return a simple JSON describer of states and transitions
+                    var payload = new
+                    {
+                        States = enfa.States.Select(s => new { s.Id, s.IsStart, s.IsAccepting }),
+                        Transitions = enfa.Transitions.Select(t => new { t.FromStateId, t.ToStateId, Symbol = t.Symbol == '\0' ? "?" : t.Symbol.ToString() })
+                    };
+                    return Results.Json(payload);
+                }
+                catch (Exception ex)
+                {
+                    var logger = req.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                    logger.LogWarning(ex, "Failed to build automaton from regex");
+                    return Results.BadRequest(ex.Message);
+                }
+            }).WithDisplayName("BuildFromRegex");
         }
 
         app.UseAuthorization();

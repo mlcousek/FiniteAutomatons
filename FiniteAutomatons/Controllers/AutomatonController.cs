@@ -1,8 +1,8 @@
+using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Core.Utilities;
 using FiniteAutomatons.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Http;
 
 namespace FiniteAutomatons.Controllers;
 
@@ -14,7 +14,8 @@ public class AutomatonController(
     IAutomatonConversionService conversionService,
     IAutomatonExecutionService executionService,
     IAutomatonEditingService editingService,
-    IAutomatonFileService fileService) : Controller
+    IAutomatonFileService fileService,
+    IRegexToAutomatonService? regexService = null) : Controller
 {
     private readonly ILogger<AutomatonController> logger = logger;
     private readonly IAutomatonGeneratorService generatorService = generatorService;
@@ -24,6 +25,7 @@ public class AutomatonController(
     private readonly IAutomatonExecutionService executionService = executionService;
     private readonly IAutomatonEditingService editingService = editingService;
     private readonly IAutomatonFileService fileService = fileService;
+    private readonly IRegexToAutomatonService? regexService = regexService;
 
     // GET create page
     public IActionResult CreateAutomaton() => View(new AutomatonViewModel());
@@ -228,5 +230,54 @@ public class AutomatonController(
     {
         var (name, content) = fileService.ExportText(model);
         return File(System.Text.Encoding.UTF8.GetBytes(content), "text/plain", name);
+    }
+
+    // GET: Regex to Automaton UI (development/testing helper)
+    public IActionResult RegexToAutomaton()
+    {
+        // Note: the backend endpoint used by this UI is available only in Development environment
+        return View();
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult BuildFromRegex([FromForm] string regex)
+    {
+        if (string.IsNullOrWhiteSpace(regex))
+        {
+            return Json(new { success = false, error = "Empty regex provided" });
+        }
+
+        if (regexService == null)
+        {
+            logger.LogWarning("Attempt to build from regex but IRegexToAutomatonService is not available");
+            return Json(new { success = false, error = "Service unavailable" });
+        }
+
+        try
+        {
+            var enfa = regexService.BuildEpsilonNfaFromRegex(regex.Trim());
+
+            var model = new AutomatonViewModel
+            {
+                Type = AutomatonType.EpsilonNFA,
+                States = enfa.States.Select(s => new State { Id = s.Id, IsStart = s.IsStart, IsAccepting = s.IsAccepting }).ToList(),
+                Transitions = enfa.Transitions.Select(t => new Transition { FromStateId = t.FromStateId, ToStateId = t.ToStateId, Symbol = t.Symbol }).ToList(),
+                IsCustomAutomaton = true,
+                Input = string.Empty
+            };
+
+            model.NormalizeEpsilonTransitions();
+            tempDataService.StoreCustomAutomaton(TempData, model);
+            tempDataService.StoreConversionMessage(TempData, "Converted regex to automaton and loaded into simulator.");
+
+            var redirect = Url.Action("Index", "Home");
+            return Json(new { success = true, redirect = redirect });
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to build automaton from regex via controller");
+            return Json(new { success = false, error = ex.Message });
+        }
     }
 }
