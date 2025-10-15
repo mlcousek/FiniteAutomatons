@@ -219,20 +219,93 @@ public class PDA : Automaton
         // initialize
         var state = (PDAExecutionState)StartExecution(input);
 
+        // helper to create stack key (bottom-to-top)
+        static string StackToKey(Stack<char> s) => new string(s.Reverse().ToArray());
+
         // process consuming transitions deterministically
         while (state.Position < state.Input.Length)
         {
             char cur = state.Input[state.Position];
             var top = state.Stack.Count > 0 ? state.Stack.Peek() : (char?)null;
             var candidates = Transitions.Where(t => t.FromStateId == state.CurrentStateId).ToList();
+
+            // prefer a consuming transition in the current state
             var transition = candidates.FirstOrDefault(t => t.Symbol == cur && StackMatches(t, top));
+
             if (transition == null)
             {
-                // no consuming transition; cannot proceed
-                return false;
+                // No consuming transition in current state - try to find a configuration reachable via epsilons
+                // that has a consuming transition for the current symbol.
+
+                var q = new Queue<(int StateId, Stack<char> Stack)>();
+                var visited = new HashSet<string>();
+                var initKey = state.CurrentStateId!.Value + "|" + StackToKey(state.Stack);
+                q.Enqueue((state.CurrentStateId!.Value, new Stack<char>(state.Stack.Reverse())));
+                visited.Add(initKey);
+
+                int safety = 0;
+                bool found = false;
+                int foundState = 0;
+                Stack<char>? foundStack = null;
+                Transition? foundTransition = null;
+
+                while (q.Count > 0 && safety++ < 10000)
+                {
+                    var (curState, stackCopy) = q.Dequeue();
+
+                    var topCopy = stackCopy.Count > 0 ? stackCopy.Peek() : (char?)null;
+                    // check if there's a consuming transition here
+                    var consuming = Transitions.FirstOrDefault(t => t.FromStateId == curState && t.Symbol == cur && StackMatches(t, topCopy));
+                    if (consuming != null)
+                    {
+                        found = true;
+                        foundState = curState;
+                        foundStack = stackCopy;
+                        foundTransition = consuming;
+                        break;
+                    }
+
+                    // otherwise, enqueue epsilon moves
+                    var eps = Transitions.Where(t => t.FromStateId == curState && t.Symbol == '\0' && StackMatches(t, topCopy));
+                    foreach (var t in eps)
+                    {
+                        // apply epsilon to a fresh copy
+                        var newStack = new Stack<char>(stackCopy.Reverse()); // copy preserving top
+                        // pop if required
+                        if (t.StackPop.HasValue && t.StackPop.Value != '\0')
+                        {
+                            if (newStack.Count == 0 || newStack.Peek() != t.StackPop.Value)
+                                continue;
+                            newStack.Pop();
+                        }
+                        // push if needed
+                        if (!string.IsNullOrEmpty(t.StackPush))
+                        {
+                            for (int i = t.StackPush.Length - 1; i >= 0; i--)
+                                newStack.Push(t.StackPush[i]);
+                        }
+
+                        var key = t.ToStateId + "|" + new string(newStack.Reverse().ToArray());
+                        if (visited.Add(key))
+                        {
+                            q.Enqueue((t.ToStateId, newStack));
+                        }
+                    }
+                }
+
+                if (!found)
+                {
+                    // No way to consume current symbol
+                    return false;
+                }
+
+                // We found a reachable consuming transition; adopt that configuration
+                state.CurrentStateId = foundState;
+                state.Stack = new Stack<char>(foundStack!.Reverse());
+                transition = foundTransition!;
             }
 
-            // apply transition
+            // apply consuming transition
             if (transition.StackPop.HasValue && transition.StackPop.Value != '\0')
             {
                 if (state.Stack.Count == 0 || state.Stack.Peek() != transition.StackPop.Value)
@@ -246,23 +319,29 @@ public class PDA : Automaton
             }
             state.CurrentStateId = transition.ToStateId;
             state.Position++;
+
+            // if input consumed, allow epsilon closure to accept
+            if (state.Position >= state.Input.Length)
+            {
+                if (TryApplyEpsilonClosure(state))
+                    return true;
+            }
         }
 
         // input consumed - explore epsilon closure using BFS over configurations (stateId + stack)
         var startKeyStack = state.Stack.ToArray(); // top-first
         // represent stack as string from bottom to top for uniqueness: reverse
-        string StackToKey(Stack<char> s) => new string(s.Reverse().ToArray());
 
-        var q = new Queue<(int StateId, string StackKey, Stack<char> Stack)>();
-        var visited = new HashSet<string>();
-        var initKey = state.CurrentStateId!.Value + "|" + StackToKey(state.Stack);
-        q.Enqueue((state.CurrentStateId!.Value, StackToKey(state.Stack), new Stack<char>(state.Stack.Reverse())));
-        visited.Add(initKey);
+        var q2 = new Queue<(int StateId, string StackKey, Stack<char> Stack)>();
+        var visited2 = new HashSet<string>();
+        var initKey2 = state.CurrentStateId!.Value + "|" + StackToKey(state.Stack);
+        q2.Enqueue((state.CurrentStateId!.Value, StackToKey(state.Stack), new Stack<char>(state.Stack.Reverse())));
+        visited2.Add(initKey2);
 
-        int safety = 0;
-        while (q.Count > 0 && safety++ < 10000)
+        int safety2 = 0;
+        while (q2.Count > 0 && safety2++ < 10000)
         {
-            var (curState, stackKey, stackCopy) = q.Dequeue();
+            var (curState, stackKey, stackCopy) = q2.Dequeue();
             // check acceptance: accepting state and only bottom
             if (IsAccepting(curState) && IsOnlyBottom(stackCopy))
                 return true;
@@ -273,9 +352,7 @@ public class PDA : Automaton
             foreach (var t in eps)
             {
                 // apply to copy
-                var newStack = new Stack<char>(stackCopy.Reverse()); // bottom-first
-                // convert to top-first for operations
-                newStack = new Stack<char>(newStack);
+                var newStack = new Stack<char>(stackCopy.Reverse()); // bottom-first -> after constructor top-first
                 // pop
                 if (t.StackPop.HasValue && t.StackPop.Value != '\0')
                 {
@@ -291,9 +368,9 @@ public class PDA : Automaton
                 }
 
                 var newKey = t.ToStateId + "|" + new string(newStack.Reverse().ToArray());
-                if (visited.Add(newKey))
+                if (visited2.Add(newKey))
                 {
-                    q.Enqueue((t.ToStateId, new string(newStack.Reverse().ToArray()), newStack));
+                    q2.Enqueue((t.ToStateId, new string(newStack.Reverse().ToArray()), newStack));
                 }
             }
         }
