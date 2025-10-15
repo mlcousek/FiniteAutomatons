@@ -1,0 +1,118 @@
+using FiniteAutomatons.Services.Interfaces;
+using FiniteAutomatons.Data;
+using FiniteAutomatons.Core.Models.Database;
+using FiniteAutomatons.Core.Models.ViewModel;
+using FiniteAutomatons.Core.Models.Serialization;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+
+namespace FiniteAutomatons.Services.Services;
+
+public class SavedAutomatonService(ILogger<SavedAutomatonService> logger, ApplicationDbContext db) : ISavedAutomatonService
+{
+    private readonly ILogger<SavedAutomatonService> logger = logger;
+    private readonly ApplicationDbContext db = db;
+
+    public async Task<SavedAutomaton> SaveAsync(string userId, string name, string? description, AutomatonViewModel model, bool saveExecutionState = false, int? groupId = null)
+    {
+        ArgumentNullException.ThrowIfNull(userId);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(model);
+
+        model.States ??= [];
+        model.Transitions ??= [];
+
+        // Serialize a payload that can be deserialized back into AutomatonViewModel
+        var payload = System.Text.Json.JsonSerializer.Serialize(new AutomatonPayloadDto
+        {
+            Type = model.Type,
+            States = model.States,
+            Transitions = model.Transitions
+        }, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+
+        string? execJson = null;
+        if (saveExecutionState)
+        {
+            // capture relevant execution state fields
+            var exec = new SavedExecutionStateDto
+            {
+                Input = model.Input,
+                Position = model.Position,
+                CurrentStateId = model.CurrentStateId,
+                CurrentStates = model.CurrentStates?.ToList(),
+                IsAccepted = model.IsAccepted,
+                StateHistorySerialized = model.StateHistorySerialized,
+                StackSerialized = model.StackSerialized
+            };
+            execJson = System.Text.Json.JsonSerializer.Serialize(exec, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+        }
+
+        var entity = new SavedAutomaton
+        {
+            UserId = userId,
+            Name = name,
+            Description = description,
+            ContentJson = payload,
+            HasExecutionState = saveExecutionState,
+            ExecutionStateJson = execJson,
+            CreatedAt = DateTime.UtcNow,
+            GroupId = groupId
+        };
+
+        db.SavedAutomatons.Add(entity);
+        await db.SaveChangesAsync();
+        logger.LogInformation("Saved automaton {Id} for user {User} (withState={HasState})", entity.Id, userId, saveExecutionState);
+        return entity;
+    }
+
+    public async Task<List<SavedAutomaton>> ListForUserAsync(string userId, int? groupId = null)
+    {
+        var q = db.SavedAutomatons.AsQueryable().Where(s => s.UserId == userId);
+        if (groupId.HasValue) q = q.Where(s => s.GroupId == groupId.Value);
+        return await q.OrderByDescending(s => s.CreatedAt).ToListAsync();
+    }
+
+    public async Task<SavedAutomaton?> GetAsync(int id, string userId)
+    {
+        return await db.SavedAutomatons.FirstOrDefaultAsync(s => s.Id == id && s.UserId == userId);
+    }
+
+    public async Task DeleteAsync(int id, string userId)
+    {
+        var entity = await db.SavedAutomatons.FirstOrDefaultAsync(s => s.Id == id && s.UserId == userId);
+        if (entity == null) return;
+        db.SavedAutomatons.Remove(entity);
+        await db.SaveChangesAsync();
+    }
+
+    public async Task<SavedAutomatonGroup> CreateGroupAsync(string userId, string name, string? description)
+    {
+        var group = new SavedAutomatonGroup { UserId = userId, Name = name, Description = description };
+        db.SavedAutomatonGroups.Add(group);
+        await db.SaveChangesAsync();
+        return group;
+    }
+
+    public async Task<List<SavedAutomatonGroup>> ListGroupsForUserAsync(string userId)
+    {
+        return await db.SavedAutomatonGroups.Where(g => g.UserId == userId).OrderBy(g => g.Name).ToListAsync();
+    }
+
+    private sealed class AutomatonPayloadDto
+    {
+        public AutomatonType Type { get; set; }
+        public List<FiniteAutomatons.Core.Models.DoMain.State>? States { get; set; }
+        public List<FiniteAutomatons.Core.Models.DoMain.Transition>? Transitions { get; set; }
+    }
+
+    private sealed class SavedExecutionStateDto
+    {
+        public string? Input { get; set; }
+        public int Position { get; set; }
+        public int? CurrentStateId { get; set; }
+        public List<int>? CurrentStates { get; set; }
+        public bool? IsAccepted { get; set; }
+        public string? StateHistorySerialized { get; set; }
+        public string? StackSerialized { get; set; }
+    }
+}

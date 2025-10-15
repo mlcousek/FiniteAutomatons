@@ -153,6 +153,9 @@ public partial class Program
 
         // Application services
         RegisterApplicationServices(builder.Services);
+
+        // register saved automaton service
+        builder.Services.AddScoped<ISavedAutomatonService, SavedAutomatonService>();
     }
 
     private static void RegisterApplicationServices(IServiceCollection services)

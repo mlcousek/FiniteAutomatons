@@ -505,3 +505,48 @@
         });
     </script>
 }
+
+<div class="card mt-3">
+    <div class="card-header">
+        <h5 class="mb-0">Save Automaton</h5>
+    </div>
+    <div class="card-body">
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <form asp-action="SaveAutomaton" asp-controller="Automaton" method="post">
+                @* include model hidden fields already present in page forms *@
+                <input type="hidden" name="Type" value="@Model.Type" />
+                @for (int i = 0; i < Model.States.Count; i++)
+                {
+                    <input type="hidden" name="States[@i].Id" value="@Model.States[i].Id" />
+                    <input type="hidden" name="States[@i].IsStart" value="@Model.States[i].IsStart.ToString().ToLower()" />
+                    <input type="hidden" name="States[@i].IsAccepting" value="@Model.States[i].IsAccepting.ToString().ToLower()" />
+                }
+                @for (int i = 0; i < Model.Transitions.Count; i++)
+                {
+                    <input type="hidden" name="Transitions[@i].FromStateId" value="@Model.Transitions[i].FromStateId" />
+                    <input type="hidden" name="Transitions[@i].ToStateId" value="@Model.Transitions[i].ToStateId" />
+                    <input type="hidden" name="Transitions[@i].Symbol" value="@(Model.Transitions[i].Symbol == '\0' ? "ε" : Model.Transitions[i].Symbol.ToString())" />
+                }
+
+                <div class="mb-3">
+                    <label class="form-label">Name</label>
+                    <input type="text" name="name" class="form-control" required />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Description (optional)</label>
+                    <textarea name="description" class="form-control"></textarea>
+                </div>
+                <div class="mb-3 form-check">
+                    <input type="checkbox" name="saveState" value="true" class="form-check-input" id="saveStateCheck" />
+                    <label class="form-check-label" for="saveStateCheck">Also save execution state (input, position, current state)</label>
+                </div>
+                <button type="submit" class="btn btn-primary">Save</button>
+            </form>
+        }
+        else
+        {
+            <div class="alert alert-info">You must <a asp-area="Identity" asp-page="/Account/Login">log in</a> to save automatons.</div>
+        }
+    </div>
+</div>

@@ -3,6 +3,8 @@ using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Core.Utilities;
 using FiniteAutomatons.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 
 namespace FiniteAutomatons.Controllers;
 
@@ -15,6 +17,8 @@ public class AutomatonController(
     IAutomatonExecutionService executionService,
     IAutomatonEditingService editingService,
     IAutomatonFileService fileService,
+    ISavedAutomatonService? savedAutomatonService = null,
+    UserManager<IdentityUser>? userManager = null,
     IRegexToAutomatonService? regexService = null) : Controller
 {
     private readonly ILogger<AutomatonController> logger = logger;
@@ -25,6 +29,8 @@ public class AutomatonController(
     private readonly IAutomatonExecutionService executionService = executionService;
     private readonly IAutomatonEditingService editingService = editingService;
     private readonly IAutomatonFileService fileService = fileService;
+    private readonly ISavedAutomatonService? savedAutomatonService = savedAutomatonService;
+    private readonly UserManager<IdentityUser>? userManager = userManager;
     private readonly IRegexToAutomatonService? regexService = regexService;
 
     // GET create page
@@ -279,5 +285,131 @@ public class AutomatonController(
             logger.LogWarning(ex, "Failed to build automaton from regex via controller");
             return Json(new { success = false, error = ex.Message });
         }
+    }
+
+    [Authorize]
+    [HttpGet]
+    public async Task<IActionResult> SavedAutomatons(int? groupId = null)
+    {
+        if (savedAutomatonService == null || userManager == null) return StatusCode(500);
+        var user = await userManager.GetUserAsync(User);
+        if (user == null) return Challenge();
+        var groups = await savedAutomatonService.ListGroupsForUserAsync(user.Id);
+        var list = await savedAutomatonService.ListForUserAsync(user.Id, groupId);
+        ViewData["Groups"] = groups;
+        ViewData["SelectedGroupId"] = groupId;
+        return View(list);
+    }
+
+    [Authorize]
+    [HttpPost]
+    public async Task<IActionResult> CreateSavedGroup(string name, string? description)
+    {
+        if (savedAutomatonService == null || userManager == null) return StatusCode(500);
+        var user = await userManager.GetUserAsync(User);
+        if (user == null) return Challenge();
+        if (string.IsNullOrWhiteSpace(name)) return BadRequest("Name required");
+        var g = await savedAutomatonService.CreateGroupAsync(user.Id, name.Trim(), string.IsNullOrWhiteSpace(description) ? null : description.Trim());
+        return RedirectToAction("SavedAutomatons", new { groupId = g.Id });
+    }
+
+    [Authorize]
+    [HttpPost]
+    public async Task<IActionResult> DeleteSavedAutomaton(int id)
+    {
+        if (savedAutomatonService == null || userManager == null) return StatusCode(500);
+        var user = await userManager.GetUserAsync(User);
+        if (user == null) return Challenge();
+        await savedAutomatonService.DeleteAsync(id, user.Id);
+        return RedirectToAction("SavedAutomatons");
+    }
+
+    [Authorize]
+    [HttpPost]
+    public async Task<IActionResult> SaveAutomaton([FromForm] AutomatonViewModel model, string name, string? description, bool saveState = false)
+    {
+        if (savedAutomatonService == null || userManager == null) return StatusCode(500);
+        var user = await userManager.GetUserAsync(User);
+        if (user == null) return Challenge();
+
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            ModelState.AddModelError(string.Empty, "Name is required to save automaton.");
+            return View("CreateAutomaton", model);
+        }
+
+        var saved = await savedAutomatonService.SaveAsync(user.Id, name.Trim(), string.IsNullOrWhiteSpace(description) ? null : description.Trim(), model, saveState);
+        TempData["ConversionMessage"] = "Automaton saved successfully.";
+        return RedirectToAction("SavedAutomatons");
+    }
+
+    [Authorize]
+    [HttpGet]
+    public async Task<IActionResult> LoadSavedAutomaton(int id, bool asState = false)
+    {
+        if (savedAutomatonService == null || userManager == null) return StatusCode(500);
+        var user = await userManager.GetUserAsync(User);
+        if (user == null) return Challenge();
+
+        var entity = await savedAutomatonService.GetAsync(id, user.Id);
+        if (entity == null) return NotFound();
+
+        // Deserialize payload into AutomatonViewModel
+        try
+        {
+            var payload = System.Text.Json.JsonSerializer.Deserialize<AutomatonPayloadDto>(entity.ContentJson);
+            if (payload == null) return NotFound();
+            var model = new AutomatonViewModel
+            {
+                Type = payload.Type,
+                States = payload.States ?? new List<FiniteAutomatons.Core.Models.DoMain.State>(),
+                Transitions = payload.Transitions ?? new List<FiniteAutomatons.Core.Models.DoMain.Transition>(),
+                IsCustomAutomaton = true
+            };
+
+            if (asState && entity.HasExecutionState && !string.IsNullOrWhiteSpace(entity.ExecutionStateJson))
+            {
+                try
+                {
+                    var exec = System.Text.Json.JsonSerializer.Deserialize<SavedExecutionStateDto>(entity.ExecutionStateJson);
+                    if (exec != null)
+                    {
+                        model.Input = exec.Input ?? string.Empty;
+                        model.Position = exec.Position;
+                        model.CurrentStateId = exec.CurrentStateId;
+                        model.CurrentStates = exec.CurrentStates != null ? new HashSet<int>(exec.CurrentStates) : null;
+                        model.IsAccepted = exec.IsAccepted;
+                        model.StateHistorySerialized = exec.StateHistorySerialized ?? string.Empty;
+                        model.StackSerialized = exec.StackSerialized;
+                    }
+                }
+                catch { /* ignore execution state errors and load automaton only */ }
+            }
+
+            tempDataService.StoreCustomAutomaton(TempData, model);
+            return RedirectToAction("Index", "Home");
+        }
+        catch
+        {
+            return StatusCode(500);
+        }
+    }
+
+    private sealed class AutomatonPayloadDto
+    {
+        public AutomatonType Type { get; set; }
+        public List<FiniteAutomatons.Core.Models.DoMain.State>? States { get; set; }
+        public List<FiniteAutomatons.Core.Models.DoMain.Transition>? Transitions { get; set; }
+    }
+
+    private sealed class SavedExecutionStateDto
+    {
+        public string? Input { get; set; }
+        public int Position { get; set; }
+        public int? CurrentStateId { get; set; }
+        public List<int>? CurrentStates { get; set; }
+        public bool? IsAccepted { get; set; }
+        public string? StateHistorySerialized { get; set; }
+        public string? StackSerialized { get; set; }
     }
 }
