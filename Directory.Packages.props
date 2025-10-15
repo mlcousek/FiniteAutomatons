@@ -1,7 +1,10 @@
 <Project>
   <ItemGroup>
-    <PackageVersion Include="coverlet.collector" Version="6.0.4" />
+    <!-- Central package versions for test projects -->
     <PackageVersion Include="Microsoft.EntityFrameworkCore.InMemory" Version="9.0.9" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageVersion Include="coverlet.collector" Version="6.0.4" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageVersion Include="OpenTelemetry" Version="1.12.0" />
     <PackageVersion Include="OpenTelemetry.Api" Version="1.12.0" />
