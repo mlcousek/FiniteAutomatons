@@ -59,8 +59,10 @@ public class AutomatonControllerSavedTests
     {
         public readonly List<SavedAutomatonGroup> Groups = [];
         public readonly List<SavedAutomaton> Items = [];
+        public readonly List<SavedAutomatonGroupMember> Members = [];
         public int NextGroupId = 1;
         public int NextItemId = 1;
+        public int NextMemberId = 1;
 
         public Task<SavedAutomaton> SaveAsync(string userId, string name, string? description, AutomatonViewModel model, bool saveExecutionState = false, int? groupId = null)
         {
@@ -98,6 +100,39 @@ public class AutomatonControllerSavedTests
         public Task<List<SavedAutomatonGroup>> ListGroupsForUserAsync(string userId)
         {
             return Task.FromResult(Groups.Where(g => g.UserId == userId).OrderBy(g => g.Name).ToList());
+        }
+
+        // New membership methods
+        public Task AddGroupMemberAsync(int groupId, string userId)
+        {
+            var exists = Members.Any(m => m.GroupId == groupId && m.UserId == userId);
+            if (!exists)
+            {
+                Members.Add(new SavedAutomatonGroupMember { Id = NextMemberId++, GroupId = groupId, UserId = userId });
+            }
+            return Task.CompletedTask;
+        }
+
+        public Task RemoveGroupMemberAsync(int groupId, string userId)
+        {
+            var m = Members.FirstOrDefault(x => x.GroupId == groupId && x.UserId == userId);
+            if (m != null) Members.Remove(m);
+            return Task.CompletedTask;
+        }
+
+        public Task<List<SavedAutomatonGroupMember>> ListGroupMembersAsync(int groupId)
+        {
+            return Task.FromResult(Members.Where(m => m.GroupId == groupId).ToList());
+        }
+
+        public Task<bool> CanUserSaveToGroupAsync(int groupId, string userId)
+        {
+            var g = Groups.FirstOrDefault(x => x.Id == groupId);
+            if (g == null) return Task.FromResult(false);
+            if (g.UserId == userId) return Task.FromResult(true);
+            if (!g.MembersCanShare) return Task.FromResult(false);
+            var isMember = Members.Any(m => m.GroupId == groupId && m.UserId == userId);
+            return Task.FromResult(isMember);
         }
     }
 

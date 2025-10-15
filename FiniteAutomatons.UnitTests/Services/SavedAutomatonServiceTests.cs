@@ -175,4 +175,90 @@ public class SavedAutomatonServiceTests
         var groups = await svc.ListGroupsForUserAsync("multi");
         groups.Count.ShouldBe(10);
     }
+
+    [Fact]
+    public async Task GroupMembership_AddRemoveList_And_SavePermissions()
+    {
+        using var db = CreateInMemoryDb("group_membership_tests");
+        var svc = new SavedAutomatonService(new NullLogger<SavedAutomatonService>(), db);
+
+        var ownerId = "owner-1";
+        var memberId = "member-1";
+        var outsiderId = "other-1";
+
+        var group = await svc.CreateGroupAsync(ownerId, "TeamA", null);
+
+        // initially no members
+        var members0 = await svc.ListGroupMembersAsync(group.Id);
+        members0.Count.ShouldBe(0);
+
+        // add a member
+        await svc.AddGroupMemberAsync(group.Id, memberId);
+        var members1 = await svc.ListGroupMembersAsync(group.Id);
+        members1.Count.ShouldBe(1);
+        members1[0].UserId.ShouldBe(memberId);
+
+        // add another member
+        await svc.AddGroupMemberAsync(group.Id, outsiderId);
+        var members2 = await svc.ListGroupMembersAsync(group.Id);
+        members2.Count.ShouldBe(2);
+
+        // remove one
+        await svc.RemoveGroupMemberAsync(group.Id, outsiderId);
+        var members3 = await svc.ListGroupMembersAsync(group.Id);
+        members3.Count.ShouldBe(1);
+        members3[0].UserId.ShouldBe(memberId);
+
+        // By default MembersCanShare is true => non-member should not be able to save, member can
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.DFA,
+            States = new List<State> { new() { Id = 1, IsStart = true, IsAccepting = true } },
+            Transitions = new List<Transition>()
+        };
+
+        // outsider (not member) should fail
+        await Should.ThrowAsync<UnauthorizedAccessException>(async () => await svc.SaveAsync(outsiderId, "o1", null, model, saveExecutionState: false, groupId: group.Id));
+
+        // member should succeed
+        var savedByMember = await svc.SaveAsync(memberId, "m1", null, model, saveExecutionState: false, groupId: group.Id);
+        savedByMember.ShouldNotBeNull();
+        savedByMember.UserId.ShouldBe(memberId);
+        savedByMember.GroupId.ShouldBe(group.Id);
+    }
+
+    [Fact]
+    public async Task MembersCanShare_False_AllowsOnlyOwnerToSave()
+    {
+        using var db = CreateInMemoryDb("members_canship_false");
+        var svc = new SavedAutomatonService(new NullLogger<SavedAutomatonService>(), db);
+
+        var ownerId = "owner-2";
+        var memberId = "member-2";
+
+        var group = await svc.CreateGroupAsync(ownerId, "TeamB", null);
+
+        // explicitly set MembersCanShare to false
+        var grpEntity = db.SavedAutomatonGroups.First(g => g.Id == group.Id);
+        grpEntity.MembersCanShare = false;
+        await db.SaveChangesAsync();
+
+        // add a member
+        await svc.AddGroupMemberAsync(group.Id, memberId);
+
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.DFA,
+            States = new List<State> { new() { Id = 1, IsStart = true, IsAccepting = true } },
+            Transitions = new List<Transition>()
+        };
+
+        // member should not be allowed to save when MembersCanShare == false
+        await Should.ThrowAsync<UnauthorizedAccessException>(async () => await svc.SaveAsync(memberId, "m2", null, model, saveExecutionState: false, groupId: group.Id));
+
+        // owner can save
+        var savedByOwner = await svc.SaveAsync(ownerId, "ownerSave", null, model, saveExecutionState: false, groupId: group.Id);
+        savedByOwner.ShouldNotBeNull();
+        savedByOwner.UserId.ShouldBe(ownerId);
+    }
 }

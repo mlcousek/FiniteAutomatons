@@ -27,6 +27,7 @@ public class ApplicationDbContext : IdentityDbContext
 
     public DbSet<SavedAutomaton> SavedAutomatons { get; set; } = null!;
     public DbSet<SavedAutomatonGroup> SavedAutomatonGroups { get; set; } = null!;
+    public DbSet<SavedAutomatonGroupMember> SavedAutomatonGroupMembers { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -42,6 +43,18 @@ public class ApplicationDbContext : IdentityDbContext
 
             b.Property(g => g.UserId).IsRequired();
             b.Property(g => g.Name).IsRequired().HasMaxLength(200);
+            b.Property(g => g.MembersCanShare).HasDefaultValue(true);
+
+            b.HasMany(g => g.Members)
+             .WithOne(m => m.Group)
+             .HasForeignKey(m => m.GroupId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<SavedAutomatonGroupMember>(b =>
+        {
+            b.HasKey(m => m.Id);
+            b.Property(m => m.UserId).IsRequired();
         });
 
         modelBuilder.Entity<SavedAutomaton>(b =>

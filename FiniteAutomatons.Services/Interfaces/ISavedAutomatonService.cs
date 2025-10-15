@@ -11,4 +11,12 @@ public interface ISavedAutomatonService
     Task DeleteAsync(int id, string userId);
     Task<SavedAutomatonGroup> CreateGroupAsync(string userId, string name, string? description);
     Task<List<SavedAutomatonGroup>> ListGroupsForUserAsync(string userId);
+
+    // New group membership / sharing APIs
+    Task AddGroupMemberAsync(int groupId, string userId);
+    Task RemoveGroupMemberAsync(int groupId, string userId);
+    Task<List<SavedAutomatonGroupMember>> ListGroupMembersAsync(int groupId);
+
+    // Check whether the given user may save into the specified group
+    Task<bool> CanUserSaveToGroupAsync(int groupId, string userId);
 }

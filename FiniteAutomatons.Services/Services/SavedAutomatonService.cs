@@ -19,8 +19,29 @@ public class SavedAutomatonService(ILogger<SavedAutomatonService> logger, Applic
         ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(model);
 
-        model.States ??= [];
-        model.Transitions ??= [];
+        model.States ??= new List<FiniteAutomatons.Core.Models.DoMain.State>();
+        model.Transitions ??= new List<FiniteAutomatons.Core.Models.DoMain.Transition>();
+
+        // if saving into a group, ensure permission
+        if (groupId.HasValue)
+        {
+            var grp = await db.SavedAutomatonGroups.FirstOrDefaultAsync(g => g.Id == groupId.Value);
+            if (grp == null) throw new InvalidOperationException("Group not found");
+            if (!grp.MembersCanShare && grp.UserId != userId)
+            {
+                // only owner may save
+                throw new UnauthorizedAccessException("You are not allowed to save into this group.");
+            }
+            else
+            {
+                // if group allows members to share, ensure the user is member or owner
+                if (grp.MembersCanShare && grp.UserId != userId)
+                {
+                    var isMember = await db.SavedAutomatonGroupMembers.AnyAsync(m => m.GroupId == grp.Id && m.UserId == userId);
+                    if (!isMember) throw new UnauthorizedAccessException("You are not a member of this group.");
+                }
+            }
+        }
 
         // Serialize a payload that can be deserialized back into AutomatonViewModel
         var payload = System.Text.Json.JsonSerializer.Serialize(new AutomatonPayloadDto
@@ -96,6 +117,40 @@ public class SavedAutomatonService(ILogger<SavedAutomatonService> logger, Applic
     public async Task<List<SavedAutomatonGroup>> ListGroupsForUserAsync(string userId)
     {
         return await db.SavedAutomatonGroups.Where(g => g.UserId == userId).OrderBy(g => g.Name).ToListAsync();
+    }
+
+    public async Task AddGroupMemberAsync(int groupId, string userId)
+    {
+        var grp = await db.SavedAutomatonGroups.FindAsync(groupId) ?? throw new InvalidOperationException("Group not found");
+        if (grp.UserId == userId) return; // owner is implicitly member
+        var exists = await db.SavedAutomatonGroupMembers.AnyAsync(m => m.GroupId == groupId && m.UserId == userId);
+        if (exists) return;
+        var mem = new SavedAutomatonGroupMember { GroupId = groupId, UserId = userId };
+        db.SavedAutomatonGroupMembers.Add(mem);
+        await db.SaveChangesAsync();
+    }
+
+    public async Task RemoveGroupMemberAsync(int groupId, string userId)
+    {
+        var mem = await db.SavedAutomatonGroupMembers.FirstOrDefaultAsync(m => m.GroupId == groupId && m.UserId == userId);
+        if (mem == null) return;
+        db.SavedAutomatonGroupMembers.Remove(mem);
+        await db.SaveChangesAsync();
+    }
+
+    public async Task<List<SavedAutomatonGroupMember>> ListGroupMembersAsync(int groupId)
+    {
+        return await db.SavedAutomatonGroupMembers.Where(m => m.GroupId == groupId).ToListAsync();
+    }
+
+    public async Task<bool> CanUserSaveToGroupAsync(int groupId, string userId)
+    {
+        var grp = await db.SavedAutomatonGroups.FindAsync(groupId);
+        if (grp == null) return false;
+        if (grp.UserId == userId) return true;
+        if (!grp.MembersCanShare) return false;
+        var isMember = await db.SavedAutomatonGroupMembers.AnyAsync(m => m.GroupId == groupId && m.UserId == userId);
+        return isMember;
     }
 
     private sealed class AutomatonPayloadDto
