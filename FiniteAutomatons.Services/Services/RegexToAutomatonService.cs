@@ -72,7 +72,7 @@ public sealed class RegexToAutomatonService(ILogger<RegexToAutomatonService> log
                 bool negated = false;
                 if (j < s.Length && s[j] == '^')
                 {
-                    // negation not supported in construction; treat as literal '^' if present
+                    // negation is not supported in character classes for this converter
                     negated = true;
                     j++;
                 }
@@ -121,6 +121,9 @@ public sealed class RegexToAutomatonService(ILogger<RegexToAutomatonService> log
                     outTokens.Add(new Tok(TokType.Char, c.ToString())); break;
             }
         }
+
+        // If the regex ended with a trailing backslash, that's an error
+        if (escape) throw new ArgumentException("Trailing escape character in regular expression");
 
         // Insert explicit concatenation tokens where appropriate
         var withConcat = new List<Tok>();

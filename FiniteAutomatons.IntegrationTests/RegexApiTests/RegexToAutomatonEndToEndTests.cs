@@ -45,7 +45,7 @@ public class RegexToAutomatonEndToEndTests(IntegrationTestsFixture fixture) : In
 
         foreach (var s in statesElem.EnumerateArray())
         {
-            int id = s.GetProperty("Id").GetInt32();
+            int id = GetPropertyIgnoreCase(s, "id").GetInt32();
             bool isStart = TryGetBooleanIgnoreCase(s, "IsStart");
             bool isAccept = TryGetBooleanIgnoreCase(s, "IsAccepting");
 
@@ -59,10 +59,11 @@ public class RegexToAutomatonEndToEndTests(IntegrationTestsFixture fixture) : In
 
         foreach (var t in transElem.EnumerateArray())
         {
-            int from = t.GetProperty("FromStateId").GetInt32();
-            int to = t.GetProperty("ToStateId").GetInt32();
+            int from = GetPropertyIgnoreCase(t, "fromStateId").GetInt32();
+            int to = GetPropertyIgnoreCase(t, "toStateId").GetInt32();
+
             string? sym = null;
-            if (t.TryGetProperty("Symbol", out var symProp))
+            if (TryGetPropertyIgnoreCase(t, "symbol", out var symProp))
             {
                 if (symProp.ValueKind == JsonValueKind.Null) sym = null;
                 else sym = symProp.GetString();
@@ -103,6 +104,21 @@ public class RegexToAutomatonEndToEndTests(IntegrationTestsFixture fixture) : In
         }
         // helpful error
         throw new KeyNotFoundException($"Property '{name}' not found in JSON response. Available properties: {string.Join(",", parent.EnumerateObject().Select(p => p.Name))}");
+    }
+
+    private static bool TryGetPropertyIgnoreCase(JsonElement parent, string name, out JsonElement element)
+    {
+        if (parent.TryGetProperty(name, out var e)) { element = e; return true; }
+        foreach (var prop in parent.EnumerateObject())
+        {
+            if (string.Equals(prop.Name, name, StringComparison.OrdinalIgnoreCase))
+            {
+                element = prop.Value;
+                return true;
+            }
+        }
+        element = default;
+        return false;
     }
 
     private static bool TryGetBooleanIgnoreCase(JsonElement el, string name)

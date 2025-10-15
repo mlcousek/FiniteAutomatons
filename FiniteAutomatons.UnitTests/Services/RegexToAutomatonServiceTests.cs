@@ -187,4 +187,124 @@ public class RegexToAutomatonServiceTests
             enfa.Execute(s).ShouldBeFalse($"Expected '{s}' to be rejected by a*b*c*");
         }
     }
+
+    [Fact]
+    public void TrailingEscape_ShouldThrow()
+    {
+        Should.Throw<ArgumentException>(() => service.BuildEpsilonNfaFromRegex("a\\")).Message.ShouldContain("Trailing escape");
+    }
+
+    [Fact]
+    public void EscapedAlternation_ShouldTreatPipeAsLiteral()
+    {
+        var enfa = service.BuildEpsilonNfaFromRegex("a\\|b");
+        // Should accept string "a|b" as literal sequence
+        enfa.Execute("a|b").ShouldBeTrue();
+        enfa.Execute("ab").ShouldBeFalse();
+    }
+
+    [Fact]
+    public void EscapedParenthesis_ShouldTreatParenthesisAsLiteral()
+    {
+        var enfa = service.BuildEpsilonNfaFromRegex("a\\(b\\)c");
+        enfa.Execute("a(b)c").ShouldBeTrue();
+        enfa.Execute("abc").ShouldBeFalse();
+    }
+
+    [Fact]
+    public void CharacterClass_LeadingOrTrailingDash_ShouldIncludeDashWhenEscapedOrAtEdge()
+    {
+        // Leading dash is treated as literal '-'
+        var enfa1 = service.BuildEpsilonNfaFromRegex("[-a]");
+        enfa1.Execute("-").ShouldBeTrue();
+        enfa1.Execute("a").ShouldBeTrue();
+
+        // Trailing dash treated as literal when escaped
+        var enfa2 = service.BuildEpsilonNfaFromRegex("[a\\-]");
+        enfa2.Execute("-").ShouldBeTrue();
+        enfa2.Execute("a").ShouldBeTrue();
+    }
+
+    [Fact]
+    public void EscapedCharInsideClass_IncludingBracketAndDash_ShouldWork()
+    {
+        var enfa = service.BuildEpsilonNfaFromRegex("[\\]]");
+        enfa.Execute("]").ShouldBeTrue();
+        enfa.Execute("a").ShouldBeFalse();
+
+        var enfa2 = service.BuildEpsilonNfaFromRegex("[\\-]");
+        enfa2.Execute("-").ShouldBeTrue();
+    }
+
+    [Fact]
+    public void UnicodeCharacters_ShouldBeSupportedAsLiterals()
+    {
+        var enfa = service.BuildEpsilonNfaFromRegex("èš");
+        enfa.Execute("èš").ShouldBeTrue();
+        enfa.Execute("è").ShouldBeFalse();
+    }
+
+    [Fact]
+    public void ExcessivelyNestedParentheses_Unbalanced_ShouldThrow()
+    {
+        // Unbalanced parentheses should throw
+        Should.Throw<ArgumentException>(() => service.BuildEpsilonNfaFromRegex("(((a|b)")).Message.ShouldContain("Mismatched");
+    }
+
+    [Fact]
+    public void VeryDeepNesting_ShouldNotCrashButMayConstruct()
+    {
+        // Construct a moderately deep nested group to ensure stack handling
+        var depth = 200;
+        var sb = new System.Text.StringBuilder();
+        for (int i = 0; i < depth; i++) sb.Append('(');
+        sb.Append('a');
+        for (int i = 0; i < depth; i++) sb.Append(')');
+
+        var pattern = sb.ToString();
+        var enfa = service.BuildEpsilonNfaFromRegex(pattern);
+        enfa.Execute("a").ShouldBeTrue();
+    }
+
+    [Fact]
+    public void MultipleRangesAndOverlaps_ShouldIncludeAllMembers()
+    {
+        var enfa = service.BuildEpsilonNfaFromRegex("[a-ce-gx-z]");
+        // should accept a, b, c, e, f, g, x, y, z
+        foreach (var ch in new[] { 'a', 'b', 'c', 'e', 'f', 'g', 'x', 'y', 'z' })
+        {
+            enfa.Execute(ch.ToString()).ShouldBeTrue();
+        }
+        enfa.Execute("d").ShouldBeFalse();
+        enfa.Execute("m").ShouldBeFalse();
+    }
+
+    [Fact]
+    public void EscapedLeftBracket_ShouldIncludeLeftBracket()
+    {
+        var enfa = service.BuildEpsilonNfaFromRegex("[\\[]");
+        enfa.Execute("[").ShouldBeTrue();
+        enfa.Execute("a").ShouldBeFalse();
+    }
+
+    [Fact]
+    public void EmptyCharacterClass_ShouldThrow()
+    {
+        Should.Throw<ArgumentException>(() => service.BuildEpsilonNfaFromRegex("[]")).Message.ShouldContain("Empty character class");
+    }
+
+    [Fact]
+    public void DeepNesting_Stress_ShouldHandleModerateDepth()
+    {
+        // Use a larger depth to stress but keep it reasonable for unit test
+        var depth = 500;
+        var sb = new System.Text.StringBuilder();
+        for (int i = 0; i < depth; i++) sb.Append('(');
+        sb.Append('a');
+        for (int i = 0; i < depth; i++) sb.Append(')');
+
+        var pattern = sb.ToString();
+        var enfa = service.BuildEpsilonNfaFromRegex(pattern);
+        enfa.Execute("a").ShouldBeTrue();
+    }
 }

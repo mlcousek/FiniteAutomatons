@@ -28,8 +28,8 @@ public class PDAAdditionalTests
         var model = new AutomatonViewModel
         {
             Type = AutomatonType.PDA,
-            States = pda.States.Select(s => new State { Id = s.Id, IsStart = s.IsStart, IsAccepting = s.IsAccepting }).ToList(),
-            Transitions = pda.Transitions.Select(t => new Transition { FromStateId = t.FromStateId, ToStateId = t.ToStateId, Symbol = t.Symbol, StackPop = t.StackPop, StackPush = t.StackPush }).ToList()
+            States = [.. pda.States.Select(s => new State { Id = s.Id, IsStart = s.IsStart, IsAccepting = s.IsAccepting })],
+            Transitions = [.. pda.Transitions.Select(t => new Transition { FromStateId = t.FromStateId, ToStateId = t.ToStateId, Symbol = t.Symbol, StackPop = t.StackPop, StackPush = t.StackPush })]
         };
 
         // Run some steps to create stack & history
@@ -73,12 +73,12 @@ public class PDAAdditionalTests
         var model = new AutomatonViewModel
         {
             Type = AutomatonType.PDA,
-            States = new List<State> { new() { Id = 1, IsStart = true, IsAccepting = false } },
-            Transitions = new List<Transition>
-            {
+            States = [new() { Id = 1, IsStart = true, IsAccepting = false }],
+            Transitions =
+            [
                 new() { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '\0', StackPush = "XY" },
                 new() { FromStateId = 1, ToStateId = 1, Symbol = 'b', StackPop = 'X', StackPush = null }
-            }
+            ]
         };
 
         var (name, content) = fileSvc.ExportJson(model);
