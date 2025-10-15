@@ -19,4 +19,10 @@ public interface ISavedAutomatonService
 
     // Check whether the given user may save into the specified group
     Task<bool> CanUserSaveToGroupAsync(int groupId, string userId);
+
+    // Get group by id
+    Task<SavedAutomatonGroup?> GetGroupAsync(int groupId);
+
+    // Set group's sharing policy (owner only)
+    Task SetGroupSharingPolicyAsync(int groupId, bool membersCanShare);
 }

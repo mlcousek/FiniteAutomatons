@@ -134,6 +134,40 @@ public class AutomatonControllerSavedTests
             var isMember = Members.Any(m => m.GroupId == groupId && m.UserId == userId);
             return Task.FromResult(isMember);
         }
+
+        public Task<SavedAutomatonGroup?> GetGroupAsync(int groupId)
+        {
+            return Task.FromResult(Groups.FirstOrDefault(g => g.Id == groupId));
+        }
+
+        public Task SetGroupSharingPolicyAsync(int groupId, bool membersCanShare)
+        {
+            var g = Groups.FirstOrDefault(x => x.Id == groupId);
+            if (g != null) g.MembersCanShare = membersCanShare;
+            return Task.CompletedTask;
+        }
+
+        public Task<List<SavedAutomaton>> ListByGroupAsync(int groupId)
+        {
+            return Task.FromResult(Items.Where(i => i.GroupId == groupId).OrderByDescending(i => i.CreatedAt).ToList());
+        }
+
+        public Task<SavedAutomatonGroup?> GetGroupAsync(int id, string userId)
+        {
+            return Task.FromResult(Groups.FirstOrDefault(g => g.Id == id && g.UserId == userId));
+        }
+
+        public Task DeleteGroupAsync(int id, string userId)
+        {
+            var g = Groups.FirstOrDefault(i => i.Id == id && i.UserId == userId);
+            if (g != null) Groups.Remove(g);
+            return Task.CompletedTask;
+        }
+
+        public Task<SavedAutomatonGroupMember?> GetGroupMemberAsync(int groupId, string userId)
+        {
+            return Task.FromResult(Members.FirstOrDefault(m => m.GroupId == groupId && m.UserId == userId));
+        }
     }
 
     private static AutomatonController BuildController(MockSavedAutomatonService svc, IdentityUser user)

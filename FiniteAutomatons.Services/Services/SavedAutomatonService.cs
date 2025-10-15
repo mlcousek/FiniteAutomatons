@@ -153,6 +153,18 @@ public class SavedAutomatonService(ILogger<SavedAutomatonService> logger, Applic
         return isMember;
     }
 
+    public async Task<SavedAutomatonGroup?> GetGroupAsync(int groupId)
+    {
+        return await db.SavedAutomatonGroups.FirstOrDefaultAsync(g => g.Id == groupId);
+    }
+
+    public async Task SetGroupSharingPolicyAsync(int groupId, bool membersCanShare)
+    {
+        var g = await db.SavedAutomatonGroups.FindAsync(groupId) ?? throw new InvalidOperationException("Group not found");
+        g.MembersCanShare = membersCanShare;
+        await db.SaveChangesAsync();
+    }
+
     private sealed class AutomatonPayloadDto
     {
         public AutomatonType Type { get; set; }

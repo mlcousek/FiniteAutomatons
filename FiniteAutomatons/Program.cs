@@ -265,6 +265,9 @@ public partial class Program
         app.UseHttpsRedirection();
         app.UseRouting();
 
+        // Ensure authentication middleware is registered so [Authorize] works correctly
+        app.UseAuthentication();
+
         // Development-only test endpoint for correlation tests
         if (app.Environment.IsDevelopment())
         {

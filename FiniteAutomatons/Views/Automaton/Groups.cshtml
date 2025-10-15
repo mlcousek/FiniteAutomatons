@@ -1,0 +1,72 @@
+@model IEnumerable<FiniteAutomatons.Core.Models.Database.SavedAutomatonGroup>
+@{
+    ViewData["Title"] = "Groups";
+}
+
+<div class="container">
+    <h2>Your Groups</h2>
+
+    <div class="mb-3 d-flex align-items-center">
+        <a asp-action="SavedAutomatons" asp-controller="Automaton" class="btn btn-outline-secondary me-2">Back to Saved Automatons</a>
+        <button class="btn btn-primary ms-auto" data-bs-toggle="modal" data-bs-target="#createGroupModal">Create Group</button>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info">You have no groups yet.</div>
+    }
+    else
+    {
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Members</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var g in Model)
+                {
+                    <tr>
+                        <td>@g.Name</td>
+                        <td>@g.Description</td>
+                        <td>@(g.Members?.Count ?? 0)</td>
+                        <td>
+                            <a asp-action="ManageGroup" asp-route-id="@g.Id" class="btn btn-sm btn-outline-primary">Manage</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+<!-- Create Group Modal (reuse same modal as SavedAutomatons view) -->
+<div class="modal fade" id="createGroupModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form asp-action="CreateSavedGroup" method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title">Create Group</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Group name</label>
+                        <input type="text" name="name" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description (optional)</label>
+                        <textarea name="description" class="form-control"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
