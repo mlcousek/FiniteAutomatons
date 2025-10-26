@@ -2,24 +2,24 @@ using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Core.Utilities;
 using FiniteAutomatons.Services.Interfaces;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 
 namespace FiniteAutomatons.Controllers;
 
 public class AutomatonController(
-    ILogger<AutomatonController> logger,
-    IAutomatonGeneratorService generatorService,
-    IAutomatonTempDataService tempDataService,
-    IAutomatonValidationService validationService,
-    IAutomatonConversionService conversionService,
-    IAutomatonExecutionService executionService,
-    IAutomatonEditingService editingService,
-    IAutomatonFileService fileService,
-    ISavedAutomatonService? savedAutomatonService = null,
-    UserManager<IdentityUser>? userManager = null,
-    IRegexToAutomatonService? regexService = null) : Controller
+ ILogger<AutomatonController> logger,
+ IAutomatonGeneratorService generatorService,
+ IAutomatonTempDataService tempDataService,
+ IAutomatonValidationService validationService,
+ IAutomatonConversionService conversionService,
+ IAutomatonExecutionService executionService,
+ IAutomatonEditingService editingService,
+ IAutomatonFileService fileService,
+ ISavedAutomatonService? savedAutomatonService = null,
+ UserManager<IdentityUser>? userManager = null,
+ IRegexToAutomatonService? regexService = null) : Controller
 {
     private readonly ILogger<AutomatonController> logger = logger;
     private readonly IAutomatonGeneratorService generatorService = generatorService;
@@ -34,14 +34,17 @@ public class AutomatonController(
     private readonly IRegexToAutomatonService? regexService = regexService;
 
     // GET create page
-    public IActionResult CreateAutomaton() => View(new AutomatonViewModel());
+    public IActionResult CreateAutomaton()
+    {
+        return View(new AutomatonViewModel());
+    }
 
     // POST create
     [HttpPost]
     public IActionResult CreateAutomaton(AutomatonViewModel model)
     {
         logger.LogInformation("CreateAutomaton POST Type={Type} States={States} Transitions={Transitions}",
-            model.Type, model.States.Count, model.Transitions.Count);
+        model.Type, model.States.Count, model.Transitions.Count);
 
         var (isValid, errors) = validationService.ValidateAutomaton(model);
         if (!isValid)
@@ -90,13 +93,13 @@ public class AutomatonController(
     }
 
     [HttpPost]
-    public IActionResult AddTransition(AutomatonViewModel model, int fromStateId, int toStateId, string symbol)
+    public IActionResult AddTransition(AutomatonViewModel model, int fromStateId, int toStateId, string symbol, string? newTransitionStackPop = null, string? newTransitionStackPush = null)
     {
         if (!ModelState.IsValid)
         {
             return View(model);
         }
-        var (ok, _, err) = editingService.AddTransition(model, fromStateId, toStateId, symbol);
+        var (ok, _, err) = editingService.AddTransition(model, fromStateId, toStateId, symbol, newTransitionStackPop, newTransitionStackPush);
         if (!ok) ModelState.AddModelError(string.Empty, err!);
         return View("CreateAutomaton", model);
     }
@@ -166,20 +169,23 @@ public class AutomatonController(
     }
 
     // GET generator page
-    public IActionResult GenerateRandomAutomaton() => View(new RandomAutomatonGenerationViewModel
+    public IActionResult GenerateRandomAutomaton()
     {
-        Type = AutomatonType.DFA,
-        StateCount = 5,
-        TransitionCount = 8,
-        AlphabetSize = 3,
-        AcceptingStateRatio = 0.3
-    });
+        return View(new RandomAutomatonGenerationViewModel
+        {
+            Type = AutomatonType.DFA,
+            StateCount = 5,
+            TransitionCount = 8,
+            AlphabetSize = 3,
+            AcceptingStateRatio = 0.3
+        });
+    }
 
     [HttpPost]
     public IActionResult GenerateRandomAutomaton(RandomAutomatonGenerationViewModel model)
     {
         logger.LogInformation("Generating random automaton Type={Type} States={States} Transitions={Transitions}",
-            model.Type, model.StateCount, model.TransitionCount);
+        model.Type, model.StateCount, model.TransitionCount);
         if (!generatorService.ValidateGenerationParameters(model.Type, model.StateCount, model.TransitionCount, model.AlphabetSize))
         {
             ModelState.AddModelError(string.Empty, "Invalid generation parameters. Please check your input values.");
@@ -267,8 +273,8 @@ public class AutomatonController(
             var model = new AutomatonViewModel
             {
                 Type = AutomatonType.EpsilonNFA,
-                States = enfa.States.Select(s => new State { Id = s.Id, IsStart = s.IsStart, IsAccepting = s.IsAccepting }).ToList(),
-                Transitions = enfa.Transitions.Select(t => new Transition { FromStateId = t.FromStateId, ToStateId = t.ToStateId, Symbol = t.Symbol }).ToList(),
+                States = [.. enfa.States.Select(s => new State { Id = s.Id, IsStart = s.IsStart, IsAccepting = s.IsAccepting })],
+                Transitions = [.. enfa.Transitions.Select(t => new Transition { FromStateId = t.FromStateId, ToStateId = t.ToStateId, Symbol = t.Symbol })],
                 IsCustomAutomaton = true,
                 Input = string.Empty
             };
@@ -278,7 +284,7 @@ public class AutomatonController(
             tempDataService.StoreConversionMessage(TempData, "Converted regex to automaton and loaded into simulator.");
 
             var redirect = Url.Action("Index", "Home");
-            return Json(new { success = true, redirect = redirect });
+            return Json(new { success = true, redirect });
         }
         catch (Exception ex)
         {
@@ -338,7 +344,7 @@ public class AutomatonController(
             return View("CreateAutomaton", model);
         }
 
-        var saved = await savedAutomatonService.SaveAsync(user.Id, name.Trim(), string.IsNullOrWhiteSpace(description) ? null : description.Trim(), model, saveState);
+        _ = await savedAutomatonService.SaveAsync(user.Id, name.Trim(), string.IsNullOrWhiteSpace(description) ? null : description.Trim(), model, saveState);
         TempData["ConversionMessage"] = "Automaton saved successfully.";
         return RedirectToAction("SavedAutomatons");
     }
@@ -362,8 +368,8 @@ public class AutomatonController(
             var model = new AutomatonViewModel
             {
                 Type = payload.Type,
-                States = payload.States ?? new List<FiniteAutomatons.Core.Models.DoMain.State>(),
-                Transitions = payload.Transitions ?? new List<FiniteAutomatons.Core.Models.DoMain.Transition>(),
+                States = payload.States ?? [],
+                Transitions = payload.Transitions ?? [],
                 IsCustomAutomaton = true
             };
 
@@ -377,7 +383,7 @@ public class AutomatonController(
                         model.Input = exec.Input ?? string.Empty;
                         model.Position = exec.Position;
                         model.CurrentStateId = exec.CurrentStateId;
-                        model.CurrentStates = exec.CurrentStates != null ? new HashSet<int>(exec.CurrentStates) : null;
+                        model.CurrentStates = exec.CurrentStates != null ? [.. exec.CurrentStates] : null;
                         model.IsAccepted = exec.IsAccepted;
                         model.StateHistorySerialized = exec.StateHistorySerialized ?? string.Empty;
                         model.StackSerialized = exec.StackSerialized;
@@ -395,11 +401,80 @@ public class AutomatonController(
         }
     }
 
+    [Authorize]
+    [HttpGet]
+    public async Task<IActionResult> Groups()
+    {
+        if (savedAutomatonService == null || userManager == null) return StatusCode(500);
+        var user = await userManager.GetUserAsync(User);
+        if (user == null) return Challenge();
+        var groups = await savedAutomatonService.ListGroupsForUserAsync(user.Id);
+        return View(groups);
+    }
+
+    [Authorize]
+    [HttpGet]
+    public async Task<IActionResult> ManageGroup(int id)
+    {
+        if (savedAutomatonService == null || userManager == null) return StatusCode(500);
+        var user = await userManager.GetUserAsync(User);
+        if (user == null) return Challenge();
+        var grp = await savedAutomatonService.GetGroupAsync(id);
+        if (grp == null) return NotFound();
+        if (grp.UserId != user.Id) return Forbid(); // only owner can manage
+        var members = await savedAutomatonService.ListGroupMembersAsync(id);
+        ViewData["Group"] = grp;
+        return View((grp, members));
+    }
+
+    [Authorize]
+    [HttpPost]
+    public async Task<IActionResult> AddGroupMember(int groupId, string memberUserId)
+    {
+        if (savedAutomatonService == null || userManager == null) return StatusCode(500);
+        var user = await userManager.GetUserAsync(User);
+        if (user == null) return Challenge();
+        var grp = await savedAutomatonService.GetGroupAsync(groupId);
+        if (grp == null) return NotFound();
+        if (grp.UserId != user.Id) return Forbid();
+        if (string.IsNullOrWhiteSpace(memberUserId)) return BadRequest("memberUserId required");
+        await savedAutomatonService.AddGroupMemberAsync(groupId, memberUserId.Trim());
+        return RedirectToAction("ManageGroup", new { id = groupId });
+    }
+
+    [Authorize]
+    [HttpPost]
+    public async Task<IActionResult> RemoveGroupMember(int groupId, string memberUserId)
+    {
+        if (savedAutomatonService == null || userManager == null) return StatusCode(500);
+        var user = await userManager.GetUserAsync(User);
+        if (user == null) return Challenge();
+        var grp = await savedAutomatonService.GetGroupAsync(groupId);
+        if (grp == null) return NotFound();
+        if (grp.UserId != user.Id) return Forbid();
+        await savedAutomatonService.RemoveGroupMemberAsync(groupId, memberUserId);
+        return RedirectToAction("ManageGroup", new { id = groupId });
+    }
+
+    [Authorize]
+    [HttpPost]
+    public async Task<IActionResult> SetGroupSharingPolicy(int groupId, bool membersCanShare)
+    {
+        if (savedAutomatonService == null || userManager == null) return StatusCode(500);
+        var user = await userManager.GetUserAsync(User);
+        if (user == null) return Challenge();
+        var grp = await savedAutomatonService.GetGroupAsync(groupId);
+        if (grp == null) return NotFound();
+        if (grp.UserId != user.Id) return Forbid();
+        await savedAutomatonService.SetGroupSharingPolicyAsync(groupId, membersCanShare);
+        return RedirectToAction("ManageGroup", new { id = groupId });
+    }
+
     private sealed class AutomatonPayloadDto
     {
         public AutomatonType Type { get; set; }
-        public List<FiniteAutomatons.Core.Models.DoMain.State>? States { get; set; }
-        public List<FiniteAutomatons.Core.Models.DoMain.Transition>? Transitions { get; set; }
+        public List<State>? States { get; set; }
+        public List<Transition>? Transitions { get; set; }
     }
 
     private sealed class SavedExecutionStateDto
