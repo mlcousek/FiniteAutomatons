@@ -5,7 +5,7 @@ html {
 
 @media (min-width: 768px) {
 html {
-    font-size: 16px;
+ font-size: 16px;
   }
 }
 
@@ -30,12 +30,12 @@ main {
   flex: 1;
   background-image: url('/images/pexels-lamiko-3616764.jpg');
   background-size: cover;
-  background-position: center;
+background-position: center;
   background-attachment: fixed;
   background-repeat: no-repeat;
   border-top: 3px solid #000;
   border-bottom: 3px solid #000;
-  padding: 2rem;
+  padding: 0rem 2rem;
 }
 
 .form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
@@ -155,7 +155,7 @@ background-repeat: no-repeat;
 .custom-navbar-logged-out .nav-link {
   color: #333;
   font-weight: 500;
-  padding: 0.5rem 1.5rem;
+padding: 0.5rem 1.5rem;
   border: 2px solid #000;
   border-radius: 4px;
   background-color: #f5f5f5;
@@ -173,7 +173,7 @@ background-repeat: no-repeat;
 .custom-navbar-logged-out .nav-link.active {
   background-color: #d0d0d0;
   border-color: #000;
-  font-weight: 600;
+font-weight: 600;
 }
 
 /* Navbar Logo */
@@ -258,6 +258,346 @@ max-width: 1400px;
   margin: 0 auto;
 }
 
+/* Automaton Workspace */
+.automaton-workspace {
+  width: 100%;
+  height: 100%;
+  padding-top: 0rem;
+  padding-bottom: 2rem;
+  padding-left: 2rem;
+  padding-right: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.workspace-grid {
+  display: grid;
+  grid-template-columns: 1fr 5fr;
+  gap: 2rem;
+  height: calc(100vh - 250px);
+  max-width: 1600px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* Section Headers */
+.section-header {
+  background-color: transparent;
+  border: none;
+  padding: 0.5rem 1.5rem;
+  border-radius: 0;
+  text-align: center;
+}
+
+.section-header-custom {
+  background-color: transparent;
+  border: none;
+  padding: 0rem 1.5rem;
+  border-radius: 0;
+  text-align: center;
+}
+
+.section-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #333;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.section-header-custom h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #333;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Create Section */
+.create-section {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.create-content {
+  background-color: rgba(255, 255, 255, 0.9);
+  border: 3px solid #000;
+  border-radius: 8px;
+  padding: 2rem;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.input-area {
+  display: flex;
+  flex-direction: column;
+gap: 1rem;
+}
+
+.placeholder-text {
+  color: #666;
+  font-style: italic;
+  text-align: center;
+  margin: 2rem 0;
+}
+
+/* Graph Section */
+.graph-section {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.graph-content {
+  background-color: rgba(255, 255, 255, 0.9);
+  border: 3px solid #000;
+  border-radius: 8px;
+  padding: 1rem;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.automaton-canvas {
+  width: 100%;
+  height: 100%;
+  border: 2px solid #ccc;
+  border-radius: 4px;
+  background-color: #ffffff;
+  cursor: crosshair;
+}
+
+/* Bottom Control Sections */
+.control-sections {
+  display: grid;
+  grid-template-columns: 0.9fr 2fr 1.5fr 0.75fr;
+  gap: 2rem;
+  max-width: 1600px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.control-section {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.control-content {
+  background-color: transparent;
+  border: none;
+  padding: 0.5rem;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.control-content-right {
+  background-color: transparent;
+  border: none;
+  padding-right: 0rem;
+  padding-left: 0.5rem;
+  padding-bottom: 0.5rem;
+  padding-top: 0.5rem;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.control-content-left {
+  background-color: transparent;
+  border: none;
+  padding-right: 0rem;
+  padding-left: 0rem;
+  padding-bottom: 0.5rem;
+  padding-top: 0.5rem;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: left;
+}
+
+/* Input Section */
+.input-section .control-content {
+  padding: 0.5rem;
+  padding-left: 0rem;
+  display: flex;
+  align-items: stretch;
+}
+
+.input-field {
+  width: 100%;
+  padding: 0.75rem 1.25rem;
+  border: 2px solid #000;
+  border-radius: 4px;
+  font-size: 1rem;
+  background-color: #fff;
+  transition: border-color 0.3s ease;
+  height: 60px;
+  box-sizing: border-box;
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: #333;
+  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+}
+
+/* Simulate Section */
+.simulate-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+  justify-content: space-between;
+  padding: 0;
+  width: 100%;
+}
+
+.control-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.5rem 1rem;
+  border: 2px solid #000;
+  border-radius: 4px;
+  background-color: #f5f5f5;
+  color: #333;
+  font-weight: 500;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 70px;
+  min-height: 48px;
+  box-sizing: border-box;
+}
+
+.simulate-btn {
+  flex: 1;
+  min-width: 70px;
+  padding: 0.5rem 0.5rem;
+  font-size: 0.85rem;
+}
+
+.control-btn i {
+  font-size: 1.1rem;
+}
+
+.control-btn:hover {
+  background-color: #e0e0e0;
+  border-color: #000;
+}
+
+.control-btn:active {
+  background-color: #d0d0d0;
+}
+
+/* Automaton Type Section */
+.type-buttons {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  width: 100%;
+}
+
+.type-btn {
+  flex: 1;
+  padding: 0.5rem 0.5rem;
+  font-size: 0.9rem;
+  min-width: 60px;
+  min-height: 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.type-btn.active {
+  background-color: #d0d0d0;
+  border-color: #000;
+  font-weight: 600;
+}
+
+/* Minimize Section */
+.minimize-section .control-content {
+  padding: 0.5rem;
+  padding-right: 0;
+}
+
+.minimize-btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  min-width: 100%;
+  min-height: 60px;
+  box-sizing: border-box;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .workspace-grid {
+ grid-template-columns: 1fr;
+    gap: 1.5rem;
+  height: auto;
+  }
+
+  .create-section,
+  .graph-section {
+    min-height: 400px;
+  }
+
+  .control-sections {
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+
+  .simulate-section {
+ grid-column: span 2;
+  }
+}
+
+@media (max-width: 768px) {
+  .automaton-workspace {
+    padding: 1rem;
+  }
+
+  .section-header h2 {
+    font-size: 1.2rem;
+  }
+
+  .create-content,
+  .graph-content {
+    padding: 1rem;
+  }
+
+  .control-sections {
+    grid-template-columns: 1fr;
+  }
+
+  .simulate-section {
+    grid-column: span 1;
+  }
+
+  .simulate-buttons {
+    flex-direction: column;
+  }
+
+  .control-btn {
+    width: 100%;
+  }
+}
+
 /* Footer */
 .custom-footer {
   position: relative;
@@ -309,7 +649,7 @@ align-items: center;
 }
 
 .footer-center {
-  flex: 1;
+flex: 1;
   display: flex;
 justify-content: flex-end;
   padding-right: 2rem;
@@ -335,7 +675,7 @@ display: flex;
 
 .footer-column a {
   color: #666;
-  text-decoration: none;
+text-decoration: none;
   font-size: 0.9rem;
 }
 
