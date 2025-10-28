@@ -1,9 +1,10 @@
 html {
   font-size: 14px;
+  height: 100%;
 }
 
 @media (min-width: 768px) {
-  html {
+html {
     font-size: 16px;
   }
 }
@@ -18,14 +19,335 @@ html {
 }
 
 body {
-  margin-bottom: 60px;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+main {
+  flex: 1;
+  background-image: url('/images/pexels-lamiko-3616764.jpg');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  border-top: 3px solid #000;
+  border-bottom: 3px solid #000;
+  padding: 2rem;
 }
 
 .form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
-  color: var(--bs-secondary-color);
-  text-align: end;
+color: var(--bs-secondary-color);
+text-align: end;
 }
 
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
   text-align: start;
+}
+
+/* Custom Navbar */
+.custom-navbar {
+  position: relative;
+  background-image: url('/images/pexels-lamiko-3616764.jpg');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  padding: 0.5rem 2rem;
+  box-shadow: none;
+}
+
+.custom-navbar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.3);
+  z-index: 0;
+}
+
+.custom-navbar > * {
+  position: relative;
+  z-index: 1;
+}
+
+.custom-navbar .container-fluid {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.custom-navbar .navbar-collapse {
+  flex-grow: 1;
+  display: flex !important;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.custom-navbar .navbar-nav {
+  gap: 2rem;
+}
+
+.custom-navbar .navbar-nav.mx-auto {
+  margin: 0 auto;
+}
+
+.custom-navbar .navbar-nav.mx-auto .nav-link {
+  color: #333;
+  font-weight: 500;
+  padding: 0.5rem 1.5rem;
+  border: 2px solid #000;
+  border-radius: 4px;
+  background-color: #f5f5f5;
+  transition: all 0.3s ease;
+  min-width: 180px;
+text-align: center;
+  display: inline-block;
+}
+
+.custom-navbar .navbar-nav.mx-auto .nav-link:hover {
+  background-color: #e0e0e0;
+  border-color: #000;
+}
+
+.custom-navbar .navbar-nav.mx-auto .nav-link.active {
+  background-color: #d0d0d0;
+  border-color: #000;
+  font-weight: 600;
+}
+
+/* Custom Navbar for Logged Out Users */
+.custom-navbar-logged-out {
+  position: relative;
+  background-image: url('/images/pexels-lamiko-3616764.jpg');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+background-repeat: no-repeat;
+  padding: 0.5rem 2rem;
+  box-shadow: none;
+}
+
+.custom-navbar-logged-out::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.3);
+  z-index: 0;
+}
+
+.custom-navbar-logged-out > * {
+  position: relative;
+  z-index: 1;
+}
+
+.custom-navbar-logged-out .navbar-nav {
+  gap: 2rem;
+}
+
+.custom-navbar-logged-out .nav-link {
+  color: #333;
+  font-weight: 500;
+  padding: 0.5rem 1.5rem;
+  border: 2px solid #000;
+  border-radius: 4px;
+  background-color: #f5f5f5;
+  transition: all 0.3s ease;
+  min-width: 180px;
+  text-align: center;
+  display: inline-block;
+}
+
+.custom-navbar-logged-out .nav-link:hover {
+  background-color: #e0e0e0;
+  border-color: #000;
+}
+
+.custom-navbar-logged-out .nav-link.active {
+  background-color: #d0d0d0;
+  border-color: #000;
+  font-weight: 600;
+}
+
+/* Navbar Logo */
+.navbar-brand {
+  padding: 0;
+  margin-right: 0;
+  flex: 0 0 auto;
+}
+
+.navbar-logo {
+  height: 50px;
+  width: auto;
+  transition: opacity 0.3s ease;
+}
+
+.navbar-logo:hover {
+  opacity: 0.8;
+}
+
+/* User Navigation Icons */
+.user-nav {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-left: 0 !important;
+  padding-right: 0;
+}
+
+.user-icon, .logout-icon {
+  font-size: 2rem;
+  color: #333;
+  padding: 0.5rem;
+  background: none !important;
+  border: none !important;
+  transition: all 0.3s ease;
+}
+
+.user-icon:hover, .logout-icon:hover {
+  color: #666;
+}
+
+.logout-icon {
+  text-decoration: none;
+}
+
+/* User Navigation for Logged Out Users */
+.user-nav-logged-out {
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+  align-items: center;
+}
+
+.auth-button {
+  color: #333;
+  font-weight: 500;
+  padding: 0.5rem 1.5rem;
+  border: 2px solid #000;
+  border-radius: 4px;
+  background-color: #f5f5f5;
+  transition: all 0.3s ease;
+  min-width: 120px;
+  text-align: center;
+display: inline-block;
+}
+
+.auth-button:hover {
+  background-color: #e0e0e0;
+  border-color: #000;
+  color: #333;
+  text-decoration: none;
+}
+
+/* Home Container */
+.home-container {
+width: 100%;
+padding: 0;
+}
+
+.home-content {
+max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Footer */
+.custom-footer {
+  position: relative;
+  background-image: url('/images/pexels-lamiko-3616764.jpg');
+background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  padding: 1.5rem 0 0;
+  margin-top: auto;
+}
+
+.custom-footer::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+background-color: rgba(0, 0, 0, 0.3);
+z-index: 0;
+}
+
+.custom-footer > * {
+  position: relative;
+  z-index: 1;
+}
+
+.footer-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 2rem 1.5rem;
+}
+
+.footer-left {
+  flex: 0 0 auto;
+  padding-left: 0;
+  display: flex;
+align-items: center;
+}
+
+.footer-left h5 {
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.footer-center {
+  flex: 1;
+  display: flex;
+justify-content: flex-end;
+  padding-right: 2rem;
+}
+
+.footer-links {
+  display: flex;
+  gap: 4rem;
+  align-items: flex-start;
+}
+
+.footer-column {
+display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.footer-column h6 {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.5rem;
+}
+
+.footer-column a {
+  color: #666;
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.footer-column a:hover {
+  color: #333;
+  text-decoration: underline;
+}
+
+.footer-copyright {
+  text-align: center;
+  padding: 0.75rem 0;
+border-top: 3px solid #000;
+  color: #333;
+  font-size: 0.9rem;
 }
