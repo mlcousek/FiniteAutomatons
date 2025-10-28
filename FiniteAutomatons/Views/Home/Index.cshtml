@@ -1,100 +1,298 @@
-﻿@{
+@model AutomatonViewModel
+@{
     ViewData["Title"] = "Home";
 }
 
 <div class="automaton-workspace">
     <!-- Main Content Area -->
     <div class="workspace-grid">
-     <!-- Left Section - Create Automaton -->
+        <!-- Left Section - Create Automaton -->
         <div class="create-section">
             <div class="section-header">
-            <h2>CREATE</h2>
-  </div>
- <div class="create-content">
-<div class="input-area">
-     <!-- Placeholder for future input controls -->
-   <p class="placeholder-text">Input controls will be added here</p>
-        </div>
-    </div>
+                <h2>AUTOMATON</h2>
+            </div>
+            <div class="create-content">
+                <div class="input-area">
+                    @if (Model != null)
+                    {
+                        <!-- Alphabet Section -->
+                        <div class="automaton-detail-section">
+                            <h4>Alphabet</h4>
+                            <div class="alphabet-display">
+                                @if (Model.Alphabet != null && Model.Alphabet.Count > 0)
+                                {
+                                    <span class="alphabet-symbols">{ @string.Join(", ", Model.Alphabet.Select(c => c == '\0' ? "?" : c.ToString())) }</span>
+                                }
+                                else
+                                {
+                                    <span class="placeholder-text">No symbols defined</span>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- States Section -->
+                        <div class="automaton-detail-section">
+                            <h4>States</h4>
+                            <div class="states-display">
+                                @if (Model.States != null && Model.States.Count > 0)
+                                {
+                                    <ul class="states-list">
+                                        @foreach (var state in Model.States.OrderBy(s => s.Id))
+                                        {
+                                            <li class="state-item" data-state-id="@state.Id">
+                                                <span class="state-id">q@(state.Id)</span>
+                                                @if (state.IsStart)
+                                                {
+                                                    <span class="state-badge badge-start">Start</span>
+                                                }
+                                                @if (state.IsAccepting)
+                                                {
+                                                    <span class="state-badge badge-accepting">Accepting</span>
+                                                }
+                                            </li>
+                                        }
+                                    </ul>
+                                }
+                                else
+                                {
+                                    <span class="placeholder-text">No states defined</span>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Transitions Section -->
+                        <div class="automaton-detail-section">
+                            <h4>Transitions</h4>
+                            <div class="transitions-display">
+                                @if (Model.Transitions != null && Model.Transitions.Count > 0)
+                                {
+                                    <ul class="transitions-list">
+                                        @foreach (var transition in Model.Transitions.OrderBy(t => t.FromStateId).ThenBy(t => t.Symbol).ThenBy(t => t.ToStateId))
+                                        {
+                                            <li class="transition-item" data-from="@transition.FromStateId" data-to="@transition.ToStateId" data-symbol="@(transition.Symbol == '\0' ? "" : transition.Symbol.ToString())">
+                                                @if (Model.Type == AutomatonType.PDA)
+                                                {
+                                                    <span class="transition-text">
+                                                        q@(transition.FromStateId) -- @(transition.Symbol == '\0' ? "?" : transition.Symbol.ToString()) \
+                                                        / @(transition.StackPop.HasValue ? (transition.StackPop.Value == '\0' ? "?" : transition.StackPop.Value.ToString()) : "-")
+                                                        -> @(string.IsNullOrEmpty(transition.StackPush) ? "-" : transition.StackPush) -> q@(transition.ToStateId)
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="transition-text">q@(transition.FromStateId) -- @(transition.Symbol == '\0' ? "?" : transition.Symbol.ToString()) -> q@(transition.ToStateId)</span>
+                                                }
+                                            </li>
+                                        }
+                                    </ul>
+                                }
+                                else
+                                {
+                                    <span class="placeholder-text">No transitions defined</span>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Execution State Display -->
+                        @if (Model.HasExecuted)
+                        {
+                            <div class="automaton-detail-section execution-state">
+                                <h4>Execution State</h4>
+                                <div class="execution-info">
+                                    <p><strong>Position:</strong> @Model.Position / @(Model.Input != null ? Model.Input.Length : 0)</p>
+                                    <p><strong>Current State(s):</strong> @Model.CurrentStatesDisplay</p>
+                                    @if (Model.IsAccepted.HasValue)
+                                    {
+                                        <p class="@(Model.IsAccepted.Value ? "result-accepted" : "result-rejected")">
+                                            <strong>Result:</strong> @(Model.IsAccepted.Value ? "Accepted ?" : "Rejected ?")
+                                        </p>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <p class="placeholder-text">No automaton loaded</p>
+                    }
+                </div>
+            </div>
         </div>
 
-  <!-- Right Section - Graph Canvas -->
-    <div class="graph-section">
+        <!-- Right Section - Graph Canvas -->
+        <div class="graph-section">
             <div class="section-header">
-      <h2>GRAPH</h2>
-       </div>
-        <div class="graph-content">
-      <canvas id="automatonCanvas" class="automaton-canvas"></canvas>
-   </div>
+                <h2>GRAPH</h2>
+            </div>
+            <div class="graph-content">
+                <canvas id="automatonCanvas" class="automaton-canvas"></canvas>
+            </div>
         </div>
     </div>
 
     <!-- Bottom Control Sections -->
-    <div class="control-sections">
-        <!-- Input Section -->
-        <div class="control-section input-section">
-<div class="section-header-custom">
-           <h2>INPUT</h2>
-       </div>
-   <div class="control-content-left">
-           <input type="text" class="input-field" placeholder="Enter input string..." />
-  </div>
-     </div>
+    <form asp-controller="Automaton" method="post" id="automatonForm">
+        @if (Model != null)
+        {
+            <!-- Hidden fields to preserve model state -->
+            <input type="hidden" asp-for="Type" />
+            <input type="hidden" asp-for="HasExecuted" />
+            <input type="hidden" asp-for="Position" />
+            <input type="hidden" asp-for="CurrentStateId" />
+            <input type="hidden" asp-for="IsAccepted" />
+            <input type="hidden" asp-for="StateHistorySerialized" />
+            <input type="hidden" asp-for="StackSerialized" />
+            <input type="hidden" asp-for="IsCustomAutomaton" />
 
- <!-- Simulate Section -->
-        <div class="control-section simulate-section">
-   <div class="section-header-custom">
-    <h2>SIMULATE</h2>
-     </div>
-            <div class="control-content simulate-buttons">
-          <button class="control-btn simulate-btn" title="Start">
-    <i class="fas fa-play-circle"></i>
- <span>Start</span>
-        </button>
-        <button class="control-btn simulate-btn" title="Reset">
-        <i class="fas fa-undo"></i>
-     <span>Reset</span>
-        </button>
-              <button class="control-btn simulate-btn" title="Step back">
-   <i class="fas fa-step-backward"></i>
-             <span>Step back</span>
-           </button>
-  <button class="control-btn simulate-btn" title="Read next">
-     <i class="fas fa-step-forward"></i>
-         <span>Read next</span>
-        </button>
-                <button class="control-btn simulate-btn" title="Read all">
-             <i class="fas fa-forward"></i>
-      <span>Read all</span>
-           </button>
-     </div>
-      </div>
+            @if (Model.States != null)
+            {
+                @for (int i =0; i < Model.States.Count; i++)
+                {
+                    <input type="hidden" name="States.Index" value="@i" />
+                    <input type="hidden" name="States[@i].Id" value="@Model.States[i].Id" />
+                    <input type="hidden" name="States[@i].IsStart" value="@Model.States[i].IsStart.ToString().ToLowerInvariant()" />
+                    <input type="hidden" name="States[@i].IsAccepting" value="@Model.States[i].IsAccepting.ToString().ToLowerInvariant()" />
+                }
+            }
 
-        <!-- Automaton Type Section -->
-        <div class="control-section type-section">
-       <div class="section-header-custom">
-              <h2>AUTOMATON TYPE</h2>
+            @if (Model.Transitions != null)
+            {
+                @for (int i =0; i < Model.Transitions.Count; i++)
+                {
+                    <input type="hidden" name="Transitions.Index" value="@i" />
+                    <input type="hidden" name="Transitions[@i].FromStateId" value="@Model.Transitions[i].FromStateId" />
+                    <input type="hidden" name="Transitions[@i].ToStateId" value="@Model.Transitions[i].ToStateId" />
+                    <input type="hidden" name="Transitions[@i].Symbol" value="@Model.Transitions[i].Symbol" />
+                }
+            }
+
+            @if (Model.CurrentStates != null)
+            {
+                @for (int i =0; i < Model.CurrentStates.Count; i++)
+                {
+                    <input type="hidden" name="CurrentStates.Index" value="@i" />
+                    <input type="hidden" name="CurrentStates[@i]" value="@Model.CurrentStates.ElementAt(i)" />
+                }
+            }
+        }
+
+        <div class="control-sections">
+            <!-- Input Section -->
+            <div class="control-section input-section">
+                <div class="section-header-custom">
+                    <h2>INPUT</h2>
+                </div>
+                <div class="control-content-left">
+                    <input type="text" class="input-field" name="Input" id="inputField"
+                           placeholder="Enter input string..."
+                           value="@(Model != null ? Model.Input : "")" />
+                </div>
             </div>
-    <div class="control-content type-buttons">
-     <button class="control-btn type-btn active">DFA</button>
-        <button class="control-btn type-btn">NFA</button>
-            <button class="control-btn type-btn">ε-NFA</button>
-       <button class="control-btn type-btn">PDA</button>
-     </div>
-    </div>
 
-        <!-- Minimalize Section -->
-        <div class="control-section minimize-section">
-          <div class="section-header-custom">
-      <h2>MINIMALIZE</h2>
-  </div>
-   <div class="control-content-right">
-     <button class="control-btn minimize-btn">Minimalize</button>
+            <!-- Simulate Section -->
+            <div class="control-section simulate-section">
+                <div class="section-header-custom">
+                    <h2>SIMULATE</h2>
+                </div>
+                <div class="control-content simulate-buttons">
+                    <button type="submit" class="control-btn simulate-btn"
+                            asp-controller="Automaton" asp-action="StepForward"
+                            title="Start">
+                        <i class="fas fa-play-circle"></i>
+                        <span>Start</span>
+                    </button>
+                    <button type="submit" class="control-btn simulate-btn"
+                            asp-controller="Automaton" asp-action="Reset"
+                            title="Reset">
+                        <i class="fas fa-undo"></i>
+                        <span>Reset</span>
+                    </button>
+                    <button type="submit" class="control-btn simulate-btn"
+                            asp-controller="Automaton" asp-action="StepBackward"
+                            title="Step back">
+                        <i class="fas fa-step-backward"></i>
+                        <span>Step back</span>
+                    </button>
+                    <button type="submit" class="control-btn simulate-btn"
+                            asp-controller="Automaton" asp-action="StepForward"
+                            title="Read next">
+                        <i class="fas fa-step-forward"></i>
+                        <span>Read next</span>
+                    </button>
+                    <button type="submit" class="control-btn simulate-btn"
+                            asp-controller="Automaton" asp-action="ExecuteAll"
+                            title="Read all">
+                        <i class="fas fa-forward"></i>
+                        <span>Read all</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Automaton Type Section -->
+            <div class="control-section type-section">
+                <div class="section-header-custom">
+                    <h2>AUTOMATON TYPE</h2>
+                </div>
+                <div class="control-content type-buttons">
+                    <button type="button" class="control-btn type-btn @(Model != null && Model.Type == AutomatonType.DFA ? "active" : "")"
+                            data-type="DFA">
+                        DFA
+                    </button>
+                    <button type="button" class="control-btn type-btn @(Model != null && Model.Type == AutomatonType.NFA ? "active" : "")"
+                            data-type="NFA">
+                        NFA
+                    </button>
+                    <button type="button" class="control-btn type-btn @(Model != null && Model.Type == AutomatonType.EpsilonNFA ? "active" : "")"
+                            data-type="EpsilonNFA">
+                        ?-NFA
+                    </button>
+                    <button type="button" class="control-btn type-btn @(Model != null && Model.Type == AutomatonType.PDA ? "active" : "")"
+                            data-type="PDA">
+                        PDA
+                    </button>
+                </div>
+            </div>
+
+            <!-- Minimalize Section -->
+            <div class="control-section minimize-section">
+                <div class="section-header-custom">
+                    <h2>MINIMALIZE</h2>
+                </div>
+                <div class="control-content-right">
+                    <button type="submit" class="control-btn minimize-btn"
+                            asp-controller="Automaton" asp-action="ConvertToDFA">
+                        Minimalize
+                    </button>
+                </div>
             </div>
         </div>
+    </form>
+
+    <!-- Generate New Automaton Button -->
+    <div style="text-align: center; margin-top: 1rem;">
+        <form asp-controller="Automaton" asp-action="GenerateRealisticAutomaton" method="post" style="display: inline;">
+            <input type="hidden" name="type" value="@(Model != null ? (int)Model.Type : 0)" />
+            <input type="hidden" name="stateCount" value="5" />
+            <button type="submit" class="control-btn" style="min-width: 200px;">
+                <i class="fas fa-random"></i>
+                <span>Generate New Automaton</span>
+            </button>
+        </form>
     </div>
 </div>
 
 @section Scripts {
     <script src="~/js/canvas.js" asp-append-version="true"></script>
+    <script src="~/js/home.js" asp-append-version="true"></script>
+    <script>
+        // Type button functionality
+                document.querySelectorAll('.type-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                // Note: Type changing would require backend logic
+                  // For now, just highlight the selected type
+                document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                    });
+                });
+    </script>
 }

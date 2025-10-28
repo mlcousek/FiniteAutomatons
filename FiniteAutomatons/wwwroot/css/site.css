@@ -331,6 +331,7 @@ max-width: 1400px;
   flex: 1;
   overflow-y: auto;
   min-height: 0;
+  min-width: 300px;
 }
 
 .input-area {
@@ -445,6 +446,7 @@ gap: 1rem;
   transition: border-color 0.3s ease;
   height: 60px;
   box-sizing: border-box;
+  min-width: 300px;
 }
 
 .input-field:focus {
@@ -573,7 +575,7 @@ gap: 1rem;
   }
 
   .section-header h2 {
-    font-size: 1.2rem;
+font-size: 1.2rem;
   }
 
   .create-content,
@@ -586,7 +588,7 @@ gap: 1rem;
   }
 
   .simulate-section {
-    grid-column: span 1;
+  grid-column: span 1;
   }
 
   .simulate-buttons {
@@ -596,6 +598,107 @@ gap: 1rem;
   .control-btn {
     width: 100%;
   }
+}
+
+/* Automaton Detail Sections */
+.automaton-detail-section {
+  padding: 0.5rem;
+  background-color: rgba(255, 255, 255, 0.5);
+  border: 2px solid #ccc;
+  border-radius: 6px;
+}
+
+.automaton-detail-section h4 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.alphabet-display {
+  padding: 0.5rem;
+}
+
+.alphabet-symbols {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #333;
+  font-family: 'Courier New', monospace;
+}
+
+.states-list,
+.transitions-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.state-item,
+.transition-item {
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+  background-color: rgba(255, 255, 255, 0.7);
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.state-id {
+  font-weight: 600;
+  color: #333;
+  font-family: 'Courier New', monospace;
+}
+
+.state-badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 3px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.badge-start {
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.badge-accepting {
+  background-color: #d1ecf1;
+  color: #0c5460;
+  border: 1px solid #bee5eb;
+}
+
+.transition-text {
+  font-family: 'Courier New', monospace;
+  color: #333;
+  font-size: 0.95rem;
+}
+
+.execution-state {
+  background-color: rgba(255, 255, 200, 0.3);
+  border-color: #ffc107;
+}
+
+.execution-info p {
+  margin: 0.5rem 0;
+  font-size: 0.95rem;
+}
+
+.result-accepted {
+  color: #155724;
+  font-weight: 600;
+}
+
+.result-rejected {
+  color: #721c24;
+  font-weight: 600;
 }
 
 /* Footer */

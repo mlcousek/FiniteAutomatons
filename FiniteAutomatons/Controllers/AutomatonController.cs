@@ -461,7 +461,7 @@ public class AutomatonController(
     public async Task<IActionResult> SetGroupSharingPolicy(int groupId, bool membersCanShare)
     {
         if (savedAutomatonService == null || userManager == null) return StatusCode(500);
-        var user = await userManager.GetUserAsync(User);
+      var user = await userManager.GetUserAsync(User);
         if (user == null) return Challenge();
         var grp = await savedAutomatonService.GetGroupAsync(groupId);
         if (grp == null) return NotFound();
@@ -473,7 +473,7 @@ public class AutomatonController(
     private sealed class AutomatonPayloadDto
     {
         public AutomatonType Type { get; set; }
-        public List<State>? States { get; set; }
+ public List<State>? States { get; set; }
         public List<Transition>? Transitions { get; set; }
     }
 
