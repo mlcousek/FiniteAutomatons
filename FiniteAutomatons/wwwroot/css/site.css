@@ -649,6 +649,19 @@ font-size: 1.2rem;
   gap: 0.5rem;
 }
 
+/* Highlight for active/current states in the list */
+.state-item.state-active {
+  border: 3px solid #0078D4; /* bold colored outline */
+  box-shadow: 0 0 10px rgba(0,120,212,0.25);
+  background-color: rgba(0,120,212,0.08); /* light filled area */
+  font-weight: 700;
+}
+
+.state-item.state-active .state-id {
+  color: #005a9e;
+  font-weight: 800;
+}
+
 .state-id {
   font-weight: 600;
   color: #333;
@@ -793,4 +806,17 @@ text-decoration: none;
 border-top: 3px solid #000;
   color: #333;
   font-size: 0.9rem;
+}
+
+/* Highlight for active/current transitions in the list */
+.transition-item.active {
+  border: 3px solid #f28c28; /* bold orange outline */
+  box-shadow: 0 0 10px rgba(242,140,40,0.18);
+  background-color: rgba(242,140,40,0.06); /* light filled area */
+  font-weight: 700;
+}
+
+.transition-item.active .transition-text {
+  color: #c95a00;
+  font-weight: 700;
 }

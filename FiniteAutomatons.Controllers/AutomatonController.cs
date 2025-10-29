@@ -209,6 +209,4 @@ public class AutomatonController(
         await savedAutomatonService.SetGroupSharingPolicyAsync(groupId, membersCanShare);
         return RedirectToAction("ManageGroup", new { id = groupId });
     }
-
-    // rest of controller unchanged
 }

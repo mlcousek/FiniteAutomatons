@@ -39,7 +39,8 @@
                                     <ul class="states-list">
                                         @foreach (var state in Model.States.OrderBy(s => s.Id))
                                         {
-                                            <li class="state-item" data-state-id="@state.Id">
+                                            var isActive = (Model.CurrentStates != null && Model.CurrentStates.Contains(state.Id)) || (Model.CurrentStateId == state.Id);
+                                            <li class="state-item @(isActive ? "state-active" : "")" data-state-id="@state.Id">
                                                 <span class="state-id">q@(state.Id)</span>
                                                 @if (state.IsStart)
                                                 {
@@ -92,24 +93,6 @@
                                 }
                             </div>
                         </div>
-
-                        <!-- Execution State Display -->
-                        @if (Model.HasExecuted)
-                        {
-                            <div class="automaton-detail-section execution-state">
-                                <h4>Execution State</h4>
-                                <div class="execution-info">
-                                    <p><strong>Position:</strong> @Model.Position / @(Model.Input != null ? Model.Input.Length : 0)</p>
-                                    <p><strong>Current State(s):</strong> @Model.CurrentStatesDisplay</p>
-                                    @if (Model.IsAccepted.HasValue)
-                                    {
-                                        <p class="@(Model.IsAccepted.Value ? "result-accepted" : "result-rejected")">
-                                            <strong>Result:</strong> @(Model.IsAccepted.Value ? "Accepted ?" : "Rejected ?")
-                                        </p>
-                                    }
-                                </div>
-                            </div>
-                        }
                     }
                     else
                     {
@@ -283,16 +266,18 @@
 
 @section Scripts {
     <script src="~/js/canvas.js" asp-append-version="true"></script>
-    <script src="~/js/home.js" asp-append-version="true"></script>
+    <script type="module" src="~/js/inputOverlay.mjs" asp-append-version="true"></script>
+    <script type="module" src="~/js/panelHighlighter.mjs" asp-append-version="true"></script>
+    <script type="module" src="~/js/home.mjs" asp-append-version="true"></script>
     <script>
         // Type button functionality
-                document.querySelectorAll('.type-btn').forEach(btn => {
-                    btn.addEventListener('click', function() {
+        document.querySelectorAll('.type-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
                 // Note: Type changing would require backend logic
-                  // For now, just highlight the selected type
+                // For now, just highlight the selected type
                 document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
                 this.classList.add('active');
-                    });
-                });
+            });
+        });
     </script>
 }
