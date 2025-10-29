@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
 
@@ -25,10 +26,15 @@ public class TestIntegrationTests(IntegrationTestsFixture fixture) : Integration
     public async Task Test_AddUserAndVerify_IdentityWorks()
     {
         // Arrange
-        var userName = "testuser@example.com";
+        var userName = $"testuser{Guid.NewGuid()}@example.com";
         var password = "Test@1234";
 
         using var scope = GetServiceScope();
+        
+        // Ensure database is created
+        var dbContext = scope.ServiceProvider.GetRequiredService<FiniteAutomatons.Data.ApplicationDbContext>();
+        await dbContext.Database.EnsureCreatedAsync();
+        
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
 
         // Act
@@ -36,7 +42,7 @@ public class TestIntegrationTests(IntegrationTestsFixture fixture) : Integration
         var result = await userManager.CreateAsync(user, password);
 
         // Assert
-        result.Succeeded.ShouldBeTrue("User creation should succeed");
+        result.Succeeded.ShouldBeTrue($"User creation should succeed. Errors: {string.Join(", ", result.Errors.Select(e => e.Description))}");
 
         var createdUser = await userManager.FindByNameAsync(userName);
         createdUser.ShouldNotBeNull();
