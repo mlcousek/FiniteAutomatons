@@ -35,29 +35,56 @@ function disableInput(dis){
     var input = document.getElementById('inputField');
     if (!input) return;
     input.disabled = !!dis;
-    InputOverlay.render(parseInt(getInputValue('Position') || '0',10));
 }
 
 function updateAll(){
     var posVal = parseInt(getInputValue('Position') || '0',10);
     var hasExecuted = parseBool(getInputValue('HasExecuted'));
-    var isSimulating = hasExecuted || (posVal && posVal >0);
+    var isSimulating = hasExecuted || (posVal && posVal > 0);
+    
     setStartAsStop(isSimulating);
     disableInput(isSimulating);
-    if (isSimulating) InputOverlay.show(); else InputOverlay.hide();
-    InputOverlay.render(parseInt(getInputValue('Position') || '0',10));
+    
+    // Show/hide overlay based on simulation state
+    if (isSimulating) {
+        InputOverlay.show();
+        InputOverlay.render(posVal);
+    } else {
+        InputOverlay.hide();
+    }
+    
+    // Update panel highlights
     PanelHighlighter.highlightCanvasState();
     PanelHighlighter.highlightLeftPanel();
 }
 
 document.addEventListener('DOMContentLoaded', function(){
     InputOverlay.init();
-    updateAll();
-    window.addEventListener('resize', function(){ InputOverlay.render(parseInt(getInputValue('Position') || '0',10)); });
-    setInterval(updateAll,300);
+    
+    // Initial update after a short delay to ensure DOM is fully ready
+    setTimeout(updateAll, 100);
+    
+    window.addEventListener('resize', function(){ 
+        var posVal = parseInt(getInputValue('Position') || '0',10);
+        InputOverlay.render(posVal); 
+    });
+    
+    // Poll for updates
+    setInterval(updateAll, 300);
 
     var startBtn = document.querySelector('button[title="Start"], button[title="Stop"]');
-    if (startBtn){ startBtn.addEventListener('click', function(){ InputOverlay.show(); }); }
+    if (startBtn){ 
+        startBtn.addEventListener('click', function(){ 
+            // Overlay will be shown by updateAll when server responds
+            setTimeout(updateAll, 50);
+        }); 
+    }
+    
     var resetBtn = document.querySelector('button[title="Reset"]');
-    if (resetBtn){ resetBtn.addEventListener('click', function(){ InputOverlay.hide(); }); }
+    if (resetBtn){ 
+        resetBtn.addEventListener('click', function(){ 
+            InputOverlay.hide();
+            setTimeout(updateAll, 50);
+        }); 
+    }
 });
