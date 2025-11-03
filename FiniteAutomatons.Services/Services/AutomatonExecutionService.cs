@@ -1,9 +1,9 @@
 using FiniteAutomatons.Core.Models.DoMain;
+using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Interfaces;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
-using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 
 namespace FiniteAutomatons.Services.Services;
 
@@ -186,7 +186,7 @@ public class AutomatonExecutionService(IAutomatonBuilderService builderService, 
         UpdateModelFromState(model, execState);
         model.Result = execState.IsAccepted;
 
-        logger.LogInformation("Executed step forward, position: {Position}, accepted: {IsAccepted}", 
+        logger.LogInformation("Executed step forward, position: {Position}, accepted: {IsAccepted}",
             model.Position, model.IsAccepted);
 
         return model;
@@ -204,7 +204,7 @@ public class AutomatonExecutionService(IAutomatonBuilderService builderService, 
         UpdateModelFromState(model, execState);
         model.Result = execState.IsAccepted;
 
-        logger.LogInformation("Executed step backward, position: {Position}, accepted: {IsAccepted}", 
+        logger.LogInformation("Executed step backward, position: {Position}, accepted: {IsAccepted}",
             model.Position, model.IsAccepted);
 
         return model;
@@ -223,7 +223,7 @@ public class AutomatonExecutionService(IAutomatonBuilderService builderService, 
         UpdateModelFromState(model, execState);
         model.Result = execState.IsAccepted;
 
-        logger.LogInformation("Executed all steps, final position: {Position}, accepted: {IsAccepted}", 
+        logger.LogInformation("Executed all steps, final position: {Position}, accepted: {IsAccepted}",
             model.Position, model.IsAccepted);
 
         return model;
@@ -238,8 +238,7 @@ public class AutomatonExecutionService(IAutomatonBuilderService builderService, 
         var automaton = builderService.CreateAutomatonFromModel(model);
         var execState = automaton.StartExecution(model.Input);
         UpdateModelFromState(model, execState);
-        model.Result = execState.IsAccepted;
-
+        
         logger.LogInformation("Reset to start state, position: {Position}", model.Position);
 
         return model;

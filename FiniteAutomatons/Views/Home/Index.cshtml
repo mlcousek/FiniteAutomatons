@@ -1,4 +1,4 @@
-@model AutomatonViewModel
+﻿@model AutomatonViewModel
 @{
     ViewData["Title"] = "Home";
 }
@@ -93,6 +93,132 @@
                                 }
                             </div>
                         </div>
+
+                        <!-- Execution State Section (Debug Info) -->
+                        @if (Model.HasExecuted || Model.Position > 0 || Model.CurrentStateId.HasValue || (Model.CurrentStates != null && Model.CurrentStates.Count > 0))
+                        {
+                            <div class="automaton-detail-section execution-state-section">
+                                <h4>Execution State</h4>
+                                <div class="execution-state-display">
+                                    <div class="execution-state-item">
+                                        <span class="execution-label">Current Position:</span>
+                                        <span class="execution-value">@Model.Position / @(Model.Input?.Length ?? 0)</span>
+                                    </div>
+
+                                    @if (Model.Type == AutomatonType.DFA || Model.Type == AutomatonType.PDA)
+                                    {
+                                        <div class="execution-state-item">
+                                            <span class="execution-label">Current State:</span>
+                                            <span class="execution-value">
+                                                @if (Model.CurrentStateId.HasValue)
+                                                {
+                                                    <span class="state-highlight">q@Model.CurrentStateId</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="placeholder-text">-</span>
+                                                }
+                                            </span>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="execution-state-item">
+                                            <span class="execution-label">Current States:</span>
+                                            <span class="execution-value">
+                                                @if (Model.CurrentStates != null && Model.CurrentStates.Count > 0)
+                                                {
+                                                    <span class="state-highlight">{ @string.Join(", ", Model.CurrentStates.OrderBy(s => s).Select(s => "q" + s)) }</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="placeholder-text">-</span>
+                                                }
+                                            </span>
+                                        </div>
+                                    }
+
+                                    <div class="execution-state-item">
+                                        <span class="execution-label">Next Symbol:</span>
+                                        <span class="execution-value">
+                                            @if (!string.IsNullOrEmpty(Model.Input) && Model.Position < Model.Input.Length)
+                                            {
+                                                <span class="symbol-highlight">'@Model.Input[Model.Position]'</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="placeholder-text">End of input</span>
+                                            }
+                                        </span>
+                                    </div>
+
+                                    @* Show Result when input is fully read *@
+                                    @if (Model.Position >= (Model.Input?.Length ?? 0) && Model.IsAccepted.HasValue)
+                                    {
+                                        <div class="execution-state-item result-highlight">
+                                            <span class="execution-label">Result:</span>
+                                            <span class="execution-value">
+                                                @if (Model.IsAccepted.Value)
+                                                {
+                                                    <span class="result-badge result-accepted">✓ ACCEPTED</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="result-badge result-rejected">✗ REJECTED</span>
+                                                }
+                                            </span>
+                                        </div>
+                                    }
+
+                                    <div class="execution-state-item">
+                                        <span class="execution-label">Is Accepted:</span>
+                                        <span class="execution-value">
+                                            @if (Model.IsAccepted.HasValue)
+                                            {
+                                                if (Model.IsAccepted.Value)
+                                                {
+                                                    <span class="acceptance-status accepted">✓ Accepted</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="acceptance-status rejected">✗ Rejected</span>
+                                                }
+                                            }
+                                            else
+                                            {
+                                                <span class="acceptance-status pending">⧗ Pending</span>
+                                            }
+                                        </span>
+                                    </div>
+
+                                    @if (Model.Type == AutomatonType.PDA && !string.IsNullOrEmpty(Model.StackSerialized))
+                                    {
+                                        <div class="execution-state-item">
+                                            <span class="execution-label">Stack:</span>
+                                            <span class="execution-value stack-value">
+                                                @try
+                                                {
+                                                    var stack = System.Text.Json.JsonSerializer.Deserialize<List<char>>(Model.StackSerialized);
+                                                    if (stack != null && stack.Count > 0)
+                                                    {
+                                                        <span class="stack-highlight">[ @string.Join(", ", stack.Select(c => c == '\0' ? "?" : c.ToString())) ]</span>
+                                                        <span class="stack-hint">(top first)</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="placeholder-text">Empty</span>
+                                                    }
+                                                }
+                                                catch
+                                                {
+                                                    <span class="placeholder-text">-</span>
+                                                }
+                                            </span>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
                     }
                     else
                     {
@@ -129,7 +255,7 @@
 
             @if (Model.States != null)
             {
-                @for (int i =0; i < Model.States.Count; i++)
+                @for (int i = 0; i < Model.States.Count; i++)
                 {
                     <input type="hidden" name="States.Index" value="@i" />
                     <input type="hidden" name="States[@i].Id" value="@Model.States[i].Id" />
@@ -140,7 +266,7 @@
 
             @if (Model.Transitions != null)
             {
-                @for (int i =0; i < Model.Transitions.Count; i++)
+                @for (int i = 0; i < Model.Transitions.Count; i++)
                 {
                     <input type="hidden" name="Transitions.Index" value="@i" />
                     <input type="hidden" name="Transitions[@i].FromStateId" value="@Model.Transitions[i].FromStateId" />
@@ -151,7 +277,7 @@
 
             @if (Model.CurrentStates != null)
             {
-                @for (int i =0; i < Model.CurrentStates.Count; i++)
+                @for (int i = 0; i < Model.CurrentStates.Count; i++)
                 {
                     <input type="hidden" name="CurrentStates.Index" value="@i" />
                     <input type="hidden" name="CurrentStates[@i]" value="@Model.CurrentStates.ElementAt(i)" />
@@ -167,8 +293,9 @@
                 </div>
                 <div class="control-content-left">
                     <input type="text" class="input-field" name="Input" id="inputField"
-                           placeholder="Enter input string..."
-                           value="@(Model != null ? Model.Input : "")" />
+       placeholder="Enter input string..."
+       value="@(Model != null ? Model.Input : "")"
+       @(Model != null && Model.HasExecuted ? "readonly disabled" : "") />
                 </div>
             </div>
 
@@ -181,7 +308,7 @@
                     @if (Model == null || !Model.HasExecuted)
                     {
                     <button type="submit" class="control-btn simulate-btn"
-                            asp-controller="Automaton" asp-action="StepForward"
+                            asp-controller="Automaton" asp-action="Start"
                             title="Start">
                         <i class="fas fa-play-circle"></i>
                         <span>Start</span>

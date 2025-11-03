@@ -7,7 +7,7 @@ namespace FiniteAutomatons.Filters;
 public class AutomatonModelFilter : IActionFilter
 {
     private static readonly HashSet<string> EpsilonActions = new(StringComparer.OrdinalIgnoreCase)
-    { "StepForward", "StepBackward", "ExecuteAll", "BackToStart", "Reset", "ConvertToDFA" };
+    { "Start", "StepForward", "StepBackward", "ExecuteAll", "BackToStart", "Reset", "ConvertToDFA" };
 
     public void OnActionExecuting(ActionExecutingContext context)
     {

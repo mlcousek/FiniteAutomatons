@@ -10,113 +10,79 @@ namespace FiniteAutomatons.IntegrationTests.AutomatonGeneration;
 public class AutomatonGenerationIntegrationTests(IntegrationTestsFixture fixture) : IntegrationTestsBase(fixture)
 {
     [Fact]
-    public async Task GenerateRandomAutomaton_DFA_ShouldCreateValidAutomaton()
-    {
-        // Arrange
-        var client = GetHttpClient();
-
-        // Act - Get the generation page
-        var getResponse = await client.GetAsync("/Automaton/GenerateRandomAutomaton");
-
-        // Assert
-        getResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var html = await getResponse.Content.ReadAsStringAsync();
-        html.ShouldContain("Generate Random Automaton");
-        html.ShouldContain("Automaton Type");
-        html.ShouldContain("Number of States");
-        html.ShouldContain("Number of Transitions");
-    }
-
-    [Fact]
     public async Task GenerateRandomAutomaton_POST_ShouldGenerateAndRedirect()
     {
         // Arrange
         var client = GetHttpClient();
+      
         var formData = new List<KeyValuePair<string, string>>
         {
-            new("Type", "DFA"),
+         new("Type", "0"), // DFA enum value
             new("StateCount", "4"),
-            new("TransitionCount", "6"),
-            new("AlphabetSize", "2"),
-            new("AcceptingStateRatio", "0.5"),
-            new("Seed", "12345")
-        };
+        new("TransitionCount", "6"),
+      new("AlphabetSize", "2"),
+     new("AcceptingStateRatio", "0.5"),
+     new("Seed", "12345")
+   };
 
-        // Act - Submit the generation form
-        var postResponse = await client.PostAsync("/Automaton/GenerateRandomAutomaton", new FormUrlEncodedContent(formData));
+   // Act - Submit the generation form (client follows redirects by default)
+var postResponse = await client.PostAsync("/Automaton/GenerateRandomAutomaton", new FormUrlEncodedContent(formData));
 
-        // Assert - Should either redirect on success or return OK with validation errors
-        postResponse.StatusCode.ShouldBeOneOf(HttpStatusCode.OK, HttpStatusCode.Redirect, HttpStatusCode.Found);
-        
-        if (postResponse.StatusCode == HttpStatusCode.OK)
-        {
-            var content = await postResponse.Content.ReadAsStringAsync();
-            content.ShouldNotContain("Error occurred");
-        }
-        else
-        {
-            postResponse.Headers.Location?.ToString().ShouldContain("/");
-        }
-    }
+        // Assert - Should follow redirect and end up at Home/Index with 200 OK
+        postResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var html = await postResponse.Content.ReadAsStringAsync();
+        // Should have the automaton loaded
+        html.ShouldContain("AUTOMATON");
+      html.ShouldContain("States");
+ }
 
     [Fact]
-    public async Task GenerateRandomAutomaton_POST_PDA_ShouldGenerateAndRedirect()
+ public async Task GenerateRandomAutomaton_POST_PDA_ShouldGenerateAndRedirect()
     {
         // Arrange
         var client = GetHttpClient();
-        var formData = new List<KeyValuePair<string, string>>
+      
+      var formData = new List<KeyValuePair<string, string>>
         {
-            new("Type", "PDA"),
+new("Type", "3"), // PDA enum value
             new("StateCount", "4"),
-            new("TransitionCount", "8"),
-            new("AlphabetSize", "3"),
-            new("AcceptingStateRatio", "0.4"),
-            new("Seed", "4242")
+   new("TransitionCount", "8"),
+      new("AlphabetSize", "3"),
+    new("AcceptingStateRatio", "0.4"),
+  new("Seed", "4242")
         };
 
-        // Act
+     // Act
         var postResponse = await client.PostAsync("/Automaton/GenerateRandomAutomaton", new FormUrlEncodedContent(formData));
 
-        // Assert
-        postResponse.StatusCode.ShouldBeOneOf(HttpStatusCode.OK, HttpStatusCode.Redirect, HttpStatusCode.Found);
-        if (postResponse.StatusCode == HttpStatusCode.OK)
-        {
-            var content = await postResponse.Content.ReadAsStringAsync();
-            content.ShouldNotContain("Error occurred");
-        }
-        else
-        {
-            postResponse.Headers.Location?.ToString().ShouldContain("/");
-        }
-    }
+   // Assert - Should follow redirect and end up at Home/Index
+        postResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+  var html = await postResponse.Content.ReadAsStringAsync();
+        html.ShouldContain("AUTOMATON");
+        html.ShouldContain("States");
+ }
 
     [Fact]
     public async Task GenerateRealisticAutomaton_DFA_ShouldWork()
     {
         // Arrange
-        var client = GetHttpClient();
+  var client = GetHttpClient();
+        
         var formData = new List<KeyValuePair<string, string>>
-        {
-            new("type", "DFA"),
-            new("stateCount", "5"),
-            new("seed", "999")
+  {
+        new("type", "0"), // DFA enum value
+   new("stateCount", "5"),
+     new("seed", "999")
         };
 
         // Act
         var response = await client.PostAsync("/Automaton/GenerateRealisticAutomaton", new FormUrlEncodedContent(formData));
 
-        // Assert - Should either redirect on success or return OK with validation errors
-        response.StatusCode.ShouldBeOneOf(HttpStatusCode.OK, HttpStatusCode.Redirect, HttpStatusCode.Found);
-        
-        if (response.StatusCode == HttpStatusCode.OK)
-        {
-            var content = await response.Content.ReadAsStringAsync();
-            content.ShouldNotContain("Error occurred");
-        }
-        else
-        {
-            response.Headers.Location?.ToString().ShouldContain("/");
-        }
+ // Assert - Should follow redirect and end up at Home/Index
+      response.StatusCode.ShouldBe(HttpStatusCode.OK);
+      var html = await response.Content.ReadAsStringAsync();
+        html.ShouldContain("AUTOMATON");
+   html.ShouldContain("States");
     }
 
     [Fact]

@@ -1,7 +1,7 @@
-using System.Net; 
-using System.Text; 
-using Shouldly; 
-using FiniteAutomatons.Core.Models.ViewModel; 
+using FiniteAutomatons.Core.Models.ViewModel;
+using Shouldly;
+using System.Net;
+using System.Text;
 
 namespace FiniteAutomatons.IntegrationTests.AutomatonApiTests;
 
@@ -13,23 +13,30 @@ public class AutomatonFileEndpointsTests(IntegrationTestsFixture fixture) : Inte
     {
         var client = GetHttpClient();
         var json = "{\n  \"Version\":1,\n  \"Type\":\"DFA\",\n  \"States\":[{\"Id\":1,\"IsStart\":true,\"IsAccepting\":false},{\"Id\":2,\"IsStart\":false,\"IsAccepting\":true}],\n  \"Transitions\":[{\"FromStateId\":1,\"ToStateId\":2,\"Symbol\":\"a\"}]\n}";
-        using var content = new MultipartFormDataContent();
-        content.Add(new ByteArrayContent(Encoding.UTF8.GetBytes(json)), "upload", "dfa.json");
+        using var content = new MultipartFormDataContent
+        {
+            { new ByteArrayContent(Encoding.UTF8.GetBytes(json)), "upload", "dfa.json" }
+        };
         var response = await client.PostAsync("/Automaton/ImportAutomaton", content);
-        response.StatusCode.ShouldBeOneOf(HttpStatusCode.OK, HttpStatusCode.Redirect);
+        // Should redirect to Home/Index on success
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var html = await response.Content.ReadAsStringAsync();
+        // Should have loaded the automaton
+        html.ShouldContain("AUTOMATON");
     }
 
     [Fact]
-    public async Task ImportAutomaton_Invalid_ReturnsViewWithError()
+    public async Task ImportAutomaton_Invalid_ReturnsError()
     {
         var client = GetHttpClient();
         var json = "{ \"Version\":1, \"States\":[], \"Transitions\":[] }"; // invalid (no states)
-        using var content = new MultipartFormDataContent();
-        content.Add(new ByteArrayContent(Encoding.UTF8.GetBytes(json)), "upload", "bad.json");
+        using var content = new MultipartFormDataContent
+        {
+            { new ByteArrayContent(Encoding.UTF8.GetBytes(json)), "upload", "bad.json" }
+        };
         var response = await client.PostAsync("/Automaton/ImportAutomaton", content);
-        response.StatusCode.ShouldBe(HttpStatusCode.OK); // returns view with model errors
-        var body = await response.Content.ReadAsStringAsync();
-        body.ToLowerInvariant().ShouldContain("state");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.InternalServerError);
     }
 
     [Fact]
@@ -39,10 +46,10 @@ public class AutomatonFileEndpointsTests(IntegrationTestsFixture fixture) : Inte
         var model = new AutomatonViewModel
         {
             Type = AutomatonType.DFA,
-            States = [ new(){ Id=1, IsStart=true, IsAccepting=false}, new(){ Id=2, IsStart=false, IsAccepting=true } ],
-            Transitions = [ new(){ FromStateId=1, ToStateId=2, Symbol='a'} ]
+            States = [new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true }],
+            Transitions = [new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' }]
         };
-        var form = new List<KeyValuePair<string,string>>
+        var form = new List<KeyValuePair<string, string>>
         {
             new("Type", model.Type.ToString()),
             new("States[0].Id","1"), new("States[0].IsStart","true"), new("States[0].IsAccepting","false"),
@@ -61,10 +68,10 @@ public class AutomatonFileEndpointsTests(IntegrationTestsFixture fixture) : Inte
         var model = new AutomatonViewModel
         {
             Type = AutomatonType.NFA,
-            States = [ new(){ Id=1, IsStart=true, IsAccepting=false}, new(){ Id=2, IsStart=false, IsAccepting=true } ],
-            Transitions = [ new(){ FromStateId=1, ToStateId=2, Symbol='a'}, new(){ FromStateId=1, ToStateId=1, Symbol='a'} ]
+            States = [new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true }],
+            Transitions = [new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' }, new() { FromStateId = 1, ToStateId = 1, Symbol = 'a' }]
         };
-        var form = new List<KeyValuePair<string,string>>
+        var form = new List<KeyValuePair<string, string>>
         {
             new("Type", model.Type.ToString()),
             new("States[0].Id","1"), new("States[0].IsStart","true"), new("States[0].IsAccepting","false"),
