@@ -34,13 +34,19 @@ function setStartAsStop(isSimulating){
 function disableInput(dis){
     var input = document.getElementById('inputField');
     if (!input) return;
-    input.disabled = !!dis;
+    if (dis){
+        input.readOnly = true; // preserve value in POST
+        input.classList.add('input-readonly');
+    } else {
+        input.readOnly = false;
+        input.classList.remove('input-readonly');
+    }
 }
 
 function updateAll(){
     var posVal = parseInt(getInputValue('Position') || '0',10);
     var hasExecuted = parseBool(getInputValue('HasExecuted'));
-    var isSimulating = hasExecuted || (posVal && posVal > 0);
+    var isSimulating = hasExecuted || (posVal && posVal >0);
     
     setStartAsStop(isSimulating);
     disableInput(isSimulating);
@@ -62,7 +68,7 @@ document.addEventListener('DOMContentLoaded', function(){
     InputOverlay.init();
     
     // Initial update after a short delay to ensure DOM is fully ready
-    setTimeout(updateAll, 100);
+    setTimeout(updateAll,100);
     
     window.addEventListener('resize', function(){ 
         var posVal = parseInt(getInputValue('Position') || '0',10);
@@ -70,13 +76,13 @@ document.addEventListener('DOMContentLoaded', function(){
     });
     
     // Poll for updates
-    setInterval(updateAll, 300);
+    setInterval(updateAll,300);
 
     var startBtn = document.querySelector('button[title="Start"], button[title="Stop"]');
     if (startBtn){ 
         startBtn.addEventListener('click', function(){ 
             // Overlay will be shown by updateAll when server responds
-            setTimeout(updateAll, 50);
+            setTimeout(updateAll,50);
         }); 
     }
     
@@ -84,7 +90,7 @@ document.addEventListener('DOMContentLoaded', function(){
     if (resetBtn){ 
         resetBtn.addEventListener('click', function(){ 
             InputOverlay.hide();
-            setTimeout(updateAll, 50);
+            setTimeout(updateAll,50);
         }); 
     }
 });

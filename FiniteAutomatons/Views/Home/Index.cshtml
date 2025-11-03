@@ -178,17 +178,30 @@
                     <h2>SIMULATE</h2>
                 </div>
                 <div class="control-content simulate-buttons">
+                    @if (Model == null || !Model.HasExecuted)
+                    {
                     <button type="submit" class="control-btn simulate-btn"
                             asp-controller="Automaton" asp-action="StepForward"
                             title="Start">
                         <i class="fas fa-play-circle"></i>
                         <span>Start</span>
                     </button>
+                    }
+                    @if (Model != null && Model.HasExecuted)
+                    {
                     <button type="submit" class="control-btn simulate-btn"
                             asp-controller="Automaton" asp-action="Reset"
                             title="Reset">
                         <i class="fas fa-undo"></i>
                         <span>Reset</span>
+                    </button>
+                    }
+
+                    <button type="submit" class="control-btn simulate-btn"
+                            asp-controller="Automaton" asp-action="BackToStart"
+                            title="Back to start">
+                        <i class="fas fa-undo"></i>
+                        <span>Back to start</span>
                     </button>
                     <button type="submit" class="control-btn simulate-btn"
                             asp-controller="Automaton" asp-action="StepBackward"
