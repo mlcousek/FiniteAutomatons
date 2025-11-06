@@ -16,6 +16,8 @@
     </None>
     <None Include="docker-compose.yml" />
     <None Include=".dockerignore" />
-    <None Include="FiniteAutomatons.Controllers\AutomatonController.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="FiniteAutomatons.Controllers\" />
   </ItemGroup>
 </Project>

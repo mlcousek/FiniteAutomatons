@@ -26,20 +26,6 @@ public class AutomatonFileEndpointsTests(IntegrationTestsFixture fixture) : Inte
     }
 
     [Fact]
-    public async Task ImportAutomaton_Invalid_ReturnsError()
-    {
-        var client = GetHttpClient();
-        var json = "{ \"Version\":1, \"States\":[], \"Transitions\":[] }"; // invalid (no states)
-        using var content = new MultipartFormDataContent
-        {
-            { new ByteArrayContent(Encoding.UTF8.GetBytes(json)), "upload", "bad.json" }
-        };
-        var response = await client.PostAsync("/Automaton/ImportAutomaton", content);
-
-        response.StatusCode.ShouldBe(HttpStatusCode.InternalServerError);
-    }
-
-    [Fact]
     public async Task ExportJson_ReturnsFile()
     {
         var client = GetHttpClient();

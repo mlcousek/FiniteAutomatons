@@ -1,0 +1,49 @@
+@model AutomatonViewModel
+@{
+    ViewData["Title"] = "Create Automaton";
+}
+<h2>Create Automaton</h2>
+<form asp-controller="Automaton" method="post">
+    <input type="hidden" asp-for="Type" />
+    <input type="hidden" asp-for="HasExecuted" />
+    <input type="hidden" asp-for="Position" />
+    <input type="hidden" asp-for="CurrentStateId" />
+    <input type="hidden" asp-for="IsAccepted" />
+    <input type="hidden" asp-for="StateHistorySerialized" />
+    <input type="hidden" asp-for="StackSerialized" />
+    <input type="hidden" asp-for="IsCustomAutomaton" />
+
+    @if (Model?.States != null)
+    {
+        for (int i = 0; i < Model.States.Count; i++)
+        {
+            <input type="hidden" name="States.Index" value="@i" />
+            <input type="hidden" name="States[@i].Id" value="@Model.States[i].Id" />
+            <input type="hidden" name="States[@i].IsStart" value="@Model.States[i].IsStart.ToString().ToLowerInvariant()" />
+            <input type="hidden" name="States[@i].IsAccepting" value="@Model.States[i].IsAccepting.ToString().ToLowerInvariant()" />
+        }
+    }
+
+    @if (Model?.Transitions != null)
+    {
+        for (int i = 0; i < Model.Transitions.Count; i++)
+        {
+            <input type="hidden" name="Transitions.Index" value="@i" />
+            <input type="hidden" name="Transitions[@i].FromStateId" value="@Model.Transitions[i].FromStateId" />
+            <input type="hidden" name="Transitions[@i].ToStateId" value="@Model.Transitions[i].ToStateId" />
+            <input type="hidden" name="Transitions[@i].Symbol" value="@Model.Transitions[i].Symbol" />
+        }
+    }
+
+    <div>
+        <label>Input:</label>
+        <input type="text" name="Input" value="@Model?.Input" />
+    </div>
+
+    <div>
+        <button type="submit" formaction="/Automaton/AddState">Add State</button>
+        <button type="submit" formaction="/Automaton/RemoveState">Remove State</button>
+        <button type="submit" formaction="/Automaton/AddTransition">Add Transition</button>
+        <button type="submit" formaction="/Automaton/RemoveTransition">Remove Transition</button>
+    </div>
+</form>
