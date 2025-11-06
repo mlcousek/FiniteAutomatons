@@ -122,6 +122,7 @@ public class AutomatonController(
         model.HasExecuted = true;
         var updated = executionService.BackToStart(model);
         updated.HasExecuted = true;
+        ModelState.Clear(); // ensure updated values rendered
         return View("../Home/Index", updated);
     }
 
@@ -131,6 +132,7 @@ public class AutomatonController(
         model.HasExecuted = true;
         var updated = executionService.ExecuteStepForward(model);
         updated.HasExecuted = true;
+        ModelState.Clear(); // ensure updated values rendered
         return View("../Home/Index", updated);
     }
 
@@ -139,6 +141,7 @@ public class AutomatonController(
     {
         var updated = executionService.ExecuteStepBackward(model);
         updated.HasExecuted = model.HasExecuted || updated.Position > 0;
+        ModelState.Clear(); // ensure updated values rendered
         return View("../Home/Index", updated);
     }
 
@@ -148,6 +151,7 @@ public class AutomatonController(
         model.HasExecuted = true;
         var updated = executionService.ExecuteAll(model);
         updated.HasExecuted = true;
+        ModelState.Clear(); // ensure updated values rendered
         return View("../Home/Index", updated);
     }
 
@@ -156,6 +160,7 @@ public class AutomatonController(
     {
         var updated = executionService.BackToStart(model);
         updated.HasExecuted = model.HasExecuted || model.Position > 0 || model.Result != null;
+        ModelState.Clear(); // ensure updated values rendered
         return View("../Home/Index", updated);
     }
 
@@ -164,6 +169,7 @@ public class AutomatonController(
     {
         var updated = executionService.ResetExecution(model);
         updated.HasExecuted = false;
+        ModelState.Clear(); // ensure updated values rendered
         return View("../Home/Index", updated);
     }
 
