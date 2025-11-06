@@ -239,9 +239,10 @@ public class RegexToAutomatonServiceTests
     [Fact]
     public void UnicodeCharacters_ShouldBeSupportedAsLiterals()
     {
-        var enfa = service.BuildEpsilonNfaFromRegex("èš");
-        enfa.Execute("èš").ShouldBeTrue();
-        enfa.Execute("è").ShouldBeFalse();
+        // Use a valid Unicode character (Greek capital Omega) rather than replacement char.
+        var enfa = service.BuildEpsilonNfaFromRegex("\u03A9"); // ?
+        enfa.Execute("\u03A9").ShouldBeTrue(); // match same literal
+        enfa.Execute("\u03A8").ShouldBeFalse(); // ? different character should not match
     }
 
     [Fact]
