@@ -111,6 +111,11 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
         return m.Success ? m.Groups["c"].Value[0] : (char?)null;
     }
 
+    private static int CountSymbolHighlightSpans(string html)
+    {
+        return Regex.Matches(html, @"<span[^>]*class=""symbol-highlight""", RegexOptions.IgnoreCase | RegexOptions.Singleline).Count;
+    }
+
     [Fact]
     public async Task InputField_BeforeStart_ShouldBeEditable()
     {
@@ -220,5 +225,197 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
         var html = await startResp.Content.ReadAsStringAsync();
         ExtractInputValue(html).ShouldBe("a");
         InputIsReadonly(html).ShouldBeTrue();
+    }
+
+    // ---------------- New tests for additional input strings ----------------
+
+    [Fact]
+    public async Task Start_ShouldShowFullInputAndHighlightFirstChar_For_acb()
+    {
+        var client = GetHttpClient();
+        var model = BuildSimpleDfa("acb"); // transitions only cover 'a'/'b' but start does not consume yet
+        var startResp = await PostAsync(client, "/Automaton/Start", model);
+        startResp.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var html = await startResp.Content.ReadAsStringAsync();
+        ExtractInputValue(html).ShouldBe("acb");
+        ExtractPosition(html).ShouldBe(0);
+        ExtractNextSymbolHighlight(html).ShouldBe('a');
+    }
+
+    [Fact]
+    public async Task Start_ShouldShowFullInputAndHighlightFirstChar_For_cadc()
+    {
+        var client = GetHttpClient();
+        // custom DFA allowing c,a,d,c sequence
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.DFA,
+            States = [ new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true } ],
+            Transitions = [
+                new() { FromStateId = 1, ToStateId = 2, Symbol = 'c' },
+                new() { FromStateId = 2, ToStateId = 2, Symbol = 'a' },
+                new() { FromStateId = 2, ToStateId = 2, Symbol = 'd' },
+                new() { FromStateId = 2, ToStateId = 2, Symbol = 'c' }
+            ],
+            Input = "cadc",
+            IsCustomAutomaton = true
+        };
+        var startResp = await PostAsync(client, "/Automaton/Start", model);
+        startResp.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var html = await startResp.Content.ReadAsStringAsync();
+        ExtractInputValue(html).ShouldBe("cadc");
+        ExtractPosition(html).ShouldBe(0);
+        ExtractNextSymbolHighlight(html).ShouldBe('c');
+    }
+
+    [Fact]
+    public async Task StepForward_ShouldHighlightSecondChar_For_cadc()
+    {
+        var client = GetHttpClient();
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.DFA,
+            States = [ new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true } ],
+            Transitions = [
+                new() { FromStateId = 1, ToStateId = 2, Symbol = 'c' },
+                new() { FromStateId = 2, ToStateId = 2, Symbol = 'a' },
+                new() { FromStateId = 2, ToStateId = 2, Symbol = 'd' },
+                new() { FromStateId = 2, ToStateId = 2, Symbol = 'c' }
+            ],
+            Input = "cadc",
+            IsCustomAutomaton = true
+        };
+        var startResp = await PostAsync(client, "/Automaton/Start", model);
+        startResp.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var startHtml = await startResp.Content.ReadAsStringAsync();
+        ExtractPosition(startHtml).ShouldBe(0);
+        // prepare step model
+        var stepModel = new AutomatonViewModel
+        {
+            Type = AutomatonType.DFA,
+            States = model.States,
+            Transitions = model.Transitions,
+            Input = model.Input,
+            IsCustomAutomaton = true,
+            HasExecuted = true,
+            CurrentStateId = 2 // after consuming first 'c' per transition definition
+        };
+        var stepResp = await PostAsync(client, "/Automaton/StepForward", stepModel);
+        stepResp.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var stepHtml = await stepResp.Content.ReadAsStringAsync();
+        ExtractInputValue(stepHtml).ShouldBe("cadc");
+        ExtractPosition(stepHtml).ShouldBe(1);
+        ExtractNextSymbolHighlight(stepHtml).ShouldBe('a');
+    }
+
+    [Fact]
+    public async Task Start_ShouldShowFullInputAndOtherChars_Unhighlighted_For_acb()
+    {
+        var client = GetHttpClient();
+        var model = BuildSimpleDfa("acb");
+        var resp = await PostAsync(client, "/Automaton/Start", model);
+        resp.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var html = await resp.Content.ReadAsStringAsync();
+        var value = ExtractInputValue(html);
+        value.ShouldBe("acb");
+        // Only one highlight span expected
+        CountSymbolHighlightSpans(html).ShouldBe(1);
+        ExtractNextSymbolHighlight(html).ShouldBe('a');
+        // Ensure other characters still present in input (means they are shown; overlay JS not executed in test)
+        value.Contains('c').ShouldBeTrue();
+        value.Contains('b').ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task StepForward_ShouldShowFullInputAndOtherChars_Unhighlighted_For_acb()
+    {
+        var client = GetHttpClient();
+        var model = BuildSimpleDfa("acb");
+        var start = await PostAsync(client, "/Automaton/Start", model);
+        start.StatusCode.ShouldBe(HttpStatusCode.OK);
+        // Prepare step model (execution started)
+        var stepModel = BuildSimpleDfa("acb");
+        stepModel.HasExecuted = true;
+        stepModel.CurrentStateId = 2; // after consuming 'a'
+        var stepResp = await PostAsync(client, "/Automaton/StepForward", stepModel);
+        stepResp.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var html = await stepResp.Content.ReadAsStringAsync();
+        var value = ExtractInputValue(html);
+        value.ShouldBe("acb");
+        // Because 'c' is not part of the DFA's defined transition alphabet, no symbol highlight span is rendered.
+        CountSymbolHighlightSpans(html).ShouldBe(0);
+        ExtractNextSymbolHighlight(html).ShouldBeNull();
+        // Remaining chars appear in input string
+        value.Contains('a').ShouldBeTrue();
+        value.Contains('b').ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task Start_ShouldShowFullInputAndOtherChars_Unhighlighted_For_cadc()
+    {
+        var client = GetHttpClient();
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.DFA,
+            States = [ new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true } ],
+            Transitions = [
+                new() { FromStateId = 1, ToStateId = 2, Symbol = 'c' },
+                new() { FromStateId = 2, ToStateId = 2, Symbol = 'a' },
+                new() { FromStateId = 2, ToStateId = 2, Symbol = 'd' },
+                new() { FromStateId = 2, ToStateId = 2, Symbol = 'c' }
+            ],
+            Input = "cadc",
+            IsCustomAutomaton = true
+        };
+        var resp = await PostAsync(client, "/Automaton/Start", model);
+        resp.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var html = await resp.Content.ReadAsStringAsync();
+        var value = ExtractInputValue(html);
+        value.ShouldBe("cadc");
+        CountSymbolHighlightSpans(html).ShouldBe(1);
+        ExtractNextSymbolHighlight(html).ShouldBe('c');
+        value.Contains('a').ShouldBeTrue();
+        value.Contains('d').ShouldBeTrue();
+        value.LastIndexOf('c').ShouldBeGreaterThan(0); // ensure trailing 'c' also present
+    }
+
+    [Fact]
+    public async Task StepForward_ShouldShowFullInputAndOtherChars_Unhighlighted_For_cadc()
+    {
+        var client = GetHttpClient();
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.DFA,
+            States = [ new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true } ],
+            Transitions = [
+                new() { FromStateId = 1, ToStateId = 2, Symbol = 'c' },
+                new() { FromStateId = 2, ToStateId = 2, Symbol = 'a' },
+                new() { FromStateId = 2, ToStateId = 2, Symbol = 'd' },
+                new() { FromStateId = 2, ToStateId = 2, Symbol = 'c' }
+            ],
+            Input = "cadc",
+            IsCustomAutomaton = true
+        };
+        var start = await PostAsync(client, "/Automaton/Start", model);
+        start.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var stepModel = new AutomatonViewModel
+        {
+            Type = AutomatonType.DFA,
+            States = model.States,
+            Transitions = model.Transitions,
+            Input = model.Input,
+            IsCustomAutomaton = true,
+            HasExecuted = true,
+            CurrentStateId = 2
+        };
+        var stepResp = await PostAsync(client, "/Automaton/StepForward", stepModel);
+        stepResp.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var html = await stepResp.Content.ReadAsStringAsync();
+        var value = ExtractInputValue(html);
+        value.ShouldBe("cadc");
+        CountSymbolHighlightSpans(html).ShouldBe(1);
+        ExtractNextSymbolHighlight(html).ShouldBe('a');
+        value.Contains('d').ShouldBeTrue();
+        value.LastIndexOf('c').ShouldBeGreaterThan(0);
     }
 }
