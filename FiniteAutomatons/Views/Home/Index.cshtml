@@ -1,6 +1,11 @@
 ﻿@model AutomatonViewModel
 @{
     ViewData["Title"] = "Home";
+    var hasExecuted = Model != null && Model.HasExecuted;
+    var inputLen = Model?.Input?.Length ?? 0;
+    var atStartPos = hasExecuted && Model!.Position <= 0;
+    var atEndPos = hasExecuted && Model!.Position >= inputLen && inputLen > 0;
+    var disableAllUntilStart = Model == null || !hasExecuted; // initial state before Start
 }
 
 <div class="automaton-workspace">
@@ -305,49 +310,89 @@
                     <h2>SIMULATE</h2>
                 </div>
                 <div class="control-content simulate-buttons">
-                    @if (Model == null || !Model.HasExecuted)
+                    @* Start / Reset *@
+                    @if (!hasExecuted)
                     {
-                    <button type="submit" class="control-btn simulate-btn"
-                            asp-controller="Automaton" asp-action="Start"
-                            title="Start">
-                        <i class="fas fa-play-circle"></i>
-                        <span>Start</span>
-                    </button>
+                        <button type="submit" class="control-btn simulate-btn"
+                                asp-controller="Automaton" asp-action="Start"
+                                title="Start" data-sim-primary="start">
+                            <i class="fas fa-play-circle"></i>
+                            <span>Start</span>
+                        </button>
                     }
-                    @if (Model != null && Model.HasExecuted)
+                    @if (hasExecuted)
                     {
-                    <button type="submit" class="control-btn simulate-btn"
-                            asp-controller="Automaton" asp-action="Reset"
-                            title="Reset">
-                        <i class="fas fa-undo"></i>
-                        <span>Reset</span>
-                    </button>
+                        <button type="submit" class="control-btn simulate-btn"
+                                asp-controller="Automaton" asp-action="Reset"
+                                title="Reset" data-sim-primary="reset">
+                            <i class="fas fa-undo"></i>
+                            <span>Reset</span>
+                        </button>
                     }
 
-                    <button type="submit" class="control-btn simulate-btn"
-                            asp-controller="Automaton" asp-action="BackToStart"
-                            title="Back to start">
-                        <i class="fas fa-undo"></i>
-                        <span>Back to start</span>
-                    </button>
-                    <button type="submit" class="control-btn simulate-btn"
-                            asp-controller="Automaton" asp-action="StepBackward"
-                            title="Step back">
-                        <i class="fas fa-step-backward"></i>
-                        <span>Step back</span>
-                    </button>
-                    <button type="submit" class="control-btn simulate-btn"
-                            asp-controller="Automaton" asp-action="StepForward"
-                            title="Read next">
-                        <i class="fas fa-step-forward"></i>
-                        <span>Read next</span>
-                    </button>
-                    <button type="submit" class="control-btn simulate-btn"
-                            asp-controller="Automaton" asp-action="ExecuteAll"
-                            title="Read all">
-                        <i class="fas fa-forward"></i>
-                        <span>Read all</span>
-                    </button>
+                    @* BackToStart *@
+                    @if (disableAllUntilStart || atStartPos)
+                    {
+                        <button type="submit" class="control-btn simulate-btn" asp-controller="Automaton" asp-action="BackToStart" title="Back to start" data-sim-action="backToStart" disabled>
+                            <i class="fas fa-undo"></i>
+                            <span>Back to start</span>
+                        </button>
+                    }
+                    else
+                    {
+                        <button type="submit" class="control-btn simulate-btn" asp-controller="Automaton" asp-action="BackToStart" title="Back to start" data-sim-action="backToStart">
+                            <i class="fas fa-undo"></i>
+                            <span>Back to start</span>
+                        </button>
+                    }
+
+                    @* StepBackward *@
+                    @if (disableAllUntilStart || atStartPos)
+                    {
+                        <button type="submit" class="control-btn simulate-btn" asp-controller="Automaton" asp-action="StepBackward" title="Step back" data-sim-action="stepBackward" disabled>
+                            <i class="fas fa-step-backward"></i>
+                            <span>Step back</span>
+                        </button>
+                    }
+                    else
+                    {
+                        <button type="submit" class="control-btn simulate-btn" asp-controller="Automaton" asp-action="StepBackward" title="Step back" data-sim-action="stepBackward">
+                            <i class="fas fa-step-backward"></i>
+                            <span>Step back</span>
+                        </button>
+                    }
+
+                    @* StepForward *@
+                    @if (disableAllUntilStart || atEndPos)
+                    {
+                        <button type="submit" class="control-btn simulate-btn" asp-controller="Automaton" asp-action="StepForward" title="Read next" data-sim-action="stepForward" disabled>
+                            <i class="fas fa-step-forward"></i>
+                            <span>Read next</span>
+                        </button>
+                    }
+                    else
+                    {
+                        <button type="submit" class="control-btn simulate-btn" asp-controller="Automaton" asp-action="StepForward" title="Read next" data-sim-action="stepForward">
+                            <i class="fas fa-step-forward"></i>
+                            <span>Read next</span>
+                        </button>
+                    }
+
+                    @* ExecuteAll *@
+                    @if (disableAllUntilStart || atEndPos)
+                    {
+                        <button type="submit" class="control-btn simulate-btn" asp-controller="Automaton" asp-action="ExecuteAll" title="Read all" data-sim-action="executeAll" disabled>
+                            <i class="fas fa-forward"></i>
+                            <span>Read all</span>
+                        </button>
+                    }
+                    else
+                    {
+                        <button type="submit" class="control-btn simulate-btn" asp-controller="Automaton" asp-action="ExecuteAll" title="Read all" data-sim-action="executeAll">
+                            <i class="fas fa-forward"></i>
+                            <span>Read all</span>
+                        </button>
+                    }
                 </div>
             </div>
 
@@ -409,12 +454,11 @@
     <script type="module" src="~/js/inputOverlay.mjs" asp-append-version="true"></script>
     <script type="module" src="~/js/panelHighlighter.mjs" asp-append-version="true"></script>
     <script type="module" src="~/js/home.mjs" asp-append-version="true"></script>
+    <script type="module" src="~/js/simulateControls.mjs" asp-append-version="true"></script>
     <script>
         // Type button functionality
         document.querySelectorAll('.type-btn').forEach(btn => {
             btn.addEventListener('click', function() {
-                // Note: Type changing would require backend logic
-                // For now, just highlight the selected type
                 document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
                 this.classList.add('active');
             });

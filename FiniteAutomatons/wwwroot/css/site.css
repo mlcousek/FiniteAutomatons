@@ -986,3 +986,10 @@ border-top: 3px solid #000;
   color: #c95a00;
   font-weight: 700;
 }
+
+.control-btn[disabled], .control-btn.disabled, .control-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  filter: grayscale(40%);
+  pointer-events: none; /* prevent clicks */
+}
