@@ -2,6 +2,7 @@ using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Interfaces;
 using Microsoft.Extensions.Logging;
+using FiniteAutomatons.Core.Utilities; // added for NormalizeEpsilonTransitions
 
 namespace FiniteAutomatons.Services.Services;
 
@@ -12,44 +13,87 @@ public class AutomatonConversionService(IAutomatonBuilderService builderService,
 
     public (AutomatonViewModel ConvertedModel, List<string> Warnings) ConvertAutomatonType(AutomatonViewModel model, AutomatonType newType)
     {
+        model.States ??= [];
+        model.Transitions ??= [];
         var warnings = new List<string>();
-        
-        var convertedModel = new AutomatonViewModel
+
+        // Always normalize epsilon aliases first so internal representation uses '\0'
+        if (model.Type == AutomatonType.EpsilonNFA)
+        {
+            model.NormalizeEpsilonTransitions();
+        }
+
+        // Full conversion: EpsilonNFA -> NFA using epsilon-closure elimination (removes epsilon transitions)
+        if (model.Type == AutomatonType.EpsilonNFA && newType == AutomatonType.NFA)
+        {
+            try
+            {
+                var built = builderService.CreateAutomatonFromModel(model);
+                if (built is EpsilonNFA enfa)
+                {
+                    var nfa = enfa.ToNFA();
+                    var convertedModelFull = new AutomatonViewModel
+                    {
+                        Type = AutomatonType.NFA,
+                        States = [.. nfa.States],
+                        Transitions = [.. nfa.Transitions],
+                        Input = model.Input ?? string.Empty,
+                        IsCustomAutomaton = model.IsCustomAutomaton
+                    };
+                    warnings.Add("Converted EpsilonNFA to NFA via epsilon-closure elimination. Epsilon transitions removed.");
+                    logger.LogInformation("Performed full EpsilonNFA -> NFA conversion. States={StateCount} Transitions={TransitionCount}", convertedModelFull.States.Count, convertedModelFull.Transitions.Count);
+                    return (convertedModelFull, warnings);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed semantic conversion EpsilonNFA -> NFA; falling back to simple removal.");
+            }
+            // Fallback: just remove epsilon transitions (now guaranteed normalized to '\0')
+            var fallback = new AutomatonViewModel
+            {
+                Type = AutomatonType.NFA,
+                States = [.. model.States],
+                Transitions = [.. model.Transitions.Where(t => t.Symbol != '\0')],
+                Input = model.Input ?? string.Empty,
+                IsCustomAutomaton = model.IsCustomAutomaton
+            };
+            warnings.Add("Performed fallback conversion by removing epsilon transitions.");
+            return (fallback, warnings);
+        }
+
+        // Shallow conversions (label/type changes) for other paths
+        var shallow = new AutomatonViewModel
         {
             Type = newType,
-            States = [.. model.States ?? []],
-            Transitions = [.. model.Transitions ?? []],
+            States = [.. model.States],
+            Transitions = [.. model.Transitions],
+            Input = model.Input ?? string.Empty,
             IsCustomAutomaton = model.IsCustomAutomaton
         };
 
         switch ((model.Type, newType))
         {
-            case (AutomatonType.EpsilonNFA, AutomatonType.NFA):
-                convertedModel.Transitions.RemoveAll(t => t.Symbol == '\0');
-                warnings.Add("Epsilon transitions have been removed during conversion to NFA.");
-                break;
-
             case (AutomatonType.EpsilonNFA, AutomatonType.DFA):
             case (AutomatonType.NFA, AutomatonType.DFA):
-                warnings.Add($"Converting from {model.Type} to {newType} may require manual adjustment of transitions to ensure determinism.");
-                break;
-
-            case (AutomatonType.DFA, AutomatonType.NFA):
-            case (AutomatonType.DFA, AutomatonType.EpsilonNFA):
-            case (AutomatonType.NFA, AutomatonType.EpsilonNFA):
+                warnings.Add("Shallow conversion only. Use 'Minimalize' / ConvertToDFA for full determinization.");
                 break;
         }
 
-        logger.LogInformation("Converted automaton from {SourceType} to {TargetType} with {WarningCount} warnings", 
-            model.Type, newType, warnings.Count);
-
-        return (convertedModel, warnings);
+        logger.LogInformation("Shallow converted automaton from {From} to {To}", model.Type, newType);
+        return (shallow, warnings);
     }
 
     public AutomatonViewModel ConvertToDFA(AutomatonViewModel model)
     {
         model.States ??= [];
         model.Transitions ??= [];
+
+        // Normalize epsilon before building (important if UI posted a visible alias like '?')
+        if (model.Type == AutomatonType.EpsilonNFA)
+        {
+            model.NormalizeEpsilonTransitions();
+        }
 
         if (model.Type == AutomatonType.DFA)
         {
@@ -81,12 +125,11 @@ public class AutomatonConversionService(IAutomatonBuilderService builderService,
             Type = AutomatonType.DFA,
             States = [.. convertedDFA.States],
             Transitions = [.. convertedDFA.Transitions],
-            Input = model.Input ?? "",
+            Input = model.Input ?? string.Empty,
             IsCustomAutomaton = true
         };
 
-        logger.LogInformation("Successfully converted {SourceType} to DFA with {StateCount} states", 
-            model.Type, convertedModel.States.Count);
+        logger.LogInformation("Successfully converted {SourceType} to DFA with {StateCount} states", model.Type, convertedModel.States.Count);
 
         return convertedModel;
     }

@@ -516,4 +516,43 @@ public class AutomatonController(
         public string? StateHistorySerialized { get; set; }
         public string? StackSerialized { get; set; }
     }
+
+    [HttpPost]
+    public IActionResult SwitchType([FromForm] AutomatonViewModel model, AutomatonType targetType)
+    {
+        if (model == null) return RedirectToAction("Index", "Home");
+        if (model.Type == targetType) return RedirectToAction("Index", "Home");
+
+        // Allowed conversion paths triggered by UI
+        bool allowed =
+            (model.Type == AutomatonType.EpsilonNFA && (targetType == AutomatonType.NFA || targetType == AutomatonType.DFA)) ||
+            (model.Type == AutomatonType.NFA && targetType == AutomatonType.DFA);
+        if (!allowed) return RedirectToAction("Index", "Home");
+
+        AutomatonViewModel converted;
+        List<string> warnings = new();
+        try
+        {
+            if (targetType == AutomatonType.DFA)
+            {
+                // Domain conversion chain: (EpsilonNFA -> NFA -> DFA) or (NFA -> DFA)
+                converted = conversionService.ConvertToDFA(model);
+            }
+            else // EpsilonNFA -> NFA
+            {
+                (converted, warnings) = conversionService.ConvertAutomatonType(model, targetType);
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "SwitchType conversion failed {From}->{To}; returning original", model.Type, targetType);
+            return RedirectToAction("Index", "Home");
+        }
+
+        // Reset execution state but keep input so user can immediately run simulation on new type
+        converted.ClearExecutionState(keepInput: true);
+        tempDataService.StoreCustomAutomaton(TempData, converted);
+        foreach (var w in warnings) tempDataService.StoreConversionMessage(TempData, w);
+        return RedirectToAction("Index", "Home");
+    }
 }

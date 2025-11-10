@@ -72,7 +72,10 @@ public class AutomatonConversionServiceTests
         convertedModel.Type.ShouldBe(AutomatonType.NFA);
         convertedModel.Transitions.Count.ShouldBe(1);
         convertedModel.Transitions.ShouldNotContain(t => t.Symbol == '\0');
-        warnings.ShouldContain("Epsilon transitions have been removed during conversion to NFA.");
+        // Updated expected warning string after refactor
+        warnings.ShouldContain("Converted EpsilonNFA to NFA via epsilon-closure elimination. Epsilon transitions removed.");
+        // Optional: start state becomes accepting due to closure
+        convertedModel.States.First(s => s.IsStart).IsAccepting.ShouldBeTrue();
     }
 
     [Fact]
@@ -100,55 +103,54 @@ public class MockAutomatonBuilderService : IAutomatonBuilderService
 {
     public Automaton CreateAutomatonFromModel(AutomatonViewModel model)
     {
-        var dfa = new DFA();
-        foreach (var state in model.States ?? [])
+        // Respect the model.Type to create appropriate automaton instance
+        return model.Type switch
         {
-            dfa.States.Add(state);
-        }
-        foreach (var transition in model.Transitions ?? [])
-        {
-            dfa.Transitions.Add(transition);
-        }
-        return dfa;
+            AutomatonType.EpsilonNFA => CreateEpsilonNFA(model),
+            AutomatonType.NFA => CreateNFA(model),
+            AutomatonType.DFA => CreateDFA(model),
+            AutomatonType.PDA => CreatePDA(model),
+            _ => CreateDFA(model)
+        };
     }
 
     public DFA CreateDFA(AutomatonViewModel model)
     {
         var dfa = new DFA();
-        foreach (var state in model.States ?? [])
-        {
-            dfa.States.Add(state);
-        }
+        foreach (var state in model.States ?? []) dfa.States.Add(state);
+        foreach (var transition in model.Transitions ?? []) dfa.Transitions.Add(transition);
+        var start = model.States?.FirstOrDefault(s => s.IsStart);
+        if (start != null) dfa.SetStartState(start.Id);
         return dfa;
     }
 
     public NFA CreateNFA(AutomatonViewModel model)
     {
         var nfa = new NFA();
-        foreach (var state in model.States ?? [])
-        {
-            nfa.States.Add(state);
-        }
+        foreach (var state in model.States ?? []) nfa.States.Add(state);
+        foreach (var transition in model.Transitions ?? []) nfa.Transitions.Add(transition);
+        var start = model.States?.FirstOrDefault(s => s.IsStart);
+        if (start != null) nfa.SetStartState(start.Id);
         return nfa;
     }
 
     public EpsilonNFA CreateEpsilonNFA(AutomatonViewModel model)
     {
         var enfa = new EpsilonNFA();
-        foreach (var state in model.States ?? [])
-        {
-            enfa.States.Add(state);
-        }
+        foreach (var state in model.States ?? []) enfa.States.Add(state);
+        foreach (var transition in model.Transitions ?? []) enfa.Transitions.Add(transition);
+        var start = model.States?.FirstOrDefault(s => s.IsStart);
+        if (start != null) enfa.SetStartState(start.Id);
         return enfa;
     }
 
     public PDA CreatePDA(AutomatonViewModel model)
     {
         var pda = new PDA();
-        foreach (var state in model.States ?? [])
-        {
-            pda.States.Add(state);
-        }
+        foreach (var state in model.States ?? []) pda.States.Add(state);
+        foreach (var transition in model.Transitions ?? []) pda.Transitions.Add(transition);
+        var start = model.States?.FirstOrDefault(s => s.IsStart);
+        if (start != null) pda.SetStartState(start.Id);
         return pda;
     }
 }
