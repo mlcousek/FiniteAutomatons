@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
+using System.Text.Json;
 
 namespace FiniteAutomatons.Controllers;
 
@@ -19,6 +20,7 @@ public class AutomatonController(
  IAutomatonExecutionService executionService,
  IAutomatonEditingService editingService,
  IAutomatonFileService fileService,
+ IAutomatonMinimizationService minimizationService,
  ISavedAutomatonService? savedAutomatonService = null,
  UserManager<IdentityUser>? userManager = null,
  IRegexToAutomatonService? regexService = null) : Controller
@@ -31,9 +33,21 @@ public class AutomatonController(
     private readonly IAutomatonExecutionService executionService = executionService;
     private readonly IAutomatonEditingService editingService = editingService;
     private readonly IAutomatonFileService fileService = fileService;
+    private readonly IAutomatonMinimizationService minimizationService = minimizationService;
     private readonly ISavedAutomatonService? savedAutomatonService = savedAutomatonService;
     private readonly UserManager<IdentityUser>? userManager = userManager;
     private readonly IRegexToAutomatonService? regexService = regexService;
+
+    // Helper to stash analysis in TempData for Index view
+    private void StoreMinimizationAnalysis(AutomatonViewModel model)
+    {
+        try
+        {
+            var analysis = minimizationService.AnalyzeDfa(model);
+            TempData["DfaMinimizationAnalysis"] = JsonSerializer.Serialize(analysis);
+        }
+        catch { /* ignore */ }
+    }
 
     // GET create page
     public IActionResult CreateAutomaton()
@@ -52,11 +66,15 @@ public class AutomatonController(
         if (!isValid)
         {
             foreach (var e in errors) ModelState.AddModelError(string.Empty, e);
+            // Store analysis and temp data so Index view can reflect edge cases (tests rely on this)
+            try { StoreMinimizationAnalysis(model); } catch { }
+            try { tempDataService.StoreCustomAutomaton(TempData, model); } catch { }
             return View(model);
         }
 
         model.IsCustomAutomaton = true;
         tempDataService.StoreCustomAutomaton(TempData, model);
+        StoreMinimizationAnalysis(model);
         return RedirectToAction("Index", "Home");
     }
 
@@ -67,6 +85,7 @@ public class AutomatonController(
         var (converted, warnings) = conversionService.ConvertAutomatonType(model, newType);
         foreach (var w in warnings) ModelState.AddModelError(string.Empty, w);
         converted.ClearExecutionState();
+        StoreMinimizationAnalysis(converted);
         return View("CreateAutomaton", converted);
     }
 
@@ -82,6 +101,7 @@ public class AutomatonController(
         }
         var result = svc.AddState(model, stateId, isStart, isAccepting);
         if (!result.Ok && result.Error != null) ModelState.AddModelError(string.Empty, result.Error);
+        StoreMinimizationAnalysis(model);
         return View("CreateAutomaton", model);
     }
 
@@ -97,6 +117,7 @@ public class AutomatonController(
         }
         var result = svc.RemoveState(model, stateId);
         if (!result.Ok && result.Error != null) ModelState.AddModelError(string.Empty, result.Error);
+        StoreMinimizationAnalysis(model);
         return View("CreateAutomaton", model);
     }
 
@@ -112,6 +133,7 @@ public class AutomatonController(
         }
         var result = svc.AddTransition(model, fromStateId, toStateId, symbol, newTransitionStackPop, newTransitionStackPush);
         if (!result.Ok && result.Error != null) ModelState.AddModelError(string.Empty, result.Error);
+        StoreMinimizationAnalysis(model);
         return View("CreateAutomaton", model);
     }
 
@@ -127,6 +149,7 @@ public class AutomatonController(
         }
         var result = svc.RemoveTransition(model, fromStateId, toStateId, symbol);
         if (!result.Ok && result.Error != null) ModelState.AddModelError(string.Empty, result.Error);
+        StoreMinimizationAnalysis(model);
         return View("CreateAutomaton", model);
     }
 
@@ -137,6 +160,7 @@ public class AutomatonController(
         var updated = executionService.BackToStart(model);
         updated.HasExecuted = true;
         ModelState.Clear(); // ensure updated values rendered
+        StoreMinimizationAnalysis(updated);
         return View("../Home/Index", updated);
     }
 
@@ -147,6 +171,7 @@ public class AutomatonController(
         var updated = executionService.ExecuteStepForward(model);
         updated.HasExecuted = true;
         ModelState.Clear(); // ensure updated values rendered
+        StoreMinimizationAnalysis(updated);
         return View("../Home/Index", updated);
     }
 
@@ -156,6 +181,7 @@ public class AutomatonController(
         var updated = executionService.ExecuteStepBackward(model);
         updated.HasExecuted = model.HasExecuted || updated.Position > 0;
         ModelState.Clear(); // ensure updated values rendered
+        StoreMinimizationAnalysis(updated);
         return View("../Home/Index", updated);
     }
 
@@ -166,6 +192,7 @@ public class AutomatonController(
         var updated = executionService.ExecuteAll(model);
         updated.HasExecuted = true;
         ModelState.Clear(); // ensure updated values rendered
+        StoreMinimizationAnalysis(updated);
         return View("../Home/Index", updated);
     }
 
@@ -175,6 +202,7 @@ public class AutomatonController(
         var updated = executionService.BackToStart(model);
         updated.HasExecuted = model.HasExecuted || model.Position > 0 || model.Result != null;
         ModelState.Clear(); // ensure updated values rendered
+        StoreMinimizationAnalysis(updated);
         return View("../Home/Index", updated);
     }
 
@@ -184,6 +212,7 @@ public class AutomatonController(
         var updated = executionService.ResetExecution(model);
         updated.HasExecuted = false;
         ModelState.Clear(); // ensure updated values rendered
+        StoreMinimizationAnalysis(updated);
         return View("../Home/Index", updated);
     }
 
@@ -194,6 +223,7 @@ public class AutomatonController(
         converted.ClearExecutionState();
         tempDataService.StoreCustomAutomaton(TempData, converted);
         tempDataService.StoreConversionMessage(TempData, $"Successfully converted {model.TypeDisplayName} to DFA with {converted.States.Count} states.");
+        StoreMinimizationAnalysis(converted);
         return RedirectToAction("Index", "Home");
     }
 
@@ -553,6 +583,29 @@ public class AutomatonController(
         converted.ClearExecutionState(keepInput: true);
         tempDataService.StoreCustomAutomaton(TempData, converted);
         foreach (var w in warnings) tempDataService.StoreConversionMessage(TempData, w);
+        return RedirectToAction("Index", "Home");
+    }
+
+    [HttpPost]
+    public IActionResult Minimalize([FromForm] AutomatonViewModel model)
+    {
+        // Allow only before execution has started (HasExecuted false and Position == 0)
+        if (model.Type != AutomatonType.DFA)
+        {
+            tempDataService.StoreErrorMessage(TempData, "Minimization supported only for DFA.");
+            tempDataService.StoreCustomAutomaton(TempData, model);
+            return RedirectToAction("Index", "Home");
+        }
+        if (model.HasExecuted || model.Position > 0)
+        {
+            tempDataService.StoreErrorMessage(TempData, "Cannot minimalize after execution has started. Reset or Back to start first.");
+            tempDataService.StoreCustomAutomaton(TempData, model);
+            return RedirectToAction("Index", "Home");
+        }
+        var (result, msg) = minimizationService.MinimizeDfa(model);
+        tempDataService.StoreCustomAutomaton(TempData, result);
+        tempDataService.StoreConversionMessage(TempData, msg);
+        StoreMinimizationAnalysis(result);
         return RedirectToAction("Index", "Home");
     }
 }

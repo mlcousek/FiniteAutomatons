@@ -17,7 +17,8 @@ public class HomeControllerTests
         var logger = new TestLogger<HomeController>();
         var mockTempDataService = new MockAutomatonTempDataService();
         var mockHomeAutomatonService = new MockHomeAutomatonService();
-        controller = new HomeController(logger, mockTempDataService, mockHomeAutomatonService);
+        var minimizationService = new MockAutomatonMinimizationService();
+        controller = new HomeController(logger, mockTempDataService, mockHomeAutomatonService, minimizationService);
 
         var httpContext = new DefaultHttpContext
         {

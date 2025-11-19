@@ -5,25 +5,24 @@ using System.Diagnostics;
 
 namespace FiniteAutomatons.Controllers;
 
-public class HomeController(ILogger<HomeController> logger, IAutomatonTempDataService tempDataService, IHomeAutomatonService homeAutomatonService) : Controller
+public class HomeController(ILogger<HomeController> logger, IAutomatonTempDataService tempDataService, IHomeAutomatonService homeAutomatonService, IAutomatonMinimizationService minimizationService) : Controller
 {
     private readonly ILogger<HomeController> logger = logger;
     private readonly IAutomatonTempDataService tempDataService = tempDataService;
     private readonly IHomeAutomatonService homeAutomatonService = homeAutomatonService;
+    private readonly IAutomatonMinimizationService minimizationService = minimizationService;
 
     public IActionResult Index()
     {
         logger.LogInformation("Index action called");
 
         var (hasCustomAutomaton, customModel) = tempDataService.TryGetCustomAutomaton(TempData);
-        
-        if (hasCustomAutomaton && customModel != null)
-        {
-            return View(customModel);
-        }
+        AutomatonViewModel model = hasCustomAutomaton && customModel != null ? customModel : homeAutomatonService.GenerateDefaultAutomaton();
 
-        var defaultModel = homeAutomatonService.GenerateDefaultAutomaton();
-        return View(defaultModel);
+        var analysis = minimizationService.AnalyzeDfa(model);
+        ViewData["DfaMinimizationAnalysis"] = analysis;
+
+        return View(model);
     }
 
     public IActionResult Privacy()

@@ -6,9 +6,18 @@
     var atStartPos = hasExecuted && Model!.Position <= 0;
     var atEndPos = hasExecuted && Model!.Position >= inputLen && inputLen > 0;
     var disableAllUntilStart = Model == null || !hasExecuted; // initial state before Start
+    var analysis = ViewData["DfaMinimizationAnalysis"] as FiniteAutomatons.Services.Interfaces.DfaMinimizationAnalysis;
 }
-
 <div class="automaton-workspace">
+    <!-- Global messages (conversion / errors) -->
+    @if (TempData["ErrorMessage"] is string err && !string.IsNullOrWhiteSpace(err))
+    {
+        <div class="alert alert-error minimization-alert" data-test="error-message">@err</div>
+    }
+    @if (TempData["ConversionMessage"] is string conv && !string.IsNullOrWhiteSpace(conv))
+    {
+        <div class="alert alert-info minimization-alert" data-test="conversion-message">@conv</div>
+    }
     <!-- Main Content Area -->
     <div class="workspace-grid">
         <!-- Left Section - Create Automaton -->
@@ -256,9 +265,7 @@
             <input type="hidden" asp-for="StateHistorySerialized" />
             <input type="hidden" asp-for="StackSerialized" />
             <input type="hidden" asp-for="IsCustomAutomaton" />
-            @* Hidden field used by SwitchType refactored logic *@
             <input type="hidden" name="targetType" id="targetTypeField" />
-            @* Persist states *@
             @if (Model.States != null)
             {
                 @for (int i = 0; i < Model.States.Count; i++)
@@ -403,27 +410,47 @@
                 <div class="control-content type-buttons">
                     <button type="button" class="control-btn type-btn @(Model != null && Model.Type == AutomatonType.DFA ? "active" : "")" data-type="DFA">DFA</button>
                     <button type="button" class="control-btn type-btn @(Model != null && Model.Type == AutomatonType.NFA ? "active" : "")" data-type="NFA">NFA</button>
-                    <button type="button" class="control-btn type-btn @(Model != null && Model.Type == AutomatonType.EpsilonNFA ? "active" : "")" data-type="EpsilonNFA">?-NFA</button>
+                    <button type="button" class="control-btn type-btn @(Model != null && Model.Type == AutomatonType.EpsilonNFA ? "active" : "")" data-type="PDA">?-NFA</button>
                     <button type="button" class="control-btn type-btn @(Model != null && Model.Type == AutomatonType.PDA ? "active" : "")" data-type="PDA">PDA</button>
                 </div>
             </div>
-
+            @if (Model?.Type == AutomatonType.DFA && analysis != null && analysis.SupportsMinimization)
+            {
             <!-- Minimalize Section -->
             <div class="control-section minimize-section">
                 <div class="section-header-custom">
                     <h2>MINIMALIZE</h2>
                 </div>
                 <div class="control-content-right">
-                    <button type="submit" class="control-btn minimize-btn"
-                            asp-controller="Automaton" asp-action="ConvertToDFA">
-                        Minimalize
-                    </button>
+                        @{
+                            // Ensure this is evaluated as Razor code so the local variable is available to subsequent Razor logic.
+                        var executionStarted = Model.HasExecuted || Model.Position > 0;
+                        }
+                        @if (analysis.IsMinimal)
+                        {
+                            <button type="button" class="control-btn minimize-btn" disabled title="Already minimal">
+                                Minimalize (Already Minimal)
+                            </button>
+                        }
+                        else if (executionStarted)
+                        {
+                            <button type="button" class="control-btn minimize-btn" disabled title="Execution started">
+                                Minimalize (Disabled - Execution Started)
+                            </button>
+                        }
+                        else
+                        {
+                            <button type="submit" class="control-btn minimize-btn"
+                                    asp-controller="Automaton" asp-action="Minimalize" title="Minimalize DFA">
+                                Minimalize (→ @analysis.MinimizedStateCount)
+                            </button>
+                    }
                 </div>
             </div>
+            }
         </div>
     </form>
 
-    <!-- Generate New Automaton Button -->
     <div style="text-align: center; margin-top: 1rem;">
         <form asp-controller="Automaton" asp-action="GenerateRealisticAutomaton" method="post" style="display: inline;">
             <input type="hidden" name="type" value="@(Model != null ? (int)Model.Type : 0)" />

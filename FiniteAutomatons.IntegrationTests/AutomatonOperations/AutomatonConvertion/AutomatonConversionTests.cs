@@ -3,12 +3,8 @@ using Shouldly;
 using System.Net;
 using System.Text.RegularExpressions;
 
-namespace FiniteAutomatons.IntegrationTests;
+namespace FiniteAutomatons.IntegrationTests.AutomatonOperations.AutomatonConvertion;
 
-/// <summary>
-/// Integration tests for automaton conversion functionality.
-/// Tests conversion between different automaton types (NFA to DFA, minimization).
-/// </summary>
 [Collection("Integration Tests")]
 public class AutomatonConversionTests(IntegrationTestsFixture fixture) : IntegrationTestsBase(fixture)
 {
@@ -38,10 +34,10 @@ public class AutomatonConversionTests(IntegrationTestsFixture fixture) : Integra
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await response.Content.ReadAsStringAsync();
-        
+
         // Verify DFA type in button
         html.ShouldContain("data-type=\"DFA\"");
-        
+
         // Verify states were created
         html.ShouldContain("data-state-id=");
     }
@@ -73,7 +69,7 @@ public class AutomatonConversionTests(IntegrationTestsFixture fixture) : Integra
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await response.Content.ReadAsStringAsync();
-        
+
         // Should have created DFA
         html.ShouldContain("data-type=\"DFA\"");
     }
@@ -109,10 +105,10 @@ public class AutomatonConversionTests(IntegrationTestsFixture fixture) : Integra
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await response.Content.ReadAsStringAsync();
-        
+
         // Should still be DFA
         html.ShouldContain("data-type=\"DFA\"");
-        
+
         // After minimization, should have fewer or equal states
         var stateMatches = Regex.Matches(html, @"data-state-id=""(\d+)""");
         stateMatches.Count.ShouldBeLessThanOrEqualTo(3);
@@ -149,7 +145,7 @@ public class AutomatonConversionTests(IntegrationTestsFixture fixture) : Integra
         var dfaResponse = await PostConversionAsync(client, nfaModel);
         dfaResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var dfaHtml = await dfaResponse.Content.ReadAsStringAsync();
-        
+
         // Parse DFA model
         var dfaModel = ParseAutomatonFromHtml(dfaHtml);
         dfaModel.Input = "a";
@@ -234,7 +230,7 @@ public class AutomatonConversionTests(IntegrationTestsFixture fixture) : Integra
         {
             var match = stateIdMatches[i];
             var idValue = match.Groups[2].Success ? match.Groups[2].Value : match.Groups[3].Value;
-            
+
             model.States.Add(new Core.Models.DoMain.State
             {
                 Id = int.Parse(idValue),
@@ -259,7 +255,7 @@ public class AutomatonConversionTests(IntegrationTestsFixture fixture) : Integra
                 if (!string.IsNullOrEmpty(symbolValue))
                     symbol = symbolValue[0];
             }
-            
+
             model.Transitions.Add(new Core.Models.DoMain.Transition
             {
                 FromStateId = int.Parse(fromValue),

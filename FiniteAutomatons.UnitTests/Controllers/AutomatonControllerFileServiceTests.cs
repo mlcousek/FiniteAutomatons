@@ -20,7 +20,7 @@ public class AutomatonControllerFileServiceTests
 
     private static AutomatonController Build()
     {
-        var controller = new AutomatonController(new TestLogger<AutomatonController>(), new MockAutomatonGeneratorService(), new MockAutomatonTempDataService(), new MockAutomatonValidationService(), new MockAutomatonConversionService(), new MockAutomatonExecutionService(), new AutomatonEditingService(new MockAutomatonValidationService(), new TestLogger<AutomatonEditingService>()), new MockAutomatonFileService())
+        var controller = new AutomatonController(new TestLogger<AutomatonController>(), new MockAutomatonGeneratorService(), new MockAutomatonTempDataService(), new MockAutomatonValidationService(), new MockAutomatonConversionService(), new MockAutomatonExecutionService(), new AutomatonEditingService(new MockAutomatonValidationService(), new TestLogger<AutomatonEditingService>()), new MockAutomatonFileService(), new MockAutomatonMinimizationService())
         {
             TempData = new TempDataDictionary(new DefaultHttpContext(), new TestTempDataProvider())
         };

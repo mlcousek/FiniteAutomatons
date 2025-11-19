@@ -196,6 +196,7 @@ public partial class Program
         services.AddScoped<IAutomatonBuilderService, AutomatonBuilderService>();
         services.AddScoped<IAutomatonEditingService, AutomatonEditingService>();
         services.AddScoped<IAutomatonFileService, AutomatonFileService>();
+        services.AddScoped<IAutomatonMinimizationService, AutomatonMinimizationService>();
 
         // Register automaton types
         services.AddTransient<DFA>();

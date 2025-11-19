@@ -18,7 +18,8 @@ public class HomeControllerRandomGenerationTests
         var homeAutomatonService = new HomeAutomatonService(service, new TestLogger<HomeAutomatonService>());
         var logger = new TestLogger<HomeController>();
         var mockTempDataService = new MockAutomatonTempDataService();
-        var controller = new HomeController(logger, mockTempDataService, homeAutomatonService);
+        var minimizationService = new MockAutomatonMinimizationService();
+        var controller = new HomeController(logger, mockTempDataService, homeAutomatonService, minimizationService);
         
         var httpContext = new DefaultHttpContext();
         var tempData = new TempDataDictionary(httpContext, new TestTempDataProvider());

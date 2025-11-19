@@ -24,7 +24,7 @@ public class AutomatonControllerTests
         var mockEditingService = new AutomatonEditingService(new MockAutomatonValidationService(), new TestLogger<AutomatonEditingService>());
         
         controller = new AutomatonController(logger, mockGeneratorService, mockTempDataService,
-            mockValidationService, mockConversionService, mockExecutionService, mockEditingService, new MockAutomatonFileService());
+            mockValidationService, mockConversionService, mockExecutionService, mockEditingService, new MockAutomatonFileService(), new MockAutomatonMinimizationService());
 
         var httpContext = new DefaultHttpContext();
         var tempData = new TempDataDictionary(httpContext, new TestTempDataProvider());

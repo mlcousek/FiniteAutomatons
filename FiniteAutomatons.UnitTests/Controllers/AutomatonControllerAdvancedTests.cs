@@ -23,13 +23,13 @@ public class AutomatonControllerAdvancedTests   //TODO refactore tests, introduc
         var mockExecution = new MockAutomatonExecutionService();
         var editingService = new AutomatonEditingService(realValidation, new TestLogger<AutomatonEditingService>());
 
-        controllerWithRealValidation = new AutomatonController(new TestLogger<AutomatonController>(), mockGenerator, mockTempData, realValidation, mockConversion, mockExecution, editingService, new MockAutomatonFileService())
+        controllerWithRealValidation = new AutomatonController(new TestLogger<AutomatonController>(), mockGenerator, mockTempData, realValidation, mockConversion, mockExecution, editingService, new MockAutomatonFileService(), new MockAutomatonMinimizationService())
         {
             TempData = new TempDataDictionary(new DefaultHttpContext(), new TestTempDataProvider())
         };
 
         var mockEditing = new AutomatonEditingService(new MockAutomatonValidationService(), new TestLogger<AutomatonEditingService>());
-        controllerWithMocks = new AutomatonController(new TestLogger<AutomatonController>(), mockGenerator, mockTempData, new MockAutomatonValidationService(), mockConversion, mockExecution, mockEditing, new MockAutomatonFileService())
+        controllerWithMocks = new AutomatonController(new TestLogger<AutomatonController>(), mockGenerator, mockTempData, new MockAutomatonValidationService(), mockConversion, mockExecution, mockEditing, new MockAutomatonFileService(), new MockAutomatonMinimizationService())
         {
             TempData = new TempDataDictionary(new DefaultHttpContext(), new TestTempDataProvider())
         };
@@ -160,7 +160,7 @@ public class AutomatonControllerAdvancedTests   //TODO refactore tests, introduc
     public void AddTransition_DuplicateForDFA_ShouldBeRejected()
     {
         var realValidation = new AutomatonValidationService(new TestLogger<AutomatonValidationService>());
-        var controller = new AutomatonController(new TestLogger<AutomatonController>(), new MockAutomatonGeneratorService(), new MockAutomatonTempDataService(), realValidation, new MockAutomatonConversionService(), new MockAutomatonExecutionService(), new AutomatonEditingService(realValidation, new TestLogger<AutomatonEditingService>()), new MockAutomatonFileService())
+        var controller = new AutomatonController(new TestLogger<AutomatonController>(), new MockAutomatonGeneratorService(), new MockAutomatonTempDataService(), realValidation, new MockAutomatonConversionService(), new MockAutomatonExecutionService(), new AutomatonEditingService(realValidation, new TestLogger<AutomatonEditingService>()), new MockAutomatonFileService(), new MockAutomatonMinimizationService())
         {
             TempData = new TempDataDictionary(new DefaultHttpContext(), new TestTempDataProvider())
         };

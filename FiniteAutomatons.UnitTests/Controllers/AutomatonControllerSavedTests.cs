@@ -183,7 +183,7 @@ public class AutomatonControllerSavedTests
 
         var userManager = new TestUserManager(user);
 
-        var controller = new AutomatonController(logger, mockGenerator, tempDataSvc, validationSvc, conversionSvc, execSvc, editingSvc, fileSvc, svc, userManager, null);
+        var controller = new AutomatonController(logger, mockGenerator, tempDataSvc, validationSvc, conversionSvc, execSvc, editingSvc, fileSvc, new MockAutomatonMinimizationService(), svc, userManager, null);
 
         var httpContext = new DefaultHttpContext();
         controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
