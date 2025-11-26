@@ -3,7 +3,7 @@ using Shouldly;
 using System.Net;
 using System.Text.RegularExpressions;
 
-namespace FiniteAutomatons.IntegrationTests;
+namespace FiniteAutomatons.IntegrationTests.AutomationExecution;
 
 [Collection("Integration Tests")]
 public class AutomatonExecutionDfaComprehensiveTests(IntegrationTestsFixture fixture) : IntegrationTestsBase(fixture)
@@ -74,7 +74,7 @@ public class AutomatonExecutionDfaComprehensiveTests(IntegrationTestsFixture fix
         var resp = await PostAsync(client, "/Automaton/ExecuteAll", model);
         resp.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await resp.Content.ReadAsStringAsync();
-        var (pos,len) = ExtractPosition(html);
+        var (pos, len) = ExtractPosition(html);
         pos.ShouldBe(len);
         HasNextSymbol(html).ShouldBeFalse();
         html.ShouldContain("Result:");
@@ -90,7 +90,7 @@ public class AutomatonExecutionDfaComprehensiveTests(IntegrationTestsFixture fix
         var resp = await PostAsync(client, "/Automaton/ExecuteAll", model);
         resp.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await resp.Content.ReadAsStringAsync();
-        var (pos,len) = ExtractPosition(html);
+        var (pos, len) = ExtractPosition(html);
         pos.ShouldBe(len);
         html.ShouldContain("Result:");
         html.ShouldContain("REJECTED", Case.Insensitive);
@@ -130,9 +130,9 @@ public class AutomatonExecutionDfaComprehensiveTests(IntegrationTestsFixture fix
         return await client.PostAsync(url, new FormUrlEncodedContent(formData));
     }
 
-    private static List<KeyValuePair<string,string>> BuildForm(AutomatonViewModel m)
+    private static List<KeyValuePair<string, string>> BuildForm(AutomatonViewModel m)
     {
-        var list = new List<KeyValuePair<string,string>>
+        var list = new List<KeyValuePair<string, string>>
         {
             new("Type", ((int)m.Type).ToString()),
             new("Input", m.Input ?? string.Empty),
@@ -142,14 +142,14 @@ public class AutomatonExecutionDfaComprehensiveTests(IntegrationTestsFixture fix
             new("StateHistorySerialized", m.StateHistorySerialized ?? string.Empty)
         };
         if (m.CurrentStateId.HasValue) list.Add(new("CurrentStateId", m.CurrentStateId.Value.ToString()));
-        for (int i=0;i<m.States.Count;i++)
+        for (int i = 0; i < m.States.Count; i++)
         {
             list.Add(new("States.Index", i.ToString()));
             list.Add(new($"States[{i}].Id", m.States[i].Id.ToString()));
             list.Add(new($"States[{i}].IsStart", m.States[i].IsStart.ToString().ToLower()));
             list.Add(new($"States[{i}].IsAccepting", m.States[i].IsAccepting.ToString().ToLower()));
         }
-        for (int i=0;i<m.Transitions.Count;i++)
+        for (int i = 0; i < m.Transitions.Count; i++)
         {
             list.Add(new("Transitions.Index", i.ToString()));
             list.Add(new($"Transitions[{i}].FromStateId", m.Transitions[i].FromStateId.ToString()));
@@ -163,8 +163,8 @@ public class AutomatonExecutionDfaComprehensiveTests(IntegrationTestsFixture fix
     {
         var vm = new AutomatonViewModel
         {
-            States = new List<FiniteAutomatons.Core.Models.DoMain.State>(),
-            Transitions = new List<FiniteAutomatons.Core.Models.DoMain.Transition>()
+            States = new List<Core.Models.DoMain.State>(),
+            Transitions = new List<Core.Models.DoMain.Transition>()
         };
         vm.Type = (AutomatonType)ParseInt(html, "Type", (int)AutomatonType.DFA);
         vm.Position = ParseInt(html, "Position", 0);
@@ -177,29 +177,29 @@ public class AutomatonExecutionDfaComprehensiveTests(IntegrationTestsFixture fix
         var stateIds = Regex.Matches(html, "States\\[(\\d+)\\]\\.Id\"[^>]*value=\"(\\d+)\"");
         var starts = Regex.Matches(html, "States\\[(\\d+)\\]\\.IsStart\"[^>]*value=\"(true|false)\"");
         var accepts = Regex.Matches(html, "States\\[(\\d+)\\]\\.IsAccepting\"[^>]*value=\"(true|false)\"");
-        for (int i=0;i<stateIds.Count;i++)
+        for (int i = 0; i < stateIds.Count; i++)
         {
             var id = int.Parse(stateIds[i].Groups[2].Value);
             bool isStart = i < starts.Count && bool.Parse(starts[i].Groups[2].Value);
             bool isAccept = i < accepts.Count && bool.Parse(accepts[i].Groups[2].Value);
-            vm.States.Add(new() { Id=id, IsStart=isStart, IsAccepting=isAccept });
+            vm.States.Add(new() { Id = id, IsStart = isStart, IsAccepting = isAccept });
         }
         var froms = Regex.Matches(html, "Transitions\\[(\\d+)\\]\\.FromStateId\"[^>]*value=\"(\\d+)\"");
         var tos = Regex.Matches(html, "Transitions\\[(\\d+)\\]\\.ToStateId\"[^>]*value=\"(\\d+)\"");
         var syms = Regex.Matches(html, "Transitions\\[(\\d+)\\]\\.Symbol\"[^>]*value=\"(.)\"");
-        for (int i=0;i<froms.Count && i<tos.Count;i++)
+        for (int i = 0; i < froms.Count && i < tos.Count; i++)
         {
             var from = int.Parse(froms[i].Groups[2].Value);
             var to = int.Parse(tos[i].Groups[2].Value);
-            var sym = i<syms.Count ? syms[i].Groups[2].Value[0] : '\0';
-            vm.Transitions.Add(new() { FromStateId=from, ToStateId=to, Symbol=sym });
+            var sym = i < syms.Count ? syms[i].Groups[2].Value[0] : '\0';
+            vm.Transitions.Add(new() { FromStateId = from, ToStateId = to, Symbol = sym });
         }
         return vm;
     }
 
     private static string? ExtractInput(string html)
         => ExtractInputValue(html, "Input");
-    private static (int pos,int len) ExtractPosition(string html)
+    private static (int pos, int len) ExtractPosition(string html)
     {
         var val = ExtractInputValue(html, "Position");
         var input = ExtractInput(html) ?? string.Empty;

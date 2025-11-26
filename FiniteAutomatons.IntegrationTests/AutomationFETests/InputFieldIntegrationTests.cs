@@ -1,9 +1,10 @@
 using FiniteAutomatons.Core.Models.ViewModel;
+using FiniteAutomatons.IntegrationTests.AutomatonOperations.AutomatonGeneration;
 using Shouldly;
 using System.Net;
 using System.Text.RegularExpressions;
 
-namespace FiniteAutomatons.IntegrationTests;
+namespace FiniteAutomatons.IntegrationTests.AutomationFETests;
 
 [Collection("Integration Tests")]
 public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : IntegrationTestsBase(fixture)
@@ -50,9 +51,9 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
         return await client.PostAsync(url, new FormUrlEncodedContent(formData));
     }
 
-    private static List<KeyValuePair<string,string>> BuildForm(AutomatonViewModel m)
+    private static List<KeyValuePair<string, string>> BuildForm(AutomatonViewModel m)
     {
-        var list = new List<KeyValuePair<string,string>>
+        var list = new List<KeyValuePair<string, string>>
         {
             new("Type", ((int)m.Type).ToString()),
             new("Input", m.Input ?? string.Empty),
@@ -65,19 +66,21 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
         if (m.CurrentStates != null)
         {
             int i = 0;
-            foreach(var s in m.CurrentStates){
+            foreach (var s in m.CurrentStates)
+            {
                 list.Add(new("CurrentStates.Index", i.ToString()));
                 list.Add(new($"CurrentStates[{i}]", s.ToString()));
-                i++;}
+                i++;
+            }
         }
-        for (int i=0;i<m.States.Count;i++)
+        for (int i = 0; i < m.States.Count; i++)
         {
             list.Add(new("States.Index", i.ToString()));
             list.Add(new($"States[{i}].Id", m.States[i].Id.ToString()));
             list.Add(new($"States[{i}].IsStart", m.States[i].IsStart.ToString().ToLower()));
             list.Add(new($"States[{i}].IsAccepting", m.States[i].IsAccepting.ToString().ToLower()));
         }
-        for (int i=0;i<m.Transitions.Count;i++)
+        for (int i = 0; i < m.Transitions.Count; i++)
         {
             list.Add(new("Transitions.Index", i.ToString()));
             list.Add(new($"Transitions[{i}].FromStateId", m.Transitions[i].FromStateId.ToString()));
@@ -122,7 +125,7 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
         var client = GetHttpClient();
         var model = BuildSimpleDfa("abba");
         var resp = await PostAsync(client, "/Automaton/CreateAutomaton", model); // creation may return OK if validation passes
-        resp.StatusCode.ShouldBeOneOf(new[]{HttpStatusCode.OK, HttpStatusCode.Found});
+        resp.StatusCode.ShouldBeOneOf(new[] { HttpStatusCode.OK, HttpStatusCode.Found });
         var html = await resp.Content.ReadAsStringAsync();
         ExtractInputValue(html).ShouldBe("abba");
         InputIsReadonly(html).ShouldBeFalse();
@@ -250,7 +253,7 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
         var model = new AutomatonViewModel
         {
             Type = AutomatonType.DFA,
-            States = [ new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true } ],
+            States = [new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true }],
             Transitions = [
                 new() { FromStateId = 1, ToStateId = 2, Symbol = 'c' },
                 new() { FromStateId = 2, ToStateId = 2, Symbol = 'a' },
@@ -275,7 +278,7 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
         var model = new AutomatonViewModel
         {
             Type = AutomatonType.DFA,
-            States = [ new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true } ],
+            States = [new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true }],
             Transitions = [
                 new() { FromStateId = 1, ToStateId = 2, Symbol = 'c' },
                 new() { FromStateId = 2, ToStateId = 2, Symbol = 'a' },
@@ -357,7 +360,7 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
         var model = new AutomatonViewModel
         {
             Type = AutomatonType.DFA,
-            States = [ new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true } ],
+            States = [new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true }],
             Transitions = [
                 new() { FromStateId = 1, ToStateId = 2, Symbol = 'c' },
                 new() { FromStateId = 2, ToStateId = 2, Symbol = 'a' },
@@ -386,7 +389,7 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
         var model = new AutomatonViewModel
         {
             Type = AutomatonType.DFA,
-            States = [ new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true } ],
+            States = [new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true }],
             Transitions = [
                 new() { FromStateId = 1, ToStateId = 2, Symbol = 'c' },
                 new() { FromStateId = 2, ToStateId = 2, Symbol = 'a' },

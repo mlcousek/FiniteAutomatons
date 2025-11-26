@@ -1,7 +1,7 @@
 using FiniteAutomatons.Core.Models.ViewModel;
 using Shouldly;
 
-namespace FiniteAutomatons.IntegrationTests;
+namespace FiniteAutomatons.IntegrationTests.AutomationFETests;
 
 [Collection("Integration Tests")]
 public class StartResetButtonVisibilityTests(IntegrationTestsFixture fixture) : IntegrationTestsBase(fixture)

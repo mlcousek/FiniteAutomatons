@@ -1,9 +1,10 @@
 using FiniteAutomatons.Core.Models.ViewModel;
+using FiniteAutomatons.IntegrationTests.AutomatonOperations.AutomatonGeneration;
 using Shouldly;
 using System.Net;
 using System.Text.RegularExpressions;
 
-namespace FiniteAutomatons.IntegrationTests;
+namespace FiniteAutomatons.IntegrationTests.AutomationFETests;
 
 [Collection("Integration Tests")]
 public class SimulateControlsDisableTests(IntegrationTestsFixture fixture) : IntegrationTestsBase(fixture)

@@ -2,7 +2,7 @@ using FiniteAutomatons.Core.Models.ViewModel;
 using Shouldly;
 using System.Net;
 
-namespace FiniteAutomatons.IntegrationTests;
+namespace FiniteAutomatons.IntegrationTests.AutomatonOperations.AutomatonGeneration;
 
 /// <summary>
 /// Integration tests for automaton generation functionality.
@@ -32,13 +32,13 @@ public class AutomatonGenerationTests(IntegrationTestsFixture fixture) : Integra
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await response.Content.ReadAsStringAsync();
-        
+
         // Verify states are generated
         html.ShouldContain("data-state-id=");
-        
+
         // Verify transitions are generated
         html.ShouldContain("data-from=");
-        
+
         // Verify alphabet is populated
         html.ShouldContain("alphabet-symbols");
     }
@@ -60,14 +60,14 @@ public class AutomatonGenerationTests(IntegrationTestsFixture fixture) : Integra
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await response.Content.ReadAsStringAsync();
-        
+
         // Should have exactly 3 states
         var stateMatches = System.Text.RegularExpressions.Regex.Matches(html, @"data-state-id=""(\d+)""");
         stateMatches.Count.ShouldBe(3);
-        
+
         // Should have at least one start state
         html.ShouldContain("badge-start");
-        
+
         // Should have at least one accepting state
         html.ShouldContain("badge-accepting");
     }
@@ -106,25 +106,25 @@ public class AutomatonGenerationTests(IntegrationTestsFixture fixture) : Integra
         // Act - Generate automaton
         var generateResponse = await client.PostAsync("/Automaton/GenerateRealisticAutomaton", new FormUrlEncodedContent(generateFormData));
         generateResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
-        
+
         var html = await generateResponse.Content.ReadAsStringAsync();
-        
+
         // Extract alphabet to create valid input
         var alphabetMatch = System.Text.RegularExpressions.Regex.Match(html, @"<span class=""alphabet-symbols"">\{ ([^}]+) \}</span>");
         if (!alphabetMatch.Success)
             return; // No alphabet, skip execution test
-            
+
         var alphabetStr = alphabetMatch.Groups[1].Value;
         var firstSymbol = alphabetStr.Split(',')[0].Trim();
-        
+
         // Parse states and transitions from generated HTML
         var model = ParseAutomatonFromHtml(html);
         model.Input = firstSymbol;
-        
+
         // Act - Execute the generated automaton
         var executeFormData = BuildExecutionFormData(model);
         var executeResponse = await client.PostAsync("/Automaton/ExecuteAll", new FormUrlEncodedContent(executeFormData));
-        
+
         // Assert - Should execute without errors
         executeResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
@@ -152,7 +152,7 @@ public class AutomatonGenerationTests(IntegrationTestsFixture fixture) : Integra
         {
             var match = stateIdMatches[i];
             var idValue = match.Groups[2].Success ? match.Groups[2].Value : match.Groups[3].Value;
-            
+
             model.States.Add(new Core.Models.DoMain.State
             {
                 Id = int.Parse(idValue),
@@ -171,7 +171,7 @@ public class AutomatonGenerationTests(IntegrationTestsFixture fixture) : Integra
             var fromValue = transFromMatches[i].Groups[1].Success ? transFromMatches[i].Groups[1].Value : transFromMatches[i].Groups[2].Value;
             var toValue = transToMatches[i].Groups[1].Success ? transToMatches[i].Groups[1].Value : transToMatches[i].Groups[2].Value;
             var symbolValue = transSymbolMatches[i].Groups[1].Success ? transSymbolMatches[i].Groups[1].Value : transSymbolMatches[i].Groups[2].Value;
-            
+
             model.Transitions.Add(new Core.Models.DoMain.Transition
             {
                 FromStateId = int.Parse(fromValue),

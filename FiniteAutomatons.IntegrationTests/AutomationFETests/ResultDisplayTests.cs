@@ -3,7 +3,7 @@ using Shouldly;
 using System.Net;
 using System.Text.RegularExpressions;
 
-namespace FiniteAutomatons.IntegrationTests;
+namespace FiniteAutomatons.IntegrationTests.AutomationFETests;
 
 /// <summary>
 /// Integration tests for result display (ACCEPTED/REJECTED) after full input is read.

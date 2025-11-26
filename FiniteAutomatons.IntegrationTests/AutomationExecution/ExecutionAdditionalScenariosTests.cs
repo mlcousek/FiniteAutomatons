@@ -3,7 +3,7 @@ using Shouldly;
 using System.Net;
 using System.Text.RegularExpressions;
 
-namespace FiniteAutomatons.IntegrationTests;
+namespace FiniteAutomatons.IntegrationTests.AutomationExecution;
 
 [Collection("Integration Tests")]
 public class ExecutionAdditionalScenariosTests(IntegrationTestsFixture fixture) : IntegrationTestsBase(fixture)
@@ -156,8 +156,8 @@ public class ExecutionAdditionalScenariosTests(IntegrationTestsFixture fixture) 
         var startModel = new AutomatonViewModel
         {
             Type = model.Type,
-            States = model.States.Select(s => new FiniteAutomatons.Core.Models.DoMain.State { Id=s.Id, IsStart=s.IsStart, IsAccepting=s.IsAccepting }).ToList(),
-            Transitions = model.Transitions.Select(t => new FiniteAutomatons.Core.Models.DoMain.Transition { FromStateId=t.FromStateId, ToStateId=t.ToStateId, Symbol=t.Symbol }).ToList(),
+            States = model.States.Select(s => new Core.Models.DoMain.State { Id=s.Id, IsStart=s.IsStart, IsAccepting=s.IsAccepting }).ToList(),
+            Transitions = model.Transitions.Select(t => new Core.Models.DoMain.Transition { FromStateId=t.FromStateId, ToStateId=t.ToStateId, Symbol=t.Symbol }).ToList(),
             Input = model.Input,
             IsCustomAutomaton = true,
             HasExecuted = true,
@@ -169,8 +169,8 @@ public class ExecutionAdditionalScenariosTests(IntegrationTestsFixture fixture) 
         var step1Model = new AutomatonViewModel
         {
             Type = model.Type,
-            States = model.States.Select(s => new FiniteAutomatons.Core.Models.DoMain.State { Id=s.Id, IsStart=s.IsStart, IsAccepting=s.IsAccepting }).ToList(),
-            Transitions = model.Transitions.Select(t => new FiniteAutomatons.Core.Models.DoMain.Transition { FromStateId=t.FromStateId, ToStateId=t.ToStateId, Symbol=t.Symbol }).ToList(),
+            States = model.States.Select(s => new Core.Models.DoMain.State { Id=s.Id, IsStart=s.IsStart, IsAccepting=s.IsAccepting }).ToList(),
+            Transitions = model.Transitions.Select(t => new Core.Models.DoMain.Transition { FromStateId=t.FromStateId, ToStateId=t.ToStateId, Symbol=t.Symbol }).ToList(),
             Input = model.Input,
             IsCustomAutomaton = true,
             HasExecuted = true,
@@ -183,8 +183,8 @@ public class ExecutionAdditionalScenariosTests(IntegrationTestsFixture fixture) 
         var backModel = new AutomatonViewModel
         {
             Type = model.Type,
-            States = model.States.Select(s => new FiniteAutomatons.Core.Models.DoMain.State { Id=s.Id, IsStart=s.IsStart, IsAccepting=s.IsAccepting }).ToList(),
-            Transitions = model.Transitions.Select(t => new FiniteAutomatons.Core.Models.DoMain.Transition { FromStateId=t.FromStateId, ToStateId=t.ToStateId, Symbol=t.Symbol }).ToList(),
+            States = model.States.Select(s => new Core.Models.DoMain.State { Id=s.Id, IsStart=s.IsStart, IsAccepting=s.IsAccepting }).ToList(),
+            Transitions = model.Transitions.Select(t => new Core.Models.DoMain.Transition { FromStateId=t.FromStateId, ToStateId=t.ToStateId, Symbol=t.Symbol }).ToList(),
             Input = model.Input,
             IsCustomAutomaton = true,
             HasExecuted = true,

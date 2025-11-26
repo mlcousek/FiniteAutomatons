@@ -1,7 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
 
-namespace FiniteAutomatons.IntegrationTests;
+namespace FiniteAutomatons.IntegrationTests.ObservabilityTests;
 
 [Collection("Integration Tests")]
 public class ObservabilityCorrelationTests(IntegrationTestsFixture fixture) : IntegrationTestsBase(fixture)

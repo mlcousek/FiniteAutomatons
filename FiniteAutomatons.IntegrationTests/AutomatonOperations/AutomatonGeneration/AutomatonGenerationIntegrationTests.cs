@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
 using System.Net;
 
-namespace FiniteAutomatons.IntegrationTests.AutomatonGeneration;
+namespace FiniteAutomatons.IntegrationTests.AutomatonOperations.AutomatonGeneration;
 
 [Collection("Integration Tests")]
 public class AutomatonGenerationIntegrationTests(IntegrationTestsFixture fixture) : IntegrationTestsBase(fixture)

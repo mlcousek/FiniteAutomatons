@@ -3,7 +3,7 @@ using Shouldly;
 using System.Net;
 using System.Text.RegularExpressions;
 
-namespace FiniteAutomatons.IntegrationTests;
+namespace FiniteAutomatons.IntegrationTests.AutomationExecution;
 
 [Collection("Integration Tests")]
 public class AutomatonExecutionDfaTests(IntegrationTestsFixture fixture) : IntegrationTestsBase(fixture)
@@ -161,8 +161,8 @@ public class AutomatonExecutionDfaTests(IntegrationTestsFixture fixture) : Integ
     {
         var vm = new AutomatonViewModel
         {
-            States = new List<FiniteAutomatons.Core.Models.DoMain.State>(),
-            Transitions = new List<FiniteAutomatons.Core.Models.DoMain.Transition>()
+            States = new List<Core.Models.DoMain.State>(),
+            Transitions = new List<Core.Models.DoMain.Transition>()
         };
         vm.Type = (AutomatonType)ParseInt(html, "Type", (int)AutomatonType.DFA);
         vm.Position = ParseInt(html, "Position", 0);

@@ -1,8 +1,9 @@
 using FiniteAutomatons.Core.Models.ViewModel;
+using FiniteAutomatons.IntegrationTests.AutomatonOperations.AutomatonGeneration;
+using FiniteAutomatons.Observability;
+using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
 using System.Net;
-using Microsoft.Extensions.DependencyInjection;
-using FiniteAutomatons.Observability;
 
 namespace FiniteAutomatons.IntegrationTests.AutomatonApiTests;
 

@@ -51,5 +51,4 @@ public class IntegrationTestsFixture : IAsyncLifetime
     {
         Environment.SetEnvironmentVariable("ConnectionString__DbConnection", connectionString);
     }
-
 }
