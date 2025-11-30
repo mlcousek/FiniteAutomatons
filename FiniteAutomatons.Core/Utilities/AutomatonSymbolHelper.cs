@@ -11,19 +11,19 @@ public static class AutomatonSymbolHelper
 
     private static readonly HashSet<string> epsilonAliases = new(StringComparer.OrdinalIgnoreCase)
     {
-        EpsilonDisplay,     
-        EpsilonDisplayAlt,  
+        EpsilonDisplay,
+        EpsilonDisplayAlt,
         "?",
         "epsilon",
         "eps",
         "lambda",
-        "\\0",            
-        "\0"               
+        "\\0",
+        "\0"
     };
 
     public static bool IsEpsilon(string? symbol)
     {
-        if (symbol is null) return false; 
+        if (symbol is null) return false;
         var trimmed = symbol.Trim();
         if (trimmed.Length == 1)
         {
@@ -36,5 +36,5 @@ public static class AutomatonSymbolHelper
     public static bool IsEpsilonChar(char c)
         => c == EpsilonInternal || c == EpsilonDisplay[0] || c == EpsilonDisplayAlt[0];
 
-    public static IReadOnlyCollection<string> EpsilonAliases => epsilonAliases.ToArray();
+    public static IReadOnlyCollection<string> EpsilonAliases => [.. epsilonAliases];
 }
