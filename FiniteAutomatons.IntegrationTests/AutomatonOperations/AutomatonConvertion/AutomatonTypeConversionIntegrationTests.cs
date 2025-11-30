@@ -20,7 +20,7 @@ public class AutomatonTypeConversionIntegrationTests(IntegrationTestsFixture fix
         Transitions =
         [
             // epsilon from 1 -> 2 makes start accepting after conversion
-            new() { FromStateId = 1, ToStateId = 2, Symbol = '\0' },
+            new() { FromStateId = 1, ToStateId = 2, Symbol = '?' },
             // symbol transitions
             new() { FromStateId = 1, ToStateId = 3, Symbol = 'a' },
             new() { FromStateId = 3, ToStateId = 2, Symbol = 'b' }
@@ -90,37 +90,37 @@ public class AutomatonTypeConversionIntegrationTests(IntegrationTestsFixture fix
         }
     }
 
-    //[Fact] TODO : repair
-    //public async Task SwitchType_EpsilonNfaToNfa_RemovesEpsilonTransitionsAndUpdatesAccepting()
-    //{
-    //    var client = GetHttpClient();
-    //    var model = BuildEpsilonNfa("");
-    //    var resp = await PostSwitchTypeAsync(client, model, AutomatonType.NFA);
-    //    resp.StatusCode.ShouldBe(HttpStatusCode.OK);
-    //    var html = await resp.Content.ReadAsStringAsync();
+    [Fact] //TODO : repair
+    public async Task SwitchType_EpsilonNfaToNfa_RemovesEpsilonTransitionsAndUpdatesAccepting()
+    {
+        var client = GetHttpClient();
+        var model = BuildEpsilonNfa("");
+        var resp = await PostSwitchTypeAsync(client, model, AutomatonType.NFA);
+        resp.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var html = await resp.Content.ReadAsStringAsync();
 
-    //    // Type should be NFA (enum int 1)
-    //    ParseInt(html, "Type", -1).ShouldBe((int)AutomatonType.NFA);
+        // Type should be NFA (enum int 1)
+        ParseInt(html, "Type", -1).ShouldBe((int)AutomatonType.NFA);
 
-    //    // No epsilon transitions
-    //    ExtractTransitionSymbols(html).ShouldAllBe(s => s != '\0');
+            // No epsilon transitions
+        ExtractTransitionSymbols(html).ShouldAllBe(s => s != '\0');
 
-    //    // Start state should become accepting via epsilon closure (state 1 had epsilon to accepting 2)
-    //    var states = ExtractStates(html).ToList();
-    //    var startState = states.First(s => s.IsStart);
-    //    startState.IsAccepting.ShouldBeTrue();
-    //}
+        // Start state should become accepting via epsilon closure (state 1 had epsilon to accepting 2)
+        var states = ExtractStates(html).ToList();
+        var startState = states.First(s => s.IsStart);
+        startState.IsAccepting.ShouldBeTrue();
+    }
 
-    //[Fact] TODO : repair
-    //public async Task SwitchType_EpsilonNfaToDfa_ProducesDfaType()
-    //{
-    //    var client = GetHttpClient();
-    //    var model = BuildEpsilonNfa("ab");
-    //    var resp = await PostSwitchTypeAsync(client, model, AutomatonType.DFA);
-    //    resp.StatusCode.ShouldBe(HttpStatusCode.OK);
-    //    var html = await resp.Content.ReadAsStringAsync();
-    //    ParseInt(html, "Type", -1).ShouldBe((int)AutomatonType.DFA);
-    //}
+    [Fact] //TODO : repair
+    public async Task SwitchType_EpsilonNfaToDfa_ProducesDfaType()
+    {
+        var client = GetHttpClient();
+        var model = BuildEpsilonNfa("ab");
+        var resp = await PostSwitchTypeAsync(client, model, AutomatonType.DFA);
+        resp.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var html = await resp.Content.ReadAsStringAsync();
+        ParseInt(html, "Type", -1).ShouldBe((int)AutomatonType.DFA);
+    }
 
     [Fact]
     public async Task SwitchType_NfaToDfa_AllowedAndChangesType()
@@ -140,22 +140,22 @@ public class AutomatonTypeConversionIntegrationTests(IntegrationTestsFixture fix
         ParseInt(html, "Type", -1).ShouldBe((int)AutomatonType.DFA);
     }
 
-    //[Fact] TODO : repair
-    //public async Task SwitchType_EpsilonNfaToNfa_FallbackPathStillRemovesEpsilon_WhenBuilderFails()
-    //{
-    //    // Simulate failure by sending malformed model (no start state) which could cause CreateAutomatonFromModel to fail.
-    //    var client = GetHttpClient();
-    //    var model = new AutomatonViewModel
-    //    {
-    //        Type = AutomatonType.EpsilonNFA,
-    //        States = [ new() { Id = 2, IsStart = false, IsAccepting = true } ],
-    //        Transitions = [ new() { FromStateId = 2, ToStateId = 2, Symbol='\0' } ],
-    //        IsCustomAutomaton = true
-    //    };
-    //    var resp = await PostSwitchTypeAsync(client, model, AutomatonType.NFA);
-    //    resp.StatusCode.ShouldBe(HttpStatusCode.OK);
-    //    var html = await resp.Content.ReadAsStringAsync();
-    //    ParseInt(html, "Type", -1).ShouldBe((int)AutomatonType.NFA);
-    //    ExtractTransitionSymbols(html).ShouldAllBe(s => s != '\0');
-    //}
+    [Fact] //TODO : repair
+    public async Task SwitchType_EpsilonNfaToNfa_FallbackPathStillRemovesEpsilon_WhenBuilderFails()
+    {
+        // Simulate failure by sending malformed model (no start state) which could cause CreateAutomatonFromModel to fail.
+        var client = GetHttpClient();
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.EpsilonNFA,
+            States = [ new() { Id = 2, IsStart = false, IsAccepting = true } ],
+            Transitions = [ new() { FromStateId = 2, ToStateId = 2, Symbol='?' } ],
+            IsCustomAutomaton = true
+        };
+        var resp = await PostSwitchTypeAsync(client, model, AutomatonType.NFA);
+        resp.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var html = await resp.Content.ReadAsStringAsync();
+        ParseInt(html, "Type", -1).ShouldBe((int)AutomatonType.NFA);
+        ExtractTransitionSymbols(html).ShouldAllBe(s => s != '\0');
+    }
 }
