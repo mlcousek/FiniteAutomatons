@@ -5,7 +5,7 @@ public static class AutomatonSymbolHelper
 
     public const char EpsilonInternal = '\0';
 
-    public const string EpsilonDisplay = "?"; // U+03B5
+    public const string EpsilonDisplay = "ε"; // U+03B5
 
     private const string EpsilonDisplayAlt = "?"; // U+03F5 //TODO repair
 
@@ -13,6 +13,7 @@ public static class AutomatonSymbolHelper
     {
         EpsilonDisplay,     
         EpsilonDisplayAlt,  
+        "?",
         "epsilon",
         "eps",
         "lambda",

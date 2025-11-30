@@ -35,7 +35,7 @@
                             <div class="alphabet-display">
                                 @if (Model.Alphabet != null && Model.Alphabet.Count > 0)
                                 {
-                                    <span class="alphabet-symbols">{ @string.Join(", ", Model.Alphabet.Select(c => c == '\0' ? "?" : c.ToString())) }</span>
+                                    <span class="alphabet-symbols">{ @string.Join(", ", Model.Alphabet.Select(c => c == '\0' ? "ε" : c.ToString())) }</span>
                                 }
                                 else
                                 {
@@ -88,14 +88,14 @@
                                                 @if (Model.Type == AutomatonType.PDA)
                                                 {
                                                     <span class="transition-text">
-                                                        q@(transition.FromStateId) -- @(transition.Symbol == '\0' ? "?" : transition.Symbol.ToString()) \
-                                                        / @(transition.StackPop.HasValue ? (transition.StackPop.Value == '\0' ? "?" : transition.StackPop.Value.ToString()) : "-")
+                                                        q@(transition.FromStateId) -- @(transition.Symbol == '\0' ? "ε" : transition.Symbol.ToString()) \
+                                                        / @(transition.StackPop.HasValue ? (transition.StackPop.Value == '\0' ? "ε" : transition.StackPop.Value.ToString()) : "-")
                                                         -> @(string.IsNullOrEmpty(transition.StackPush) ? "-" : transition.StackPush) -> q@(transition.ToStateId)
                                                     </span>
                                                 }
                                                 else
                                                 {
-                                                    <span class="transition-text">q@(transition.FromStateId) -- @(transition.Symbol == '\0' ? "?" : transition.Symbol.ToString()) -> q@(transition.ToStateId)</span>
+                                                    <span class="transition-text">q@(transition.FromStateId) -- @(transition.Symbol == '\0' ? "ε" : transition.Symbol.ToString()) -> q@(transition.ToStateId)</span>
                                                 }
                                             </li>
                                         }
@@ -215,7 +215,7 @@
                                                     var stack = System.Text.Json.JsonSerializer.Deserialize<List<char>>(Model.StackSerialized);
                                                     if (stack != null && stack.Count > 0)
                                                     {
-                                                        <span class="stack-highlight">[ @string.Join(", ", stack.Select(c => c == '\0' ? "?" : c.ToString())) ]</span>
+                                                        <span class="stack-highlight">[ @string.Join(", ", stack.Select(c => c == '\0' ? "ε" : c.ToString())) ]</span>
                                                         <span class="stack-hint">(top first)</span>
                                                     }
                                                     else
@@ -410,7 +410,7 @@
                 <div class="control-content type-buttons">
                     <button type="button" class="control-btn type-btn @(Model != null && Model.Type == AutomatonType.DFA ? "active" : "")" data-type="DFA">DFA</button>
                     <button type="button" class="control-btn type-btn @(Model != null && Model.Type == AutomatonType.NFA ? "active" : "")" data-type="NFA">NFA</button>
-                    <button type="button" class="control-btn type-btn @(Model != null && Model.Type == AutomatonType.EpsilonNFA ? "active" : "")" data-type="PDA">?-NFA</button>
+                    <button type="button" class="control-btn type-btn @(Model != null && Model.Type == AutomatonType.EpsilonNFA ? "active" : "")" data-type="PDA">ε-NFA</button>
                     <button type="button" class="control-btn type-btn @(Model != null && Model.Type == AutomatonType.PDA ? "active" : "")" data-type="PDA">PDA</button>
                 </div>
             </div>

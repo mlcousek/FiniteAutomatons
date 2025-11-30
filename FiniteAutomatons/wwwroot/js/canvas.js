@@ -225,7 +225,7 @@
         ctx.font = '12px Arial';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        const sym = t.symbol === '\0' ? '?' : (t.symbol || '');
+        const sym = t.symbol === '\0' ? 'ε' : (t.symbol || '');
         ctx.fillText(sym, midX, midY - 10);
     }
 
