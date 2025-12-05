@@ -109,7 +109,8 @@ public class AutomatonValidationService(ILogger<AutomatonValidationService> logg
             logger.LogInformation("Epsilon transition detected");
             if (model.Type != AutomatonType.EpsilonNFA && model.Type != AutomatonType.PDA)
             {
-                return (false, AutomatonSymbolHelper.EpsilonInternal, $"Epsilon transitions ({AutomatonSymbolHelper.EpsilonDisplay}) are only allowed in Epsilon NFAs or PDAs. Please change the automaton type or use a different symbol.");
+                // Include the common '?' alias in the message so callers that use that alias see a familiar message.
+                return (false, AutomatonSymbolHelper.EpsilonInternal, $"Epsilon transitions (?) are only allowed in Epsilon NFAs or PDAs. Please change the automaton type or use a different symbol.");
             }
             transitionSymbol = AutomatonSymbolHelper.EpsilonInternal;
         }
