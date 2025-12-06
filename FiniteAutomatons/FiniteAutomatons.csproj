@@ -31,6 +31,7 @@
   <ItemGroup>
     <ProjectReference Include="..\FiniteAutomatons.Core\FiniteAutomatons.Core.csproj" />
     <ProjectReference Include="..\FiniteAutomatons.Data\FiniteAutomatons.Data.csproj" />
+    <ProjectReference Include="..\FiniteAutomatons.ServiceDefaults\FiniteAutomatons.ServiceDefaults.csproj" />
     <ProjectReference Include="..\FiniteAutomatons.Services\FiniteAutomatons.Services.csproj" />
   </ItemGroup>
 
