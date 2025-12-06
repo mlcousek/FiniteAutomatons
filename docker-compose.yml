@@ -4,8 +4,8 @@ networks:
   finite_automatons_app:
 
 services:
-  finite_automatons_db:
-    container_name: finite_automatons_db
+  finiteautomatonsdb:
+    container_name: finiteautomatonsdb
     image: mcr.microsoft.com/mssql/server:2022-latest
     ports:
      - 8002:1433
@@ -24,6 +24,6 @@ services:
     ports:
      - 8001:8080
     depends_on: 
-     - finite_automatons_db
+     - finiteautomatonsdb
     networks:
      - finite_automatons_app

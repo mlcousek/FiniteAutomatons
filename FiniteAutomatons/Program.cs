@@ -4,17 +4,13 @@ using FiniteAutomatons.Data;
 using FiniteAutomatons.Filters;
 using FiniteAutomatons.Observability;
 using FiniteAutomatons.Services.Interfaces;
-using FiniteAutomatons.Services.Services;
 using FiniteAutomatons.Services.Observability;
-using System.Text.Json;
+using FiniteAutomatons.Services.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using OpenTelemetry.Logs;
-using OpenTelemetry.Resources;
-using OpenTelemetry.Trace;
-using System.Text;
 using System.Diagnostics;
+using System.Text;
 
 namespace FiniteAutomatons;
 
@@ -28,17 +24,22 @@ public partial class Program
 
         var builder = WebApplication.CreateBuilder(args);
 
+        builder.AddServiceDefaults();
+
         ConfigureConfiguration(builder);
 
         var dbSettings = new DatabaseSettings();
         builder.Configuration.GetSection("DatabaseSettings").Bind(dbSettings);
-        var connectionString = dbSettings.GetConnectionString();
+        var connectionString = builder.Configuration.GetConnectionString("finiteautomatonsdb")
+                             ?? dbSettings.GetConnectionString();
 
         var observabilityPaths = EnsureObservabilityPaths(builder.Environment.ContentRootPath);
 
         ConfigureServices(builder, connectionString, observabilityPaths);
 
         var app = builder.Build();
+
+        app.MapDefaultEndpoints();
 
         // Audit app start
         using (var scope = app.Services.CreateScope())
@@ -94,21 +95,6 @@ public partial class Program
             o.Filters.Add<AutomatonModelFilter>();
         });
 
-        // Logging providers
-        builder.Logging.ClearProviders();
-        builder.Logging.AddConsole();
-        builder.Logging.AddDebug();
-
-        // OpenTelemetry tracing (console exporter for local/dev)
-        builder.Services.AddOpenTelemetry().WithTracing(tracerProvider =>
-        {
-            tracerProvider
-                .SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(builder.Environment.ApplicationName ?? "FiniteAutomatons"))
-                .AddAspNetCoreInstrumentation()
-                .AddHttpClientInstrumentation()
-                .AddConsoleExporter();
-        });
-
         // Observability: development uses in-memory collectors, otherwise file-based
         if (builder.Environment.IsDevelopment())
         {
@@ -144,12 +130,6 @@ public partial class Program
             // Simple file logger
             builder.Logging.AddProvider(new FileLoggerProvider(observabilityPaths.Logs));
         }
-
-        // Add OpenTelemetry logging to file (kept minimal)
-        builder.Logging.AddOpenTelemetry(options =>
-        {
-            options.SetResourceBuilder(ResourceBuilder.CreateDefault().AddService(builder.Environment.ApplicationName ?? "FiniteAutomatons"));
-        });
 
         // Application services
         RegisterApplicationServices(builder.Services);
