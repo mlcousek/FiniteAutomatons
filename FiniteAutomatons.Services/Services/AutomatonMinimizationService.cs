@@ -1,9 +1,6 @@
-using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Interfaces;
 using Microsoft.Extensions.Logging;
-using System.Linq;
-using System.Collections.Generic;
 
 namespace FiniteAutomatons.Services.Services;
 
@@ -18,7 +15,7 @@ public class AutomatonMinimizationService(IAutomatonBuilderService builderServic
         model.Transitions ??= [];
         if (model.Type != AutomatonType.DFA)
         {
-            return (model, "Minimization currently supported only for DFA.");
+            return (model, "Minimization supported only for DFA.");
         }
         var automaton = builderService.CreateDFA(model);
         var minimized = automaton.MinimalizeDFA();
@@ -28,29 +25,29 @@ public class AutomatonMinimizationService(IAutomatonBuilderService builderServic
             States = [.. minimized.States],
             Transitions = [.. minimized.Transitions],
             Input = model.Input ?? string.Empty,
-            IsCustomAutomaton = true
+            IsCustomAutomaton = true,
+            // Manually clear execution state (keep input)
+            Result = null,
+            CurrentStateId = null,
+            CurrentStates = null,
+            Position = 0,
+            IsAccepted = null,
+            StateHistorySerialized = string.Empty,
+            HasExecuted = false
         };
-        // Manually clear execution state (keep input)
-        minimizedModel.Result = null;
-        minimizedModel.CurrentStateId = null;
-        minimizedModel.CurrentStates = null;
-        minimizedModel.Position = 0;
-        minimizedModel.IsAccepted = null;
-        minimizedModel.StateHistorySerialized = string.Empty;
-        minimizedModel.HasExecuted = false;
         // If minimalized DFA has single accepting start state and input empty we keep original acceptance potential (tests expect Already Minimal wording)
         var msg = minimizedModel.States.Count == model.States.Count ? "DFA minimized: already minimal (" + model.States.Count + " states)." : $"DFA minimized: {model.States.Count} -> {minimizedModel.States.Count} states.";
         logger.LogInformation(msg);
         return (minimizedModel, msg);
     }
 
-    public DfaMinimizationAnalysis AnalyzeDfa(AutomatonViewModel model)
+    public MinimizationAnalysis AnalyzeAutomaton(AutomatonViewModel model)
     {
         model.States ??= [];
         model.Transitions ??= [];
         if (model.Type != AutomatonType.DFA || model.States.Count == 0)
         {
-            return new DfaMinimizationAnalysis(false, false, model.States.Count, 0, model.States.Count);
+            return new MinimizationAnalysis(false, false, model.States.Count, 0, model.States.Count);
         }
 
         var dfa = builderService.CreateDFA(model);
@@ -59,7 +56,7 @@ public class AutomatonMinimizationService(IAutomatonBuilderService builderServic
         if (start == null)
         {
             // Without a start state we cannot minimize; treat as unsupported
-            return new DfaMinimizationAnalysis(true, false, model.States.Count, 0, model.States.Count);
+            return new MinimizationAnalysis(true, false, model.States.Count, 0, model.States.Count);
         }
 
         var reachable = new HashSet<int>();
@@ -81,6 +78,6 @@ public class AutomatonMinimizationService(IAutomatonBuilderService builderServic
         int minimizedCount = minimized.States.Count;
 
         bool isMinimal = minimizedCount == reachableCount && reachableCount == model.States.Count;
-        return new DfaMinimizationAnalysis(true, isMinimal, model.States.Count, reachableCount, minimizedCount);
+        return new MinimizationAnalysis(true, isMinimal, model.States.Count, reachableCount, minimizedCount);
     }
 }

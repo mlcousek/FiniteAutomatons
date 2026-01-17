@@ -19,8 +19,8 @@ public class HomeController(ILogger<HomeController> logger, IAutomatonTempDataSe
         var (hasCustomAutomaton, customModel) = tempDataService.TryGetCustomAutomaton(TempData);
         AutomatonViewModel model = hasCustomAutomaton && customModel != null ? customModel : homeAutomatonService.GenerateDefaultAutomaton();
 
-        var analysis = minimizationService.AnalyzeDfa(model);
-        ViewData["DfaMinimizationAnalysis"] = analysis;
+        var analysis = minimizationService.AnalyzeAutomaton(model);
+        ViewData["MinimizationAnalysis"] = analysis;
 
         return View(model);
     }

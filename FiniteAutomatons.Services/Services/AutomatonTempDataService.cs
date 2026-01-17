@@ -40,7 +40,7 @@ public class AutomatonTempDataService(ILogger<AutomatonTempDataService> logger) 
                 customModel.Type, customModel.States?.Count ?? 0, customModel.IsCustomAutomaton);
 
             customModel.IsCustomAutomaton = true;
-            
+
             customModel.States ??= [];
             customModel.Transitions ??= [];
             customModel.Input ??= "";

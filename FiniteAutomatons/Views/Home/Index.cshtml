@@ -6,7 +6,7 @@
     var atStartPos = hasExecuted && Model!.Position <= 0;
     var atEndPos = hasExecuted && Model!.Position >= inputLen && inputLen > 0;
     var disableAllUntilStart = Model == null || !hasExecuted; // initial state before Start
-    var analysis = ViewData["DfaMinimizationAnalysis"] as FiniteAutomatons.Services.Interfaces.DfaMinimizationAnalysis;
+    var analysis = ViewData["MinimizationAnalysis"] as FiniteAutomatons.Services.Interfaces.MinimizationAnalysis;
 }
 <div class="automaton-workspace">
     <!-- Global messages (conversion / errors) -->

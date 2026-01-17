@@ -43,8 +43,8 @@ public class AutomatonController(
     {
         try
         {
-            var analysis = minimizationService.AnalyzeDfa(model);
-            TempData["DfaMinimizationAnalysis"] = JsonSerializer.Serialize(analysis);
+            var analysis = minimizationService.AnalyzeAutomaton(model);
+            TempData["MinimizationAnalysis"] = JsonSerializer.Serialize(analysis);
         }
         catch { /* ignore */ }
     }
