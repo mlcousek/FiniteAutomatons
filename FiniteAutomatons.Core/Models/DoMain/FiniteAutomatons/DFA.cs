@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-
-namespace FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
+﻿namespace FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 
 public class DFA : Automaton
 {
@@ -147,7 +143,7 @@ public class DFA : Automaton
 
     private static bool IsAtInputEnd(AutomatonExecutionState state) => state.Position >= state.Input.Length;
 
-    // ---------------- Minimization (refactored into discrete steps) ----------------
+    // ---------------- Minimization ----------------
 
     private DFA PerformMinimization()
     {

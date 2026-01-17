@@ -40,8 +40,7 @@ public class PDA : Automaton
         if (state.Position < state.Input.Length)
         {
             transition = candidates.FirstOrDefault(t => t.Symbol == currentInput && StackMatches(t, stackTop));
-            if (transition == null)
-                transition = candidates.FirstOrDefault(t => t.Symbol == '\0' && StackMatches(t, stackTop));
+            transition ??= candidates.FirstOrDefault(t => t.Symbol == '\0' && StackMatches(t, stackTop));
         }
         else
         {
@@ -98,7 +97,7 @@ public class PDA : Automaton
 
         try
         {
-            Console.WriteLine($"PDA: after step pos={state.Position} top='{(state.Stack.Count>0?state.Stack.Peek():' ')}' state={state.CurrentStateId} accepted={state.IsAccepted}");
+            Console.WriteLine($"PDA: after step pos={state.Position} top='{(state.Stack.Count > 0 ? state.Stack.Peek() : ' ')}' state={state.CurrentStateId} accepted={state.IsAccepted}");
         }
         catch { }
 
@@ -123,11 +122,11 @@ public class PDA : Automaton
     public override void StepBackward(AutomatonExecutionState baseState)
     {
         if (baseState is not PDAExecutionState state) throw new ArgumentException("State must be PDAExecutionState");
-        if (state.History.Count == 0) return; 
+        if (state.History.Count == 0) return;
         var snap = state.History.Pop();
         state.CurrentStateId = snap.StateId;
         state.Position = snap.Position;
-        state.Stack = new Stack<char>(snap.Stack.Reverse()); 
+        state.Stack = new Stack<char>(snap.Stack.Reverse());
         state.IsAccepted = null;
     }
 
@@ -135,7 +134,7 @@ public class PDA : Automaton
     {
         if (baseState is not PDAExecutionState state) throw new ArgumentException("State must be PDAExecutionState");
 
-        try { Console.WriteLine($"PDA: ExecuteAll start pos={state.Position} len={state.Input.Length} state={state.CurrentStateId} top='{(state.Stack.Count>0?state.Stack.Peek():' ')}'"); } catch { }
+        try { Console.WriteLine($"PDA: ExecuteAll start pos={state.Position} len={state.Input.Length} state={state.CurrentStateId} top='{(state.Stack.Count > 0 ? state.Stack.Peek() : ' ')}'"); } catch { }
 
         if (state.Input.Length == 0)
         {
@@ -152,14 +151,14 @@ public class PDA : Automaton
         while (true)
         {
             var has = HasApplicableTransition(state);
-            try { Console.WriteLine($"PDA: ExecuteAll loop hasApplicable={has} pos={state.Position} state={state.CurrentStateId} top='{(state.Stack.Count>0?state.Stack.Peek():' ')}'\n"); } catch { }
+            try { Console.WriteLine($"PDA: ExecuteAll loop hasApplicable={has} pos={state.Position} state={state.CurrentStateId} top='{(state.Stack.Count > 0 ? state.Stack.Peek() : ' ')}'\n"); } catch { }
             if (!has) break;
             StepForward(state);
             if (state.IsAccepted == false) return; // explicit rejection during step
             if (state.IsAccepted == true) return; // accepted during step
         }
 
-        try { Console.WriteLine($"PDA: ExecuteAll end pos={state.Position} state={state.CurrentStateId} top='{(state.Stack.Count>0?state.Stack.Peek():' ')}' IsAccepted={state.IsAccepted}\n"); } catch { }
+        try { Console.WriteLine($"PDA: ExecuteAll end pos={state.Position} state={state.CurrentStateId} top='{(state.Stack.Count > 0 ? state.Stack.Peek() : ' ')}' IsAccepted={state.IsAccepted}\n"); } catch { }
 
         // If input not fully consumed -> reject
         if (state.Position < state.Input.Length)
@@ -220,7 +219,7 @@ public class PDA : Automaton
         var state = (PDAExecutionState)StartExecution(input);
 
         // helper to create stack key (bottom-to-top)
-        static string StackToKey(Stack<char> s) => new string(s.Reverse().ToArray());
+        static string StackToKey(Stack<char> s) => new([.. s.Reverse()]);
 
         // process consuming transitions deterministically
         while (state.Position < state.Input.Length)
@@ -285,7 +284,7 @@ public class PDA : Automaton
                                 newStack.Push(t.StackPush[i]);
                         }
 
-                        var key = t.ToStateId + "|" + new string(newStack.Reverse().ToArray());
+                        var key = t.ToStateId + "|" + new string([.. newStack.Reverse()]);
                         if (visited.Add(key))
                         {
                             q.Enqueue((t.ToStateId, newStack));
@@ -367,10 +366,10 @@ public class PDA : Automaton
                         newStack.Push(t.StackPush[i]);
                 }
 
-                var newKey = t.ToStateId + "|" + new string(newStack.Reverse().ToArray());
+                var newKey = t.ToStateId + "|" + new string([.. newStack.Reverse()]);
                 if (visited2.Add(newKey))
                 {
-                    q2.Enqueue((t.ToStateId, new string(newStack.Reverse().ToArray()), newStack));
+                    q2.Enqueue((t.ToStateId, new string([.. newStack.Reverse()]), newStack));
                 }
             }
         }
@@ -382,8 +381,8 @@ public class PDA : Automaton
 
     private static bool StackMatches(Transition t, char? top)
     {
-        if (!t.StackPop.HasValue) return true; 
-        if (t.StackPop.Value == '\0') return true; 
+        if (!t.StackPop.HasValue) return true;
+        if (t.StackPop.Value == '\0') return true;
         return top.HasValue && top.Value == t.StackPop.Value;
     }
 
@@ -393,7 +392,7 @@ public class PDA : Automaton
         {
             StateId = state.CurrentStateId,
             Position = state.Position,
-            Stack = state.Stack.ToArray()
+            Stack = [.. state.Stack]
         });
     }
 
@@ -520,6 +519,6 @@ public class PDAExecutionState(string input, int? stateId) : AutomatonExecutionS
     {
         public int? StateId { get; set; }
         public int Position { get; set; }
-        public char[] Stack { get; set; } = Array.Empty<char>(); 
+        public char[] Stack { get; set; } = [];
     }
 }

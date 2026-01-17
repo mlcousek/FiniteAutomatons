@@ -1,22 +1,10 @@
-using System;
-using System.Text;
-using System.Collections.Generic;
-using System.Linq;
-using Microsoft.Extensions.Logging;
-using FiniteAutomatons.Services.Interfaces;
-using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.DoMain;
+using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
+using FiniteAutomatons.Services.Interfaces;
+using Microsoft.Extensions.Logging;
 
 namespace FiniteAutomatons.Services.Services;
 
-/// <summary>
-/// Very small Thompson construction based converter from limited regular expression syntax to an EpsilonNFA.
-/// Supported operators: concatenation, '|', '*', '+', '?', and parentheses '()'.
-/// Also supports character classes like [abc] and ranges like [a-z].
-/// Literals are any character except the operators and parentheses. Escape with backslash for operators.
-/// Anchors '^' and '$' are accepted at start/end but do not change automaton semantics (full-match automaton already enforces that).
-/// This implementation is intentionally small and defensive for use in the application tests.
-/// </summary>
 public sealed class RegexToAutomatonService(ILogger<RegexToAutomatonService> logger) : IRegexToAutomatonService
 {
     private readonly ILogger<RegexToAutomatonService> logger = logger;

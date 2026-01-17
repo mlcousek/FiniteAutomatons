@@ -1,5 +1,4 @@
 using FiniteAutomatons.Core.Models.ViewModel;
-using FiniteAutomatons.Core.Utilities;
 
 namespace FiniteAutomatons.Core.Utilities;
 

@@ -6,14 +6,9 @@ namespace FiniteAutomatons.Services.Interfaces;
 
 public interface IAutomatonBuilderService
 {
-
     Automaton CreateAutomatonFromModel(AutomatonViewModel model);
-
     DFA CreateDFA(AutomatonViewModel model);
-
     NFA CreateNFA(AutomatonViewModel model);
-
     EpsilonNFA CreateEpsilonNFA(AutomatonViewModel model);
-
     PDA CreatePDA(AutomatonViewModel model);
 }

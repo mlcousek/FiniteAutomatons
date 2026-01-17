@@ -1,5 +1,5 @@
-using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Core.Models.Database;
+using FiniteAutomatons.Core.Models.ViewModel;
 
 namespace FiniteAutomatons.Services.Interfaces;
 

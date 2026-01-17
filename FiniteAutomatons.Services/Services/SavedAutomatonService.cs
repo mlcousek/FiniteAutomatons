@@ -1,8 +1,7 @@
-using FiniteAutomatons.Services.Interfaces;
-using FiniteAutomatons.Data;
 using FiniteAutomatons.Core.Models.Database;
 using FiniteAutomatons.Core.Models.ViewModel;
-using FiniteAutomatons.Core.Models.Serialization;
+using FiniteAutomatons.Data;
+using FiniteAutomatons.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
