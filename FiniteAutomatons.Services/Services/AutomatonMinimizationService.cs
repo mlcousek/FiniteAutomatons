@@ -4,9 +4,10 @@ using Microsoft.Extensions.Logging;
 
 namespace FiniteAutomatons.Services.Services;
 
-public class AutomatonMinimizationService(IAutomatonBuilderService builderService, ILogger<AutomatonMinimizationService> logger) : IAutomatonMinimizationService
+public class AutomatonMinimizationService(IAutomatonBuilderService builderService, IAutomatonAnalysisService analysisService, ILogger<AutomatonMinimizationService> logger) : IAutomatonMinimizationService
 {
     private readonly IAutomatonBuilderService builderService = builderService;
+    private readonly IAutomatonAnalysisService analysisService = analysisService;
     private readonly ILogger<AutomatonMinimizationService> logger = logger;
 
     public (AutomatonViewModel Result, string Message) MinimizeDfa(AutomatonViewModel model)
@@ -43,41 +44,40 @@ public class AutomatonMinimizationService(IAutomatonBuilderService builderServic
 
     public MinimizationAnalysis AnalyzeAutomaton(AutomatonViewModel model)
     {
-        model.States ??= [];
-        model.Transitions ??= [];
+        EnsureCollections(model);
+
         if (model.Type != AutomatonType.DFA || model.States.Count == 0)
         {
             return new MinimizationAnalysis(false, false, model.States.Count, 0, model.States.Count);
         }
 
-        var dfa = builderService.CreateDFA(model);
-        // Compute reachable states
-        var start = model.States.FirstOrDefault(s => s.IsStart)?.Id;
+        var start = GetStartStateIdOrNull(model);
         if (start == null)
         {
-            // Without a start state we cannot minimize; treat as unsupported
             return new MinimizationAnalysis(true, false, model.States.Count, 0, model.States.Count);
         }
-
-        var reachable = new HashSet<int>();
-        var q = new Queue<int>();
-        q.Enqueue(start.Value);
-        reachable.Add(start.Value);
-        while (q.Count > 0)
-        {
-            var cur = q.Dequeue();
-            foreach (var t in model.Transitions.Where(t => t.FromStateId == cur))
-            {
-                if (reachable.Add(t.ToStateId)) q.Enqueue(t.ToStateId);
-            }
-        }
-        int reachableCount = reachable.Count;
-
-        // Run full minimization to get minimized count (re-use existing method)
-        var minimized = dfa.MinimalizeDFA();
-        int minimizedCount = minimized.States.Count;
+        int reachableCount = analysisService.GetReachableCount(model.Transitions, start.Value);
+        int minimizedCount = ComputeMinimizedStatesCount(model);
 
         bool isMinimal = minimizedCount == reachableCount && reachableCount == model.States.Count;
         return new MinimizationAnalysis(true, isMinimal, model.States.Count, reachableCount, minimizedCount);
+    }
+
+    private static void EnsureCollections(AutomatonViewModel model)
+    {
+        model.States ??= [];
+        model.Transitions ??= [];
+    }
+
+    private static int? GetStartStateIdOrNull(AutomatonViewModel model)
+    {
+        return model.States.FirstOrDefault(s => s.IsStart)?.Id;
+    }
+
+    private int ComputeMinimizedStatesCount(AutomatonViewModel model)
+    {
+        var dfa = builderService.CreateDFA(model);
+        var minimized = dfa.MinimalizeDFA();
+        return minimized.States.Count;
     }
 }
