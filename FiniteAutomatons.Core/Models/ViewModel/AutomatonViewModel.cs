@@ -35,6 +35,11 @@ public class AutomatonViewModel
     public string? StackSerialized { get; set; } // PDA stack serialization (top-first JSON array of chars)
     public bool IsCustomAutomaton { get; set; } = false;
 
+    // Minimization metadata populated when DFA is minimized
+    public Dictionary<int, int>? StateMapping { get; set; }
+    public Dictionary<int, List<int>>? MergedStateGroups { get; set; }
+    public string? MinimizationReport { get; set; }
+
     // For create page: temporary inputs for PDA transitions
     public string? NewTransitionStackPop { get; set; }
     public string? NewTransitionStackPush { get; set; }

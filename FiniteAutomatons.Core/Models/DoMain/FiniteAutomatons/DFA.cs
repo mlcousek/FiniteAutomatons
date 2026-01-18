@@ -2,6 +2,26 @@
 
 public class DFA : Automaton
 {
+    // Mapping from original state id -> new minimized state id (populated on minimized DFA)
+    public Dictionary<int, int> StateMapping { get; private set; } = [];
+
+    public Dictionary<int, HashSet<int>> MergedStateGroups { get; private set; } = [];
+
+    public string GetMinimizationReport()
+    {
+        if (StateMapping == null || StateMapping.Count == 0 || MergedStateGroups == null || MergedStateGroups.Count == 0)
+            return "No minimization mapping available.";
+
+        var lines = new List<string>();
+        foreach (var kv in MergedStateGroups.OrderBy(k => k.Key))
+        {
+            var newId = kv.Key;
+            var originals = string.Join(", ", kv.Value.OrderBy(id => id));
+            lines.Add($"New state {newId} <- {{{originals}}}");
+        }
+
+        return string.Join(Environment.NewLine, lines);
+    }
     public override void StepForward(AutomatonExecutionState state)
     {
         ArgumentNullException.ThrowIfNull(state);
@@ -282,6 +302,12 @@ public class DFA : Automaton
                 }
             }
         }
+
+        // Publish mapping info on minimized DFA for clarity: which original states map to which new state ids
+        minimizedDfa.StateMapping = stateMap;
+        minimizedDfa.MergedStateGroups = stateMap
+            .GroupBy(kv => kv.Value)
+            .ToDictionary(g => g.Key, g => new HashSet<int>(g.Select(kv => kv.Key)));
 
         return minimizedDfa;
     }

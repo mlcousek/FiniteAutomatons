@@ -36,6 +36,13 @@ public class AutomatonMinimizationService(IAutomatonBuilderService builderServic
             StateHistorySerialized = string.Empty,
             HasExecuted = false
         };
+        // copy mapping metadata if available
+        if (minimized.StateMapping != null)
+        {
+            minimizedModel.StateMapping = new Dictionary<int, int>(minimized.StateMapping);
+            minimizedModel.MergedStateGroups = minimized.MergedStateGroups?.ToDictionary(k => k.Key, v => v.Value.OrderBy(x => x).ToList());
+            minimizedModel.MinimizationReport = minimized.GetMinimizationReport();
+        }
         // If minimalized DFA has single accepting start state and input empty we keep original acceptance potential (tests expect Already Minimal wording)
         var msg = minimizedModel.States.Count == model.States.Count ? "DFA minimized: already minimal (" + model.States.Count + " states)." : $"DFA minimized: {model.States.Count} -> {minimizedModel.States.Count} states.";
         logger.LogInformation(msg);

@@ -85,7 +85,7 @@ public class DFATests  //TODO implement this builder to other tests
             .Build();
 
         // Act
-        var result = dfa.Execute("a"); 
+        var result = dfa.Execute("a");
 
         // Assert
         result.ShouldBeFalse();
@@ -734,6 +734,192 @@ public class DFATests  //TODO implement this builder to other tests
         minimized.States.Any(s => s.Id == 4).ShouldBeFalse();
         minimized.Execute("a").ShouldBeTrue();
         minimized.Execute("ab").ShouldBeFalse();
+    }
+
+    [Fact]
+    public void MinimalizeDFA_MergesEquivalentNonAcceptingStates()
+    {
+        // Arrange
+        var dfa = new DFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: false)
+            .WithState(3, isStart: false, isAccepting: false)
+            .WithState(4, isStart: false, isAccepting: true)
+            .WithTransition(1, 2, 'x')
+            .WithTransition(2, 4, 'a')
+            .WithTransition(2, 2, 'b')
+            .WithTransition(3, 4, 'a')
+            .WithTransition(3, 3, 'b')
+            .Build();
+
+        // Act
+        var minimized = dfa.MinimalizeDFA();
+
+        // Assert: states 2 and 3 are equivalent and should be merged
+        minimized.States.Count.ShouldBeLessThan(dfa.States.Count);
+        // language preserved
+        minimized.Execute("xba").ShouldBeTrue();
+        minimized.Execute("xb").ShouldBeFalse();
+    }
+
+    [Fact]
+    public void MinimalizeDFA_AllStatesEquivalent_MergesToSingleState()
+    {
+        // Arrange: three accepting states with identical self-loop behavior
+        var dfa = new DFABuilder()
+            .WithState(1, isStart: true, isAccepting: true)
+            .WithState(2, isStart: false, isAccepting: true)
+            .WithState(3, isStart: false, isAccepting: true)
+            .WithTransition(1, 2, 'a')
+            .WithTransition(2, 2, 'a')
+            .WithTransition(3, 2, 'a')
+            .Build();
+
+        // Act
+        var minimized = dfa.MinimalizeDFA();
+
+        // Assert: all accepting states with identical behavior should be merged
+        minimized.States.Count.ShouldBe(1);
+        minimized.Execute("").ShouldBeTrue();
+        minimized.Execute("aaaa").ShouldBeTrue();
+    }
+
+    [Fact]
+    public void MinimalizeDFA_PartialAlphabet_HandlesMissingTransitionsCorrectly()
+    {
+        // Arrange: states that differ only by a missing transition should not be merged
+        var dfa = new DFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: true)
+            .WithState(3, isStart: false, isAccepting: false)
+            // 2 has an 'a' transition to itself; 3 lacks 'a' transition
+            .WithTransition(1, 3, 'b')
+            .WithTransition(1, 2, 'a')
+            .WithTransition(2, 2, 'a')
+            .Build();
+
+        // Act
+        var minimized = dfa.MinimalizeDFA();
+
+        // Assert: state 2 and 3 are distinguishable due to missing 'a' transition
+        minimized.States.Count.ShouldBeGreaterThan(1);
+        minimized.Execute("a").ShouldBeTrue();
+        minimized.Execute("b").ShouldBeFalse();
+    }
+
+    [Fact]
+    public void MinimalizeDFA_PictureLikeStructure_MergesExpectedStates()
+    {
+        // Arrange: construct DFA similar to the provided sketch where two states behave identically
+        var dfa = new DFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)   // q1
+            .WithState(2, isStart: false, isAccepting: true)   // q2 (accepting)
+            .WithState(3, isStart: false, isAccepting: false)  // q3
+            .WithState(4, isStart: false, isAccepting: false)  // q4
+            .WithState(5, isStart: false, isAccepting: false)  // q5 
+                                                               // transitions to mirror the sketch
+            .WithTransition(1, 2, 'd')
+            .WithTransition(2, 3, 'b')
+            .WithTransition(2, 4, 'a')
+            .WithTransition(3, 4, 'c')
+            .WithTransition(4, 5, 'a')
+            .WithTransition(4, 5, 'd')
+            .WithTransition(5, 2, 'd')
+            .Build();
+
+        // Act
+        var minimized = dfa.MinimalizeDFA();
+
+        // Assert
+        minimized.States.Count.ShouldBeLessThan(dfa.States.Count);
+        // Basic language checks
+        minimized.Execute("d").ShouldBeTrue();
+        minimized.Execute("dbcddaad").ShouldBeTrue();
+        minimized.Execute("ab").ShouldBeFalse();
+        minimized.Execute("ad").ShouldBeFalse();
+    }
+
+    [Fact]
+    public void MinimalizeDFA_PictureLikeStructure_StateMappingIsReported()
+    {
+        // Arrange: same picture-like DFA
+        var dfa = new DFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: true)
+            .WithState(3, isStart: false, isAccepting: false)
+            .WithState(4, isStart: false, isAccepting: false)
+            .WithState(5, isStart: false, isAccepting: false)
+            .WithTransition(1, 2, 'd')
+            .WithTransition(2, 3, 'b')
+            .WithTransition(2, 4, 'a')
+            .WithTransition(3, 4, 'c')
+            .WithTransition(4, 5, 'a')
+            .WithTransition(4, 5, 'd')
+            .WithTransition(5, 2, 'd')
+            .Build();
+
+        // Act
+        var minimized = dfa.MinimalizeDFA();
+
+        // Assert: mapping groups (IDs for minimized states are implementation-dependent)
+        minimized.StateMapping.ShouldNotBeNull();
+        minimized.StateMapping.Keys.ShouldContain(1);
+        minimized.StateMapping.Keys.ShouldContain(2);
+        minimized.StateMapping.Keys.ShouldContain(3);
+        minimized.StateMapping.Keys.ShouldContain(4);
+        minimized.StateMapping.Keys.ShouldContain(5);
+
+        // states 1 and 5 should map to the same new state id
+        minimized.StateMapping[1].ShouldBe(minimized.StateMapping[5]);
+
+        // state 2 should map to a different new state id (its own group)
+        minimized.StateMapping[2].ShouldNotBe(minimized.StateMapping[1]);
+
+        // verify merged groups content using the mapping
+        minimized.MergedStateGroups.ShouldNotBeNull();
+        var groupFor1 = minimized.MergedStateGroups[minimized.StateMapping[1]];
+        groupFor1.SetEquals(new HashSet<int> { 1, 5 }).ShouldBeTrue();
+
+        var groupFor2 = minimized.MergedStateGroups[minimized.StateMapping[2]];
+        groupFor2.SetEquals(new HashSet<int> { 2 }).ShouldBeTrue();
+
+        var groupFor3 = minimized.MergedStateGroups[minimized.StateMapping[3]];
+        groupFor3.SetEquals(new HashSet<int> { 3 }).ShouldBeTrue();
+
+        var groupFor4 = minimized.MergedStateGroups[minimized.StateMapping[4]];
+        groupFor4.SetEquals(new HashSet<int> { 4 }).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void MinimalizeDFA_GetMinimizationReport_IncludesCorrectMappings()
+    {
+        // Arrange
+        var dfa = new DFABuilder()
+            .WithState(1, isStart: true, isAccepting: false)
+            .WithState(2, isStart: false, isAccepting: true)
+            .WithState(3, isStart: false, isAccepting: false)
+            .WithState(4, isStart: false, isAccepting: false)
+            .WithState(5, isStart: false, isAccepting: false)
+            .WithTransition(1, 2, 'd')
+            .WithTransition(2, 3, 'b')
+            .WithTransition(2, 4, 'a')
+            .WithTransition(3, 4, 'c')
+            .WithTransition(4, 5, 'a')
+            .WithTransition(4, 5, 'd')
+            .WithTransition(5, 2, 'd')
+            .Build();
+
+        // Act
+        var minimized = dfa.MinimalizeDFA();
+        var report = minimized.GetMinimizationReport();
+
+        // Assert: report contains representation for each merged group
+        foreach (var kv in minimized.MergedStateGroups)
+        {
+            var originals = string.Join(", ", kv.Value.OrderBy(id => id));
+            var expected = $"{{{originals}}}";
+            report.ShouldContain(expected);
+        }
     }
 }
 

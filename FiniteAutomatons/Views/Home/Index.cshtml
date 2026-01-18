@@ -108,6 +108,32 @@
                             </div>
                         </div>
 
+                        <!-- Minimization Mapping Section -->
+                        @if (!string.IsNullOrEmpty(Model.MinimizationReport) || (Model.MergedStateGroups != null && Model.MergedStateGroups.Count > 0))
+                        {
+                            <div class="automaton-detail-section minimization-section">
+                                <h4>Minimization Mapping</h4>
+                                <div class="minimization-content">
+                                    @if (!string.IsNullOrEmpty(Model.MinimizationReport))
+                                    {
+                                        <pre class="minimization-report">@Model.MinimizationReport</pre>
+                                    }
+
+                                    @if (Model.MergedStateGroups != null && Model.MergedStateGroups.Count > 0)
+                                    {
+                                        <ul class="minimization-groups">
+                                            @foreach (var kv in Model.MergedStateGroups.OrderBy(k => k.Key))
+                                            {
+                                                var newId = kv.Key;
+                                                var originals = string.Join(", ", kv.Value.Select(id => "q" + id));
+                                                <li>q@newId &lt;- {@Html.Raw("{" + originals + "}")}</li>
+                                            }
+                                        </ul>
+                                    }
+                                </div>
+                            </div>
+                        }
+
                         <!-- Execution State Section (Debug Info) -->
                         @if (Model.HasExecuted || Model.Position > 0 || Model.CurrentStateId.HasValue || (Model.CurrentStates != null && Model.CurrentStates.Count > 0))
                         {
