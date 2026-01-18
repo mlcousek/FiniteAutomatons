@@ -1,10 +1,8 @@
+using FiniteAutomatons.Core.Models.ViewModel;
+using Shouldly;
 using System.Net;
 using System.Text;
 using System.Text.Json;
-using FiniteAutomatons.Core.Models.ViewModel;
-using FiniteAutomatons.Core.Models.DoMain;
-using Shouldly;
-using System.Collections.Generic;
 
 namespace FiniteAutomatons.IntegrationTests.RegexApiTests;
 
@@ -83,7 +81,7 @@ public class RegexToAutomatonEndToEndTests(IntegrationTestsFixture fixture) : In
 
         // Post to ExecuteAll endpoint
         var form = ToFormContent(model);
-        var executeResp = await client.PostAsync("/Automaton/ExecuteAll", form);
+        var executeResp = await client.PostAsync("/AutomatonExecution/ExecuteAll", form);
         executeResp.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await executeResp.Content.ReadAsStringAsync();
 

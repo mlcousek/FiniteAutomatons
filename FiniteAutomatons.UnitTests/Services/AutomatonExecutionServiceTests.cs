@@ -1,14 +1,14 @@
-using FiniteAutomatons.Core.Models.ViewModel;
-using FiniteAutomatons.Services.Services;
-using FiniteAutomatons.Services.Interfaces;
-using Shouldly;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using FiniteAutomatons.Controllers;
-using Microsoft.AspNetCore.Mvc;
+using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Core.Utilities;
-using FiniteAutomatons.UnitTests.Controllers; 
+using FiniteAutomatons.Services.Interfaces;
+using FiniteAutomatons.Services.Services;
+using FiniteAutomatons.UnitTests.Controllers;
 using FiniteAutomatons.UnitTests.TestHelpers;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
+using Shouldly;
 
 namespace FiniteAutomatons.UnitTests.Services;
 
@@ -24,8 +24,8 @@ public class AutomatonExecutionServiceTests
         var model = new AutomatonViewModel
         {
             Type = AutomatonType.DFA,
-            States = [ new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true } ],
-            Transitions = [ new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' }, new() { FromStateId = 2, ToStateId = 1, Symbol = 'b' } ],
+            States = [new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true }],
+            Transitions = [new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' }, new() { FromStateId = 2, ToStateId = 1, Symbol = 'b' }],
             Input = "abba",
             Position = 2,
             CurrentStateId = 2,
@@ -38,7 +38,7 @@ public class AutomatonExecutionServiceTests
 
         model.States.Count.ShouldBe(2);
         model.Transitions.Count.ShouldBe(2);
-        model.Alphabet.ShouldBe(['a','b']);
+        model.Alphabet.ShouldBe(['a', 'b']);
         model.Input.ShouldBe("");
         model.Position.ShouldBe(0);
         model.CurrentStateId.ShouldBeNull();
@@ -54,7 +54,7 @@ public class AutomatonExecutionServiceTests
         var model = new AutomatonViewModel
         {
             Type = AutomatonType.DFA,
-            States = [ new() { Id = 1, IsStart = true, IsAccepting = true } ],
+            States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
             Transitions = [],
             Input = "a",
             Position = 1, // already at end
@@ -72,8 +72,8 @@ public class AutomatonExecutionServiceTests
         var model = new AutomatonViewModel
         {
             Type = AutomatonType.DFA,
-            States = [ new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true } ],
-            Transitions = [ new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' } ],
+            States = [new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true }],
+            Transitions = [new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' }],
             Input = "a",
             Position = 1,
             CurrentStateId = 2,
@@ -93,7 +93,7 @@ public class AutomatonExecutionServiceTests
         var model = new AutomatonViewModel
         {
             Type = AutomatonType.DFA,
-            States = [ new() { Id = 1, IsStart = true, IsAccepting = false } ],
+            States = [new() { Id = 1, IsStart = true, IsAccepting = false }],
             Transitions = [],
             Input = "ab",
             Position = 1,
@@ -113,14 +113,14 @@ public class AutomatonExecutionServiceTests
         var model = new AutomatonViewModel
         {
             Type = AutomatonType.DFA,
-            States = [ new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true } ]
+            States = [new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true }]
         };
 
         var result = controller.RemoveState(model, 1) as ViewResult;
         var vm = result!.Model as AutomatonViewModel;
         vm!.States.Count.ShouldBe(1);
         vm.States[0].Id.ShouldBe(2);
-        vm.States[0].IsStart.ShouldBeTrue(); 
+        vm.States[0].IsStart.ShouldBeTrue();
     }
 
     public static IEnumerable<object[]> EpsilonAliasCases() =>
@@ -135,8 +135,8 @@ public class AutomatonExecutionServiceTests
     public void Validation_EpsilonAliases_OnlyAllowedInEpsilonNFA(string symbol, bool isEpsilon)
     {
         var validation = new AutomatonValidationService(NullLogger<AutomatonValidationService>.Instance);
-        var epsilonModel = new AutomatonViewModel { Type = AutomatonType.EpsilonNFA, States = [ new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true } ] };
-        var dfaModel = new AutomatonViewModel { Type = AutomatonType.DFA, States = [ new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true } ] };
+        var epsilonModel = new AutomatonViewModel { Type = AutomatonType.EpsilonNFA, States = [new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true }] };
+        var dfaModel = new AutomatonViewModel { Type = AutomatonType.DFA, States = [new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true }] };
 
         var (okEpsilon, procEpsilon, _) = validation.ValidateTransitionAddition(epsilonModel, 1, 2, symbol);
         var (okDfa, _, errorDfa) = validation.ValidateTransitionAddition(dfaModel, 1, 2, symbol);
@@ -162,7 +162,7 @@ public class AutomatonExecutionServiceTests
         var model = new AutomatonViewModel
         {
             Type = AutomatonType.DFA,
-            States = [ new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = true, IsAccepting = false } ] // invalid
+            States = [new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = true, IsAccepting = false }] // invalid
         };
         Should.Throw<InvalidOperationException>(() => builder.CreateAutomatonFromModel(model));
     }
@@ -175,8 +175,8 @@ public class AutomatonExecutionServiceTests
         var model = new AutomatonViewModel
         {
             Type = AutomatonType.DFA,
-            States = [ new() { Id = 1, IsStart = true, IsAccepting = true } ],
-            Transitions = [ new() { FromStateId = 1, ToStateId = 1, Symbol = 'a' } ],
+            States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
+            Transitions = [new() { FromStateId = 1, ToStateId = 1, Symbol = 'a' }],
             Input = longInput
         };
         svc.ExecuteAll(model);
@@ -185,9 +185,9 @@ public class AutomatonExecutionServiceTests
         model.IsAccepted!.Value.ShouldBeTrue();
     }
 
-    private AutomatonController BuildControllerWithRealValidation()
+    private AutomatonCreationController BuildControllerWithRealValidation()
     {
-        var controller = new AutomatonController(NullLogger<AutomatonController>.Instance, new MockAutomatonGeneratorService(), new MockAutomatonTempDataService(), new AutomatonValidationService(NullLogger<AutomatonValidationService>.Instance), new MockAutomatonConversionService(), new MockAutomatonExecutionService(), new AutomatonEditingService(new AutomatonValidationService(NullLogger<AutomatonValidationService>.Instance), NullLogger<AutomatonEditingService>.Instance), new MockAutomatonFileService(), new MockAutomatonMinimizationService())
+        var controller = new AutomatonCreationController(NullLogger<AutomatonCreationController>.Instance, new MockAutomatonTempDataService(), new AutomatonValidationService(NullLogger<AutomatonValidationService>.Instance), new AutomatonEditingService(new AutomatonValidationService(NullLogger<AutomatonValidationService>.Instance), NullLogger<AutomatonEditingService>.Instance), new MockAutomatonMinimizationService())
         {
             TempData = new TempDataDictionary(new DefaultHttpContext(), new TestTempDataProvider())
         };

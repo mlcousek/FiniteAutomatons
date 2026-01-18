@@ -1,16 +1,22 @@
 \babel@toc {czech}{}\relax 
 \contentsline {section}{\numberline {1}Úvod}{7}{section.1}%
 \contentsline {section}{\numberline {2}Teoretický základ}{7}{section.2}%
-\contentsline {section}{\numberline {3}Návrh systému}{7}{section.3}%
-\contentsline {section}{\numberline {4}Implementace}{7}{section.4}%
-\contentsline {section}{\numberline {5}Testování a experimenty}{7}{section.5}%
-\contentsline {section}{Z\'av\v er}{8}{section*.3}%
+\contentsline {subsection}{\numberline {2.1}Formální jazyky a Chomského hierarchie}{7}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Konečné automaty (DFA a NFA)}{7}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}Determinizace a minimalizace}{7}{subsection.2.3}%
+\contentsline {subsection}{\numberline {2.4}Regulární výrazy a jejich převod}{8}{subsection.2.4}%
+\contentsline {subsection}{\numberline {2.5}Bezkontextové jazyky a zásobník}{8}{subsection.2.5}%
+\contentsline {subsection}{\numberline {2.6}Turingovy stroje}{8}{subsection.2.6}%
+\contentsline {section}{\numberline {3}Návrh systému}{8}{section.3}%
+\contentsline {section}{\numberline {4}Implementace}{8}{section.4}%
+\contentsline {section}{\numberline {5}Testování a experimenty}{8}{section.5}%
+\contentsline {section}{Z\'av\v er}{9}{section*.3}%
 \babel@toc {czech}{}\relax 
 \babel@toc {czech}{}\relax 
-\contentsline {section}{Conclusions}{9}{section*.5}%
+\contentsline {section}{Conclusions}{10}{section*.5}%
 \babel@toc {english}{}\relax 
 \babel@toc {czech}{}\relax 
-\contentsline {section}{\numberline {A}První příloha}{10}{appendix.A}%
-\contentsline {section}{\numberline {B}Druhá příloha}{10}{appendix.B}%
-\contentsline {section}{\numberline {C}Obsah elektronických dat}{10}{appendix.C}%
-\contentsline {section}{Seznam zkratek}{12}{section*.7}%
+\contentsline {section}{\numberline {A}První příloha}{11}{appendix.A}%
+\contentsline {section}{\numberline {B}Druhá příloha}{11}{appendix.B}%
+\contentsline {section}{\numberline {C}Obsah elektronických dat}{11}{appendix.C}%
+\contentsline {section}{Seznam zkratek}{13}{section*.7}%

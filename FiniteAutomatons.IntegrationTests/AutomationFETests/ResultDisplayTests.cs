@@ -32,7 +32,7 @@ public class ResultDisplayTests(IntegrationTestsFixture fixture) : IntegrationTe
         };
 
         // Act
-        var response = await PostAutomatonAsync(client, "/Automaton/ExecuteAll", model);
+        var response = await PostAutomatonAsync(client, "/AutomatonExecution/ExecuteAll", model);
         var html = await response.Content.ReadAsStringAsync();
 
         // Assert
@@ -68,7 +68,7 @@ public class ResultDisplayTests(IntegrationTestsFixture fixture) : IntegrationTe
         };
 
         // Act
-        var response = await PostAutomatonAsync(client, "/Automaton/ExecuteAll", model);
+        var response = await PostAutomatonAsync(client, "/AutomatonExecution/ExecuteAll", model);
         var html = await response.Content.ReadAsStringAsync();
 
         // Assert
@@ -105,10 +105,10 @@ public class ResultDisplayTests(IntegrationTestsFixture fixture) : IntegrationTe
         };
 
         // Act - Only step once, not reading full input
-        var startResponse = await PostAutomatonAsync(client, "/Automaton/Start", model);
+        var startResponse = await PostAutomatonAsync(client, "/AutomatonExecution/Start", model);
         var result = await DeserializeResponseAsync(startResponse);
 
-        var response = await PostAutomatonAsync(client, "/Automaton/StepForward", result);
+        var response = await PostAutomatonAsync(client, "/AutomatonExecution/StepForward", result);
         var html = await response.Content.ReadAsStringAsync();
 
         // Assert
@@ -139,7 +139,7 @@ public class ResultDisplayTests(IntegrationTestsFixture fixture) : IntegrationTe
         };
 
         // Act
-        var response = await PostAutomatonAsync(client, "/Automaton/ExecuteAll", model);
+        var response = await PostAutomatonAsync(client, "/AutomatonExecution/ExecuteAll", model);
         var html = await response.Content.ReadAsStringAsync();
 
         // Assert
@@ -176,7 +176,7 @@ public class ResultDisplayTests(IntegrationTestsFixture fixture) : IntegrationTe
         };
 
         // Act
-        var response = await PostAutomatonAsync(client, "/Automaton/ExecuteAll", model);
+        var response = await PostAutomatonAsync(client, "/AutomatonExecution/ExecuteAll", model);
         var html = await response.Content.ReadAsStringAsync();
 
         // Assert
@@ -208,11 +208,11 @@ public class ResultDisplayTests(IntegrationTestsFixture fixture) : IntegrationTe
         };
 
         // Execute all first
-        var execResponse = await PostAutomatonAsync(client, "/Automaton/ExecuteAll", model);
+        var execResponse = await PostAutomatonAsync(client, "/AutomatonExecution/ExecuteAll", model);
         var execResult = await DeserializeResponseAsync(execResponse);
 
         // Act - Back to start
-        var response = await PostAutomatonAsync(client, "/Automaton/BackToStart", execResult);
+        var response = await PostAutomatonAsync(client, "/AutomatonExecution/BackToStart", execResult);
         var html = await response.Content.ReadAsStringAsync();
 
         // Assert

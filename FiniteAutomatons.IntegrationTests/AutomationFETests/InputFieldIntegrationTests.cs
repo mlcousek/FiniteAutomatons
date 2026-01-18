@@ -111,7 +111,7 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
     private static char? ExtractNextSymbolHighlight(string html)
     {
         var m = Regex.Match(html, @"<span[^>]*class=""symbol-highlight""[^>]*>'(?<c>.)'</span", RegexOptions.IgnoreCase | RegexOptions.Singleline);
-        return m.Success ? m.Groups["c"].Value[0] : (char?)null;
+        return m.Success ? m.Groups["c"].Value[0] : null;
     }
 
     private static int CountSymbolHighlightSpans(string html)
@@ -124,7 +124,7 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
     {
         var client = GetHttpClient();
         var model = BuildSimpleDfa("abba");
-        var resp = await PostAsync(client, "/Automaton/CreateAutomaton", model); // creation may return OK if validation passes
+        var resp = await PostAsync(client, "/AutomatonCreation/CreateAutomaton", model); // creation may return OK if validation passes
         resp.StatusCode.ShouldBeOneOf(new[] { HttpStatusCode.OK, HttpStatusCode.Found });
         var html = await resp.Content.ReadAsStringAsync();
         ExtractInputValue(html).ShouldBe("abba");
@@ -136,7 +136,7 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
     {
         var client = GetHttpClient();
         var model = BuildSimpleDfa("abba");
-        var startResp = await PostAsync(client, "/Automaton/Start", model);
+        var startResp = await PostAsync(client, "/AutomatonExecution/Start", model);
         startResp.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await startResp.Content.ReadAsStringAsync();
         ExtractInputValue(html).ShouldBe("abba");
@@ -150,7 +150,7 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
     {
         var client = GetHttpClient();
         var model = BuildSimpleDfa("abba");
-        var start = await PostAsync(client, "/Automaton/Start", model);
+        var start = await PostAsync(client, "/AutomatonExecution/Start", model);
         var startModelHtml = await start.Content.ReadAsStringAsync();
         ExtractPosition(startModelHtml).ShouldBe(0);
         var startModel = BuildSimpleDfa("abba"); // reconstruct minimal for step forward
@@ -158,7 +158,7 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
         // Provide execution state fields from html if needed (CurrentStateId)
         var csMatch = Regex.Match(startModelHtml, "name=\"CurrentStateId\"[^>]*value=\"(\\d+)\"", RegexOptions.IgnoreCase);
         if (csMatch.Success) startModel.CurrentStateId = int.Parse(csMatch.Groups[1].Value);
-        var stepResp = await PostAsync(client, "/Automaton/StepForward", startModel);
+        var stepResp = await PostAsync(client, "/AutomatonExecution/StepForward", startModel);
         stepResp.StatusCode.ShouldBe(HttpStatusCode.OK);
         var stepHtml = await stepResp.Content.ReadAsStringAsync();
         ExtractInputValue(stepHtml).ShouldBe("abba");
@@ -172,14 +172,14 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
     {
         var client = GetHttpClient();
         var model = BuildSimpleDfa("abba");
-        var execHtml = await (await PostAsync(client, "/Automaton/ExecuteAll", model)).Content.ReadAsStringAsync();
+        var execHtml = await (await PostAsync(client, "/AutomatonExecution/ExecuteAll", model)).Content.ReadAsStringAsync();
         ExtractPosition(execHtml).ShouldBe(4);
         var execModel = BuildSimpleDfa("abba");
         execModel.HasExecuted = true;
         execModel.Position = 4;
         var csMatch = Regex.Match(execHtml, "name=\"CurrentStateId\"[^>]*value=\"(\\d+)\"", RegexOptions.IgnoreCase);
         if (csMatch.Success) execModel.CurrentStateId = int.Parse(csMatch.Groups[1].Value);
-        var backResp = await PostAsync(client, "/Automaton/BackToStart", execModel);
+        var backResp = await PostAsync(client, "/AutomatonExecution/BackToStart", execModel);
         backResp.StatusCode.ShouldBe(HttpStatusCode.OK);
         var backHtml = await backResp.Content.ReadAsStringAsync();
         ExtractInputValue(backHtml).ShouldBe("abba");
@@ -193,7 +193,7 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
     {
         var client = GetHttpClient();
         var model = BuildSimpleDfa("ab");
-        var resp = await PostAsync(client, "/Automaton/ExecuteAll", model);
+        var resp = await PostAsync(client, "/AutomatonExecution/ExecuteAll", model);
         resp.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await resp.Content.ReadAsStringAsync();
         ExtractInputValue(html).ShouldBe("ab");
@@ -206,11 +206,11 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
     {
         var client = GetHttpClient();
         var model = BuildSimpleDfa("ab");
-        var execHtml = await (await PostAsync(client, "/Automaton/ExecuteAll", model)).Content.ReadAsStringAsync();
+        var execHtml = await (await PostAsync(client, "/AutomatonExecution/ExecuteAll", model)).Content.ReadAsStringAsync();
         var execModel = BuildSimpleDfa("ab");
         execModel.HasExecuted = true;
         execModel.Position = 2;
-        var resetResp = await PostAsync(client, "/Automaton/Reset", execModel);
+        var resetResp = await PostAsync(client, "/AutomatonExecution/Reset", execModel);
         resetResp.StatusCode.ShouldBe(HttpStatusCode.OK);
         var resetHtml = await resetResp.Content.ReadAsStringAsync();
         ExtractInputValue(resetHtml).ShouldBe(string.Empty);
@@ -223,7 +223,7 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
     {
         var client = GetHttpClient();
         var model = BuildSimpleNfa("a");
-        var startResp = await PostAsync(client, "/Automaton/Start", model);
+        var startResp = await PostAsync(client, "/AutomatonExecution/Start", model);
         startResp.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await startResp.Content.ReadAsStringAsync();
         ExtractInputValue(html).ShouldBe("a");
@@ -237,7 +237,7 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
     {
         var client = GetHttpClient();
         var model = BuildSimpleDfa("acb"); // transitions only cover 'a'/'b' but start does not consume yet
-        var startResp = await PostAsync(client, "/Automaton/Start", model);
+        var startResp = await PostAsync(client, "/AutomatonExecution/Start", model);
         startResp.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await startResp.Content.ReadAsStringAsync();
         ExtractInputValue(html).ShouldBe("acb");
@@ -263,7 +263,7 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
             Input = "cadc",
             IsCustomAutomaton = true
         };
-        var startResp = await PostAsync(client, "/Automaton/Start", model);
+        var startResp = await PostAsync(client, "/AutomatonExecution/Start", model);
         startResp.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await startResp.Content.ReadAsStringAsync();
         ExtractInputValue(html).ShouldBe("cadc");
@@ -288,7 +288,7 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
             Input = "cadc",
             IsCustomAutomaton = true
         };
-        var startResp = await PostAsync(client, "/Automaton/Start", model);
+        var startResp = await PostAsync(client, "/AutomatonExecution/Start", model);
         startResp.StatusCode.ShouldBe(HttpStatusCode.OK);
         var startHtml = await startResp.Content.ReadAsStringAsync();
         ExtractPosition(startHtml).ShouldBe(0);
@@ -303,7 +303,7 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
             HasExecuted = true,
             CurrentStateId = 2 // after consuming first 'c' per transition definition
         };
-        var stepResp = await PostAsync(client, "/Automaton/StepForward", stepModel);
+        var stepResp = await PostAsync(client, "/AutomatonExecution/StepForward", stepModel);
         stepResp.StatusCode.ShouldBe(HttpStatusCode.OK);
         var stepHtml = await stepResp.Content.ReadAsStringAsync();
         ExtractInputValue(stepHtml).ShouldBe("cadc");
@@ -316,7 +316,7 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
     {
         var client = GetHttpClient();
         var model = BuildSimpleDfa("acb");
-        var resp = await PostAsync(client, "/Automaton/Start", model);
+        var resp = await PostAsync(client, "/AutomatonExecution/Start", model);
         resp.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await resp.Content.ReadAsStringAsync();
         var value = ExtractInputValue(html);
@@ -334,13 +334,13 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
     {
         var client = GetHttpClient();
         var model = BuildSimpleDfa("acb");
-        var start = await PostAsync(client, "/Automaton/Start", model);
+        var start = await PostAsync(client, "/AutomatonExecution/Start", model);
         start.StatusCode.ShouldBe(HttpStatusCode.OK);
         // Prepare step model (execution started)
         var stepModel = BuildSimpleDfa("acb");
         stepModel.HasExecuted = true;
         stepModel.CurrentStateId = 2; // after consuming 'a'
-        var stepResp = await PostAsync(client, "/Automaton/StepForward", stepModel);
+        var stepResp = await PostAsync(client, "/AutomatonExecution/StepForward", stepModel);
         stepResp.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await stepResp.Content.ReadAsStringAsync();
         var value = ExtractInputValue(html);
@@ -370,7 +370,7 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
             Input = "cadc",
             IsCustomAutomaton = true
         };
-        var resp = await PostAsync(client, "/Automaton/Start", model);
+        var resp = await PostAsync(client, "/AutomatonExecution/Start", model);
         resp.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await resp.Content.ReadAsStringAsync();
         var value = ExtractInputValue(html);
@@ -399,7 +399,7 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
             Input = "cadc",
             IsCustomAutomaton = true
         };
-        var start = await PostAsync(client, "/Automaton/Start", model);
+        var start = await PostAsync(client, "/AutomatonExecution/Start", model);
         start.StatusCode.ShouldBe(HttpStatusCode.OK);
         var stepModel = new AutomatonViewModel
         {
@@ -411,7 +411,7 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
             HasExecuted = true,
             CurrentStateId = 2
         };
-        var stepResp = await PostAsync(client, "/Automaton/StepForward", stepModel);
+        var stepResp = await PostAsync(client, "/AutomatonExecution/StepForward", stepModel);
         stepResp.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await stepResp.Content.ReadAsStringAsync();
         var value = ExtractInputValue(html);

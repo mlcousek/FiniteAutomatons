@@ -108,28 +108,13 @@
                             </div>
                         </div>
 
-                        <!-- Minimization Mapping Section -->
-                        @if (!string.IsNullOrEmpty(Model.MinimizationReport) || (Model.MergedStateGroups != null && Model.MergedStateGroups.Count > 0))
+                        <!-- Minimization Mapping Section (raw report only) -->
+                        @if (!string.IsNullOrEmpty(Model.MinimizationReport))
                         {
                             <div class="automaton-detail-section minimization-section">
                                 <h4>Minimization Mapping</h4>
                                 <div class="minimization-content">
-                                    @if (!string.IsNullOrEmpty(Model.MinimizationReport))
-                                    {
-                                        <pre class="minimization-report">@Model.MinimizationReport</pre>
-                                    }
-
-                                    @if (Model.MergedStateGroups != null && Model.MergedStateGroups.Count > 0)
-                                    {
-                                        <ul class="minimization-groups">
-                                            @foreach (var kv in Model.MergedStateGroups.OrderBy(k => k.Key))
-                                            {
-                                                var newId = kv.Key;
-                                                var originals = string.Join(", ", kv.Value.Select(id => "q" + id));
-                                                <li>q@newId &lt;- {@Html.Raw("{" + originals + "}")}</li>
-                                            }
-                                        </ul>
-                                    }
+                                    <pre class="minimization-report">@Model.MinimizationReport</pre>
                                 </div>
                             </div>
                         }
@@ -346,7 +331,7 @@
                     @if (!hasExecuted)
                     {
                         <button type="submit" class="control-btn simulate-btn"
-                                asp-controller="Automaton" asp-action="Start"
+                                asp-controller="AutomatonExecution" asp-action="Start"
                                 title="Start" data-sim-primary="start">
                             <i class="fas fa-play-circle"></i>
                             <span>Start</span>
@@ -355,7 +340,7 @@
                     @if (hasExecuted)
                     {
                         <button type="submit" class="control-btn simulate-btn"
-                                asp-controller="Automaton" asp-action="Reset"
+                                asp-controller="AutomatonExecution" asp-action="Reset"
                                 title="Reset" data-sim-primary="reset">
                             <i class="fas fa-undo"></i>
                             <span>Reset</span>
@@ -365,14 +350,14 @@
                     @* BackToStart *@
                     @if (disableAllUntilStart || atStartPos)
                     {
-                        <button type="submit" class="control-btn simulate-btn" asp-controller="Automaton" asp-action="BackToStart" title="Back to start" data-sim-action="backToStart" disabled>
+                        <button type="submit" class="control-btn simulate-btn" asp-controller="AutomatonExecution" asp-action="BackToStart" title="Back to start" data-sim-action="backToStart" disabled>
                             <i class="fas fa-undo"></i>
                             <span>Back to start</span>
                         </button>
                     }
                     else
                     {
-                        <button type="submit" class="control-btn simulate-btn" asp-controller="Automaton" asp-action="BackToStart" title="Back to start" data-sim-action="backToStart">
+                        <button type="submit" class="control-btn simulate-btn" asp-controller="AutomatonExecution" asp-action="BackToStart" title="Back to start" data-sim-action="backToStart">
                             <i class="fas fa-undo"></i>
                             <span>Back to start</span>
                         </button>
@@ -381,14 +366,14 @@
                     @* StepBackward *@
                     @if (disableAllUntilStart || atStartPos)
                     {
-                        <button type="submit" class="control-btn simulate-btn" asp-controller="Automaton" asp-action="StepBackward" title="Step back" data-sim-action="stepBackward" disabled>
+                        <button type="submit" class="control-btn simulate-btn" asp-controller="AutomatonExecution" asp-action="StepBackward" title="Step back" data-sim-action="stepBackward" disabled>
                             <i class="fas fa-step-backward"></i>
                             <span>Step back</span>
                         </button>
                     }
                     else
                     {
-                        <button type="submit" class="control-btn simulate-btn" asp-controller="Automaton" asp-action="StepBackward" title="Step back" data-sim-action="stepBackward">
+                        <button type="submit" class="control-btn simulate-btn" asp-controller="AutomatonExecution" asp-action="StepBackward" title="Step back" data-sim-action="stepBackward">
                             <i class="fas fa-step-backward"></i>
                             <span>Step back</span>
                         </button>
@@ -397,14 +382,14 @@
                     @* StepForward *@
                     @if (disableAllUntilStart || atEndPos)
                     {
-                        <button type="submit" class="control-btn simulate-btn" asp-controller="Automaton" asp-action="StepForward" title="Read next" data-sim-action="stepForward" disabled>
+                        <button type="submit" class="control-btn simulate-btn" asp-controller="AutomatonExecution" asp-action="StepForward" title="Read next" data-sim-action="stepForward" disabled>
                             <i class="fas fa-step-forward"></i>
                             <span>Read next</span>
                         </button>
                     }
                     else
                     {
-                        <button type="submit" class="control-btn simulate-btn" asp-controller="Automaton" asp-action="StepForward" title="Read next" data-sim-action="stepForward">
+                        <button type="submit" class="control-btn simulate-btn" asp-controller="AutomatonExecution" asp-action="StepForward" title="Read next" data-sim-action="stepForward">
                             <i class="fas fa-step-forward"></i>
                             <span>Read next</span>
                         </button>
@@ -413,14 +398,14 @@
                     @* ExecuteAll *@
                     @if (disableAllUntilStart || atEndPos)
                     {
-                        <button type="submit" class="control-btn simulate-btn" asp-controller="Automaton" asp-action="ExecuteAll" title="Read all" data-sim-action="executeAll" disabled>
+                        <button type="submit" class="control-btn simulate-btn" asp-controller="AutomatonExecution" asp-action="ExecuteAll" title="Read all" data-sim-action="executeAll" disabled>
                             <i class="fas fa-forward"></i>
                             <span>Read all</span>
                         </button>
                     }
                     else
                     {
-                        <button type="submit" class="control-btn simulate-btn" asp-controller="Automaton" asp-action="ExecuteAll" title="Read all" data-sim-action="executeAll">
+                        <button type="submit" class="control-btn simulate-btn" asp-controller="AutomatonExecution" asp-action="ExecuteAll" title="Read all" data-sim-action="executeAll">
                             <i class="fas fa-forward"></i>
                             <span>Read all</span>
                         </button>
@@ -478,14 +463,72 @@
     </form>
 
     <div style="text-align: center; margin-top: 1rem;">
-        <form asp-controller="Automaton" asp-action="GenerateRealisticAutomaton" method="post" style="display: inline;">
-            <input type="hidden" name="type" value="@(Model != null ? (int)Model.Type : 0)" />
-            <input type="hidden" name="stateCount" value="5" />
-            <button type="submit" class="control-btn" style="min-width: 200px;">
-                <i class="fas fa-random"></i>
-                <span>Generate New Automaton</span>
-            </button>
-        </form>
+        <button id="generateModalBtn" class="control-btn" style="min-width:200px;" type="button">
+            <i class="fas fa-random"></i>
+            <span>Generate Automaton</span>
+        </button>
+        <!-- Modal markup -->
+        <div id="generateModal" class="modal" style="display:none;">
+            <div class="modal-content">
+                <span class="modal-close" id="generateModalClose">&times;</span>
+                <h3>Generate Automaton</h3>
+                <div class="preset-buttons">
+                    <form asp-controller="AutomatonPreset" asp-action="GeneratePreset" method="post" style="display:inline-block; margin:0.25rem;">
+                        <input type="hidden" name="preset" value="minimalized-dfa" />
+                        <button type="submit" class="control-btn">Minimalized DFA</button>
+                    </form>
+                    <form asp-controller="AutomatonPreset" asp-action="GeneratePreset" method="post" style="display:inline-block; margin:0.25rem;">
+                        <input type="hidden" name="preset" value="unminimalized-dfa" />
+                        <button type="submit" class="control-btn">DFA (un-minimalized)</button>
+                    </form>
+                    <form asp-controller="AutomatonPreset" asp-action="GeneratePreset" method="post" style="display:inline-block; margin:0.25rem;">
+                        <input type="hidden" name="preset" value="nfa" />
+                        <button type="submit" class="control-btn">NFA</button>
+                    </form>
+                    <form asp-controller="AutomatonPreset" asp-action="GeneratePreset" method="post" style="display:inline-block; margin:0.25rem;">
+                        <input type="hidden" name="preset" value="epsilon-nfa" />
+                        <button type="submit" class="control-btn">ε-NFA</button>
+                    </form>
+                </div>
+
+                <div class="divider" style="margin:1rem 0; border-top:1px solid #ddd;"></div>
+
+                <div>
+                    <a href="@Url.Action("GenerateRandomAutomaton", "AutomatonGeneration")" class="control-btn">Generate Random Automaton</a>
+                </div>
+
+                <div class="accordion" style="margin-top:1rem;">
+                    <button class="accordion-toggle control-btn" type="button">Generate by parameters</button>
+                    <div class="accordion-panel" style="display:none; margin-top:0.5rem;">
+                        <form asp-controller="AutomatonGeneration" asp-action="GenerateRandomAutomaton" method="post">
+                            <label>Type:</label>
+                            <select name="Type">
+                                <option value="0">DFA</option>
+                                <option value="1">NFA</option>
+                                <option value="2">ε-NFA</option>
+                                <option value="3">PDA</option>
+                            </select>
+                            <label>States:</label>
+                            <input type="number" name="StateCount" value="5" min="1" max="20" />
+                            <label>Transitions:</label>
+                            <input type="number" name="TransitionCount" value="8" min="0" />
+                            <label>Alphabet size:</label>
+                            <input type="number" name="AlphabetSize" value="3" min="1" max="10" />
+                            <label>Accepting ratio:</label>
+                            <input type="number" step="0.05" name="AcceptingStateRatio" value="0.3" min="0" max="1" />
+                            <div style="margin-top:0.5rem;">
+                                <button type="submit" class="control-btn">Generate</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <button class="accordion-toggle control-btn" type="button" style="margin-top:0.5rem;">Create fully custom automaton</button>
+                    <div class="accordion-panel" style="display:none; margin-top:0.5rem;">
+                        <a class="control-btn" href="@Url.Action("CreateAutomaton", "Automaton")">Open automaton creator</a>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -496,4 +539,29 @@
     <script type="module" src="~/js/home.mjs" asp-append-version="true"></script>
     <script type="module" src="~/js/simulateControls.mjs" asp-append-version="true"></script>
     <script type="module" src="~/js/automatonTypeControls.mjs" asp-append-version="true"></script>
+    <script>
+        // Modal handling for Generate Automaton
+        (function() {
+            const modal = document.getElementById('generateModal');
+            const btn = document.getElementById('generateModalBtn');
+            const close = document.getElementById('generateModalClose');
+            const toggles = document.querySelectorAll('.accordion-toggle');
+
+            if (btn && modal) {
+                btn.addEventListener('click', () => { modal.style.display = 'block'; });
+            }
+            if (close && modal) {
+                close.addEventListener('click', () => { modal.style.display = 'none'; });
+            }
+            window.addEventListener('click', (e) => { if (e.target === modal) modal.style.display = 'none'; });
+
+            toggles.forEach(t => {
+                t.addEventListener('click', () => {
+                    const panel = t.nextElementSibling;
+                    if (!panel) return;
+                    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+                });
+            });
+        })();
+    </script>
 }

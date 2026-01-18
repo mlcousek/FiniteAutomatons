@@ -32,9 +32,9 @@ public class SimulateControlsDisableTests(IntegrationTestsFixture fixture) : Int
         return await client.PostAsync(url, new FormUrlEncodedContent(form));
     }
 
-    private static List<KeyValuePair<string,string>> BuildForm(AutomatonViewModel m)
+    private static List<KeyValuePair<string, string>> BuildForm(AutomatonViewModel m)
     {
-        var list = new List<KeyValuePair<string,string>>
+        var list = new List<KeyValuePair<string, string>>
         {
             new("Type", ((int)m.Type).ToString()),
             new("Input", m.Input ?? string.Empty),
@@ -44,14 +44,14 @@ public class SimulateControlsDisableTests(IntegrationTestsFixture fixture) : Int
             new("StateHistorySerialized", m.StateHistorySerialized ?? string.Empty)
         };
         if (m.CurrentStateId.HasValue) list.Add(new("CurrentStateId", m.CurrentStateId.Value.ToString()));
-        for (int i=0;i<m.States.Count;i++)
+        for (int i = 0; i < m.States.Count; i++)
         {
             list.Add(new("States.Index", i.ToString()));
             list.Add(new($"States[{i}].Id", m.States[i].Id.ToString()));
             list.Add(new($"States[{i}].IsStart", m.States[i].IsStart.ToString().ToLower()));
             list.Add(new($"States[{i}].IsAccepting", m.States[i].IsAccepting.ToString().ToLower()));
         }
-        for (int i=0;i<m.Transitions.Count;i++)
+        for (int i = 0; i < m.Transitions.Count; i++)
         {
             list.Add(new("Transitions.Index", i.ToString()));
             list.Add(new($"Transitions[{i}].FromStateId", m.Transitions[i].FromStateId.ToString()));
@@ -73,8 +73,8 @@ public class SimulateControlsDisableTests(IntegrationTestsFixture fixture) : Int
         var client = GetHttpClient();
         var model = BuildSimpleDfa("ab");
         // Render initial index by posting create (redirect then GET Index)
-        var resp = await PostAsync(client, "/Automaton/CreateAutomaton", model);
-        resp.StatusCode.ShouldBeOneOf(new[]{HttpStatusCode.OK, HttpStatusCode.Found});
+        var resp = await PostAsync(client, "/AutomatonCreation/CreateAutomaton", model);
+        resp.StatusCode.ShouldBeOneOf(new[] { HttpStatusCode.OK, HttpStatusCode.Found });
         var html = await resp.Content.ReadAsStringAsync();
         var block = ExtractButtonBlock(html);
         ButtonPresent(block, "backToStart").ShouldBeTrue();
@@ -92,7 +92,7 @@ public class SimulateControlsDisableTests(IntegrationTestsFixture fixture) : Int
     {
         var client = GetHttpClient();
         var model = BuildSimpleDfa("ab");
-        var startResp = await PostAsync(client, "/Automaton/Start", model);
+        var startResp = await PostAsync(client, "/AutomatonExecution/Start", model);
         startResp.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await startResp.Content.ReadAsStringAsync();
         var block = ExtractButtonBlock(html);
@@ -107,11 +107,11 @@ public class SimulateControlsDisableTests(IntegrationTestsFixture fixture) : Int
     {
         var client = GetHttpClient();
         var model = BuildSimpleDfa("ab");
-        var startHtml = await (await PostAsync(client, "/Automaton/Start", model)).Content.ReadAsStringAsync();
+        var startHtml = await (await PostAsync(client, "/AutomatonExecution/Start", model)).Content.ReadAsStringAsync();
         // Build model for step forward
         var stepModel = BuildSimpleDfa("ab");
         stepModel.HasExecuted = true; stepModel.CurrentStateId = 1; // current state before consuming 'a'
-        var stepResp = await PostAsync(client, "/Automaton/StepForward", stepModel);
+        var stepResp = await PostAsync(client, "/AutomatonExecution/StepForward", stepModel);
         stepResp.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await stepResp.Content.ReadAsStringAsync();
         var block = ExtractButtonBlock(html);
@@ -124,7 +124,7 @@ public class SimulateControlsDisableTests(IntegrationTestsFixture fixture) : Int
     {
         var client = GetHttpClient();
         var model = BuildSimpleDfa("ab");
-        var execResp = await PostAsync(client, "/Automaton/ExecuteAll", model);
+        var execResp = await PostAsync(client, "/AutomatonExecution/ExecuteAll", model);
         execResp.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await execResp.Content.ReadAsStringAsync();
         var block = ExtractButtonBlock(html);
@@ -138,10 +138,10 @@ public class SimulateControlsDisableTests(IntegrationTestsFixture fixture) : Int
     {
         var client = GetHttpClient();
         var model = BuildSimpleDfa("ab");
-        var endHtml = await (await PostAsync(client, "/Automaton/ExecuteAll", model)).Content.ReadAsStringAsync();
+        var endHtml = await (await PostAsync(client, "/AutomatonExecution/ExecuteAll", model)).Content.ReadAsStringAsync();
         var endModel = BuildSimpleDfa("ab");
         endModel.HasExecuted = true; endModel.Position = 2; endModel.CurrentStateId = 2;
-        var backResp = await PostAsync(client, "/Automaton/BackToStart", endModel);
+        var backResp = await PostAsync(client, "/AutomatonExecution/BackToStart", endModel);
         backResp.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await backResp.Content.ReadAsStringAsync();
         var block = ExtractButtonBlock(html);
@@ -156,10 +156,10 @@ public class SimulateControlsDisableTests(IntegrationTestsFixture fixture) : Int
     {
         var client = GetHttpClient();
         var model = BuildSimpleDfa("ab");
-        var execHtml = await (await PostAsync(client, "/Automaton/ExecuteAll", model)).Content.ReadAsStringAsync();
+        var execHtml = await (await PostAsync(client, "/AutomatonExecution/ExecuteAll", model)).Content.ReadAsStringAsync();
         var execModel = BuildSimpleDfa("ab");
         execModel.HasExecuted = true; execModel.Position = 2; execModel.CurrentStateId = 2;
-        var resetResp = await PostAsync(client, "/Automaton/Reset", execModel);
+        var resetResp = await PostAsync(client, "/AutomatonExecution/Reset", execModel);
         resetResp.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await resetResp.Content.ReadAsStringAsync();
         var block = ExtractButtonBlock(html);

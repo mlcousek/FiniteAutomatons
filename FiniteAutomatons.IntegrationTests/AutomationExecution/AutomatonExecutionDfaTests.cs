@@ -16,7 +16,7 @@ public class AutomatonExecutionDfaTests(IntegrationTestsFixture fixture) : Integ
         var model = BuildSimpleDfa("ab");
 
         // Act
-        var resp = await PostAsync(client, "/Automaton/Start", model);
+        var resp = await PostAsync(client, "/AutomatonExecution/Start", model);
 
         // Assert
         resp.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -35,8 +35,8 @@ public class AutomatonExecutionDfaTests(IntegrationTestsFixture fixture) : Integ
         var model = BuildSimpleDfa("ab");
 
         // Act
-        var start = await DeserializeAsync(await PostAsync(client, "/Automaton/Start", model));
-        var forwardResp = await PostAsync(client, "/Automaton/StepForward", start);
+        var start = await DeserializeAsync(await PostAsync(client, "/AutomatonExecution/Start", model));
+        var forwardResp = await PostAsync(client, "/AutomatonExecution/StepForward", start);
 
         // Assert
         forwardResp.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -54,10 +54,10 @@ public class AutomatonExecutionDfaTests(IntegrationTestsFixture fixture) : Integ
         var model = BuildSimpleDfa("ab");
 
         // Act
-        var start = await DeserializeAsync(await PostAsync(client, "/Automaton/Start", model));
-        var forward = await DeserializeAsync(await PostAsync(client, "/Automaton/StepForward", start));
+        var start = await DeserializeAsync(await PostAsync(client, "/AutomatonExecution/Start", model));
+        var forward = await DeserializeAsync(await PostAsync(client, "/AutomatonExecution/StepForward", start));
         forward.Position.ShouldBe(1);
-        var backResp = await PostAsync(client, "/Automaton/StepBackward", forward);
+        var backResp = await PostAsync(client, "/AutomatonExecution/StepBackward", forward);
 
         // Assert
         backResp.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -75,7 +75,7 @@ public class AutomatonExecutionDfaTests(IntegrationTestsFixture fixture) : Integ
         var model = BuildSimpleDfa("ab");
 
         // Act
-        var resp = await PostAsync(client, "/Automaton/ExecuteAll", model);
+        var resp = await PostAsync(client, "/AutomatonExecution/ExecuteAll", model);
 
         // Assert
         resp.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -94,14 +94,14 @@ public class AutomatonExecutionDfaTests(IntegrationTestsFixture fixture) : Integ
         var model = BuildSimpleDfa("ab");
 
         // Act
-        var exec = await DeserializeAsync(await PostAsync(client, "/Automaton/ExecuteAll", model));
+        var exec = await DeserializeAsync(await PostAsync(client, "/AutomatonExecution/ExecuteAll", model));
 
         // Assert (pre-check)
         exec.IsAccepted.ShouldNotBeNull();
         exec.IsAccepted!.Value.ShouldBeTrue();
 
         // Act (reset)
-        var backResp = await PostAsync(client, "/Automaton/BackToStart", exec);
+        var backResp = await PostAsync(client, "/AutomatonExecution/BackToStart", exec);
 
         // Assert
         backResp.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -119,8 +119,8 @@ public class AutomatonExecutionDfaTests(IntegrationTestsFixture fixture) : Integ
         var model = BuildSimpleDfa("ab");
 
         // Act
-        var exec = await DeserializeAsync(await PostAsync(client, "/Automaton/ExecuteAll", model));
-        var resetResp = await PostAsync(client, "/Automaton/Reset", exec);
+        var exec = await DeserializeAsync(await PostAsync(client, "/AutomatonExecution/ExecuteAll", model));
+        var resetResp = await PostAsync(client, "/AutomatonExecution/Reset", exec);
 
         // Assert
         resetResp.StatusCode.ShouldBe(HttpStatusCode.OK);

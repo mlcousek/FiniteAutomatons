@@ -14,7 +14,7 @@ public class AutomatonGenerationIntegrationTests(IntegrationTestsFixture fixture
     {
         // Arrange
         var client = GetHttpClient();
-      
+
         var formData = new List<KeyValuePair<string, string>>
         {
          new("Type", "0"), // DFA enum value
@@ -25,24 +25,24 @@ public class AutomatonGenerationIntegrationTests(IntegrationTestsFixture fixture
      new("Seed", "12345")
    };
 
-   // Act - Submit the generation form (client follows redirects by default)
-var postResponse = await client.PostAsync("/Automaton/GenerateRandomAutomaton", new FormUrlEncodedContent(formData));
+        // Act - Submit the generation form (client follows redirects by default)
+        var postResponse = await client.PostAsync("/AutomatonGeneration/GenerateRandomAutomaton", new FormUrlEncodedContent(formData));
 
         // Assert - Should follow redirect and end up at Home/Index with 200 OK
         postResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await postResponse.Content.ReadAsStringAsync();
         // Should have the automaton loaded
         html.ShouldContain("AUTOMATON");
-      html.ShouldContain("States");
- }
+        html.ShouldContain("States");
+    }
 
     [Fact]
- public async Task GenerateRandomAutomaton_POST_PDA_ShouldGenerateAndRedirect()
+    public async Task GenerateRandomAutomaton_POST_PDA_ShouldGenerateAndRedirect()
     {
         // Arrange
         var client = GetHttpClient();
-      
-      var formData = new List<KeyValuePair<string, string>>
+
+        var formData = new List<KeyValuePair<string, string>>
         {
 new("Type", "3"), // PDA enum value
             new("StateCount", "4"),
@@ -52,22 +52,22 @@ new("Type", "3"), // PDA enum value
   new("Seed", "4242")
         };
 
-     // Act
-        var postResponse = await client.PostAsync("/Automaton/GenerateRandomAutomaton", new FormUrlEncodedContent(formData));
+        // Act
+        var postResponse = await client.PostAsync("/AutomatonGeneration/GenerateRandomAutomaton", new FormUrlEncodedContent(formData));
 
-   // Assert - Should follow redirect and end up at Home/Index
+        // Assert - Should follow redirect and end up at Home/Index
         postResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
-  var html = await postResponse.Content.ReadAsStringAsync();
+        var html = await postResponse.Content.ReadAsStringAsync();
         html.ShouldContain("AUTOMATON");
         html.ShouldContain("States");
- }
+    }
 
     [Fact]
     public async Task GenerateRealisticAutomaton_DFA_ShouldWork()
     {
         // Arrange
-  var client = GetHttpClient();
-        
+        var client = GetHttpClient();
+
         var formData = new List<KeyValuePair<string, string>>
   {
         new("type", "0"), // DFA enum value
@@ -76,13 +76,13 @@ new("Type", "3"), // PDA enum value
         };
 
         // Act
-        var response = await client.PostAsync("/Automaton/GenerateRealisticAutomaton", new FormUrlEncodedContent(formData));
+        var response = await client.PostAsync("/AutomatonGeneration/GenerateRealisticAutomaton", new FormUrlEncodedContent(formData));
 
- // Assert - Should follow redirect and end up at Home/Index
-      response.StatusCode.ShouldBe(HttpStatusCode.OK);
-      var html = await response.Content.ReadAsStringAsync();
+        // Assert - Should follow redirect and end up at Home/Index
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var html = await response.Content.ReadAsStringAsync();
         html.ShouldContain("AUTOMATON");
-   html.ShouldContain("States");
+        html.ShouldContain("States");
     }
 
     [Fact]

@@ -27,7 +27,7 @@ public class AutomatonGenerationTests(IntegrationTestsFixture fixture) : Integra
         };
 
         // Act
-        var response = await client.PostAsync("/Automaton/GenerateRealisticAutomaton", new FormUrlEncodedContent(formData));
+        var response = await client.PostAsync("/AutomatonGeneration/GenerateRealisticAutomaton", new FormUrlEncodedContent(formData));
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -55,7 +55,7 @@ public class AutomatonGenerationTests(IntegrationTestsFixture fixture) : Integra
         };
 
         // Act
-        var response = await client.PostAsync("/Automaton/GenerateRealisticAutomaton", new FormUrlEncodedContent(formData));
+        var response = await client.PostAsync("/AutomatonGeneration/GenerateRealisticAutomaton", new FormUrlEncodedContent(formData));
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -84,7 +84,7 @@ public class AutomatonGenerationTests(IntegrationTestsFixture fixture) : Integra
         };
 
         // Act
-        var response = await client.PostAsync("/Automaton/GenerateRealisticAutomaton", new FormUrlEncodedContent(formData));
+        var response = await client.PostAsync("/AutomatonGeneration/GenerateRealisticAutomaton", new FormUrlEncodedContent(formData));
 
         // Assert - The controller redirects to GenerateRandomAutomaton which doesn't have a view,
         // causing a 500 error. This is the actual behavior.
@@ -104,7 +104,7 @@ public class AutomatonGenerationTests(IntegrationTestsFixture fixture) : Integra
         };
 
         // Act - Generate automaton
-        var generateResponse = await client.PostAsync("/Automaton/GenerateRealisticAutomaton", new FormUrlEncodedContent(generateFormData));
+        var generateResponse = await client.PostAsync("/AutomatonGeneration/GenerateRealisticAutomaton", new FormUrlEncodedContent(generateFormData));
         generateResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         var html = await generateResponse.Content.ReadAsStringAsync();
@@ -123,7 +123,7 @@ public class AutomatonGenerationTests(IntegrationTestsFixture fixture) : Integra
 
         // Act - Execute the generated automaton
         var executeFormData = BuildExecutionFormData(model);
-        var executeResponse = await client.PostAsync("/Automaton/ExecuteAll", new FormUrlEncodedContent(executeFormData));
+        var executeResponse = await client.PostAsync("/AutomatonExecution/ExecuteAll", new FormUrlEncodedContent(executeFormData));
 
         // Assert - Should execute without errors
         executeResponse.StatusCode.ShouldBe(HttpStatusCode.OK);

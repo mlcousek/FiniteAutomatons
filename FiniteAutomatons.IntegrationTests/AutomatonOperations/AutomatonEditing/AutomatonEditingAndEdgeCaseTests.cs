@@ -86,9 +86,6 @@ public class AutomatonEditingAndEdgeCaseTests(IntegrationTestsFixture fixture) :
         return list;
     }
 
-    private static int CountHiddenStates(string html) => Regex.Matches(html, "name=\"States\\.Index\"", RegexOptions.IgnoreCase).Count;
-    private static int CountHiddenTransitions(string html) => Regex.Matches(html, "name=\"Transitions\\[(\\d+)\\]\\.FromStateId\"", RegexOptions.IgnoreCase).Count;
-
     // ---------- Tests ----------
 
     [Fact]
@@ -96,12 +93,12 @@ public class AutomatonEditingAndEdgeCaseTests(IntegrationTestsFixture fixture) :
     {
         var client = GetHttpClient();
         var model = BaseDfa("a");
-        var startHtml = await (await PostAsync(client, "/Automaton/Start", model)).Content.ReadAsStringAsync();
+        var startHtml = await (await PostAsync(client, "/AutomatonExecution/Start", model)).Content.ReadAsStringAsync();
         Regex.IsMatch(startHtml, "name=\"Position\"[^>]*value=\"0\"", RegexOptions.IgnoreCase).ShouldBeTrue();
         // attempt backward
         var startModel = BaseDfa("a");
         startModel.HasExecuted = true; startModel.CurrentStateId = 1; // state after start
-        var backResp = await PostAsync(client, "/Automaton/StepBackward", startModel);
+        var backResp = await PostAsync(client, "/AutomatonExecution/StepBackward", startModel);
         var backHtml = await backResp.Content.ReadAsStringAsync();
         Regex.IsMatch(backHtml, "name=\"Position\"[^>]*value=\"0\"", RegexOptions.IgnoreCase).ShouldBeTrue();
     }
@@ -111,11 +108,11 @@ public class AutomatonEditingAndEdgeCaseTests(IntegrationTestsFixture fixture) :
     {
         var client = GetHttpClient();
         var model = NfaMulti("a");
-        var startHtml = await (await PostAsync(client, "/Automaton/Start", model)).Content.ReadAsStringAsync();
+        var startHtml = await (await PostAsync(client, "/AutomatonExecution/Start", model)).Content.ReadAsStringAsync();
         // Execute one step
         var startModel = NfaMulti("a");
         startModel.HasExecuted = true; // mark execution started
-        var stepResp = await PostAsync(client, "/Automaton/StepForward", startModel);
+        var stepResp = await PostAsync(client, "/AutomatonExecution/StepForward", startModel);
         stepResp.StatusCode.ShouldBe(HttpStatusCode.OK);
         var stepHtml = await stepResp.Content.ReadAsStringAsync();
         // Should contain hidden inputs for CurrentStates[0] and CurrentStates[1]
@@ -128,7 +125,7 @@ public class AutomatonEditingAndEdgeCaseTests(IntegrationTestsFixture fixture) :
         var client = GetHttpClient();
         var model = BaseDfa("ab");
         model.States.Add(new() { Id = 2, IsAccepting = true });
-        var resp = await PostAsync(client, "/Automaton/ExportJson", model);
+        var resp = await PostAsync(client, "/ImportExport/ExportJson", model);
         resp.StatusCode.ShouldBe(HttpStatusCode.OK);
         resp.Content.Headers.ContentType!.MediaType.ShouldBe("application/json");
         var json = await resp.Content.ReadAsStringAsync();
@@ -144,7 +141,7 @@ public class AutomatonEditingAndEdgeCaseTests(IntegrationTestsFixture fixture) :
         var model = BaseDfa("ab");
         model.States.Add(new() { Id = 2, IsAccepting = true });
         model.Transitions.Add(new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' });
-        var resp = await PostAsync(client, "/Automaton/ExportText", model);
+        var resp = await PostAsync(client, "/ImportExport/ExportText", model);
         resp.StatusCode.ShouldBe(HttpStatusCode.OK);
         resp.Content.Headers.ContentType!.MediaType.ShouldBe("text/plain");
         var txt = await resp.Content.ReadAsStringAsync();

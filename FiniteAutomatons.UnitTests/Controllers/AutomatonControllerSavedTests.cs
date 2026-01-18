@@ -1,8 +1,6 @@
-using System.Security.Claims;
 using FiniteAutomatons.Controllers;
 using FiniteAutomatons.Core.Models.Database;
 using FiniteAutomatons.Core.Models.ViewModel;
-using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Services.Interfaces;
 using FiniteAutomatons.Services.Services;
 using Microsoft.AspNetCore.Http;
@@ -10,9 +8,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Options;
-using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Shouldly;
+using System.Security.Claims;
 
 namespace FiniteAutomatons.UnitTests.Controllers;
 
@@ -143,7 +140,7 @@ public class AutomatonControllerSavedTests
         public Task SetGroupSharingPolicyAsync(int groupId, bool membersCanShare)
         {
             var g = Groups.FirstOrDefault(x => x.Id == groupId);
-            if (g != null) g.MembersCanShare = membersCanShare;
+            g?.MembersCanShare = membersCanShare;
             return Task.CompletedTask;
         }
 
@@ -170,9 +167,9 @@ public class AutomatonControllerSavedTests
         }
     }
 
-    private static AutomatonController BuildController(MockSavedAutomatonService svc, IdentityUser user)
+    private static SavedAutomatonController BuildController(MockSavedAutomatonService svc, IdentityUser user)
     {
-        var logger = new NullLogger<AutomatonController>();
+        var logger = new NullLogger<AutomatonCreationController>();
         var mockGenerator = new MockAutomatonGeneratorService();
         var tempDataSvc = new MockAutomatonTempDataService();
         var validationSvc = new MockAutomatonValidationService();
@@ -183,7 +180,7 @@ public class AutomatonControllerSavedTests
 
         var userManager = new TestUserManager(user);
 
-        var controller = new AutomatonController(logger, mockGenerator, tempDataSvc, validationSvc, conversionSvc, execSvc, editingSvc, fileSvc, new MockAutomatonMinimizationService(), svc, userManager, null);
+        var controller = new SavedAutomatonController(svc, tempDataSvc, userManager);
 
         var httpContext = new DefaultHttpContext();
         controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
@@ -206,9 +203,9 @@ public class AutomatonControllerSavedTests
         await svc.SaveAsync(user.Id, "s1", null, new AutomatonViewModel { Type = AutomatonType.DFA }, false, g1.Id);
         await svc.SaveAsync(user.Id, "s2", null, new AutomatonViewModel { Type = AutomatonType.DFA }, false, g2.Id);
 
-        var result = await c.SavedAutomatons(groupId: g2.Id) as ViewResult;
+        var result = await c.Index(groupId: g2.Id) as ViewResult; // No change
         result.ShouldNotBeNull();
-        result.ViewName.ShouldBeNull(); // default view
+        result.ViewName.ShouldBe("SavedAutomatons");
         var model = result.Model as List<SavedAutomaton>;
         model.ShouldNotBeNull();
         model.All(i => i.UserId == user.Id).ShouldBeTrue();
@@ -224,7 +221,7 @@ public class AutomatonControllerSavedTests
         var user = new IdentityUser { Id = "u2" };
         var c = BuildController(svc, user);
 
-        var res = await c.CreateSavedGroup("   ", null) as BadRequestObjectResult;
+        var res = await c.CreateGroup("   ", null) as BadRequestObjectResult; // No change
         res.ShouldNotBeNull();
     }
 
@@ -235,9 +232,9 @@ public class AutomatonControllerSavedTests
         var user = new IdentityUser { Id = "u3" };
         var c = BuildController(svc, user);
 
-        var res = await c.CreateSavedGroup("  mygroup  ", "d") as RedirectToActionResult;
+        var res = await c.CreateGroup("  mygroup  ", "d") as RedirectToActionResult; // No change
         res.ShouldNotBeNull();
-        res.ActionName.ShouldBe("SavedAutomatons");
+        res.ActionName.ShouldBe("Index");
         // verify created
         var groups = await svc.ListGroupsForUserAsync(user.Id);
         groups.Count.ShouldBe(1);
@@ -252,7 +249,7 @@ public class AutomatonControllerSavedTests
         var c = BuildController(svc, user);
 
         var model = new AutomatonViewModel();
-        var result = await c.SaveAutomaton(model, "  ", null, saveState: false) as ViewResult;
+        var result = await c.Save(model, "  ", null, saveState: false) as ViewResult; // No change
         result.ShouldNotBeNull();
         result.ViewName.ShouldBe("CreateAutomaton");
         c.ModelState.IsValid.ShouldBeFalse();
@@ -266,9 +263,9 @@ public class AutomatonControllerSavedTests
         var c = BuildController(svc, user);
 
         var model = new AutomatonViewModel { Type = AutomatonType.DFA };
-        var result = await c.SaveAutomaton(model, "name1", "desc", saveState: true) as RedirectToActionResult;
+        var result = await c.Save(model, "name1", "desc", saveState: true) as RedirectToActionResult; // No change
         result.ShouldNotBeNull();
-        result.ActionName.ShouldBe("SavedAutomatons");
+        result.ActionName.ShouldBe("Index");
 
         var list = await svc.ListForUserAsync(user.Id);
         list.Count.ShouldBe(1);
@@ -305,7 +302,7 @@ public class AutomatonControllerSavedTests
 
         svc.Items.Add(entity);
 
-        var res = await c.LoadSavedAutomaton(entity.Id, asState: true) as RedirectToActionResult;
+        var res = await c.Load(entity.Id, asState: true) as RedirectToActionResult; // No change
         res.ShouldNotBeNull();
         res.ActionName.ShouldBe("Index");
         res.ControllerName.ShouldBe("Home");
@@ -330,9 +327,9 @@ public class AutomatonControllerSavedTests
         var c = BuildController(svc, user);
 
         var e = await svc.SaveAsync(user.Id, "todel", null, new AutomatonViewModel { Type = AutomatonType.DFA }, false);
-        var res = await c.DeleteSavedAutomaton(e.Id) as RedirectToActionResult;
+        var res = await c.Delete(e.Id) as RedirectToActionResult; // No change
         res.ShouldNotBeNull();
-        res.ActionName.ShouldBe("SavedAutomatons");
+        res.ActionName.ShouldBe("Index");
 
         var fetched = await svc.GetAsync(e.Id, user.Id);
         fetched.ShouldBeNull();

@@ -17,7 +17,7 @@ public class AutomatonFileEndpointsTests(IntegrationTestsFixture fixture) : Inte
         {
             { new ByteArrayContent(Encoding.UTF8.GetBytes(json)), "upload", "dfa.json" }
         };
-        var response = await client.PostAsync("/Automaton/ImportAutomaton", content);
+        var response = await client.PostAsync("/ImportExport/ImportAutomaton", content);
         // Should redirect to Home/Index on success
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await response.Content.ReadAsStringAsync();
@@ -42,7 +42,7 @@ public class AutomatonFileEndpointsTests(IntegrationTestsFixture fixture) : Inte
             new("States[1].Id","2"), new("States[1].IsStart","false"), new("States[1].IsAccepting","true"),
             new("Transitions[0].FromStateId","1"), new("Transitions[0].ToStateId","2"), new("Transitions[0].Symbol","a")
         };
-        var resp = await client.PostAsync("/Automaton/ExportJson", new FormUrlEncodedContent(form));
+        var resp = await client.PostAsync("/ImportExport/ExportJson", new FormUrlEncodedContent(form));
         resp.StatusCode.ShouldBe(HttpStatusCode.OK);
         resp.Content.Headers.ContentType!.MediaType.ShouldBe("application/json");
     }
@@ -65,7 +65,7 @@ public class AutomatonFileEndpointsTests(IntegrationTestsFixture fixture) : Inte
             new("Transitions[0].FromStateId","1"), new("Transitions[0].ToStateId","2"), new("Transitions[0].Symbol","a"),
             new("Transitions[1].FromStateId","1"), new("Transitions[1].ToStateId","1"), new("Transitions[1].Symbol","a")
         };
-        var resp = await client.PostAsync("/Automaton/ExportText", new FormUrlEncodedContent(form));
+        var resp = await client.PostAsync("/ImportExport/ExportText", new FormUrlEncodedContent(form));
         resp.StatusCode.ShouldBe(HttpStatusCode.OK);
         resp.Content.Headers.ContentType!.MediaType.ShouldBe("text/plain");
     }

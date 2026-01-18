@@ -11,20 +11,17 @@ namespace FiniteAutomatons.UnitTests.Controllers;
 
 public class AutomatonControllerTests
 {
-    private readonly AutomatonController controller;
+    private readonly AutomatonCreationController controller;
 
     public AutomatonControllerTests()
     {
-        var logger = new TestLogger<AutomatonController>();
-        var mockGeneratorService = new MockAutomatonGeneratorService();
+        var logger = new TestLogger<AutomatonCreationController>();
         var mockTempDataService = new MockAutomatonTempDataService();
         var mockValidationService = new MockAutomatonValidationService();
-        var mockConversionService = new MockAutomatonConversionService();
-        var mockExecutionService = new MockAutomatonExecutionService();
         var mockEditingService = new AutomatonEditingService(new MockAutomatonValidationService(), new TestLogger<AutomatonEditingService>());
-        
-        controller = new AutomatonController(logger, mockGeneratorService, mockTempDataService,
-            mockValidationService, mockConversionService, mockExecutionService, mockEditingService, new MockAutomatonFileService(), new MockAutomatonMinimizationService());
+
+        controller = new AutomatonCreationController(logger, mockTempDataService,
+            mockValidationService, mockEditingService, new MockAutomatonMinimizationService());
 
         var httpContext = new DefaultHttpContext();
         var tempData = new TempDataDictionary(httpContext, new TestTempDataProvider());

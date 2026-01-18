@@ -33,19 +33,19 @@ public class AutomatonExecutionDfaComprehensiveTests(IntegrationTestsFixture fix
         var client = GetHttpClient();
         var model = BuildThreeStateDfa("da");
 
-        var startHtml = await (await PostAsync(client, "/Automaton/Start", model)).Content.ReadAsStringAsync();
+        var startHtml = await (await PostAsync(client, "/AutomatonExecution/Start", model)).Content.ReadAsStringAsync();
         ExtractInput(startHtml).ShouldBe("da");
         ExtractPosition(startHtml).pos.ShouldBe(0);
         ExtractNextSymbol(startHtml).ShouldBe('d');
 
         var startModel = Deserialize(startHtml);
-        var step1Html = await (await PostAsync(client, "/Automaton/StepForward", startModel)).Content.ReadAsStringAsync();
+        var step1Html = await (await PostAsync(client, "/AutomatonExecution/StepForward", startModel)).Content.ReadAsStringAsync();
         ExtractInput(step1Html).ShouldBe("da");
         ExtractPosition(step1Html).pos.ShouldBe(1);
         ExtractNextSymbol(step1Html).ShouldBe('a');
 
         var step1Model = Deserialize(step1Html);
-        var step2Html = await (await PostAsync(client, "/Automaton/StepForward", step1Model)).Content.ReadAsStringAsync();
+        var step2Html = await (await PostAsync(client, "/AutomatonExecution/StepForward", step1Model)).Content.ReadAsStringAsync();
         ExtractInput(step2Html).ShouldBe("da");
         ExtractPosition(step2Html).pos.ShouldBe(2);
         // End of input -> no next symbol highlight; expect placeholder text instead
@@ -57,11 +57,11 @@ public class AutomatonExecutionDfaComprehensiveTests(IntegrationTestsFixture fix
     {
         var client = GetHttpClient();
         var model = BuildThreeStateDfa("da");
-        var start = Deserialize(await (await PostAsync(client, "/Automaton/Start", model)).Content.ReadAsStringAsync());
-        var step1 = Deserialize(await (await PostAsync(client, "/Automaton/StepForward", start)).Content.ReadAsStringAsync());
+        var start = Deserialize(await (await PostAsync(client, "/AutomatonExecution/Start", model)).Content.ReadAsStringAsync());
+        var step1 = Deserialize(await (await PostAsync(client, "/AutomatonExecution/StepForward", start)).Content.ReadAsStringAsync());
         step1.Position.ShouldBe(1);
         step1.CurrentStateId.ShouldBe(2);
-        var backHtml = await (await PostAsync(client, "/Automaton/StepBackward", step1)).Content.ReadAsStringAsync();
+        var backHtml = await (await PostAsync(client, "/AutomatonExecution/StepBackward", step1)).Content.ReadAsStringAsync();
         ExtractPosition(backHtml).pos.ShouldBe(0);
         ExtractNextSymbol(backHtml).ShouldBe('d');
     }
@@ -71,7 +71,7 @@ public class AutomatonExecutionDfaComprehensiveTests(IntegrationTestsFixture fix
     {
         var client = GetHttpClient();
         var model = BuildThreeStateDfa("da");
-        var resp = await PostAsync(client, "/Automaton/ExecuteAll", model);
+        var resp = await PostAsync(client, "/AutomatonExecution/ExecuteAll", model);
         resp.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await resp.Content.ReadAsStringAsync();
         var (pos, len) = ExtractPosition(html);
@@ -87,7 +87,7 @@ public class AutomatonExecutionDfaComprehensiveTests(IntegrationTestsFixture fix
         // Modify DFA so second symbol mismatches (input "db")
         var client = GetHttpClient();
         var model = BuildThreeStateDfa("db"); // transitions require d then a -> second char b should cause rejection
-        var resp = await PostAsync(client, "/Automaton/ExecuteAll", model);
+        var resp = await PostAsync(client, "/AutomatonExecution/ExecuteAll", model);
         resp.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await resp.Content.ReadAsStringAsync();
         var (pos, len) = ExtractPosition(html);
@@ -101,10 +101,10 @@ public class AutomatonExecutionDfaComprehensiveTests(IntegrationTestsFixture fix
     {
         var client = GetHttpClient();
         var model = BuildThreeStateDfa("da");
-        var start = Deserialize(await (await PostAsync(client, "/Automaton/Start", model)).Content.ReadAsStringAsync());
-        var step1 = Deserialize(await (await PostAsync(client, "/Automaton/StepForward", start)).Content.ReadAsStringAsync());
+        var start = Deserialize(await (await PostAsync(client, "/AutomatonExecution/Start", model)).Content.ReadAsStringAsync());
+        var step1 = Deserialize(await (await PostAsync(client, "/AutomatonExecution/StepForward", start)).Content.ReadAsStringAsync());
         step1.Position.ShouldBe(1);
-        var backHtml = await (await PostAsync(client, "/Automaton/BackToStart", step1)).Content.ReadAsStringAsync();
+        var backHtml = await (await PostAsync(client, "/AutomatonExecution/BackToStart", step1)).Content.ReadAsStringAsync();
         ExtractPosition(backHtml).pos.ShouldBe(0);
         ExtractNextSymbol(backHtml).ShouldBe('d');
     }
@@ -114,10 +114,10 @@ public class AutomatonExecutionDfaComprehensiveTests(IntegrationTestsFixture fix
     {
         var client = GetHttpClient();
         var model = BuildThreeStateDfa("da");
-        var execHtml = await (await PostAsync(client, "/Automaton/ExecuteAll", model)).Content.ReadAsStringAsync();
+        var execHtml = await (await PostAsync(client, "/AutomatonExecution/ExecuteAll", model)).Content.ReadAsStringAsync();
         ExtractPosition(execHtml).pos.ShouldBe(2);
         var execModel = Deserialize(execHtml);
-        var resetHtml = await (await PostAsync(client, "/Automaton/Reset", execModel)).Content.ReadAsStringAsync();
+        var resetHtml = await (await PostAsync(client, "/AutomatonExecution/Reset", execModel)).Content.ReadAsStringAsync();
         ExtractInput(resetHtml).ShouldBe(string.Empty);
         ExtractPosition(resetHtml).pos.ShouldBe(0);
         HasNextSymbol(resetHtml).ShouldBeFalse();

@@ -24,44 +24,13 @@ public class AuditIntegrationTests(IntegrationTestsFixture fixture) : Integratio
             new("AcceptingStateRatio", "0.3")
         };
 
-        var response = await client.PostAsync("/Automaton/GenerateRandomAutomaton", new FormUrlEncodedContent(formData));
+        var response = await client.PostAsync("/AutomatonGeneration/GenerateRandomAutomaton", new FormUrlEncodedContent(formData));
         response.StatusCode.ShouldBeOneOf(HttpStatusCode.OK, HttpStatusCode.Redirect);
 
         using var scope = GetServiceScope();
         var audit = scope.ServiceProvider.GetRequiredService<InMemoryAuditService>();
         var start = audit.GetByEventType("MethodStart").FirstOrDefault(r => r.Message == "IAutomatonGeneratorService.GenerateRandomAutomaton");
         var end = audit.GetByEventType("MethodEnd").FirstOrDefault(r => r.Message == "IAutomatonGeneratorService.GenerateRandomAutomaton");
-
-        start.ShouldNotBeNull();
-        end.ShouldNotBeNull();
-    }
-
-    [Fact]
-    public async Task ConvertToDFA_Post_EmitsConversionAudit()
-    {
-        var client = GetHttpClient();
-
-        var nfaModel = new AutomatonViewModel
-        {
-            Type = AutomatonType.NFA,
-            States =
-            [
-                new() { Id = 1, IsStart = true, IsAccepting = false },
-                new() { Id = 2, IsStart = false, IsAccepting = true }
-            ],
-            Transitions =
-            [
-                new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' }
-            ],
-        };
-
-        var response = await PostAutomatonForm(client, "/Automaton/ConvertToDFA", nfaModel);
-        response.StatusCode.ShouldBeOneOf(HttpStatusCode.OK, HttpStatusCode.Redirect);
-
-        using var scope = GetServiceScope();
-        var audit = scope.ServiceProvider.GetRequiredService<InMemoryAuditService>();
-        var start = audit.GetByEventType("MethodStart").FirstOrDefault(r => r.Message == "IAutomatonConversionService.ConvertToDFA" || r.Message == "IAutomatonConversionService.ConvertAutomatonType");
-        var end = audit.GetByEventType("MethodEnd").FirstOrDefault(r => r.Message == "IAutomatonConversionService.ConvertToDFA" || r.Message == "IAutomatonConversionService.ConvertAutomatonType");
 
         start.ShouldNotBeNull();
         end.ShouldNotBeNull();
@@ -87,7 +56,7 @@ public class AuditIntegrationTests(IntegrationTestsFixture fixture) : Integratio
             ],
         };
 
-        var response = await PostAutomatonForm(client, "/Automaton/ExecuteAll", dfaModel);
+        var response = await PostAutomatonForm(client, "/AutomatonExecution/ExecuteAll", dfaModel);
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         using var scope = GetServiceScope();

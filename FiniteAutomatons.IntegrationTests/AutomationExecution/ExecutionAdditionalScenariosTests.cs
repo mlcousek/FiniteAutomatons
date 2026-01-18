@@ -11,7 +11,7 @@ public class ExecutionAdditionalScenariosTests(IntegrationTestsFixture fixture) 
     private static AutomatonViewModel AcceptsEmptyDfa() => new()
     {
         Type = AutomatonType.DFA,
-        States = [ new() { Id = 1, IsStart = true, IsAccepting = true } ],
+        States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
         Transitions = [],
         Input = string.Empty,
         IsCustomAutomaton = true
@@ -44,7 +44,7 @@ public class ExecutionAdditionalScenariosTests(IntegrationTestsFixture fixture) 
             new() { Id = 1, IsStart = true, IsAccepting = false },
             new() { Id = 2, IsStart = false, IsAccepting = true }
         ],
-        Transitions = [ new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' } ], // only 'a' known
+        Transitions = [new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' }], // only 'a' known
         Input = input,
         IsCustomAutomaton = true
     };
@@ -56,9 +56,9 @@ public class ExecutionAdditionalScenariosTests(IntegrationTestsFixture fixture) 
         return await client.PostAsync(url, new FormUrlEncodedContent(data));
     }
 
-    private static List<KeyValuePair<string,string>> BuildForm(AutomatonViewModel m)
+    private static List<KeyValuePair<string, string>> BuildForm(AutomatonViewModel m)
     {
-        var list = new List<KeyValuePair<string,string>>
+        var list = new List<KeyValuePair<string, string>>
         {
             new("Type", ((int)m.Type).ToString()),
             new("Input", m.Input ?? string.Empty),
@@ -70,7 +70,7 @@ public class ExecutionAdditionalScenariosTests(IntegrationTestsFixture fixture) 
         if (m.CurrentStateId.HasValue) list.Add(new("CurrentStateId", m.CurrentStateId.Value.ToString()));
         if (m.CurrentStates != null)
         {
-            int i=0; foreach(var s in m.CurrentStates){ list.Add(new("CurrentStates.Index", i.ToString())); list.Add(new($"CurrentStates[{i}]", s.ToString())); i++; }
+            int i = 0; foreach (var s in m.CurrentStates) { list.Add(new("CurrentStates.Index", i.ToString())); list.Add(new($"CurrentStates[{i}]", s.ToString())); i++; }
         }
         for (int i = 0; i < m.States.Count; i++)
         {
@@ -99,7 +99,7 @@ public class ExecutionAdditionalScenariosTests(IntegrationTestsFixture fixture) 
     {
         var client = GetHttpClient();
         var model = AcceptsEmptyDfa();
-        var resp = await PostAsync(client, "/Automaton/ExecuteAll", model);
+        var resp = await PostAsync(client, "/AutomatonExecution/ExecuteAll", model);
         resp.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await resp.Content.ReadAsStringAsync();
         ExtractPosition(html).ShouldBe(0); // input length 0
@@ -114,7 +114,7 @@ public class ExecutionAdditionalScenariosTests(IntegrationTestsFixture fixture) 
     {
         var client = GetHttpClient();
         var model = SimpleNfa("a");
-        var resp = await PostAsync(client, "/Automaton/ExecuteAll", model);
+        var resp = await PostAsync(client, "/AutomatonExecution/ExecuteAll", model);
         resp.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await resp.Content.ReadAsStringAsync();
         var accepted = ExtractIsAccepted(html);
@@ -128,7 +128,7 @@ public class ExecutionAdditionalScenariosTests(IntegrationTestsFixture fixture) 
     {
         var client = GetHttpClient();
         var model = UnknownSymbolDfa("b"); // no 'b' transition => cannot move => rejection after execute all
-        var resp = await PostAsync(client, "/Automaton/ExecuteAll", model);
+        var resp = await PostAsync(client, "/AutomatonExecution/ExecuteAll", model);
         resp.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await resp.Content.ReadAsStringAsync();
         var accepted = ExtractIsAccepted(html);
@@ -144,54 +144,54 @@ public class ExecutionAdditionalScenariosTests(IntegrationTestsFixture fixture) 
         var model = new AutomatonViewModel
         {
             Type = AutomatonType.DFA,
-            States = [ new() { Id = 1, IsStart = true }, new() { Id = 2, IsAccepting = true } ],
-            Transitions = [ new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' }, new() { FromStateId = 2, ToStateId = 2, Symbol = 'b' } ],
+            States = [new() { Id = 1, IsStart = true }, new() { Id = 2, IsAccepting = true }],
+            Transitions = [new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' }, new() { FromStateId = 2, ToStateId = 2, Symbol = 'b' }],
             Input = "ab",
             IsCustomAutomaton = true
         };
 
-        var startHtml = await (await PostAsync(client, "/Automaton/Start", model)).Content.ReadAsStringAsync();
+        var startHtml = await (await PostAsync(client, "/AutomatonExecution/Start", model)).Content.ReadAsStringAsync();
         ExtractPosition(startHtml).ShouldBe(0);
         // Forward twice
         var startModel = new AutomatonViewModel
         {
             Type = model.Type,
-            States = model.States.Select(s => new Core.Models.DoMain.State { Id=s.Id, IsStart=s.IsStart, IsAccepting=s.IsAccepting }).ToList(),
-            Transitions = model.Transitions.Select(t => new Core.Models.DoMain.Transition { FromStateId=t.FromStateId, ToStateId=t.ToStateId, Symbol=t.Symbol }).ToList(),
+            States = model.States.Select(s => new Core.Models.DoMain.State { Id = s.Id, IsStart = s.IsStart, IsAccepting = s.IsAccepting }).ToList(),
+            Transitions = model.Transitions.Select(t => new Core.Models.DoMain.Transition { FromStateId = t.FromStateId, ToStateId = t.ToStateId, Symbol = t.Symbol }).ToList(),
             Input = model.Input,
             IsCustomAutomaton = true,
             HasExecuted = true,
             CurrentStateId = 1,
             Position = 0
         };
-        var step1Html = await (await PostAsync(client, "/Automaton/StepForward", startModel)).Content.ReadAsStringAsync();
+        var step1Html = await (await PostAsync(client, "/AutomatonExecution/StepForward", startModel)).Content.ReadAsStringAsync();
         ExtractPosition(step1Html).ShouldBe(1);
         var step1Model = new AutomatonViewModel
         {
             Type = model.Type,
-            States = model.States.Select(s => new Core.Models.DoMain.State { Id=s.Id, IsStart=s.IsStart, IsAccepting=s.IsAccepting }).ToList(),
-            Transitions = model.Transitions.Select(t => new Core.Models.DoMain.Transition { FromStateId=t.FromStateId, ToStateId=t.ToStateId, Symbol=t.Symbol }).ToList(),
+            States = model.States.Select(s => new Core.Models.DoMain.State { Id = s.Id, IsStart = s.IsStart, IsAccepting = s.IsAccepting }).ToList(),
+            Transitions = model.Transitions.Select(t => new Core.Models.DoMain.Transition { FromStateId = t.FromStateId, ToStateId = t.ToStateId, Symbol = t.Symbol }).ToList(),
             Input = model.Input,
             IsCustomAutomaton = true,
             HasExecuted = true,
             CurrentStateId = 2,
             Position = 1
         };
-        var step2Html = await (await PostAsync(client, "/Automaton/StepForward", step1Model)).Content.ReadAsStringAsync();
+        var step2Html = await (await PostAsync(client, "/AutomatonExecution/StepForward", step1Model)).Content.ReadAsStringAsync();
         ExtractPosition(step2Html).ShouldBe(2);
         // Backward one
         var backModel = new AutomatonViewModel
         {
             Type = model.Type,
-            States = model.States.Select(s => new Core.Models.DoMain.State { Id=s.Id, IsStart=s.IsStart, IsAccepting=s.IsAccepting }).ToList(),
-            Transitions = model.Transitions.Select(t => new Core.Models.DoMain.Transition { FromStateId=t.FromStateId, ToStateId=t.ToStateId, Symbol=t.Symbol }).ToList(),
+            States = model.States.Select(s => new Core.Models.DoMain.State { Id = s.Id, IsStart = s.IsStart, IsAccepting = s.IsAccepting }).ToList(),
+            Transitions = model.Transitions.Select(t => new Core.Models.DoMain.Transition { FromStateId = t.FromStateId, ToStateId = t.ToStateId, Symbol = t.Symbol }).ToList(),
             Input = model.Input,
             IsCustomAutomaton = true,
             HasExecuted = true,
             CurrentStateId = 2,
             Position = 2
         };
-        var backHtml = await (await PostAsync(client, "/Automaton/StepBackward", backModel)).Content.ReadAsStringAsync();
+        var backHtml = await (await PostAsync(client, "/AutomatonExecution/StepBackward", backModel)).Content.ReadAsStringAsync();
         ExtractPosition(backHtml).ShouldBe(1);
         // Inspect history serialized hidden input presence
         Regex.IsMatch(step2Html, "name=\"StateHistorySerialized\"", RegexOptions.IgnoreCase).ShouldBeTrue();

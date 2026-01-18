@@ -125,7 +125,7 @@ public class AutomatonApiTests(IntegrationTestsFixture fixture) : IntegrationTes
         var form = ToFormContent(model);
 
         // Act
-        var response = await client.PostAsync("/Automaton/ExecuteAll", form);
+        var response = await client.PostAsync("/AutomatonExecution/ExecuteAll", form);
         var html = await response.Content.ReadAsStringAsync();
 
         // Assert
@@ -141,19 +141,19 @@ public class AutomatonApiTests(IntegrationTestsFixture fixture) : IntegrationTes
         // Actually: 1->2(a)->5(b) - wait, let me trace: from state 2 with 'b' goes to state 5 which IS accepting
         // So this test expectation is WRONG. Let's use different input that actually rejects
         model = GetDefaultDfaViewModel("a"); // 1->2(a), state 2 is NOT accepting - this will reject
-                
+
         var client = GetHttpClient();
         var form = ToFormContent(model);
 
         // Act
-        var response = await client.PostAsync("/Automaton/ExecuteAll", form);
-     var html = await response.Content.ReadAsStringAsync();
+        var response = await client.PostAsync("/AutomatonExecution/ExecuteAll", form);
+        var html = await response.Content.ReadAsStringAsync();
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        
-     // Check that rejected appears somewhere (case insensitive)
-  var containsRejected = html.Contains("rejected", StringComparison.OrdinalIgnoreCase);
+
+        // Check that rejected appears somewhere (case insensitive)
+        var containsRejected = html.Contains("rejected", StringComparison.OrdinalIgnoreCase);
         Assert.True(containsRejected, $"Expected 'rejected' to appear in HTML, but it didn't. HTML snippet: {html.Substring(0, Math.Min(500, html.Length))}");
     }
 
@@ -166,51 +166,51 @@ public class AutomatonApiTests(IntegrationTestsFixture fixture) : IntegrationTes
         var form = ToFormContent(model);
 
         // Step 1: StepForward (should move to state 2)
-        var response = await client.PostAsync("/Automaton/StepForward", form);
+        var response = await client.PostAsync("/AutomatonExecution/StepForward", form);
         var html = await response.Content.ReadAsStringAsync();
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         // With StepForward, HasExecuted gets set automatically
         // The execution state should show (even without explicit Start)
-    // But we need to verify it displays correctly
-   Assert.Contains("q2", html); // Should have moved to state 2
+        // But we need to verify it displays correctly
+        Assert.Contains("q2", html); // Should have moved to state 2
 
-  UpdateModelFromHtml(model, html);
+        UpdateModelFromHtml(model, html);
 
-  // Step 2: StepForward again (with 'b' should move to state 5, not 3!)
+        // Step 2: StepForward again (with 'b' should move to state 5, not 3!)
         form = ToFormContent(model);
-        response = await client.PostAsync("/Automaton/StepForward", form);
- html = await response.Content.ReadAsStringAsync();
+        response = await client.PostAsync("/AutomatonExecution/StepForward", form);
+        html = await response.Content.ReadAsStringAsync();
         Assert.Contains("q5", html);
 
-  UpdateModelFromHtml(model, html);
+        UpdateModelFromHtml(model, html);
 
         // Step 3: StepBackward (should move back to state 2)
-  form = ToFormContent(model);
- response = await client.PostAsync("/Automaton/StepBackward", form);
-  html = await response.Content.ReadAsStringAsync();
-      Assert.Contains("q2", html);
+        form = ToFormContent(model);
+        response = await client.PostAsync("/AutomatonExecution/StepBackward", form);
+        html = await response.Content.ReadAsStringAsync();
+        Assert.Contains("q2", html);
     }
 
     [Fact]
     public async Task BackToStart_ResetsState()
-{
+    {
         // Arrange
-   var model = GetDefaultDfaViewModel("abca");
- model.CurrentStateId = 3;
+        var model = GetDefaultDfaViewModel("abca");
+        model.CurrentStateId = 3;
         model.Position = 2;
         var client = GetHttpClient();
         var form = ToFormContent(model);
 
         // Act
-        var response = await client.PostAsync("/Automaton/BackToStart", form);
+        var response = await client.PostAsync("/AutomatonExecution/BackToStart", form);
         var html = await response.Content.ReadAsStringAsync();
 
         // Assert
-     Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("Current State:", html);
-    Assert.Contains("q1", html);
-   Assert.Contains("Current Position:", html);
-   Assert.Contains("0 /", html); // Position 0 out of total
+        Assert.Contains("q1", html);
+        Assert.Contains("Current Position:", html);
+        Assert.Contains("0 /", html); // Position 0 out of total
     }
 
     [Fact]
@@ -219,51 +219,51 @@ public class AutomatonApiTests(IntegrationTestsFixture fixture) : IntegrationTes
         // Arrange
         var model = GetDefaultDfaViewModel("abca");
         model.CurrentStateId = 3;
-   model.Position = 2;
+        model.Position = 2;
         model.HasExecuted = true; // Set HasExecuted so execution state shows
         var client = GetHttpClient();
         var form = ToFormContent(model);
 
-      // Act
-  var response = await client.PostAsync("/Automaton/Reset", form);
+        // Act
+        var response = await client.PostAsync("/AutomatonExecution/Reset", form);
         var html = await response.Content.ReadAsStringAsync();
 
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
- Assert.Contains("INPUT", html); // Input section header
-       // After reset, execution state section should not be shown since HasExecuted is now false
-    // But the comment "Execution State Section" might still be in HTML as a comment
-        // Check that there's no actual execution state item displayed
-  Assert.DoesNotContain("execution-state-item", html); // No execution state items rendered
+        Assert.Contains("INPUT", html); // Input section header
+                                        // After reset, execution state section should not be shown since HasExecuted is now false
+                                        // But the comment "Execution State Section" might still be in HTML as a comment
+                                        // Check that there's no actual execution state item displayed
+        Assert.DoesNotContain("execution-state-item", html); // No execution state items rendered
     }
 
     [Fact]
     public async Task ExecuteAll_LongInput_LeadsToAccepting()
     {
         // Arrange
-   var model = GetDefaultDfaViewModel("abcaabcaabca"); // Should end in state 5 (accepting)
+        var model = GetDefaultDfaViewModel("abcaabcaabca"); // Should end in state 5 (accepting)
         var client = GetHttpClient();
         var form = ToFormContent(model);
-     // Act
-  var response = await client.PostAsync("/Automaton/ExecuteAll", form);
-     var html = await response.Content.ReadAsStringAsync();
+        // Act
+        var response = await client.PostAsync("/AutomatonExecution/ExecuteAll", form);
+        var html = await response.Content.ReadAsStringAsync();
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-      Assert.Contains("Accepted", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Accepted", html, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
     public async Task ExecuteAll_EmptyInput_ShouldReject()
     {
-  // Arrange
+        // Arrange
         var model = GetDefaultDfaViewModel("");
         var client = GetHttpClient();
-     var form = ToFormContent(model);
- // Act
-        var response = await client.PostAsync("/Automaton/ExecuteAll", form);
+        var form = ToFormContent(model);
+        // Act
+        var response = await client.PostAsync("/AutomatonExecution/ExecuteAll", form);
         var html = await response.Content.ReadAsStringAsync();
         // Assert
-      Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("Rejected", html, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -275,11 +275,11 @@ public class AutomatonApiTests(IntegrationTestsFixture fixture) : IntegrationTes
         var client = GetHttpClient();
         var form = ToFormContent(model);
         // Act
-        var response = await client.PostAsync("/Automaton/ExecuteAll", form);
-  var html = await response.Content.ReadAsStringAsync();
+        var response = await client.PostAsync("/AutomatonExecution/ExecuteAll", form);
+        var html = await response.Content.ReadAsStringAsync();
         // Assert
-      Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-    // Could be accepted or rejected depending on DFA, just check for result
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        // Could be accepted or rejected depending on DFA, just check for result
         Assert.True(html.Contains("Accepted", StringComparison.OrdinalIgnoreCase) || html.Contains("Rejected", StringComparison.OrdinalIgnoreCase));
     }
 
@@ -288,26 +288,26 @@ public class AutomatonApiTests(IntegrationTestsFixture fixture) : IntegrationTes
     {
         // Arrange
         var model = GetDefaultDfaViewModel("a"); // 1->2, not accepting
-    var client = GetHttpClient();
-   var form = ToFormContent(model);
+        var client = GetHttpClient();
+        var form = ToFormContent(model);
         // Act
-     var response = await client.PostAsync("/Automaton/ExecuteAll", form);
-  var html = await response.Content.ReadAsStringAsync();
+        var response = await client.PostAsync("/AutomatonExecution/ExecuteAll", form);
+        var html = await response.Content.ReadAsStringAsync();
         // Assert
- Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("Rejected", html, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
- public async Task ExecuteAll_LoopInAcceptingState()
+    public async Task ExecuteAll_LoopInAcceptingState()
     {
         // Arrange
-  var model = GetDefaultDfaViewModel("abcaaaa"); // 1->2(a)->3(b)->4(c)->5(a)->5(a)->5(a)->5(a)
+        var model = GetDefaultDfaViewModel("abcaaaa"); // 1->2(a)->3(b)->4(c)->5(a)->5(a)->5(a)->5(a)
         var client = GetHttpClient();
         var form = ToFormContent(model);
         // Act
- var response = await client.PostAsync("/Automaton/ExecuteAll", form);
-    var html = await response.Content.ReadAsStringAsync();
+        var response = await client.PostAsync("/AutomatonExecution/ExecuteAll", form);
+        var html = await response.Content.ReadAsStringAsync();
         // Assert
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("Accepted", html, StringComparison.OrdinalIgnoreCase);
@@ -317,41 +317,41 @@ public class AutomatonApiTests(IntegrationTestsFixture fixture) : IntegrationTes
     public async Task Stepwise_MultipleActions_ForwardBackwardExecuteAllReset()
     {
         // Arrange
- var model = GetDefaultDfaViewModel("abca");
-  var client = GetHttpClient();
-   var form = ToFormContent(model);
-   
-  // Step 1: StepForward (should move to state 2)
-  var response = await client.PostAsync("/Automaton/StepForward", form);
+        var model = GetDefaultDfaViewModel("abca");
+        var client = GetHttpClient();
+        var form = ToFormContent(model);
+
+        // Step 1: StepForward (should move to state 2)
+        var response = await client.PostAsync("/AutomatonExecution/StepForward", form);
         var html = await response.Content.ReadAsStringAsync();
-Assert.Contains("q2", html);
+        Assert.Contains("q2", html);
         UpdateModelFromHtml(model, html);
 
         // Step 2: StepForward (with 'b' should move to state 5, not 3!)
-    form = ToFormContent(model);
-  response = await client.PostAsync("/Automaton/StepForward", form);
-   html = await response.Content.ReadAsStringAsync();
-      Assert.Contains("q5", html);
+        form = ToFormContent(model);
+        response = await client.PostAsync("/AutomatonExecution/StepForward", form);
+        html = await response.Content.ReadAsStringAsync();
+        Assert.Contains("q5", html);
         UpdateModelFromHtml(model, html);
-   
+
         // Step 3: StepBackward (should move back to state 2)
         form = ToFormContent(model);
-  response = await client.PostAsync("/Automaton/StepBackward", form);
-     html = await response.Content.ReadAsStringAsync();
-      Assert.Contains("q2", html);
- UpdateModelFromHtml(model, html);
-        
-    // Step 4: ExecuteAll (should end in state 5)
-    form = ToFormContent(model);
-   response = await client.PostAsync("/Automaton/ExecuteAll", form);
-html = await response.Content.ReadAsStringAsync();
-     var containsAccepted = html.Contains("accepted", StringComparison.OrdinalIgnoreCase);
+        response = await client.PostAsync("/AutomatonExecution/StepBackward", form);
+        html = await response.Content.ReadAsStringAsync();
+        Assert.Contains("q2", html);
+        UpdateModelFromHtml(model, html);
+
+        // Step 4: ExecuteAll (should end in state 5)
+        form = ToFormContent(model);
+        response = await client.PostAsync("/AutomatonExecution/ExecuteAll", form);
+        html = await response.Content.ReadAsStringAsync();
+        var containsAccepted = html.Contains("accepted", StringComparison.OrdinalIgnoreCase);
         Assert.True(containsAccepted, "Expected 'accepted' in HTML");
-        
-    // Step 5: Reset
-    response = await client.PostAsync("/Automaton/Reset", form);
-  html = await response.Content.ReadAsStringAsync();
+
+        // Step 5: Reset
+        response = await client.PostAsync("/AutomatonExecution/Reset", form);
+        html = await response.Content.ReadAsStringAsync();
         Assert.Contains("INPUT", html); // Input section header
-    Assert.DoesNotContain("execution-state-item", html); // No execution state items
+        Assert.DoesNotContain("execution-state-item", html); // No execution state items
     }
 }

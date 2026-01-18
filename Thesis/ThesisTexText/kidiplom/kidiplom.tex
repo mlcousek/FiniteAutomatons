@@ -99,22 +99,13 @@
 
 %% Anotace práce, včetně anglické (obvykle překlad z jazyka
 %% práce). Jeden odstavec!
-\annotation{Ukázkový text závěrečné práce na Katedře informatiky
-  Přírodovědecké fakulty Univerzity Palackého v Olomouci, který je
-  zároveň dokumentací stylu pro text práce v \LaTeX{}u. Zdrojový text
-  v \LaTeX{}u je doporučeno použít jako šablonu pro text skutečné
-  závěrečné práce studenta.}
+\annotation{Tato diplomová práce se zabývá návrhem a implementací interaktivního simulátoru a vizualizátoru modelů z teorie formálních jazyků. Teoretická část práce podrobně mapuje Chomského hierarchii s důrazem na konečné automaty, zásobníkové automaty a Turingovy stroje. Práce dále popisuje klíčové algoritmy pro transformaci a minimalizaci těchto modelů, které tvoří jádro realizované aplikace určené pro podporu výuky teoretické informatiky.}
 
-\annotation[english]{Sample text of thesis at the \kitextdepten,
-  \kitextfacultyen, \kitextuniven{} and, at the same time,
-  documentation of the \LaTeX{} style for the text. The source text in
-  \LaTeX{} is recommended to be used as a template for real student's
-  thesis text.}
+\annotation[english]{This master thesis focuses on the design and implementation of an interactive simulator and visualizer for models in formal language theory. The theoretical part provides a detailed map of the Chomsky hierarchy, emphasizing finite automata, pushdown automata, and Turing machines. Furthermore, the thesis describes key algorithms for transformation and minimization of these models, which form the core of the implemented application designed to support the education of theoretical computer science.}
 
 %% Klíčová slova práce, včetně anglických. Oddělená (obvykle) středníkem.
-\keywords{styl textu; závěrečná práce; dokumentace; ukázkový text}
-\keywords[english]{text style; thesis; documentation; sample text}
-
+\keywords{formální jazyky; konečné automaty; Turingovy stroje; vizualizace; simulace; algoritmy; Chomského hierarchie}
+\keywords[english]{formal languages; finite automata; Turing machines; visualization; simulation; algorithms; Chomsky hierarchy}
 %% Volitelná specifikace příloh textu práce, i anglicky. Výchozí je
 %% 'elektronická data v systému katedry informatiky / electronic data
 %% in system of department of computer science'.
@@ -123,8 +114,7 @@
 
 %% Volitelné poděkování. Stručné! Výchozí je prázdné. Makro nemá
 %% nepovinný parametr pro uvedení jazyka.
-\thanks{Děkuji, děkuji, děkuji.}
-
+\thanks{Rád bych poděkoval vedoucímu práce doc. RNDr. Miroslavu Kolaříkovi, Ph.D. za cenné rady, trpělivost a odborné vedení během zpracování této diplomové práce. Dále děkuji své rodině a blízkým za podporu při studiu.}
 %% Cesta k souboru s bibliografií pro její sazbu pomocí BibLaTeXu
 %% (zvolenou nepovinným parametrem biblatex makra
 %% \documentclass). Použijte pouze při této sazbě, ne při (výchozí)
@@ -150,16 +140,40 @@
 %% -------------------------------------------------------------------
 
 \section{Úvod}
-- Motivace pro práci s konečnými automaty.
-- Přehled existujících řešení a jejich omezení.
-- Cíle a přínos diplomové práce.
+Teorie formálních jazyků a automatů tvoří teoretický fundament moderní informatiky. Porozumění těmto konceptům je nezbytné pro návrh překladačů, analýzu složitosti algoritmů i pro pochopení limitů samotné vyčíslitelnosti. Přestože je tato oblast primárně matematická, její praktická aplikace v softwarovém inženýrství je nepopiratelná.
 
+Motivací pro tuto diplomovou práci je vytvořit moderní, interaktivní nástroj, který by studentům a zájemcům o teoretickou informatiku umožnil vizualizovat abstraktní modely, jako jsou konečné automaty či Turingovy stroje. Tato práce si klade za cíl nejen popsat teoretické základy, ale také implementovat algoritmy, které tyto modely transformují, minimalizují a simulují v reálném čase.
+
+%% --- TEORETICKÁ ČÁST ---
 \section{Teoretický základ}
-- Definice konečných automatů.
-- Rozdíly mezi DKA a NKA.
-- Přechodová funkce a způsoby její reprezentace.
-- Minimalizace konečných automatů.
-- Konverze regulárních výrazů na automaty.
+Tato kapitola shrnuje matematický aparát nezbytný pro pochopení problematiky formálních jazyků. Text čerpá primárně zavedenou terminologii z publikací \cite{cerna2002} a \cite{jancar2007}.
+
+\subsection{Formální jazyky a Chomského hierarchie}
+Základem teorie je definice abecedy $\Sigma$ jako konečné množiny symbolů. Slovo je konečná posloupnost těchto symbolů a jazyk je libovolná množina slov.
+
+Klíčovým konceptem je Chomského hierarchie, která dělí jazyky do čtyř tříd podle jejich generativní síly:
+\begin{enumerate}
+    \item \textbf{Typ 0 (Rekurzivně spočetné):} Jazyky přijímané Turingovými stroji.
+    \item \textbf{Typ 1 (Kontextové):} Jazyky přijímané lineárně omezenými automaty.
+    \item \textbf{Typ 2 (Bezkontextové):} Jazyky popsané bezkontextovými gramatikami a přijímané zásobníkovými automaty.
+    \item \textbf{Typ 3 (Regulární):} Nejslabší třída, přijímaná konečnými automaty.
+\end{enumerate}
+
+\subsection{Konečné automaty (DFA a NFA)}
+Konečný automat je nejjednodušším modelem s konečnou pamětí. Formálně definujeme deterministický konečný automat (DFA) jako pětici $M = (Q, \Sigma, \delta, q_0, F)$.
+
+\subsection{Determinizace a minimalizace}
+Nedeterministické automaty (NFA) umožňují více přechodů pro jeden symbol. Pro účely simulace je však často nutná jejich determinizace pomocí tzv. \textit{podmnožinové konstrukce}. Po determinizaci je dalším krokem minimalizace automatu, která vede na kanonický tvar s nejmenším možným počtem stavů při zachování přijímaného jazyka \cite{balun2025}.
+
+\subsection{Regulární výrazy a jejich převod}
+Regulární výrazy poskytují syntakticky úsporný způsob popisu regulárních jazyků. V implementované aplikaci je využíván \textbf{Thompsonův algoritmus} pro převod regulárního výrazu na NFA s $\varepsilon$-kroky, což umožňuje vizualizaci postupu od textového zápisu ke grafové reprezentaci.
+
+\subsection{Bezkontextové jazyky a zásobník}
+Pro jazyky typu 2 (např. vyvážené závorky) již konečný automat nestačí. Je nutné zavést zásobníkový automat (PDA), který rozšiřuje konečný automat o paměť typu LIFO. V práci se zaměříme na simulaci práce se zásobníkovou abecedou $\Gamma$.
+
+\subsection{Turingovy stroje}
+Turingův stroj (TM) představuje univerzální model výpočtu. Skládá se z řídicí jednotky, nekonečné pásky a čtecí hlavy. V simulátoru je kladen důraz na vizualizaci konfigurace stroje, která je definována jako trojice (stav, obsah pásky, pozice hlavy) \cite{jancar2007}.
+
 
 \section{Návrh systému}
 - Požadavky na systém.

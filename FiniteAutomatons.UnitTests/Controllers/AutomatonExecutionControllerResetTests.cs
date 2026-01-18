@@ -1,33 +1,27 @@
-using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Controllers;
+using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ViewFeatures;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Shouldly;
 
 namespace FiniteAutomatons.UnitTests.Controllers;
 
-public class AutomatonControllerResetTests
+public class AutomatonExecutionControllerResetTests
 {
-    private readonly AutomatonController controller;
+    private readonly AutomatonExecutionController controller;
 
-    public AutomatonControllerResetTests()
+    public AutomatonExecutionControllerResetTests()
     {
         var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
-        var logger = loggerFactory.CreateLogger<AutomatonController>();
+        var logger = loggerFactory.CreateLogger<AutomatonExecutionController>();
         var mockGeneratorService = new MockAutomatonGeneratorService();
         var mockTempDataService = new MockAutomatonTempDataService();
         var mockValidationService = new MockAutomatonValidationService();
         var mockConversionService = new MockAutomatonConversionService();
         var mockExecutionService = new MockAutomatonExecutionService();
         var editing = new AutomatonEditingService(new MockAutomatonValidationService(), new TestLogger<AutomatonEditingService>());
-        controller = new AutomatonController(logger, mockGeneratorService, mockTempDataService,
-            mockValidationService, mockConversionService, mockExecutionService, editing, new MockAutomatonFileService(), new MockAutomatonMinimizationService())
-        {
-            TempData = new TempDataDictionary(new DefaultHttpContext(), new TestTempDataProvider())
-        };
+        controller = new AutomatonExecutionController(mockTempDataService, mockExecutionService, new MockAutomatonMinimizationService());
     }
 
     [Fact]
@@ -64,7 +58,7 @@ public class AutomatonControllerResetTests
         var resultModel = viewResult.Model as AutomatonViewModel;
 
         resultModel.ShouldNotBeNull();
-        
+
         resultModel.Type.ShouldBe(AutomatonType.DFA);
         resultModel.States.Count.ShouldBe(2);
         resultModel.Transitions.Count.ShouldBe(2);
@@ -111,11 +105,11 @@ public class AutomatonControllerResetTests
         var resultModel = viewResult.Model as AutomatonViewModel;
 
         resultModel.ShouldNotBeNull();
-        
+
         resultModel.Transitions.Count.ShouldBe(2);
         resultModel.Transitions.ShouldContain(t => t.Symbol == '\0');
         resultModel.Transitions.ShouldContain(t => t.Symbol == 'a');
-        
+
         resultModel.Alphabet.ShouldContain('a');
         resultModel.Alphabet.ShouldNotContain('\0');
 

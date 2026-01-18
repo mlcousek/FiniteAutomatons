@@ -80,7 +80,7 @@ public class StartResetButtonVisibilityTests(IntegrationTestsFixture fixture) : 
         var form = ToFormContent(model);
 
         // Act
-        var response = await client.PostAsync("/Automaton/Reset", form);
+        var response = await client.PostAsync("/AutomatonExecution/Reset", form);
         response.EnsureSuccessStatusCode();
         var html = await response.Content.ReadAsStringAsync();
 
@@ -98,7 +98,7 @@ public class StartResetButtonVisibilityTests(IntegrationTestsFixture fixture) : 
         var form = ToFormContent(model);
 
         // Act: StepForward marks HasExecuted true and view should switch buttons
-        var response = await client.PostAsync("/Automaton/StepForward", form);
+        var response = await client.PostAsync("/AutomatonExecution/StepForward", form);
         response.EnsureSuccessStatusCode();
         var html = await response.Content.ReadAsStringAsync();
 
@@ -114,7 +114,7 @@ public class StartResetButtonVisibilityTests(IntegrationTestsFixture fixture) : 
         var client = GetHttpClient();
         var model = BuildSimpleDfa("aa", hasExecuted: false);
         var form = ToFormContent(model);
-        var execResponse = await client.PostAsync("/Automaton/StepForward", form);
+        var execResponse = await client.PostAsync("/AutomatonExecution/StepForward", form);
         execResponse.EnsureSuccessStatusCode();
 
         // Extract updated hidden fields for HasExecuted (we only need HasExecuted true to send to Reset)
@@ -125,7 +125,7 @@ public class StartResetButtonVisibilityTests(IntegrationTestsFixture fixture) : 
         var resetForm = ToFormContent(afterExecModel);
 
         // Act
-        var resetResponse = await client.PostAsync("/Automaton/Reset", resetForm);
+        var resetResponse = await client.PostAsync("/AutomatonExecution/Reset", resetForm);
         resetResponse.EnsureSuccessStatusCode();
         var html = await resetResponse.Content.ReadAsStringAsync();
 
@@ -141,7 +141,7 @@ public class StartResetButtonVisibilityTests(IntegrationTestsFixture fixture) : 
         var client = GetHttpClient();
         var model = BuildSimpleDfa("aa", hasExecuted: false);
         var form = ToFormContent(model);
-        var stepResponse = await client.PostAsync("/Automaton/StepForward", form);
+        var stepResponse = await client.PostAsync("/AutomatonExecution/StepForward", form);
         stepResponse.EnsureSuccessStatusCode();
         var stepHtml = await stepResponse.Content.ReadAsStringAsync();
         stepHtml.ShouldContain("title=\"Reset\"");
@@ -151,7 +151,7 @@ public class StartResetButtonVisibilityTests(IntegrationTestsFixture fixture) : 
         var backForm = ToFormContent(model);
 
         // Act
-        var backResponse = await client.PostAsync("/Automaton/StepBackward", backForm);
+        var backResponse = await client.PostAsync("/AutomatonExecution/StepBackward", backForm);
         backResponse.EnsureSuccessStatusCode();
         var html = await backResponse.Content.ReadAsStringAsync();
 

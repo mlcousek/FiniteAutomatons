@@ -1,6 +1,7 @@
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Services;
 using Shouldly;
+using System.Linq;
 
 namespace FiniteAutomatons.UnitTests.Services;
 
@@ -27,7 +28,7 @@ public class AutomatonGeneratorServiceTests
     public void ValidateGenerationParameters_TooManyTransitionsForDFA_ReturnsFalse()
     {
         // Act
-        var result = service.ValidateGenerationParameters(AutomatonType.DFA, 3, 10, 2); 
+        var result = service.ValidateGenerationParameters(AutomatonType.DFA, 3, 10, 2);
 
         // Assert
         result.ShouldBeFalse();
@@ -76,7 +77,7 @@ public class AutomatonGeneratorServiceTests
     public void GenerateRandomAutomaton_NFA_CreatesValidAutomaton()
     {
         // Arrange
-        var seed = 54321; 
+        var seed = 54321;
 
         // Act
         var result = service.GenerateRandomAutomaton(AutomatonType.NFA, 3, 5, 2, 0.33, seed);
@@ -144,30 +145,30 @@ public class AutomatonGeneratorServiceTests
         result.ShouldNotBeNull();
         result.Type.ShouldBe(AutomatonType.DFA);
         result.States.Count.ShouldBe(5);
-        result.Transitions.Count.ShouldBeGreaterThanOrEqualTo(5); 
+        result.Transitions.Count.ShouldBeGreaterThanOrEqualTo(5);
         result.Alphabet.Count.ShouldBeInRange(3, 6);
 
         result.States.Count(s => s.IsStart).ShouldBe(1);
         var acceptingCount = result.States.Count(s => s.IsAccepting);
-        acceptingCount.ShouldBeInRange(1, 4); 
+        acceptingCount.ShouldBeInRange(1, 4);
     }
 
     [Fact]
     public void GenerateRandomAutomaton_InvalidParameters_ThrowsException()
     {
         // Act & Assert
-        Should.Throw<ArgumentException>(() => 
+        Should.Throw<ArgumentException>(() =>
             service.GenerateRandomAutomaton(AutomatonType.DFA, 0, 5, 2));
 
-        Should.Throw<ArgumentException>(() => 
-            service.GenerateRandomAutomaton(AutomatonType.DFA, 3, 10, 2)); 
+        Should.Throw<ArgumentException>(() =>
+            service.GenerateRandomAutomaton(AutomatonType.DFA, 3, 10, 2));
     }
 
     [Fact]
     public void GenerateRealisticAutomaton_InvalidStateCount_ThrowsException()
     {
         // Act & Assert
-        Should.Throw<ArgumentException>(() => 
+        Should.Throw<ArgumentException>(() =>
             service.GenerateRealisticAutomaton(AutomatonType.DFA, 0));
     }
 
@@ -179,10 +180,10 @@ public class AutomatonGeneratorServiceTests
     {
         var model = service.GenerateRandomAutomaton(type, stateCount, transitionCount, alphabetSize, acceptingRatio, seed);
 
-        model.Alphabet.Count.ShouldBe(alphabetSize); 
+        model.Alphabet.Count.ShouldBe(alphabetSize);
 
         var usedSymbols = model.Transitions.Where(t => t.Symbol != '\0').Select(t => t.Symbol).Distinct().ToHashSet();
-        usedSymbols.Count.ShouldBe(alphabetSize); 
+        usedSymbols.Count.ShouldBe(alphabetSize);
 
         foreach (var c in model.Alphabet)
         {
@@ -198,7 +199,7 @@ public class AutomatonGeneratorServiceTests
     {
         int alphabetSize = 4;
         int stateCount = 5;
-        int transitionCount = 12; 
+        int transitionCount = 12;
         double acceptingRatio = 0.4;
 
         for (int seed = 2000; seed < 2005; seed++)
@@ -206,7 +207,7 @@ public class AutomatonGeneratorServiceTests
             var model = service.GenerateRandomAutomaton(type, stateCount, transitionCount, alphabetSize, acceptingRatio, seed);
             model.Alphabet.Count.ShouldBe(alphabetSize);
             var usedSymbols = model.Transitions.Where(t => t.Symbol != '\0').Select(t => t.Symbol).Distinct().OrderBy(c => c).ToList();
-            usedSymbols.Count.ShouldBe(alphabetSize); 
+            usedSymbols.Count.ShouldBe(alphabetSize);
         }
     }
 
@@ -246,7 +247,7 @@ public class AutomatonGeneratorServiceTests
             .Where(g => g.Count() > 1)
             .ToList();
 
-        duplicates.Count.ShouldBe(0);
+        duplicates.ShouldBeEmpty();
     }
 
     [Fact]

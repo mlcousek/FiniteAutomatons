@@ -15,12 +15,13 @@ public class AutomatonControllerFileServiceTests
     {
         var controller = Build();
         var result = await controller.ImportAutomaton(null!);
-        result.ShouldBeOfType<ViewResult>();
+        result.ShouldBeOfType<BadRequestObjectResult>();
     }
 
-    private static AutomatonController Build()
+    private static ImportExportController Build()
     {
-        var controller = new AutomatonController(new TestLogger<AutomatonController>(), new MockAutomatonGeneratorService(), new MockAutomatonTempDataService(), new MockAutomatonValidationService(), new MockAutomatonConversionService(), new MockAutomatonExecutionService(), new AutomatonEditingService(new MockAutomatonValidationService(), new TestLogger<AutomatonEditingService>()), new MockAutomatonFileService(), new MockAutomatonMinimizationService())
+        var fileSvc = new MockAutomatonFileService();
+        var controller = new ImportExportController(fileSvc)
         {
             TempData = new TempDataDictionary(new DefaultHttpContext(), new TestTempDataProvider())
         };
