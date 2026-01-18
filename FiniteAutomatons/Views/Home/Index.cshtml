@@ -24,13 +24,28 @@
         <div class="create-section">
             <div class="section-header">
                 <h2>AUTOMATON</h2>
+                <button id="panelsLockBtn" class="panel-lock-btn" title="Lock / unlock panels" aria-pressed="false" type="button">
+                    <i class="fas fa-lock-open"></i>
+                </button>
             </div>
             <div class="create-content">
-                <div class="input-area">
+                <style>
+                    /* Small styles for draggable panels */
+                    /* Place lock inline with header title */
+                    .create-section > .section-header { display: flex; align-items: center; gap: 0.5rem; justify-content: center; white-space: nowrap; }
+                    .create-section > .section-header h2 { margin: 0; }
+                    .panel-lock-btn { background:transparent;border:0;color:var(--bs-body-color);cursor:pointer;font-size:0.95rem;padding:0 }
+                    .panel-lock-btn i { font-size:1.05rem; display:block }
+                    .automaton-detail-section[draggable="true"] { cursor: move; }
+                    .automaton-detail-section.dragging { opacity:0.6; }
+                    .automaton-detail-section.locked { cursor: default; }
+                </style>
+
+                <div class="input-area" id="panelContainer">
                     @if (Model != null)
                     {
                         <!-- Alphabet Section -->
-                        <div class="automaton-detail-section">
+                        <div class="automaton-detail-section" data-panel-id="alphabet">
                             <h4>Alphabet</h4>
                             <div class="alphabet-display">
                                 @if (Model.Alphabet != null && Model.Alphabet.Count > 0)
@@ -45,7 +60,7 @@
                         </div>
 
                         <!-- States Section -->
-                        <div class="automaton-detail-section">
+                        <div class="automaton-detail-section" data-panel-id="states">
                             <h4>States</h4>
                             <div class="states-display">
                                 @if (Model.States != null && Model.States.Count > 0)
@@ -76,7 +91,7 @@
                         </div>
 
                         <!-- Transitions Section -->
-                        <div class="automaton-detail-section">
+                        <div class="automaton-detail-section" data-panel-id="transitions">
                             <h4>Transitions</h4>
                             <div class="transitions-display">
                                 @if (Model.Transitions != null && Model.Transitions.Count > 0)
@@ -111,7 +126,7 @@
                         <!-- Minimization Mapping Section (raw report only) -->
                         @if (!string.IsNullOrEmpty(Model.MinimizationReport))
                         {
-                            <div class="automaton-detail-section minimization-section">
+                            <div class="automaton-detail-section minimization-section" data-panel-id="minimization">
                                 <h4>Minimization Mapping</h4>
                                 <div class="minimization-content">
                                     <pre class="minimization-report">@Model.MinimizationReport</pre>
@@ -122,7 +137,7 @@
                         <!-- Execution State Section (Debug Info) -->
                         @if (Model.HasExecuted || Model.Position > 0 || Model.CurrentStateId.HasValue || (Model.CurrentStates != null && Model.CurrentStates.Count > 0))
                         {
-                            <div class="automaton-detail-section execution-state-section">
+                            <div class="automaton-detail-section execution-state-section" data-panel-id="execution">
                                 <h4>Execution State</h4>
                                 <div class="execution-state-display">
                                     <div class="execution-state-item">
@@ -137,7 +152,7 @@
                                             <span class="execution-value">
                                                 @if (Model.CurrentStateId.HasValue)
                                                 {
-                                                    <span class="state-highlight">q@Model.CurrentStateId</span>
+                                                    <span class="state-highlight">@($"q{Model.CurrentStateId}")</span>
                                                 }
                                                 else
                                                 {
@@ -539,29 +554,5 @@
     <script type="module" src="~/js/home.mjs" asp-append-version="true"></script>
     <script type="module" src="~/js/simulateControls.mjs" asp-append-version="true"></script>
     <script type="module" src="~/js/automatonTypeControls.mjs" asp-append-version="true"></script>
-    <script>
-        // Modal handling for Generate Automaton
-        (function() {
-            const modal = document.getElementById('generateModal');
-            const btn = document.getElementById('generateModalBtn');
-            const close = document.getElementById('generateModalClose');
-            const toggles = document.querySelectorAll('.accordion-toggle');
-
-            if (btn && modal) {
-                btn.addEventListener('click', () => { modal.style.display = 'block'; });
-            }
-            if (close && modal) {
-                close.addEventListener('click', () => { modal.style.display = 'none'; });
-            }
-            window.addEventListener('click', (e) => { if (e.target === modal) modal.style.display = 'none'; });
-
-            toggles.forEach(t => {
-                t.addEventListener('click', () => {
-                    const panel = t.nextElementSibling;
-                    if (!panel) return;
-                    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
-                });
-            });
-        })();
-    </script>
+    <script src="~/js/generateModal.js" asp-append-version="true"></script>
 }

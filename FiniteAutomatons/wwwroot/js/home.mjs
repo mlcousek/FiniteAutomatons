@@ -93,4 +93,25 @@ document.addEventListener('DOMContentLoaded', function(){
             setTimeout(updateAll,50);
         }); 
     }
+
+    // Initialize panel drag & lock (left-side panels reordering)
+    try{
+        const panels = PanelHighlighter.initPanelDragAndLock('panelContainer');
+        const lockBtn = document.getElementById('panelsLockBtn');
+        if (lockBtn && panels){
+            // set initial icon based on stored state
+            const locked = (function(){ try{ return localStorage.getItem('panelsLocked') === 'true'; }catch(e){ return false; } })();
+            lockBtn.setAttribute('aria-pressed', locked ? 'true' : 'false');
+            const icon = lockBtn.querySelector('i');
+            if (icon){ icon.classList.toggle('fa-lock', locked); icon.classList.toggle('fa-lock-open', !locked); }
+
+            lockBtn.addEventListener('click', function(){
+                const currently = lockBtn.getAttribute('aria-pressed') === 'true';
+                const next = !currently;
+                lockBtn.setAttribute('aria-pressed', next ? 'true' : 'false');
+                if (icon){ icon.classList.toggle('fa-lock', next); icon.classList.toggle('fa-lock-open', !next); }
+                panels.setLocked(next);
+            });
+        }
+    }catch(e){ console.warn('panel drag init failed', e); }
 });

@@ -6,6 +6,68 @@ function getInputValue(name){
     return el ? el.value : null;
 }
 
+// DRAG & DROP helpers for left side panels order and locking
+export function initPanelDragAndLock(containerId){
+    const container = document.getElementById(containerId);
+    if (!container) return null;
+
+    let dragEl = null;
+    let lockState = false;
+
+    // Restore lock state from localStorage
+    try{ lockState = localStorage.getItem('panelsLocked') === 'true'; }catch(e){ }
+
+    function updateLockedClass(){
+        container.querySelectorAll('.automaton-detail-section').forEach(s => {
+            s.classList.toggle('locked', lockState);
+            if (!lockState){ s.setAttribute('draggable','true'); } else { s.removeAttribute('draggable'); }
+        });
+    }
+
+    updateLockedClass();
+
+    container.addEventListener('dragstart', function(e){
+        if (lockState) { e.preventDefault(); return; }
+        const target = e.target.closest('.automaton-detail-section');
+        if (!target) { e.preventDefault(); return; }
+        dragEl = target;
+        target.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        try{ e.dataTransfer.setData('text/plain','drag'); }catch(_){ }
+    });
+
+    container.addEventListener('dragend', function(e){
+        if (dragEl) dragEl.classList.remove('dragging');
+        dragEl = null;
+    });
+
+    container.addEventListener('dragover', function(e){
+        if (lockState) return;
+        e.preventDefault();
+        const after = getDragAfterElement(container, e.clientY);
+        const dragging = container.querySelector('.dragging');
+        if (!dragging) return;
+        if (after == null) container.appendChild(dragging);
+        else container.insertBefore(dragging, after);
+    });
+
+    function getDragAfterElement(container, y){
+        const els = [...container.querySelectorAll('.automaton-detail-section:not(.dragging)')];
+        return els.reduce((closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offset = y - box.top - box.height/2;
+            if (offset < 0 && (closest == null || offset > closest.offset)) {
+                return { offset: offset, element: child };
+            } else return closest;
+        }, null)?.element || null;
+    }
+
+    // toggle lock via external control
+    function setLocked(v){ lockState = !!v; updateLockedClass(); try{ localStorage.setItem('panelsLocked', lockState ? 'true' : 'false'); }catch(e){} }
+
+    return { setLocked };
+}
+
 function collectCurrentStates(){
     const ids = new Set();
     const cur = getInputValue('CurrentStateId');
