@@ -1007,3 +1007,94 @@ border-top: 3px solid #000;
   filter: grayscale(40%);
   pointer-events: none; /* prevent clicks */
 }
+
+/* Modern modal styles for Generate Automaton */
+#generateModal {
+  position: fixed;
+  inset: 0;
+  display: none; /* shown/hidden by script */
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.45);
+  backdrop-filter: blur(3px);
+  z-index: 1050;
+  padding: 1rem;
+}
+
+#generateModal .modal-content {
+  position: relative;
+  width: 100%;
+  max-width: 720px;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  border: none;
+  overflow: hidden;
+}
+
+#generateModal .modal-close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  font-size: 1.25rem;
+  line-height: 1;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #666;
+  padding: 6px;
+  border-radius: 6px;
+}
+
+#generateModal .modal-close:hover {
+  background: rgba(0,0,0,0.04);
+  color: #333;
+}
+
+#generateModal .preset-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+
+#generateModal .preset-buttons form {
+  display: inline-block;
+}
+
+/* Override global control-btn styles inside modal to a softer modern look */
+#generateModal .control-btn {
+  min-width: auto;
+  border: 1px solid #e6e9ec;
+  background: #fff;
+  color: #222;
+  padding: 0.6rem 0.9rem;
+  box-shadow: 0 4px 10px rgba(16,24,40,0.06);
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+#generateModal .control-btn:hover {
+  background: #f7f9fb;
+  border-color: #dde4ea;
+}
+
+#generateModal .divider {
+  margin: 1rem 0;
+  border-top: 1px solid #eee;
+}
+
+#generateModal .accordion-toggle {
+  background: transparent;
+  border: 1px solid #e6e9ec;
+}
+
+#generateModal .accordion-panel {
+  padding: 0.5rem 0;
+}
+
+@media (max-width: 480px) {
+  #generateModal .modal-content { padding: 1rem; max-width: 92%; }
+  #generateModal .preset-buttons { gap: 0.4rem; }
+}

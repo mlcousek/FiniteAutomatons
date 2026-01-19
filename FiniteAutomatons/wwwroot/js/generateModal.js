@@ -5,13 +5,26 @@
     const close = document.getElementById('generateModalClose');
     const toggles = document.querySelectorAll('.accordion-toggle');
 
+    const openModal = () => {
+        if (!modal) return;
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden'; // prevent background scroll
+    };
+
+    const closeModal = () => {
+        if (!modal) return;
+        modal.style.display = 'none';
+        document.body.style.overflow = ''; // restore
+    };
+
     if (btn && modal) {
-        btn.addEventListener('click', () => { modal.style.display = 'block'; });
+        btn.addEventListener('click', openModal);
     }
     if (close && modal) {
-        close.addEventListener('click', () => { modal.style.display = 'none'; });
+        close.addEventListener('click', closeModal);
     }
-    window.addEventListener('click', (e) => { if (e.target === modal) modal.style.display = 'none'; });
+    window.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+    window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
 
     toggles.forEach(t => {
         t.addEventListener('click', () => {
