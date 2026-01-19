@@ -330,9 +330,9 @@
                 </div>
                 <div class="control-content-left">
                     <input type="text" class="input-field" name="Input" id="inputField"
-       placeholder="Enter input string..."
-       value="@(Model != null ? Model.Input : "")"
-       @(Model != null && Model.HasExecuted ? "readonly" : "") />
+                       placeholder="Enter input string..."
+                       value="@(Model != null ? Model.Input : "")"
+                       @(Model != null && Model.HasExecuted ? "readonly" : "") />
                 </div>
             </div>
 
@@ -476,74 +476,98 @@
             }
         </div>
     </form>
+    <div class="control-sections">
+        <div class="control-section input-section" style="margin-top: 1rem;">
+            <div class="section-header-custom">
+                <h2 style="margin:0;">GENERATE</h2>
+            </div>
+            <div class="control-content-left" style="text-align:center; margin-bottom:0.5rem;">
+                <button id="generateModalBtn" class="control-btn" type="button">
+                    <i class="fas fa-random"></i>
+                    <span>Generate Automaton</span>
+                </button>
+            </div>
 
-    <div style="text-align: center; margin-top: 1rem;">
-        <button id="generateModalBtn" class="control-btn" style="min-width:200px;" type="button">
-            <i class="fas fa-random"></i>
-            <span>Generate Automaton</span>
-        </button>
-        <!-- Modal markup -->
-        <div id="generateModal" class="modal" style="display:none;">
-            <div class="modal-content">
-                <span class="modal-close" id="generateModalClose">&times;</span>
-                <h3>Generate Automaton</h3>
-                <div class="preset-buttons">
-                    <form asp-controller="AutomatonPreset" asp-action="GeneratePreset" method="post" style="display:inline-block; margin:0.25rem;">
-                        <input type="hidden" name="preset" value="minimalized-dfa" />
-                        <button type="submit" class="control-btn">Minimalized DFA</button>
-                    </form>
-                    <form asp-controller="AutomatonPreset" asp-action="GeneratePreset" method="post" style="display:inline-block; margin:0.25rem;">
-                        <input type="hidden" name="preset" value="unminimalized-dfa" />
-                        <button type="submit" class="control-btn">DFA (un-minimalized)</button>
-                    </form>
-                    <form asp-controller="AutomatonPreset" asp-action="GeneratePreset" method="post" style="display:inline-block; margin:0.25rem;">
-                        <input type="hidden" name="preset" value="nfa" />
-                        <button type="submit" class="control-btn">NFA</button>
-                    </form>
-                    <form asp-controller="AutomatonPreset" asp-action="GeneratePreset" method="post" style="display:inline-block; margin:0.25rem;">
-                        <input type="hidden" name="preset" value="epsilon-nfa" />
-                        <button type="submit" class="control-btn">ε-NFA</button>
-                    </form>
-                </div>
-
-                <div class="divider" style="margin:1rem 0; border-top:1px solid #ddd;"></div>
-
-                <div>
-                    <a href="@Url.Action("GenerateRandomAutomaton", "AutomatonGeneration")" class="control-btn">Generate Random Automaton</a>
-                </div>
-
-                <div class="accordion" style="margin-top:1rem;">
-                    <button class="accordion-toggle control-btn" type="button">Generate by parameters</button>
-                    <div class="accordion-panel" style="display:none; margin-top:0.5rem;">
-                        <form asp-controller="AutomatonGeneration" asp-action="GenerateRandomAutomaton" method="post">
-                            <label>Type:</label>
-                            <select name="Type">
-                                <option value="0">DFA</option>
-                                <option value="1">NFA</option>
-                                <option value="2">ε-NFA</option>
-                                <option value="3">PDA</option>
-                            </select>
-                            <label>States:</label>
-                            <input type="number" name="StateCount" value="5" min="1" max="20" />
-                            <label>Transitions:</label>
-                            <input type="number" name="TransitionCount" value="8" min="0" />
-                            <label>Alphabet size:</label>
-                            <input type="number" name="AlphabetSize" value="3" min="1" max="10" />
-                            <label>Accepting ratio:</label>
-                            <input type="number" step="0.05" name="AcceptingStateRatio" value="0.3" min="0" max="1" />
-                            <div style="margin-top:0.5rem;">
-                                <button type="submit" class="control-btn">Generate</button>
-                            </div>
+            <!-- Modal markup -->
+            <div id="generateModal" class="modal" style="display:none;">
+                <div class="modal-content">
+                    <span class="modal-close" id="generateModalClose">&times;</span>
+                    <h3>Generate Automaton</h3>
+                    <div class="preset-buttons">
+                        <form asp-controller="AutomatonPreset" asp-action="GeneratePreset" method="post" style="display:inline-block; margin:0.25rem;">
+                            <input type="hidden" name="preset" value="minimalized-dfa" />
+                            <button type="submit" class="control-btn">Minimalized DFA</button>
+                        </form>
+                        <form asp-controller="AutomatonPreset" asp-action="GeneratePreset" method="post" style="display:inline-block; margin:0.25rem;">
+                            <input type="hidden" name="preset" value="unminimalized-dfa" />
+                            <button type="submit" class="control-btn">DFA (un-minimalized)</button>
+                        </form>
+                        <form asp-controller="AutomatonPreset" asp-action="GeneratePreset" method="post" style="display:inline-block; margin:0.25rem;">
+                            <input type="hidden" name="preset" value="nfa" />
+                            <button type="submit" class="control-btn">NFA</button>
+                        </form>
+                        <form asp-controller="AutomatonPreset" asp-action="GeneratePreset" method="post" style="display:inline-block; margin:0.25rem;">
+                            <input type="hidden" name="preset" value="epsilon-nfa" />
+                            <button type="submit" class="control-btn">ε-NFA</button>
                         </form>
                     </div>
 
-                    <button class="accordion-toggle control-btn" type="button" style="margin-top:0.5rem;">Create fully custom automaton</button>
-                    <div class="accordion-panel" style="display:none; margin-top:0.5rem;">
-                        <a class="control-btn" href="@Url.Action("CreateAutomaton", "Automaton")">Open automaton creator</a>
+                    <div class="divider" style="margin:1rem 0; border-top:1px solid #ddd;"></div>
+
+                    <div>
+                        <a href="@Url.Action("GenerateRandomAutomaton", "AutomatonGeneration")" class="control-btn">Generate Random Automaton</a>
+                    </div>
+
+                    <div class="accordion" style="margin-top:1rem;">
+                        <button class="accordion-toggle control-btn" type="button">Generate by parameters</button>
+                        <div class="accordion-panel" style="display:none; margin-top:0.5rem;">
+                            <form asp-controller="AutomatonGeneration" asp-action="GenerateRandomAutomaton" method="post">
+                                <label>Type:</label>
+                                <select name="Type">
+                                    <option value="0">DFA</option>
+                                    <option value="1">NFA</option>
+                                    <option value="2">ε-NFA</option>
+                                    <option value="3">PDA</option>
+                                </select>
+                                <label>States:</label>
+                                <input type="number" name="StateCount" value="5" min="1" max="20" />
+                                <label>Transitions:</label>
+                                <input type="number" name="TransitionCount" value="8" min="0" />
+                                <label>Alphabet size:</label>
+                                <input type="number" name="AlphabetSize" value="3" min="1" max="10" />
+                                <label>Accepting ratio:</label>
+                                <input type="number" step="0.05" name="AcceptingStateRatio" value="0.3" min="0" max="1" />
+                                <div style="margin-top:0.5rem;">
+                                    <button type="submit" class="control-btn">Generate</button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <button class="accordion-toggle control-btn" type="button" style="margin-top:0.5rem;">Create fully custom automaton</button>
+                        <div class="accordion-panel" style="display:none; margin-top:0.5rem;">
+                            <a class="control-btn" href="@Url.Action("CreateAutomaton", "Automaton")">Open automaton creator</a>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
+        <div class="control-section">
+            <div class="section-header-custom">
+                <h2>PLACEHOLDER</h2>
+            </div>
+        </div>
+
+        <div class="control-section">
+            <div class="section-header-custom">
+                <h2>PLACEHOLDER</h2>
+            </div>
+        </div>
+        <div class="control-section">
+            <div class="section-header-custom">
+                <h2>PLACEHOLDER</h2>
+            </div>
+        </div>
+
     </div>
 </div>
 

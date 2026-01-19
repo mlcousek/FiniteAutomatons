@@ -464,6 +464,20 @@ gap: 1rem;
   border-color: #6c757d;
 }
 
+/* Generate modal primary button: match input field width/height */
+#generateModalBtn {
+  width: 100%;
+  min-width: 300px;
+  height: 60px;
+  box-sizing: border-box;
+  padding: 0.75rem 1.25rem;
+  display: flex;
+  flex-direction: row; /* icon + label horizontally */
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
 /* Simulate Section */
 .simulate-buttons {
   display: flex;
