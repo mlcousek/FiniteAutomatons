@@ -521,29 +521,39 @@
                     <div class="accordion" style="margin-top:1rem;">
                         <button class="accordion-toggle control-btn" type="button">Generate by parameters</button>
                         <div class="accordion-panel" style="display:none; margin-top:0.5rem;">
-                            <form asp-controller="AutomatonGeneration" asp-action="GenerateRandomAutomaton" method="post">
-                                <label>Type:</label>
-                                <select name="Type">
-                                    <option value="0">DFA</option>
-                                    <option value="1">NFA</option>
-                                    <option value="2">ε-NFA</option>
-                                    <option value="3">PDA</option>
-                                </select>
-                                <label>States:</label>
-                                <input type="number" name="StateCount" value="5" min="1" max="20" />
-                                <label>Transitions:</label>
-                                <input type="number" name="TransitionCount" value="8" min="0" />
-                                <label>Alphabet size:</label>
-                                <input type="number" name="AlphabetSize" value="3" min="1" max="10" />
-                                <label>Accepting ratio:</label>
-                                <input type="number" step="0.05" name="AcceptingStateRatio" value="0.3" min="0" max="1" />
+                            <form asp-controller="AutomatonGeneration" asp-action="GenerateRandomAutomaton" method="post" style="display:flex; flex-direction:column; gap:0.75rem;">
+                                <div style="display:flex; gap:0.5rem; align-items:center;">
+                                    <label style="min-width:120px; font-weight:600;">Type:</label>
+                                    <select name="Type" class="control-btn" style="flex:1; padding:0.5rem 0.75rem;">
+                                        <option value="0">DFA</option>
+                                        <option value="1">NFA</option>
+                                        <option value="2">ε-NFA</option>
+                                        <option value="3">PDA</option>
+                                    </select>
+                                </div>
+                                <div style="display:flex; gap:0.5rem; align-items:center;">
+                                    <label style="min-width:120px; font-weight:600;">States:</label>
+                                    <input type="number" name="StateCount" value="5" min="1" max="20" class="control-btn" style="flex:1; padding:0.5rem 0.75rem;" />
+                                </div>
+                                <div style="display:flex; gap:0.5rem; align-items:center;">
+                                    <label style="min-width:120px; font-weight:600;">Transitions:</label>
+                                    <input type="number" name="TransitionCount" value="8" min="0" class="control-btn" style="flex:1; padding:0.5rem 0.75rem;" />
+                                </div>
+                                <div style="display:flex; gap:0.5rem; align-items:center;">
+                                    <label style="min-width:120px; font-weight:600;">Alphabet size:</label>
+                                    <input type="number" name="AlphabetSize" value="3" min="1" max="10" class="control-btn" style="flex:1; padding:0.5rem 0.75rem;" />
+                                </div>
+                                <div style="display:flex; gap:0.5rem; align-items:center;">
+                                    <label style="min-width:120px; font-weight:600;">Accepting ratio:</label>
+                                    <input type="number" step="0.05" name="AcceptingStateRatio" value="0.3" min="0" max="1" class="control-btn" style="flex:1; padding:0.5rem 0.75rem;" />
+                                </div>
                                 <div style="margin-top:0.5rem;">
-                                    <button type="submit" class="control-btn">Generate</button>
+                                    <button type="submit" class="control-btn" style="width:100%;">Generate</button>
                                 </div>
                             </form>
                         </div>
 
-                        <a class="control-btn" href="@Url.Action("CreateAutomaton", "AutomatonCreation")" style="margin-top:0.5rem; display:inline-block;">Create fully custom automaton</a>
+                        <a class="control-btn" href="@Url.Action("CreateAutomaton", "AutomatonCreation")" style="margin-top:0.5rem; display:inline-block; width:100%; text-align:center;">Create fully custom automaton</a>
                     </div>
                 </div>
             </div>
