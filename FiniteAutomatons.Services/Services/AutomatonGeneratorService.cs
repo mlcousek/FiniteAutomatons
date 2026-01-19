@@ -42,33 +42,6 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
         };
     }
 
-    public AutomatonViewModel GenerateRealisticAutomaton(
-        AutomatonType type,
-        int stateCount,
-        int? seed = null)
-    {
-        if (stateCount < 1)
-        {
-            throw new ArgumentException("State count must be at least 1");
-        }
-
-        var random = seed.HasValue ? new Random(seed.Value) : this.random;
-
-        int alphabetSize = Math.Min(3 + random.Next(3), 6); 
-        int minTransitions = stateCount; 
-        int maxTransitions = Math.Min(stateCount * alphabetSize, stateCount * stateCount); 
-        int transitionCount = random.Next(minTransitions, Math.Max(minTransitions + 1, maxTransitions / 2));
-        
-        if (type == AutomatonType.EpsilonNFA || type == AutomatonType.PDA)
-        {
-            transitionCount += random.Next(1, Math.Max(2, stateCount / 3));
-        }
-
-        double acceptingRatio = 0.2 + random.NextDouble() * 0.3; 
-
-        return GenerateRandomAutomaton(type, stateCount, transitionCount, alphabetSize, acceptingRatio, seed);
-    }
-
     public bool ValidateGenerationParameters(AutomatonType type, int stateCount, int transitionCount, int alphabetSize)
     {
         if (stateCount < 1)
@@ -106,8 +79,8 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
             states.Add(new State
             {
                 Id = i,
-                IsStart = i == 1, 
-                IsAccepting = false 
+                IsStart = i == 1,
+                IsAccepting = false
             });
         }
 
@@ -407,18 +380,18 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
         HashSet<string> addedTransitions,
         Random random)
     {
-        int maxAttempts = 200; 
-        
+        int maxAttempts = 200;
+
         for (int attempt = 0; attempt < maxAttempts; attempt++)
         {
             var fromState = states[random.Next(states.Count)].Id;
             var toState = states[random.Next(states.Count)].Id;
-            
+
             char symbol;
-            
+
             if (type == AutomatonType.EpsilonNFA && random.NextDouble() < 0.2)
             {
-                symbol = '\0'; 
+                symbol = '\0';
             }
             else
             {
@@ -459,13 +432,13 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
             }
 
             var key = GetTransitionKey(transition);
-            
+
             if (addedTransitions.Contains(key))
                 continue;
 
             if (type == AutomatonType.DFA && symbol != '\0')
             {
-                var conflictExists = addedTransitions.Any(existing => 
+                var conflictExists = addedTransitions.Any(existing =>
                 {
                     var parts = existing.Split('-');
                     return parts.Length >= 2 && parts[0] == fromState.ToString() && parts[1] == symbol.ToString();
@@ -478,7 +451,7 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
             return transition;
         }
 
-        return null; 
+        return null;
     }
 
     private static string GetTransitionKey(Transition transition)
@@ -487,6 +460,4 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
         var pop = transition.StackPop.HasValue ? transition.StackPop.Value.ToString() : "_";
         return $"{transition.FromStateId}-{transition.Symbol}-{pop}";
     }
-
-
 }

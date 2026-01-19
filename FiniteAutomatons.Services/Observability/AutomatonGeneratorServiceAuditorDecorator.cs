@@ -1,6 +1,6 @@
+using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Observability;
 using FiniteAutomatons.Services.Interfaces;
-using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Services;
 
 namespace FiniteAutomatons.Services.Observability;
@@ -14,13 +14,6 @@ public sealed class AutomatonGeneratorServiceAuditorDecorator(AutomatonGenerator
     {
         return MethodAuditor.AuditAsync(audit, "IAutomatonGeneratorService.GenerateRandomAutomaton", () =>
             Task.FromResult(inner.GenerateRandomAutomaton(type, stateCount, transitionCount, alphabetSize, acceptingStateRatio, seed)))
-            .GetAwaiter().GetResult();
-    }
-
-    public AutomatonViewModel GenerateRealisticAutomaton(AutomatonType type, int stateCount, int? seed = null)
-    {
-        return MethodAuditor.AuditAsync(audit, "IAutomatonGeneratorService.GenerateRealisticAutomaton", () =>
-            Task.FromResult(inner.GenerateRealisticAutomaton(type, stateCount, seed)))
             .GetAwaiter().GetResult();
     }
 

@@ -490,32 +490,32 @@
 
             <!-- Modal markup -->
             <div id="generateModal" class="modal" style="display:none;">
-                <div class="modal-content">
+            <div class="modal-content">
                     <span class="modal-close" id="generateModalClose">&times;</span>
                     <h3>Generate Automaton</h3>
-                    <div class="preset-buttons">
-                        <form asp-controller="AutomatonPreset" asp-action="GeneratePreset" method="post" style="display:inline-block; margin:0.25rem;">
-                            <input type="hidden" name="preset" value="minimalized-dfa" />
-                            <button type="submit" class="control-btn">Minimalized DFA</button>
-                        </form>
-                        <form asp-controller="AutomatonPreset" asp-action="GeneratePreset" method="post" style="display:inline-block; margin:0.25rem;">
-                            <input type="hidden" name="preset" value="unminimalized-dfa" />
-                            <button type="submit" class="control-btn">DFA (un-minimalized)</button>
-                        </form>
-                        <form asp-controller="AutomatonPreset" asp-action="GeneratePreset" method="post" style="display:inline-block; margin:0.25rem;">
-                            <input type="hidden" name="preset" value="nfa" />
-                            <button type="submit" class="control-btn">NFA</button>
-                        </form>
-                        <form asp-controller="AutomatonPreset" asp-action="GeneratePreset" method="post" style="display:inline-block; margin:0.25rem;">
-                            <input type="hidden" name="preset" value="epsilon-nfa" />
-                            <button type="submit" class="control-btn">ε-NFA</button>
+                    <div class="preset-buttons" style="display:flex; gap:0.5rem; flex-direction:column;">
+                        <div style="display:flex; gap:0.5rem; align-items:center;">
+                            <label for="generateFamilySelect" style="min-width:80px; font-weight:600;">Type</label>
+                            <select id="generateFamilySelect" class="control-btn" style="padding:0.5rem 0.75rem;">
+                                <option value="DFA">DFA</option>
+                                <option value="NFA">NFA</option>
+                                <option value="EpsilonNFA">ε-NFA</option>
+                            </select>
+                        </div>
+
+                        <form id="generatePresetForm" asp-controller="AutomatonGeneration" asp-action="GeneratePreset" method="post" style="display:flex; gap:0.5rem; align-items:center;">
+                            <label for="generateOptionSelect" style="min-width:80px; visibility:hidden;">Option</label>
+                            <select id="generateOptionSelect" name="preset" class="control-btn" style="min-width:260px; padding:0.6rem 0.9rem;">
+                                <!-- options populated by JS on open -->
+                            </select>
+                            <button type="submit" class="control-btn">Generate</button>
                         </form>
                     </div>
 
                     <div class="divider" style="margin:1rem 0; border-top:1px solid #ddd;"></div>
 
                     <div>
-                        <a href="@Url.Action("GenerateRandomAutomaton", "AutomatonGeneration")" class="control-btn">Generate Random Automaton</a>
+                        <a href="@Url.Action("GenerateRandomAutomaton", "AutomatonGeneration")" class="control-btn" style="display:none;">Generate Random Automaton</a>
                     </div>
 
                     <div class="accordion" style="margin-top:1rem;">
@@ -543,10 +543,7 @@
                             </form>
                         </div>
 
-                        <button class="accordion-toggle control-btn" type="button" style="margin-top:0.5rem;">Create fully custom automaton</button>
-                        <div class="accordion-panel" style="display:none; margin-top:0.5rem;">
-                            <a class="control-btn" href="@Url.Action("CreateAutomaton", "Automaton")">Open automaton creator</a>
-                        </div>
+                        <a class="control-btn" href="@Url.Action("CreateAutomaton", "AutomatonCreation")" style="margin-top:0.5rem; display:inline-block;">Create fully custom automaton</a>
                     </div>
                 </div>
             </div>

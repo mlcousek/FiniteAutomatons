@@ -63,29 +63,6 @@ new("Type", "3"), // PDA enum value
     }
 
     [Fact]
-    public async Task GenerateRealisticAutomaton_DFA_ShouldWork()
-    {
-        // Arrange
-        var client = GetHttpClient();
-
-        var formData = new List<KeyValuePair<string, string>>
-  {
-        new("type", "0"), // DFA enum value
-   new("stateCount", "5"),
-     new("seed", "999")
-        };
-
-        // Act
-        var response = await client.PostAsync("/AutomatonGeneration/GenerateRealisticAutomaton", new FormUrlEncodedContent(formData));
-
-        // Assert - Should follow redirect and end up at Home/Index
-        response.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var html = await response.Content.ReadAsStringAsync();
-        html.ShouldContain("AUTOMATON");
-        html.ShouldContain("States");
-    }
-
-    [Fact]
     public void AutomatonGeneratorService_GenerateRandomAutomaton_ShouldWork()
     {
         // Arrange
@@ -102,27 +79,5 @@ new("Type", "3"), // PDA enum value
         result.States.Count(s => s.IsStart).ShouldBe(1);
         result.Alphabet.Count.ShouldBe(2);
         result.IsCustomAutomaton.ShouldBeTrue();
-    }
-
-    [Theory]
-    [InlineData(AutomatonType.DFA)]
-    [InlineData(AutomatonType.NFA)]
-    [InlineData(AutomatonType.EpsilonNFA)]
-    public void AutomatonGeneratorService_GenerateRealisticAutomaton_AllTypes(AutomatonType type)
-    {
-        // Arrange
-        using var scope = GetServiceScope();
-        var service = scope.ServiceProvider.GetRequiredService<IAutomatonGeneratorService>();
-
-        // Act
-        var result = service.GenerateRealisticAutomaton(type, 4, 123);
-
-        // Assert
-        result.ShouldNotBeNull();
-        result.Type.ShouldBe(type);
-        result.States.Count.ShouldBe(4);
-        result.States.Count(s => s.IsStart).ShouldBe(1);
-        result.IsCustomAutomaton.ShouldBeTrue();
-        result.Transitions.Count.ShouldBeGreaterThanOrEqualTo(4);
     }
 }

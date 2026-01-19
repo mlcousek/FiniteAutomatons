@@ -1,7 +1,6 @@
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Services;
 using Shouldly;
-using System.Linq;
 
 namespace FiniteAutomatons.UnitTests.Services;
 
@@ -136,24 +135,6 @@ public class AutomatonGeneratorServiceTests
     }
 
     [Fact]
-    public void GenerateRealisticAutomaton_DFA_CreatesReasonableAutomaton()
-    {
-        // Act
-        var result = service.GenerateRealisticAutomaton(AutomatonType.DFA, 5, 123);
-
-        // Assert
-        result.ShouldNotBeNull();
-        result.Type.ShouldBe(AutomatonType.DFA);
-        result.States.Count.ShouldBe(5);
-        result.Transitions.Count.ShouldBeGreaterThanOrEqualTo(5);
-        result.Alphabet.Count.ShouldBeInRange(3, 6);
-
-        result.States.Count(s => s.IsStart).ShouldBe(1);
-        var acceptingCount = result.States.Count(s => s.IsAccepting);
-        acceptingCount.ShouldBeInRange(1, 4);
-    }
-
-    [Fact]
     public void GenerateRandomAutomaton_InvalidParameters_ThrowsException()
     {
         // Act & Assert
@@ -162,14 +143,6 @@ public class AutomatonGeneratorServiceTests
 
         Should.Throw<ArgumentException>(() =>
             service.GenerateRandomAutomaton(AutomatonType.DFA, 3, 10, 2));
-    }
-
-    [Fact]
-    public void GenerateRealisticAutomaton_InvalidStateCount_ThrowsException()
-    {
-        // Act & Assert
-        Should.Throw<ArgumentException>(() =>
-            service.GenerateRealisticAutomaton(AutomatonType.DFA, 0));
     }
 
     [Theory]
@@ -235,10 +208,7 @@ public class AutomatonGeneratorServiceTests
                 // '\0' is not used for StackPop here; if present it's allowed
                 t.StackPop.Value.ShouldBeOfType<char>();
             }
-            if (t.StackPush != null)
-            {
-                t.StackPush.Length.ShouldBeGreaterThan(0);
-            }
+            t.StackPush?.Length.ShouldBeGreaterThan(0);
         }
 
         // Ensure determinism: no two transitions share the same (FromStateId, Symbol, StackPop)
@@ -248,16 +218,5 @@ public class AutomatonGeneratorServiceTests
             .ToList();
 
         duplicates.ShouldBeEmpty();
-    }
-
-    [Fact]
-    public void GenerateRealisticAutomaton_PDA_ShouldWork()
-    {
-        var result = service.GenerateRealisticAutomaton(AutomatonType.PDA, 5, 1234);
-        result.ShouldNotBeNull();
-        result.Type.ShouldBe(AutomatonType.PDA);
-        result.States.Count.ShouldBe(5);
-        result.Transitions.Count.ShouldBeGreaterThanOrEqualTo(5);
-        result.Alphabet.Count.ShouldBeGreaterThan(0);
     }
 }
