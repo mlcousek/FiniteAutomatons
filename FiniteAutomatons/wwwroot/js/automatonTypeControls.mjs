@@ -42,7 +42,7 @@ function initAutomatonTypeControls(){
             if (needServerConversion(from,to)){
                 targetField.value = mapTypeToInt(to);
                 const originalAction = form.getAttribute('action');
-                form.setAttribute('action','/Automaton/SwitchType');
+                form.setAttribute('action','/AutomatonConversion/SwitchType');
                 form.method='post';
                 form.submit();
                 if (originalAction) form.setAttribute('action', originalAction);

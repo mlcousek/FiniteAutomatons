@@ -33,7 +33,7 @@
 //    {
 //        var form = BuildForm(model);
 //        form.Add(new("targetType", ((int)targetType).ToString()));
-//        return await client.PostAsync("/Automaton/SwitchType", new FormUrlEncodedContent(form));
+//        return await client.PostAsync("/AutomatonConversion/SwitchType", new FormUrlEncodedContent(form));
 //    }
 
 //    private static List<KeyValuePair<string, string>> BuildForm(AutomatonViewModel m)
@@ -102,13 +102,13 @@
 //        // Type should be NFA (enum int 1)
 //        ParseInt(html, "Type", -1).ShouldBe((int)AutomatonType.NFA);
 
-//            // No epsilon transitions
+//        // No epsilon transitions
 //        ExtractTransitionSymbols(html).ShouldAllBe(s => s != '\0');
 
 //        // Start state should become accepting via epsilon closure (state 1 had epsilon to accepting 2)
 //        var states = ExtractStates(html).ToList();
-//        var startState = states.First(s => s.IsStart);
-//        startState.IsAccepting.ShouldBeTrue();
+//        var (Id, IsStart, IsAccepting) = states.First(s => s.IsStart);
+//        IsAccepting.ShouldBeTrue();
 //    }
 
 //    [Fact] //TODO : repair
@@ -148,8 +148,8 @@
 //        var model = new AutomatonViewModel
 //        {
 //            Type = AutomatonType.EpsilonNFA,
-//            States = [ new() { Id = 2, IsStart = false, IsAccepting = true } ],
-//            Transitions = [ new() { FromStateId = 2, ToStateId = 2, Symbol='?' } ],
+//            States = [new() { Id = 2, IsStart = false, IsAccepting = true }],
+//            Transitions = [new() { FromStateId = 2, ToStateId = 2, Symbol = '?' }],
 //            IsCustomAutomaton = true
 //        };
 //        var resp = await PostSwitchTypeAsync(client, model, AutomatonType.NFA);
