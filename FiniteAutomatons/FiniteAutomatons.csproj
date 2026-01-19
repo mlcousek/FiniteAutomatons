@@ -39,8 +39,4 @@
 	 <InternalsVisibleTo Include="FiniteAutomatons.IntegrationTests" />
    </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Views\AutomatonGeneration\" />
-  </ItemGroup>
-
 </Project>

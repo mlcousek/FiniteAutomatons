@@ -1,0 +1,414 @@
+@model AutomatonViewModel
+@{
+    ViewData["Title"] = "Create Automaton";
+}
+
+<div class="automaton-workspace">
+    <!-- Global messages (validation errors) -->
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="alert alert-error" data-test="error-message">
+            @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+            {
+                <div>@error.ErrorMessage</div>
+            }
+        </div>
+    }
+
+    <!-- Main Content Area -->
+    <div class="workspace-grid">
+        <!-- Left Section - Automaton Details -->
+        <div class="create-section">
+            <div class="section-header">
+                <h2>AUTOMATON</h2>
+            </div>
+            <div class="create-content">
+                <div class="input-area">
+                    @if (Model != null)
+                    {
+                        <!-- Alphabet Section -->
+                        <div class="automaton-detail-section">
+                            <h4>Alphabet</h4>
+                            <div class="alphabet-display">
+                                @if (Model.Alphabet != null && Model.Alphabet.Count > 0)
+                                {
+                                    <span class="alphabet-symbols">{ @string.Join(", ", Model.Alphabet.Select(c => c == '\0' ? "?" : c.ToString())) }</span>
+                                }
+                                else
+                                {
+                                    <span class="placeholder-text">No symbols defined (will be derived from transitions)</span>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- States Section -->
+                        <div class="automaton-detail-section">
+                            <h4>States (@(Model.States?.Count ?? 0))</h4>
+                            <div class="states-display">
+                                @if (Model.States != null && Model.States.Count > 0)
+                                {
+                                    <ul class="states-list">
+                                        @foreach (var state in Model.States.OrderBy(s => s.Id))
+                                        {
+                                            <li class="state-item" data-state-id="@state.Id">
+                                                <span class="state-id">q@(state.Id)</span>
+                                                @if (state.IsStart)
+                                                {
+                                                    <span class="state-badge badge-start">Start</span>
+                                                }
+                                                @if (state.IsAccepting)
+                                                {
+                                                    <span class="state-badge badge-accepting">Accepting</span>
+                                                }
+                                            </li>
+                                        }
+                                    </ul>
+                                }
+                                else
+                                {
+                                    <span class="placeholder-text">No states defined - add states below</span>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Transitions Section -->
+                        <div class="automaton-detail-section">
+                            <h4>Transitions (@(Model.Transitions?.Count ?? 0))</h4>
+                            <div class="transitions-display">
+                                @if (Model.Transitions != null && Model.Transitions.Count > 0)
+                                {
+                                    <ul class="transitions-list">
+                                        @foreach (var transition in Model.Transitions.OrderBy(t => t.FromStateId).ThenBy(t => t.Symbol).ThenBy(t => t.ToStateId))
+                                        {
+                                            <li class="transition-item">
+                                                @if (Model.Type == AutomatonType.PDA)
+                                                {
+                                                    <span class="transition-text">
+                                                        q@(transition.FromStateId) -- @(transition.Symbol == '\0' ? "?" : transition.Symbol.ToString()) \
+                                                        / @(transition.StackPop.HasValue ? (transition.StackPop.Value == '\0' ? "?" : transition.StackPop.Value.ToString()) : "-")
+                                                        -> @(string.IsNullOrEmpty(transition.StackPush) ? "-" : transition.StackPush) -> q@(transition.ToStateId)
+                                                    </span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="transition-text">q@(transition.FromStateId) -- @(transition.Symbol == '\0' ? "?" : transition.Symbol.ToString()) -> q@(transition.ToStateId)</span>
+                                                }
+                                            </li>
+                                        }
+                                    </ul>
+                                }
+                                else
+                                {
+                                    <span class="placeholder-text">No transitions defined - add transitions below</span>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Section - Graph Canvas -->
+        <div class="graph-section">
+            <div class="section-header">
+                <h2>GRAPH</h2>
+            </div>
+            <div class="graph-content">
+                <canvas id="automatonCanvas" class="automaton-canvas"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Control Sections -->
+    <div class="control-sections">
+        <!-- Automaton Type Section -->
+        <div class="control-section type-section">
+            <div class="section-header-custom">
+                <h2>AUTOMATON TYPE</h2>
+            </div>
+            <form asp-controller="AutomatonCreation" asp-action="CreateAutomaton" method="post" id="typeForm">
+                @Html.HiddenFor(m => m.States)
+                @Html.HiddenFor(m => m.Transitions)
+                <div class="control-content type-buttons">
+                    <button type="submit" class="control-btn type-btn @(Model?.Type == AutomatonType.DFA ? "active" : "")" 
+                            onclick="document.getElementById('typeField').value='0'; return true;">DFA</button>
+                    <button type="submit" class="control-btn type-btn @(Model?.Type == AutomatonType.NFA ? "active" : "")" 
+                            onclick="document.getElementById('typeField').value='1'; return true;">NFA</button>
+                    <button type="submit" class="control-btn type-btn @(Model?.Type == AutomatonType.EpsilonNFA ? "active" : "")" 
+                            onclick="document.getElementById('typeField').value='2'; return true;">?-NFA</button>
+                    <button type="submit" class="control-btn type-btn @(Model?.Type == AutomatonType.PDA ? "active" : "")" 
+                            onclick="document.getElementById('typeField').value='3'; return true;">PDA</button>
+                </div>
+                <input type="hidden" name="Type" id="typeField" value="@((int)(Model?.Type ?? AutomatonType.DFA))" />
+            </form>
+        </div>
+
+        <!-- Add State Section -->
+        <div class="control-section">
+            <div class="section-header-custom">
+                <h2>ADD STATE</h2>
+            </div>
+            <form asp-controller="AutomatonCreation" asp-action="AddState" method="post" style="padding:1rem;">
+                @Html.HiddenFor(m => m.Type)
+                @if (Model?.States != null)
+                {
+                    @for (int i = 0; i < Model.States.Count; i++)
+                    {
+                        <input type="hidden" name="States[@i].Id" value="@Model.States[i].Id" />
+                        <input type="hidden" name="States[@i].IsStart" value="@Model.States[i].IsStart.ToString().ToLowerInvariant()" />
+                        <input type="hidden" name="States[@i].IsAccepting" value="@Model.States[i].IsAccepting.ToString().ToLowerInvariant()" />
+                    }
+                }
+                @if (Model?.Transitions != null)
+                {
+                    @for (int i = 0; i < Model.Transitions.Count; i++)
+                    {
+                        <input type="hidden" name="Transitions[@i].FromStateId" value="@Model.Transitions[i].FromStateId" />
+                        <input type="hidden" name="Transitions[@i].ToStateId" value="@Model.Transitions[i].ToStateId" />
+                        <input type="hidden" name="Transitions[@i].Symbol" value="@Model.Transitions[i].Symbol" />
+                        @if (Model.Type == AutomatonType.PDA)
+                        {
+                            <input type="hidden" name="Transitions[@i].StackPop" value="@Model.Transitions[i].StackPop" />
+                            <input type="hidden" name="Transitions[@i].StackPush" value="@Model.Transitions[i].StackPush" />
+                        }
+                    }
+                }
+                <div style="display:flex; flex-direction:column; gap:0.75rem;">
+                    <div style="display:flex; gap:0.5rem; align-items:center;">
+                        <label style="min-width:100px; font-weight:600;">State ID:</label>
+                        <input type="number" name="stateId" class="control-btn" style="flex:1; padding:0.5rem 0.75rem;" required min="0" />
+                    </div>
+                    <div style="display:flex; gap:0.5rem; align-items:center;">
+                        <label style="min-width:100px; font-weight:600;">
+                            <input type="checkbox" name="isStart" value="true" style="margin-right:0.5rem;" />
+                            Start State
+                        </label>
+                    </div>
+                    <div style="display:flex; gap:0.5rem; align-items:center;">
+                        <label style="min-width:100px; font-weight:600;">
+                            <input type="checkbox" name="isAccepting" value="true" style="margin-right:0.5rem;" />
+                            Accepting
+                        </label>
+                    </div>
+                    <button type="submit" class="control-btn" style="width:100%; margin-top:0.5rem;">Add State</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Remove State Section -->
+        <div class="control-section">
+            <div class="section-header-custom">
+                <h2>REMOVE STATE</h2>
+            </div>
+            <form asp-controller="AutomatonCreation" asp-action="RemoveState" method="post" style="padding:1rem;">
+                @Html.HiddenFor(m => m.Type)
+                @if (Model?.States != null)
+                {
+                    @for (int i = 0; i < Model.States.Count; i++)
+                    {
+                        <input type="hidden" name="States[@i].Id" value="@Model.States[i].Id" />
+                        <input type="hidden" name="States[@i].IsStart" value="@Model.States[i].IsStart.ToString().ToLowerInvariant()" />
+                        <input type="hidden" name="States[@i].IsAccepting" value="@Model.States[i].IsAccepting.ToString().ToLowerInvariant()" />
+                    }
+                }
+                @if (Model?.Transitions != null)
+                {
+                    @for (int i = 0; i < Model.Transitions.Count; i++)
+                    {
+                        <input type="hidden" name="Transitions[@i].FromStateId" value="@Model.Transitions[i].FromStateId" />
+                        <input type="hidden" name="Transitions[@i].ToStateId" value="@Model.Transitions[i].ToStateId" />
+                        <input type="hidden" name="Transitions[@i].Symbol" value="@Model.Transitions[i].Symbol" />
+                        @if (Model.Type == AutomatonType.PDA)
+                        {
+                            <input type="hidden" name="Transitions[@i].StackPop" value="@Model.Transitions[i].StackPop" />
+                            <input type="hidden" name="Transitions[@i].StackPush" value="@Model.Transitions[i].StackPush" />
+                        }
+                    }
+                }
+                <div style="display:flex; flex-direction:column; gap:0.75rem;">
+                    <div style="display:flex; gap:0.5rem; align-items:center;">
+                        <label style="min-width:100px; font-weight:600;">State ID:</label>
+                        <input type="number" name="stateId" class="control-btn" style="flex:1; padding:0.5rem 0.75rem;" required min="0" />
+                    </div>
+                    <button type="submit" class="control-btn" style="width:100%; margin-top:0.5rem;">Remove State</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Second row of controls -->
+    <div class="control-sections">
+        <!-- Add Transition Section -->
+        <div class="control-section" style="grid-column: span 2;">
+            <div class="section-header-custom">
+                <h2>ADD TRANSITION</h2>
+            </div>
+            <form asp-controller="AutomatonCreation" asp-action="AddTransition" method="post" style="padding:1rem;">
+                @Html.HiddenFor(m => m.Type)
+                @if (Model?.States != null)
+                {
+                    @for (int i = 0; i < Model.States.Count; i++)
+                    {
+                        <input type="hidden" name="States[@i].Id" value="@Model.States[i].Id" />
+                        <input type="hidden" name="States[@i].IsStart" value="@Model.States[i].IsStart.ToString().ToLowerInvariant()" />
+                        <input type="hidden" name="States[@i].IsAccepting" value="@Model.States[i].IsAccepting.ToString().ToLowerInvariant()" />
+                    }
+                }
+                @if (Model?.Transitions != null)
+                {
+                    @for (int i = 0; i < Model.Transitions.Count; i++)
+                    {
+                        <input type="hidden" name="Transitions[@i].FromStateId" value="@Model.Transitions[i].FromStateId" />
+                        <input type="hidden" name="Transitions[@i].ToStateId" value="@Model.Transitions[i].ToStateId" />
+                        <input type="hidden" name="Transitions[@i].Symbol" value="@Model.Transitions[i].Symbol" />
+                        @if (Model.Type == AutomatonType.PDA)
+                        {
+                            <input type="hidden" name="Transitions[@i].StackPop" value="@Model.Transitions[i].StackPop" />
+                            <input type="hidden" name="Transitions[@i].StackPush" value="@Model.Transitions[i].StackPush" />
+                        }
+                    }
+                }
+                <div style="display:flex; flex-direction:column; gap:0.75rem;">
+                    <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:0.5rem;">
+                        <div style="display:flex; flex-direction:column; gap:0.25rem;">
+                            <label style="font-weight:600;">From State:</label>
+                            <input type="number" name="fromStateId" class="control-btn" style="padding:0.5rem 0.75rem;" required min="0" />
+                        </div>
+                        <div style="display:flex; flex-direction:column; gap:0.25rem;">
+                            <label style="font-weight:600;">Symbol:</label>
+                            <input type="text" name="symbol" class="control-btn" style="padding:0.5rem 0.75rem;" required maxlength="1" placeholder="a or ?" />
+                        </div>
+                        <div style="display:flex; flex-direction:column; gap:0.25rem;">
+                            <label style="font-weight:600;">To State:</label>
+                            <input type="number" name="toStateId" class="control-btn" style="padding:0.5rem 0.75rem;" required min="0" />
+                        </div>
+                    </div>
+                    @if (Model?.Type == AutomatonType.PDA)
+                    {
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.5rem;">
+                            <div style="display:flex; flex-direction:column; gap:0.25rem;">
+                                <label style="font-weight:600;">Stack Pop:</label>
+                                <input type="text" name="newTransitionStackPop" class="control-btn" style="padding:0.5rem 0.75rem;" maxlength="1" placeholder="Optional" />
+                            </div>
+                            <div style="display:flex; flex-direction:column; gap:0.25rem;">
+                                <label style="font-weight:600;">Stack Push:</label>
+                                <input type="text" name="newTransitionStackPush" class="control-btn" style="padding:0.5rem 0.75rem;" placeholder="Optional" />
+                            </div>
+                        </div>
+                    }
+                    <button type="submit" class="control-btn" style="width:100%; margin-top:0.5rem;">Add Transition</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Remove Transition Section -->
+        <div class="control-section" style="grid-column: span 2;">
+            <div class="section-header-custom">
+                <h2>REMOVE TRANSITION</h2>
+            </div>
+            <form asp-controller="AutomatonCreation" asp-action="RemoveTransition" method="post" style="padding:1rem;">
+                @Html.HiddenFor(m => m.Type)
+                @if (Model?.States != null)
+                {
+                    @for (int i = 0; i < Model.States.Count; i++)
+                    {
+                        <input type="hidden" name="States[@i].Id" value="@Model.States[i].Id" />
+                        <input type="hidden" name="States[@i].IsStart" value="@Model.States[i].IsStart.ToString().ToLowerInvariant()" />
+                        <input type="hidden" name="States[@i].IsAccepting" value="@Model.States[i].IsAccepting.ToString().ToLowerInvariant()" />
+                    }
+                }
+                @if (Model?.Transitions != null)
+                {
+                    @for (int i = 0; i < Model.Transitions.Count; i++)
+                    {
+                        <input type="hidden" name="Transitions[@i].FromStateId" value="@Model.Transitions[i].FromStateId" />
+                        <input type="hidden" name="Transitions[@i].ToStateId" value="@Model.Transitions[i].ToStateId" />
+                        <input type="hidden" name="Transitions[@i].Symbol" value="@Model.Transitions[i].Symbol" />
+                        @if (Model.Type == AutomatonType.PDA)
+                        {
+                            <input type="hidden" name="Transitions[@i].StackPop" value="@Model.Transitions[i].StackPop" />
+                            <input type="hidden" name="Transitions[@i].StackPush" value="@Model.Transitions[i].StackPush" />
+                        }
+                    }
+                }
+                <div style="display:flex; flex-direction:column; gap:0.75rem;">
+                    <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:0.5rem;">
+                        <div style="display:flex; flex-direction:column; gap:0.25rem;">
+                            <label style="font-weight:600;">From State:</label>
+                            <input type="number" name="fromStateId" class="control-btn" style="padding:0.5rem 0.75rem;" required min="0" />
+                        </div>
+                        <div style="display:flex; flex-direction:column; gap:0.25rem;">
+                            <label style="font-weight:600;">Symbol:</label>
+                            <input type="text" name="symbol" class="control-btn" style="padding:0.5rem 0.75rem;" required maxlength="1" placeholder="a or ?" />
+                        </div>
+                        <div style="display:flex; flex-direction:column; gap:0.25rem;">
+                            <label style="font-weight:600;">To State:</label>
+                            <input type="number" name="toStateId" class="control-btn" style="padding:0.5rem 0.75rem;" required min="0" />
+                        </div>
+                    </div>
+                    <button type="submit" class="control-btn" style="width:100%; margin-top:0.5rem;">Remove Transition</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Final Submit Section -->
+    <div class="control-sections">
+        <div class="control-section" style="grid-column: span 4;">
+            <div class="section-header-custom">
+                <h2>FINISH</h2>
+            </div>
+            <form asp-controller="AutomatonCreation" asp-action="CreateAutomaton" method="post" style="padding:1rem;">
+                @Html.HiddenFor(m => m.Type)
+                @if (Model?.States != null)
+                {
+                    @for (int i = 0; i < Model.States.Count; i++)
+                    {
+                        <input type="hidden" name="States[@i].Id" value="@Model.States[i].Id" />
+                        <input type="hidden" name="States[@i].IsStart" value="@Model.States[i].IsStart.ToString().ToLowerInvariant()" />
+                        <input type="hidden" name="States[@i].IsAccepting" value="@Model.States[i].IsAccepting.ToString().ToLowerInvariant()" />
+                    }
+                }
+                @if (Model?.Transitions != null)
+                {
+                    @for (int i = 0; i < Model.Transitions.Count; i++)
+                    {
+                        <input type="hidden" name="Transitions[@i].FromStateId" value="@Model.Transitions[i].FromStateId" />
+                        <input type="hidden" name="Transitions[@i].ToStateId" value="@Model.Transitions[i].ToStateId" />
+                        <input type="hidden" name="Transitions[@i].Symbol" value="@Model.Transitions[i].Symbol" />
+                        @if (Model.Type == AutomatonType.PDA)
+                        {
+                            <input type="hidden" name="Transitions[@i].StackPop" value="@Model.Transitions[i].StackPop" />
+                            <input type="hidden" name="Transitions[@i].StackPush" value="@Model.Transitions[i].StackPush" />
+                        }
+                    }
+                }
+                <div style="display:flex; gap:1rem; justify-content:center;">
+                    <button type="submit" class="control-btn" style="min-width:200px; font-size:1.1rem; padding:0.75rem 1.5rem;">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Create Automaton</span>
+                    </button>
+                    <a href="@Url.Action("Index", "Home")" class="control-btn" style="min-width:200px; font-size:1.1rem; padding:0.75rem 1.5rem; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:0.5rem;">
+                        <i class="fas fa-times-circle"></i>
+                        <span>Cancel</span>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/canvas.js" asp-append-version="true"></script>
+    <script>
+        // Helper for epsilon symbol input
+        document.querySelectorAll('input[name="symbol"]').forEach(input => {
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'e' && e.altKey) {
+                    e.preventDefault();
+                    this.value = '?';
+                }
+            });
+        });
+    </script>
+}
