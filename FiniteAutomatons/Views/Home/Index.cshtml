@@ -719,71 +719,128 @@
             </div>
 
             <!-- Modal markup -->
-            <div id="generateModal" class="modal" style="display:none;">
-            <div class="modal-content">
-                    <span class="modal-close" id="generateModalClose">&times;</span>
-                    <h3>Generate Automaton</h3>
-                    <div class="preset-buttons" style="display:flex; gap:0.5rem; flex-direction:column;">
-                        <div style="display:flex; gap:0.5rem; align-items:center;">
-                            <label for="generateFamilySelect" style="min-width:80px; font-weight:600;">Type</label>
-                            <select id="generateFamilySelect" class="control-btn" style="padding:0.5rem 0.75rem;">
-                                <option value="DFA">DFA</option>
-                                <option value="NFA">NFA</option>
-                                <option value="EpsilonNFA">ε-NFA</option>
-                            </select>
+            <div id="generateModal" class="modal modern-modal" style="display:none;">
+                <div class="modal-content modern-modal-content">
+                    <div class="modal-header">
+                        <div class="modal-header-content">
+                            <i class="fas fa-random modal-icon"></i>
+                            <h3 class="modal-title">Generate Automaton</h3>
+                        </div>
+                        <button class="modal-close modern-close" id="generateModalClose" type="button">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="modal-body">
+                        <!-- Quick Preset Generation -->
+                        <div class="input-section-card" data-section-id="preset">
+                            <div class="section-card-header">
+                                <i class="fas fa-bolt"></i>
+                                <h4>Quick Generate</h4>
+                            </div>
+                            <div class="modern-form">
+                                <div class="form-group">
+                                    <label for="generateFamilySelect" class="form-label">
+                                        <i class="fas fa-sitemap"></i>
+                                        Automaton Type
+                                    </label>
+                                    <select id="generateFamilySelect" class="modern-input">
+                                        <option value="DFA">DFA</option>
+                                        <option value="NFA">NFA</option>
+                                        <option value="EpsilonNFA">ε-NFA</option>
+                                    </select>
+                                </div>
+                                
+                                <form id="generatePresetForm" asp-controller="AutomatonGeneration" asp-action="GeneratePreset" method="post">
+                                    <div class="form-group">
+                                        <label for="generateOptionSelect" class="form-label">
+                                            <i class="fas fa-list"></i>
+                                            Preset Template
+                                        </label>
+                                        <select id="generateOptionSelect" name="preset" class="modern-input">
+                                            <!-- options populated by JS on open -->
+                                        </select>
+                                    </div>
+                                    <button type="submit" class="modern-btn btn-primary btn-full" style="margin-top: 0.5rem;">
+                                        <i class="fas fa-magic"></i>
+                                        Generate from Preset
+                                    </button>
+                                </form>
+                            </div>
                         </div>
 
-                        <form id="generatePresetForm" asp-controller="AutomatonGeneration" asp-action="GeneratePreset" method="post" style="display:flex; gap:0.5rem; align-items:center;">
-                            <label for="generateOptionSelect" style="min-width:80px; visibility:hidden;">Option</label>
-                            <select id="generateOptionSelect" name="preset" class="control-btn" style="min-width:260px; padding:0.6rem 0.9rem;">
-                                <!-- options populated by JS on open -->
-                            </select>
-                            <button type="submit" class="control-btn">Generate</button>
-                        </form>
-                    </div>
-
-                    <div class="divider" style="margin:1rem 0; border-top:1px solid #ddd;"></div>
-
-                    <div>
-                        <a href="@Url.Action("GenerateRandomAutomaton", "AutomatonGeneration")" class="control-btn" style="display:none;">Generate Random Automaton</a>
-                    </div>
-
-                    <div class="accordion" style="margin-top:1rem;">
-                        <button class="accordion-toggle control-btn" type="button">Generate by parameters</button>
-                        <div class="accordion-panel" style="display:none; margin-top:0.5rem;">
-                            <form asp-controller="AutomatonGeneration" asp-action="GenerateRandomAutomaton" method="post" style="display:flex; flex-direction:column; gap:0.75rem;">
-                                <div style="display:flex; gap:0.5rem; align-items:center;">
-                                    <label style="min-width:120px; font-weight:600;">Type:</label>
-                                    <select name="Type" class="control-btn" style="flex:1; padding:0.5rem 0.75rem;">
+                        <!-- Custom Parameters Generation -->
+                        <div class="input-section-card" data-section-id="custom">
+                            <div class="section-card-header">
+                                <i class="fas fa-sliders-h"></i>
+                                <h4>Custom Parameters</h4>
+                            </div>
+                            <form asp-controller="AutomatonGeneration" asp-action="GenerateRandomAutomaton" method="post" class="modern-form">
+                                <div class="form-group">
+                                    <label class="form-label">
+                                        <i class="fas fa-sitemap"></i>
+                                        Type
+                                    </label>
+                                    <select name="Type" class="modern-input">
                                         <option value="0">DFA</option>
                                         <option value="1">NFA</option>
                                         <option value="2">ε-NFA</option>
                                         <option value="3">PDA</option>
                                     </select>
                                 </div>
-                                <div style="display:flex; gap:0.5rem; align-items:center;">
-                                    <label style="min-width:120px; font-weight:600;">States:</label>
-                                    <input type="number" name="StateCount" value="5" min="1" max="20" class="control-btn" style="flex:1; padding:0.5rem 0.75rem;" />
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label">
+                                            <i class="fas fa-circle"></i>
+                                            States
+                                        </label>
+                                        <input type="number" name="StateCount" value="5" min="1" max="20" class="modern-input" />
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">
+                                            <i class="fas fa-arrows-alt-h"></i>
+                                            Transitions
+                                        </label>
+                                        <input type="number" name="TransitionCount" value="8" min="0" class="modern-input" />
+                                    </div>
                                 </div>
-                                <div style="display:flex; gap:0.5rem; align-items:center;">
-                                    <label style="min-width:120px; font-weight:600;">Transitions:</label>
-                                    <input type="number" name="TransitionCount" value="8" min="0" class="control-btn" style="flex:1; padding:0.5rem 0.75rem;" />
+                                
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label class="form-label">
+                                            <i class="fas fa-font"></i>
+                                            Alphabet Size
+                                        </label>
+                                        <input type="number" name="AlphabetSize" value="3" min="1" max="10" class="modern-input" />
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">
+                                            <i class="fas fa-check-circle"></i>
+                                            Accepting Ratio
+                                        </label>
+                                        <input type="number" step="0.05" name="AcceptingStateRatio" value="0.3" min="0" max="1" class="modern-input" />
+                                    </div>
                                 </div>
-                                <div style="display:flex; gap:0.5rem; align-items:center;">
-                                    <label style="min-width:120px; font-weight:600;">Alphabet size:</label>
-                                    <input type="number" name="AlphabetSize" value="3" min="1" max="10" class="control-btn" style="flex:1; padding:0.5rem 0.75rem;" />
-                                </div>
-                                <div style="display:flex; gap:0.5rem; align-items:center;">
-                                    <label style="min-width:120px; font-weight:600;">Accepting ratio:</label>
-                                    <input type="number" step="0.05" name="AcceptingStateRatio" value="0.3" min="0" max="1" class="control-btn" style="flex:1; padding:0.5rem 0.75rem;" />
-                                </div>
-                                <div style="margin-top:0.5rem;">
-                                    <button type="submit" class="control-btn" style="width:100%;">Generate</button>
-                                </div>
+                                
+                                <button type="submit" class="modern-btn btn-success btn-full">
+                                    <i class="fas fa-cogs"></i>
+                                    Generate with Parameters
+                                </button>
                             </form>
                         </div>
 
-                        <a class="control-btn" href="@Url.Action("CreateAutomaton", "AutomatonCreation")" style="margin-top:0.5rem; display:inline-block; width:100%; text-align:center;">Create fully custom automaton</a>
+                        <!-- Create Custom Automaton -->
+                        <div class="input-section-card card-special" data-section-id="fully-custom">
+                            <div class="section-card-header">
+                                <i class="fas fa-pencil-ruler"></i>
+                                <h4>Manual Creation</h4>
+                            </div>
+                            <a class="modern-btn btn-info btn-full" href="@Url.Action("CreateAutomaton", "AutomatonCreation")">
+                                <i class="fas fa-edit"></i>
+                                Create Fully Custom Automaton
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -818,5 +875,6 @@
     <script type="module" src="~/js/automatonTypeControls.mjs" asp-append-version="true"></script>
     <script src="~/js/generateModal.js" asp-append-version="true"></script>
     <script src="~/js/generateInputModal.js" asp-append-version="true"></script>
+    <script src="~/js/alerts.js" asp-append-version="true"></script>
 }
 

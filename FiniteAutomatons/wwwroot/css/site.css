@@ -1008,99 +1008,93 @@ border-top: 3px solid #000;
   pointer-events: none; /* prevent clicks */
 }
 
-/* Modern modal styles for Generate Automaton */
-#generateModal {
-  position: fixed;
-  inset: 0;
-  display: none; /* shown/hidden by script */
+/* ========================================
+   ALERT STYLES (Error & Info Messages)
+   ======================================== */
+
+.alert {
+  padding: 1rem 1.25rem;
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  animation: slideInDown 0.4s ease-out;
+  display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0,0,0,0.45);
-  backdrop-filter: blur(3px);
-  z-index: 1050;
-  padding: 1rem;
-}
-
-#generateModal .modal-content {
+  gap: 0.75rem;
   position: relative;
-  width: 100%;
-  max-width: 720px;
-  background: #ffffff;
-  border-radius: 12px;
-  padding: 1.25rem 1.5rem;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-  border: none;
-  overflow: hidden;
+  border-left: 5px solid;
+  text-align: center;
 }
 
-#generateModal .modal-close {
-  position: absolute;
-  top: 12px;
-  right: 14px;
-  font-size: 1.25rem;
-  line-height: 1;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  color: #666;
-  padding: 6px;
-  border-radius: 6px;
+.alert::before {
+  font-family: "Font Awesome 5 Free";
+  font-weight: 900;
+  font-size: 1.5rem;
+  flex-shrink: 0;
 }
 
-#generateModal .modal-close:hover {
-  background: rgba(0,0,0,0.04);
-  color: #333;
+.alert-error {
+  background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+  border-color: #dc3545;
+  color: #721c24;
+  border-left-color: #dc3545;
 }
 
-#generateModal .preset-buttons {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-  margin-bottom: 0.75rem;
+.alert-error::before {
+  content: "\f06a"; /* fa-exclamation-circle */
+  color: #dc3545;
 }
 
-#generateModal .preset-buttons form {
-  display: inline-block;
+.alert-info {
+  background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+  border-color: #17a2b8;
+  color: #0c5460;
+  border-left-color: #17a2b8;
 }
 
-/* Override global control-btn styles inside modal to a softer modern look */
-#generateModal .control-btn {
-  min-width: auto;
-  border: 1px solid #e6e9ec;
-  background: #fff;
-  color: #222;
-  padding: 0.6rem 0.9rem;
-  box-shadow: 0 4px 10px rgba(16,24,40,0.06);
-  border-radius: 8px;
-  font-weight: 600;
+.alert-info::before {
+  content: "\f05a"; /* fa-info-circle */
+  color: #17a2b8;
 }
 
-#generateModal .control-btn:hover {
-  background: #f7f9fb;
-  border-color: #dde4ea;
+.minimization-alert {
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
-#generateModal .divider {
-  margin: 1rem 0;
-  border-top: 1px solid #eee;
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-#generateModal .accordion-toggle {
-  background: transparent;
-  border: 1px solid #e6e9ec;
+.alert-fade-out {
+  animation: fadeOut 0.4s ease-out forwards;
 }
 
-#generateModal .accordion-panel {
-  padding: 0.5rem 0;
-}
-
-@media (max-width: 480px) {
-  #generateModal .modal-content { padding: 1rem; max-width: 92%; }
-  #generateModal .preset-buttons { gap: 0.4rem; }
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
 }
 
 /* ========================================
-   INPUT GENERATION MODAL STYLES (matching generateModal style)
+   MODERN MODAL STYLES (shared by Generate Input & Generate Automaton)
    ======================================== */
 
 /* Modern Modal Base - matching generateModal */
@@ -1290,6 +1284,7 @@ border-top: 3px solid #000;
   width: 100%;
   background: #fff;
   color: #222;
+  text-decoration: none;
 }
 
 .modern-btn i {
@@ -1301,6 +1296,8 @@ border-top: 3px solid #000;
   border-color: #dde4ea;
   transform: translateY(-1px);
   box-shadow: 0 6px 15px rgba(16,24,40,0.08);
+  text-decoration: none;
+  color: #222;
 }
 
 .modern-btn:active {
