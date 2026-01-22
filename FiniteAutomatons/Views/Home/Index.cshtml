@@ -477,7 +477,7 @@
         </div>
     </form>
     <div class="control-sections">
-        <div class="control-section input-section" style="margin-top: 1rem;">
+        <div class="control-section input-section">
             <div class="section-header-custom">
                 <h2 style="margin:0;">GENERATE INPUT</h2>
             </div>
@@ -498,13 +498,16 @@
                         <div class="modal-header-content">
                             <i class="fas fa-keyboard modal-icon"></i>
                             <h3 class="modal-title">Generate Test Input</h3>
+                            <button id="inputModalLockBtn" class="panel-lock-btn" title="Lock / unlock sections" aria-pressed="false" type="button">
+                                <i class="fas fa-lock-open"></i>
+                            </button>
                         </div>
                         <button class="modal-close modern-close" id="generateInputModalClose" type="button">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
                     
-                    <div class="modal-body">
+                    <div class="modal-body" id="inputModalSectionsContainer">
                         @{
                             // Helper method to render hidden automaton fields for forms
                             void RenderAutomatonHiddenFields()
@@ -549,7 +552,7 @@
                         }
                         
                         <!-- Quick Generation Options -->
-                        <div class="input-section-card">
+                        <div class="input-section-card" data-section-id="quick">
                             <div class="section-card-header">
                                 <i class="fas fa-bolt"></i>
                                 <h4>Quick Generate</h4>
@@ -573,7 +576,7 @@
                         </div>
 
                         <!-- Random String Generation -->
-                        <div class="input-section-card">
+                        <div class="input-section-card" data-section-id="random">
                             <div class="section-card-header">
                                 <i class="fas fa-random"></i>
                                 <h4>Random String</h4>
@@ -604,7 +607,7 @@
                         </div>
 
                         <!-- Random Accepting String with Parameters -->
-                        <div class="input-section-card">
+                        <div class="input-section-card" data-section-id="random-accepting">
                             <div class="section-card-header">
                                 <i class="fas fa-check-double"></i>
                                 <h4>Random Accepting (Advanced)</h4>
@@ -645,7 +648,7 @@
                         <!-- Special Test Cases -->
                         @if (Model?.Type == AutomatonType.NFA || Model?.Type == AutomatonType.EpsilonNFA)
                         {
-                            <div class="input-section-card card-special">
+                            <div class="input-section-card card-special" data-section-id="special">
                                 <div class="section-card-header">
                                     <i class="fas fa-star"></i>
                                     <h4>Special Cases</h4>
@@ -676,7 +679,7 @@
                         }
 
                         <!-- Interesting Cases -->
-                        <div class="input-section-card">
+                        <div class="input-section-card" data-section-id="interesting">
                             <div class="section-card-header">
                                 <i class="fas fa-lightbulb"></i>
                                 <h4>Interesting Test Cases</h4>
@@ -706,7 +709,7 @@
         </div>
         <div class="control-section">
             <div class="section-header-custom">
-                <h2 style="margin:0;">GENERATE</h2>
+                <h2 style="margin:0;">GENERATE AUTOMATON</h2>
             </div>
             <div class="control-content-left" style="text-align:center; margin-bottom:0.5rem;">
                 <button id="generateModalBtn" class="control-btn" type="button">
