@@ -1,4 +1,4 @@
-@model AutomatonViewModel
+﻿@model AutomatonViewModel
 @{
     ViewData["Title"] = "Create Automaton";
 }
@@ -32,7 +32,7 @@
                             <div class="alphabet-display">
                                 @if (Model.Alphabet != null && Model.Alphabet.Count > 0)
                                 {
-                                    <span class="alphabet-symbols">{ @string.Join(", ", Model.Alphabet.Select(c => c == '\0' ? "?" : c.ToString())) }</span>
+                                    <span class="alphabet-symbols">{ @string.Join(", ", Model.Alphabet.Select(c => c == '\0' ? "ε" : c.ToString())) }</span>
                                 }
                                 else
                                 {
@@ -84,14 +84,14 @@
                                                 @if (Model.Type == AutomatonType.PDA)
                                                 {
                                                     <span class="transition-text">
-                                                        q@(transition.FromStateId) -- @(transition.Symbol == '\0' ? "?" : transition.Symbol.ToString()) \
-                                                        / @(transition.StackPop.HasValue ? (transition.StackPop.Value == '\0' ? "?" : transition.StackPop.Value.ToString()) : "-")
+                                                        q@(transition.FromStateId) -- @(transition.Symbol == '\0' ? 'ε' : transition.Symbol.ToString()) \
+                                                        / @(transition.StackPop.HasValue ? (transition.StackPop.Value == '\0' ? 'ε' : transition.StackPop.Value.ToString()) : "-")
                                                         -> @(string.IsNullOrEmpty(transition.StackPush) ? "-" : transition.StackPush) -> q@(transition.ToStateId)
                                                     </span>
                                                 }
                                                 else
                                                 {
-                                                    <span class="transition-text">q@(transition.FromStateId) -- @(transition.Symbol == '\0' ? "?" : transition.Symbol.ToString()) -> q@(transition.ToStateId)</span>
+                                                    <span class="transition-text">q@(transition.FromStateId) -- @(transition.Symbol == '\0' ? 'ε' : transition.Symbol.ToString()) -> q@(transition.ToStateId)</span>
                                                 }
                                             </li>
                                         }
@@ -339,7 +339,7 @@
                         </div>
                         <div style="display:flex; flex-direction:column; gap:0.25rem;">
                             <label style="font-weight:600;">Symbol:</label>
-                            <input type="text" name="symbol" class="control-btn" style="padding:0.5rem 0.75rem;" required maxlength="1" placeholder="a or ?" />
+                            <input type="text" name="symbol" class="control-btn" style="padding:0.5rem 0.75rem;" required maxlength="1" placeholder="a or ε" />
                         </div>
                         <div style="display:flex; flex-direction:column; gap:0.25rem;">
                             <label style="font-weight:600;">To State:</label>
@@ -406,7 +406,7 @@
             input.addEventListener('keydown', function(e) {
                 if (e.key === 'e' && e.altKey) {
                     e.preventDefault();
-                    this.value = '?';
+                    this.value = 'ε';
                 }
             });
         });

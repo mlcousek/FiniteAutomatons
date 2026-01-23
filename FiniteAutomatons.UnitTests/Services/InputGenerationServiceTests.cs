@@ -532,8 +532,7 @@ public class InputGenerationServiceTests
         var result = service.GenerateInterestingCases(automaton, 15);
 
         // Assert
-        result.ShouldContain(c => c.Description.Contains("ε", StringComparison.OrdinalIgnoreCase) ||
-                                  c.Description.Contains("epsilon", StringComparison.OrdinalIgnoreCase));
+        result.ShouldContain(c => c.Description.Contains('ε', StringComparison.OrdinalIgnoreCase));
     }
 
     #endregion

@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.ViewModel;
+﻿using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Services;
 using Shouldly;
 
@@ -141,11 +141,11 @@ public class AutomatonValidationServiceTests
         };
 
         // Act
-        var (isValid, _, errorMessage) = service.ValidateTransitionAddition(model, 1, 2, "?");
+        var (isValid, _, errorMessage) = service.ValidateTransitionAddition(model, 1, 2, "ε");
 
         // Assert
         isValid.ShouldBeFalse();
         errorMessage.ShouldNotBeNull();
-        errorMessage.ShouldContain("Epsilon transitions (?) are only allowed in Epsilon NFAs");
+        errorMessage.ShouldContain("Epsilon transitions (ε) are only allowed in Epsilon NFAs");
     }
 }

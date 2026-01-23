@@ -209,8 +209,14 @@ public class AutomatonExecutionDfaTests(IntegrationTestsFixture fixture) : Integ
         var stateIds = Regex.Matches(html, "States\\[(\\d+)\\]\\.Id\"[^>]*value=\"(\\d+)\"");
         var starts = Regex.Matches(html, "States\\[(\\d+)\\]\\.IsStart\"[^>]*value=\"(true|false)\"");
         var accepts = Regex.Matches(html, "States\\[(\\d+)\\]\\.IsAccepting\"[^>]*value=\"(true|false)\"");
+        
+        // Deduplicate by index (HTML contains multiple forms with same state indices)
+        var processedIndices = new HashSet<int>();
         for (int i = 0; i < stateIds.Count; i++)
         {
+            int index = int.Parse(stateIds[i].Groups[1].Value);
+            if (!processedIndices.Add(index)) continue; // Skip duplicates
+            
             var id = int.Parse(stateIds[i].Groups[2].Value);
             bool isStart = i < starts.Count && bool.Parse(starts[i].Groups[2].Value);
             bool isAccept = i < accepts.Count && bool.Parse(accepts[i].Groups[2].Value);
@@ -219,8 +225,14 @@ public class AutomatonExecutionDfaTests(IntegrationTestsFixture fixture) : Integ
         var froms = Regex.Matches(html, "Transitions\\[(\\d+)\\]\\.FromStateId\"[^>]*value=\"(\\d+)\"");
         var tos = Regex.Matches(html, "Transitions\\[(\\d+)\\]\\.ToStateId\"[^>]*value=\"(\\d+)\"");
         var syms = Regex.Matches(html, "Transitions\\[(\\d+)\\]\\.Symbol\"[^>]*value=\"(.)\"");
+        
+        // Deduplicate by index (HTML contains multiple forms with same transition indices)
+        processedIndices.Clear();
         for (int i = 0; i < froms.Count && i < tos.Count; i++)
         {
+            int index = int.Parse(froms[i].Groups[1].Value);
+            if (!processedIndices.Add(index)) continue; // Skip duplicates
+            
             var from = int.Parse(froms[i].Groups[2].Value);
             var to = int.Parse(tos[i].Groups[2].Value);
             var sym = i < syms.Count ? syms[i].Groups[2].Value[0] : '\0';

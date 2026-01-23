@@ -1,9 +1,9 @@
 ﻿using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
-using FiniteAutomatons.Core.Models.ViewModel; 
+using FiniteAutomatons.Core.Models.ViewModel;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Text.Encodings.Web;
 
 namespace FiniteAutomatons.Core.Models.Serialization;
 
@@ -17,7 +17,7 @@ public static class AutomatonJsonSerializer
     };
 
     private static readonly HashSet<string> EpsilonTokens = new(StringComparer.OrdinalIgnoreCase)
-    { "ε", "eps", "lambda", "\\0", "\0" };
+    { "ε", "\0" };
 
     private class StateDto
     {
@@ -35,8 +35,8 @@ public static class AutomatonJsonSerializer
     }
     private class AutomatonDto
     {
-        public int Version { get; set; } = 1; 
-        public string? Type { get; set; }    
+        public int Version { get; set; } = 1;
+        public string? Type { get; set; }
         public List<StateDto> States { get; set; } = [];
         public List<TransitionDto> Transitions { get; set; } = [];
     }

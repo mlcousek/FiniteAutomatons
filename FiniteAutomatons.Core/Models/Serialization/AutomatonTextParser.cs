@@ -1,8 +1,8 @@
 ﻿using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
+using FiniteAutomatons.Core.Utilities;
 using System.Text;
 using System.Text.RegularExpressions;
-using FiniteAutomatons.Core.Utilities;
 
 namespace FiniteAutomatons.Core.Models.Serialization;
 
@@ -19,10 +19,6 @@ public static class AutomatonCustomTextSerializer
     private static readonly Regex TransitionPattern = new(
         @"^(?<from>\w+):(?<symbol>.*)>(?<to>\w+)$",
         RegexOptions.Compiled | RegexOptions.CultureInvariant);
-
-    private static readonly HashSet<string> EpsilonAliases = AutomatonSymbolHelper.EpsilonAliases
-        .Concat(["\\0", "\0"]) 
-        .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
     private sealed record ParsedDefinition(
         List<string> States,
@@ -73,7 +69,7 @@ public static class AutomatonCustomTextSerializer
         {
             var from = nameMap[t.FromStateId];
             var to = nameMap[t.ToStateId];
-            string symbol = t.Symbol == '\0' ? "eps" : t.Symbol.ToString();
+            char symbol = t.Symbol == '\0' ? 'ε' : t.Symbol;
             sb.AppendLine($"{from}:{symbol}>{to}");
         }
         return sb.ToString();
@@ -146,7 +142,7 @@ public static class AutomatonCustomTextSerializer
             if (!stateMap.ContainsKey(from)) errors.Add($"Transition line {line} references unknown 'from' state '{from}'.");
             if (!stateMap.ContainsKey(to)) errors.Add($"Transition line {line} references unknown 'to' state '{to}'.");
             if (string.IsNullOrEmpty(symbol)) errors.Add($"Transition line {line} has empty symbol.");
-            else if (symbol.Length > 1 && !IsEpsilon(symbol)) errors.Add($"Transition line {line} symbol '{symbol}' must be a single character or epsilon alias.");
+            else if (symbol.Length > 1 && !IsEpsilon(symbol)) errors.Add($"Transition line {line} symbol '{symbol}' must be a single character or epsilon (ε).");
         }
 
         return new ParsedDefinition(states, initial, accepting, transitions, errors);

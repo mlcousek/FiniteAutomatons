@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.DoMain;
+﻿using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.Serialization;
 using Shouldly;
@@ -91,7 +91,7 @@ public class AutomatonJsonSerializerTests
         var json = "{" +
                    "\"Version\":1," +
                    "\"States\":[{\"Id\":1,\"IsStart\":true,\"IsAccepting\":false},{\"Id\":2,\"IsStart\":false,\"IsAccepting\":true}]," +
-                   "\"Transitions\":[{\"FromStateId\":1,\"ToStateId\":2,\"Symbol\":\"eps\"}]" +
+                   "\"Transitions\":[{\"FromStateId\":1,\"ToStateId\":2,\"Symbol\":\"ε\"}]" +
                    "}";
 
         var ok = AutomatonJsonSerializer.TryDeserialize(json, out var automaton, out var error);

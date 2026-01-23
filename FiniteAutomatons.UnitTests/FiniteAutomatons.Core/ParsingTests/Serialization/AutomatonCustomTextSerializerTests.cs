@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.DoMain;
+﻿using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.Serialization;
 using Shouldly;
@@ -222,7 +222,7 @@ public class AutomatonCustomTextSerializerTests
                 q1
 
                 $transitions:
-                q0:eps>q1"; // epsilon via alias
+                q0:ε>q1";
         var ok = AutomatonCustomTextSerializer.TryDeserialize(text, out var automaton, out var errors);
         ok.ShouldBeTrue(string.Join(';', errors));
         automaton.ShouldBeOfType<EpsilonNFA>();

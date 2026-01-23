@@ -9,4 +9,4 @@ $accepting:
 q1
 
 $transitions:
-q0:eps>q1
+q0:ε>q1

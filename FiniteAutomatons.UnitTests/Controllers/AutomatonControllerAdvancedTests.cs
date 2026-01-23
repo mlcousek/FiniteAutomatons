@@ -1,4 +1,4 @@
-using FiniteAutomatons.Controllers;
+﻿using FiniteAutomatons.Controllers;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Core.Utilities;
 using FiniteAutomatons.Services.Services;
@@ -37,16 +37,13 @@ public class AutomatonControllerAdvancedTests   //TODO refactore tests, introduc
 
     public static IEnumerable<object[]> EpsilonAcceptedAliases() =>
     [
-        ["epsilon"],
-        ["eps"],
-        ["lambda"],
-        ["\\0"],
-        ["\0"]
+        ['ε'],
+        ['\0']
     ];
 
     public static IEnumerable<object[]> EpsilonRejectedAliases() =>
     [
-        ["epsilon"]
+        ['ε']
     ];
 
     [Theory]

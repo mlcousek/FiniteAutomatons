@@ -1,4 +1,4 @@
-using FiniteAutomatons.Controllers;
+﻿using FiniteAutomatons.Controllers;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Core.Utilities;
 using FiniteAutomatons.Services.Interfaces;
@@ -125,8 +125,8 @@ public class AutomatonExecutionServiceTests
 
     public static IEnumerable<object[]> EpsilonAliasCases() =>
     [
-        ["?", true],
-        ["epsilon", true],
+        ['ε', true],
+        ['\0', true],
         ["a", false]
     ];
 

@@ -1,4 +1,4 @@
-//using FiniteAutomatons.Core.Models.ViewModel;
+﻿//using FiniteAutomatons.Core.Models.ViewModel;
 //using Shouldly;
 //using System.Net;
 //using System.Text.RegularExpressions;
@@ -20,7 +20,7 @@
 //        Transitions =
 //        [
 //            // epsilon from 1 -> 2 makes start accepting after conversion
-//            new() { FromStateId = 1, ToStateId = 2, Symbol = '?' },
+//            new() { FromStateId = 1, ToStateId = 2, Symbol = 'ε' },
 //            // symbol transitions
 //            new() { FromStateId = 1, ToStateId = 3, Symbol = 'a' },
 //            new() { FromStateId = 3, ToStateId = 2, Symbol = 'b' }
@@ -149,7 +149,7 @@
 //        {
 //            Type = AutomatonType.EpsilonNFA,
 //            States = [new() { Id = 2, IsStart = false, IsAccepting = true }],
-//            Transitions = [new() { FromStateId = 2, ToStateId = 2, Symbol = '?' }],
+//            Transitions = [new() { FromStateId = 2, ToStateId = 2, Symbol = 'ε' }],
 //            IsCustomAutomaton = true
 //        };
 //        var resp = await PostSwitchTypeAsync(client, model, AutomatonType.NFA);

@@ -103,14 +103,14 @@
                                                 @if (Model.Type == AutomatonType.PDA)
                                                 {
                                                     <span class="transition-text">
-                                                        q@(transition.FromStateId) -- @(transition.Symbol == '\0' ? "ε" : transition.Symbol.ToString()) \
-                                                        / @(transition.StackPop.HasValue ? (transition.StackPop.Value == '\0' ? "ε" : transition.StackPop.Value.ToString()) : "-")
+                                                        q@(transition.FromStateId) -- @(transition.Symbol == '\0' ? 'ε' : transition.Symbol.ToString()) \
+                                                        / @(transition.StackPop.HasValue ? (transition.StackPop.Value == '\0' ? 'ε' : transition.StackPop.Value.ToString()) : "-")
                                                         -> @(string.IsNullOrEmpty(transition.StackPush) ? "-" : transition.StackPush) -> q@(transition.ToStateId)
                                                     </span>
                                                 }
                                                 else
                                                 {
-                                                    <span class="transition-text">q@(transition.FromStateId) -- @(transition.Symbol == '\0' ? "ε" : transition.Symbol.ToString()) -> q@(transition.ToStateId)</span>
+                                                    <span class="transition-text">q@(transition.FromStateId) -- @(transition.Symbol == '\0' ? 'ε' : transition.Symbol.ToString()) -> q@(transition.ToStateId)</span>
                                                 }
                                             </li>
                                         }

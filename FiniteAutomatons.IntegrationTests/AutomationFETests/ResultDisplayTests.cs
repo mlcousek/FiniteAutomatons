@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.ViewModel;
+﻿using FiniteAutomatons.Core.Models.ViewModel;
 using Shouldly;
 using System.Net;
 using System.Text.RegularExpressions;
@@ -286,8 +286,8 @@ public class ResultDisplayTests(IntegrationTestsFixture fixture) : IntegrationTe
 
         var model = new AutomatonViewModel
         {
-            States = new List<Core.Models.DoMain.State>(),
-            Transitions = new List<Core.Models.DoMain.Transition>()
+            States = [],
+            Transitions = []
         };
 
         // Parse Type
@@ -342,9 +342,16 @@ public class ResultDisplayTests(IntegrationTestsFixture fixture) : IntegrationTe
         var stateStartMatches = Regex.Matches(html, @"name\s*=\s*""States\[\d+\]\.IsStart""[^>]*value\s*=\s*""(true|false)""|value\s*=\s*""(true|false)""[^>]*name\s*=\s*""States\[\d+\]\.IsStart""", RegexOptions.IgnoreCase);
         var stateAcceptMatches = Regex.Matches(html, @"name\s*=\s*""States\[\d+\]\.IsAccepting""[^>]*value\s*=\s*""(true|false)""|value\s*=\s*""(true|false)""[^>]*name\s*=\s*""States\[\d+\]\.IsAccepting""", RegexOptions.IgnoreCase);
 
+        // Deduplicate by index (HTML contains multiple forms with same state indices)
+        var processedIndices = new HashSet<int>();
         for (int i = 0; i < stateIdMatches.Count; i++)
         {
             var match = stateIdMatches[i];
+            var indexValue = match.Groups[1].Success ? match.Groups[1].Value : match.Groups[4].Value;
+            int index = int.Parse(indexValue);
+            if (processedIndices.Contains(index)) continue; // Skip duplicates
+            processedIndices.Add(index);
+            
             var idValue = match.Groups[2].Success ? match.Groups[2].Value : match.Groups[3].Value;
 
             model.States.Add(new Core.Models.DoMain.State
@@ -356,13 +363,21 @@ public class ResultDisplayTests(IntegrationTestsFixture fixture) : IntegrationTe
         }
 
         // Parse Transitions
-        var transFromMatches = Regex.Matches(html, @"name\s*=\s*""Transitions\[\d+\]\.FromStateId""[^>]*value\s*=\s*""(\d+)""|value\s*=\s*""(\d+)""[^>]*name\s*=\s*""Transitions\[\d+\]\.FromStateId""", RegexOptions.IgnoreCase);
+        var transFromMatches = Regex.Matches(html, @"name\s*=\s*""Transitions\[(\d+)\]\.FromStateId""[^>]*value\s*=\s*""(\d+)""|value\s*=\s*""(\d+)""[^>]*name\s*=\s*""Transitions\[(\d+)\]\.FromStateId""", RegexOptions.IgnoreCase);
         var transToMatches = Regex.Matches(html, @"name\s*=\s*""Transitions\[\d+\]\.ToStateId""[^>]*value\s*=\s*""(\d+)""|value\s*=\s*""(\d+)""[^>]*name\s*=\s*""Transitions\[\d+\]\.ToStateId""", RegexOptions.IgnoreCase);
         var transSymbolMatches = Regex.Matches(html, @"name\s*=\s*""Transitions\[\d+\]\.Symbol""[^>]*value\s*=\s*""(.)""|value\s*=\s*""(.)""[^>]*name\s*=\s*""Transitions\[\d+\]\.Symbol""", RegexOptions.IgnoreCase);
 
+        // Deduplicate by index (HTML contains multiple forms with same transition indices)
+        processedIndices.Clear();
         for (int i = 0; i < transFromMatches.Count && i < transToMatches.Count; i++)
         {
-            var fromValue = transFromMatches[i].Groups[1].Success ? transFromMatches[i].Groups[1].Value : transFromMatches[i].Groups[2].Value;
+            var fromMatch = transFromMatches[i];
+            var indexValue = fromMatch.Groups[1].Success ? fromMatch.Groups[1].Value : fromMatch.Groups[4].Value;
+            int index = int.Parse(indexValue);
+            if (processedIndices.Contains(index)) continue; // Skip duplicates
+            processedIndices.Add(index);
+            
+            var fromValue = fromMatch.Groups[2].Success ? fromMatch.Groups[2].Value : fromMatch.Groups[3].Value;
             var toValue = transToMatches[i].Groups[1].Success ? transToMatches[i].Groups[1].Value : transToMatches[i].Groups[2].Value;
             char symbol = '\0';
             if (i < transSymbolMatches.Count)

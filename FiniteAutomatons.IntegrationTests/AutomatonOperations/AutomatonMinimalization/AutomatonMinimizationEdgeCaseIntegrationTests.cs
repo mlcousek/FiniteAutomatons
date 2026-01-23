@@ -1,5 +1,4 @@
 using FiniteAutomatons.Core.Models.ViewModel;
-using FiniteAutomatons.IntegrationTests.AutomatonOperations.AutomatonGeneration;
 using Shouldly;
 using System.Net;
 using System.Text.RegularExpressions;

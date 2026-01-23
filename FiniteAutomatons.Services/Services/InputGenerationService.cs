@@ -309,7 +309,7 @@ public class InputGenerationService(ILogger<InputGenerationService> logger) : II
         var cases = new List<(string, string)>
         {
             // Case 1: Empty string
-            (string.Empty, "Empty string (?)")
+            (string.Empty, "Empty string (ε)")
         };
 
         if (automaton.Alphabet == null || automaton.Alphabet.Count == 0)
@@ -368,13 +368,13 @@ public class InputGenerationService(ILogger<InputGenerationService> logger) : II
             }
         }
 
-        // Case 9: Epsilon case (for ?-NFAs)
+        // Case 9: Epsilon case (for ε-NFAs)
         if (automaton.Type == AutomatonType.EpsilonNFA)
         {
             var epsilonCase = GenerateEpsilonCase(automaton, maxLength);
             if (epsilonCase != null)
             {
-                cases.Add((epsilonCase, "Tests ?-transitions"));
+                cases.Add((epsilonCase, "Tests ε-transitions"));
             }
         }
 
@@ -448,7 +448,7 @@ public class InputGenerationService(ILogger<InputGenerationService> logger) : II
 
         if (pathToEpsilonSource != null)
         {
-            logger.LogInformation("Generated epsilon case: '{String}' (uses ?-transitions)", pathToEpsilonSource);
+            logger.LogInformation("Generated epsilon case: '{String}' (uses ε-transitions)", pathToEpsilonSource);
             return pathToEpsilonSource;
         }
 
@@ -488,7 +488,7 @@ public class InputGenerationService(ILogger<InputGenerationService> logger) : II
         return false;
     }
 
-    private string? FindPathToState(AutomatonViewModel automaton, int targetStateId, int maxLength)
+    private static string? FindPathToState(AutomatonViewModel automaton, int targetStateId, int maxLength)
     {
         if (automaton.States == null || automaton.Transitions == null)
             return null;

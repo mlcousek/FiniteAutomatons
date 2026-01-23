@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.ViewModel;
+﻿using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Interfaces;
 
 namespace FiniteAutomatons.UnitTests.Controllers;
@@ -11,7 +11,7 @@ public class MockAutomatonValidationService : IAutomatonValidationService
         {
             return (true, []);
         }
-        
+
         return (false, ["Mock validation failed"]);
     }
 
@@ -21,22 +21,22 @@ public class MockAutomatonValidationService : IAutomatonValidationService
         {
             return (false, $"State with ID {stateId} already exists.");
         }
-        
+
         return (true, null);
     }
 
     public (bool IsValid, char ProcessedSymbol, string? ErrorMessage) ValidateTransitionAddition(AutomatonViewModel model, int fromStateId, int toStateId, string symbol)
     {
-        if (string.IsNullOrEmpty(symbol) || symbol == "?")
+        if (string.IsNullOrEmpty(symbol) || symbol == "ε")
         {
-            return (true, '\0', null); 
+            return (true, '\0', null);
         }
-        
+
         if (symbol.Length == 1)
         {
             return (true, symbol[0], null);
         }
-        
+
         return (false, '\0', "Invalid symbol");
     }
 }

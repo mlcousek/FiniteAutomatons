@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.Database;
+﻿using FiniteAutomatons.Core.Models.Database;
 using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Data;
 using FiniteAutomatons.Filters;
@@ -18,7 +18,6 @@ public partial class Program
 {
     public static async Task Main(string[] args)
     {
-        // Set console encoding to UTF-8 to properly display Unicode characters like ?
         Console.OutputEncoding = Encoding.UTF8;
         Console.InputEncoding = Encoding.UTF8;
 
@@ -277,7 +276,7 @@ public partial class Program
                     var payload = new
                     {
                         States = enfa.States.Select(s => new { s.Id, s.IsStart, s.IsAccepting }),
-                        Transitions = enfa.Transitions.Select(t => new { t.FromStateId, t.ToStateId, Symbol = t.Symbol == '\0' ? "?" : t.Symbol.ToString() })
+                        Transitions = enfa.Transitions.Select(t => new { t.FromStateId, t.ToStateId, Symbol = t.Symbol == '\0' ? "ε" : t.Symbol.ToString() })
                     };
                     return Results.Json(payload);
                 }
