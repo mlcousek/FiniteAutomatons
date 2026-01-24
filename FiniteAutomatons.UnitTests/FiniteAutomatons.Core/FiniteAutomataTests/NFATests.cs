@@ -312,12 +312,28 @@ public class NFATests
 
         var execState = nfa.StartExecution("");
 
+        // For empty input, if start state is accepting we consider execution finished and accepted
         execState.CurrentStates.ShouldNotBeNull();
         execState.CurrentStates.ShouldContain(1);
         execState.Input.ShouldBe("");
         execState.Position.ShouldBe(0);
-        execState.IsAccepted.ShouldBeNull();
+        execState.IsAccepted.ShouldBe(true);
         execState.IsFinished.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Execute_StartStateAccepting_EmptyInput_ShouldReturnTrue_NFA()
+    {
+        // Arrange
+        var nfa = new NFABuilder()
+            .WithState(1, isStart: true, isAccepting: true)
+            .Build();
+
+        // Act
+        var result = nfa.Execute("");
+
+        // Assert
+        result.ShouldBeTrue();
     }
 
     [Fact]

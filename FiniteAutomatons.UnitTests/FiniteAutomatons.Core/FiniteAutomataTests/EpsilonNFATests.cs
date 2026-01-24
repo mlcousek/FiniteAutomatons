@@ -232,6 +232,23 @@ public class EpsilonNFATests
     }
 
     [Fact]
+    public void StartExecution_EmptyInput_StartAccepting_SetsIsAcceptedTrue_EpsilonNFA()
+    {
+        var enfa = new EpsilonNFABuilder()
+            .WithState(1, isStart: true, isAccepting: true)
+            .Build();
+
+        var state = enfa.StartExecution("");
+        enfa.ExecuteAll(state);
+
+        state.CurrentStates.ShouldNotBeNull();
+        state.CurrentStates.ShouldContain(1);
+        state.Position.ShouldBe(0);
+        state.IsAccepted.ShouldBe(true);
+        state.IsFinished.ShouldBeTrue();
+    }
+
+    [Fact]
     public void ExecuteAll_ProcessesEntireInputAndSetsIsAccepted()
     {
         var enfa = new EpsilonNFABuilder()
@@ -439,23 +456,6 @@ public class EpsilonNFATests
             .Build();
 
         Should.Throw<InvalidOperationException>(() => enfa.StartExecution("a"));
-    }
-
-    [Fact]
-    public void StartExecution_WithEmptyInput_ShouldInitializeStateCorrectly()
-    {
-        var enfa = new EpsilonNFABuilder()
-            .WithState(1, isStart: true, isAccepting: true)
-            .Build();
-
-        var execState = enfa.StartExecution("");
-
-        execState.CurrentStates.ShouldNotBeNull();
-        execState.CurrentStates.ShouldContain(1);
-        execState.Input.ShouldBe("");
-        execState.Position.ShouldBe(0);
-        execState.IsAccepted.ShouldBeNull();
-        execState.IsFinished.ShouldBeTrue();
     }
 
     [Fact]

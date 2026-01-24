@@ -96,7 +96,15 @@ public abstract class Automaton : IAutomaton
 
     public virtual AutomatonExecutionState StartExecution(string input)
     {
-        return new AutomatonExecutionState(input, ValidateStartState());
+        var state = new AutomatonExecutionState(input, ValidateStartState());
+
+        // If input is empty, decide acceptance immediately based on start state
+        if (string.IsNullOrEmpty(input))
+        {
+            state.IsAccepted = state.CurrentStateId != null && States.Any(s => s.Id == state.CurrentStateId && s.IsAccepting);
+        }
+
+        return state;
     }
 
     public abstract void StepForward(AutomatonExecutionState state);

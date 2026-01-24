@@ -336,8 +336,25 @@ public class DFATests  //TODO implement this builder to other tests
         execState.CurrentStateId.ShouldBe(1);
         execState.Input.ShouldBe("");
         execState.Position.ShouldBe(0);
-        execState.IsAccepted.ShouldBeNull();
+        // Starting execution on empty input should immediately reflect acceptance if start state is accepting
+        execState.IsAccepted.ShouldBe(true);
         execState.IsFinished.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void StartExecution_EmptyInput_StartAccepting_SetsIsAcceptedTrue()
+    {
+        // Arrange
+        var dfa = new DFABuilder()
+            .WithState(1, isStart: true, isAccepting: true)
+            .Build();
+
+        // Act
+        var execState = dfa.StartExecution("");
+
+        // Assert
+        execState.IsFinished.ShouldBeTrue();
+        execState.IsAccepted.ShouldBe(true);
     }
 
     [Fact]
