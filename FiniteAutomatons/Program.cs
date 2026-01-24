@@ -2,6 +2,7 @@
 using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Data;
 using FiniteAutomatons.Filters;
+using FiniteAutomatons.Middleware;
 using FiniteAutomatons.Observability;
 using FiniteAutomatons.Services.Interfaces;
 using FiniteAutomatons.Services.Observability;
@@ -247,6 +248,9 @@ public partial class Program
 
         app.UseHttpsRedirection();
         app.UseRouting();
+
+        // Normalize incoming epsilon-like values (replacement char) to internal representation
+        app.UseMiddleware<EpsilonNormalizationMiddleware>();
 
         // Ensure authentication middleware is registered so [Authorize] works correctly
         app.UseAuthentication();

@@ -431,7 +431,7 @@ public class InputGenerationService(ILogger<InputGenerationService> logger) : II
         if (automaton.Transitions == null)
             return null;
 
-        // Find epsilon transitions
+        // Find epsilon transitions (targets we want to reach)
         var epsilonTransitions = automaton.Transitions
             .Where(t => t.Symbol == '\0')
             .ToList();
@@ -442,17 +442,81 @@ public class InputGenerationService(ILogger<InputGenerationService> logger) : II
             return null;
         }
 
-        // Find a path that uses epsilon transitions
-        var epsilonTrans = epsilonTransitions.First();
-        var pathToEpsilonSource = FindPathToState(automaton, epsilonTrans.FromStateId, maxLength);
+        // Try to generate a random path that reaches the source of an epsilon transition.
+        // If that fails, fall back to first-found deterministic path. If that also fails, return null.
+        var random = new Random();
+        var transitionsByState = automaton.Transitions.GroupBy(t => t.FromStateId).ToDictionary(g => g.Key, g => g.ToList());
 
-        if (pathToEpsilonSource != null)
+        // Shuffle epsilon transitions to randomize which epsilon we attempt first
+        var epsList = epsilonTransitions.OrderBy(_ => random.Next()).ToList();
+
+        const int attemptsPerEpsilon = 30;
+        foreach (var eps in epsList)
         {
-            logger.LogInformation("Generated epsilon case: '{String}' (uses ε-transitions)", pathToEpsilonSource);
-            return pathToEpsilonSource;
+            for (int attempt = 0; attempt < attemptsPerEpsilon; attempt++)
+            {
+                var candidate = TryRandomWalkToState(automaton.States?.FirstOrDefault(s => s.IsStart)?.Id ?? -1, eps.FromStateId, transitionsByState, maxLength, random);
+                if (candidate != null)
+                {
+                    logger.LogInformation("Generated random epsilon case on attempt {Attempt}: '{String}' (reaches state {State})", attempt + 1, candidate, eps.FromStateId);
+                    return candidate;
+                }
+            }
+        }
+
+        // Fallback: return the first deterministic path to any epsilon source
+        var firstEps = epsilonTransitions.First();
+        var fallback = FindPathToState(automaton, firstEps.FromStateId, maxLength);
+        if (fallback != null)
+        {
+            logger.LogInformation("Falling back to deterministic epsilon case: '{String}'", fallback);
+            return fallback;
         }
 
         logger.LogInformation("Could not generate epsilon case");
+        return null;
+    }
+
+    private static string? TryRandomWalkToState(int startStateId, int targetStateId, Dictionary<int, List<Transition>> transitionsByState, int maxLength, Random random)
+    {
+        if (startStateId < 0) return null;
+        var currentState = startStateId;
+        var path = new List<char>();
+        var visited = new HashSet<(int stateId, int pathLength)>();
+        var stepsWithoutProgress = 0;
+        const int maxStepsWithoutProgress = 40;
+
+        // Try up to maxLength steps (randomly choosing transitions)
+        while (path.Count <= maxLength)
+        {
+            var stateKey = (currentState, path.Count);
+            if (!visited.Add(stateKey))
+            {
+                stepsWithoutProgress++;
+                if (stepsWithoutProgress > maxStepsWithoutProgress)
+                    return null;
+            }
+            else
+            {
+                stepsWithoutProgress = 0;
+            }
+
+            if (currentState == targetStateId)
+            {
+                return new string([.. path]);
+            }
+
+            if (!transitionsByState.TryGetValue(currentState, out var transitions) || transitions.Count == 0)
+            {
+                return null; // stuck
+            }
+
+            // Randomly select a transition
+            var selected = transitions[random.Next(transitions.Count)];
+            if (selected.Symbol != '\0') path.Add(selected.Symbol);
+            currentState = selected.ToStateId;
+        }
+
         return null;
     }
 
