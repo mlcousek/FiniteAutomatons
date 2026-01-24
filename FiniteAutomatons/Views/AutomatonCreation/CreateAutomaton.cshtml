@@ -135,7 +135,7 @@
                     <button type="submit" class="control-btn type-btn @(Model?.Type == AutomatonType.NFA ? "active" : "")" 
                             onclick="document.getElementById('typeField').value='1'; return true;">NFA</button>
                     <button type="submit" class="control-btn type-btn @(Model?.Type == AutomatonType.EpsilonNFA ? "active" : "")" 
-                            onclick="document.getElementById('typeField').value='2'; return true;">?-NFA</button>
+                            onclick="document.getElementById('typeField').value='2'; return true;">ε-NFA</button>
                     <button type="submit" class="control-btn type-btn @(Model?.Type == AutomatonType.PDA ? "active" : "")" 
                             onclick="document.getElementById('typeField').value='3'; return true;">PDA</button>
                 </div>
@@ -240,8 +240,16 @@
     <div class="control-sections">
         <!-- Add Transition Section -->
         <div class="control-section" style="grid-column: span 2;">
-            <div class="section-header-custom">
-                <h2>ADD TRANSITION</h2>
+            <div class="section-header-custom" style="position:relative; padding-right:2.5rem;">
+                <div class="epsilon-info" style="position:absolute; left:0; top:50%; transform:translateY(-50%); display:none;">
+                    <span class="info-btn" aria-label="Epsilon info" title="Alt+E: insert ε" style="display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; font-size:1.15rem; color:var(--bs-body-color); background:transparent; border:none; box-shadow:none; cursor:pointer; padding-left:1rem;">
+                        <i class="fas fa-info-circle" aria-hidden="true" style="font-size:1.25rem"></i>
+                    </span>
+                    <div class="info-tooltip" style="display:none; position:absolute; left:calc(100% + 8px); top:50%; transform:translateY(-50%); background:#222; color:#fff; padding:6px 8px; border-radius:4px; white-space:nowrap; font-size:0.85rem;">
+                        Alt+E inserts 'ε' when ε-NFA selected
+                    </div>
+                </div>
+                <h2 style="margin:0; text-align:center;">ADD TRANSITION</h2>
             </div>
             <form asp-controller="AutomatonCreation" asp-action="AddTransition" method="post" style="padding:1rem;">
                 @Html.HiddenFor(m => m.Type)
@@ -276,7 +284,10 @@
                         </div>
                         <div style="display:flex; flex-direction:column; gap:0.25rem;">
                             <label style="font-weight:600;">Symbol:</label>
-                            <input type="text" name="symbol" class="control-btn" style="padding:0.5rem 0.75rem;" required maxlength="1" placeholder="a or ?" />
+                                <div style="display:flex; gap:0.5rem; align-items:center;">
+                                <input type="text" name="symbol" class="control-btn" style="padding:0.5rem 0.75rem;" required maxlength="1" placeholder="a or ε" />
+                                <button type="button" class="epsilon-btn control-btn" style="min-width:3.25rem; padding:0.4rem; display:none;" title="Insert ε">ε</button>
+                            </div>
                         </div>
                         <div style="display:flex; flex-direction:column; gap:0.25rem;">
                             <label style="font-weight:600;">To State:</label>
@@ -303,8 +314,16 @@
 
         <!-- Remove Transition Section -->
         <div class="control-section" style="grid-column: span 2;">
-            <div class="section-header-custom">
-                <h2>REMOVE TRANSITION</h2>
+            <div class="section-header-custom" style="position:relative; padding-right:2.5rem;">
+                <div class="epsilon-info" style="position:absolute; left:0; top:50%; transform:translateY(-50%); display:none;">
+                    <span class="info-btn" aria-label="Epsilon info" title="Alt+E: insert ε" style="display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; font-size:1.15rem; color:var(--bs-body-color); background:transparent; border:none; box-shadow:none; cursor:pointer; padding-left:1rem;">
+                        <i class="fas fa-info-circle" aria-hidden="true" style="font-size:1.25rem"></i>
+                    </span>
+                    <div class="info-tooltip" style="display:none; position:absolute; left:calc(100% + 8px); top:50%; transform:translateY(-50%); background:#222; color:#fff; padding:6px 8px; border-radius:4px; white-space:nowrap; font-size:0.85rem;">
+                        Alt+E inserts 'ε' when ε-NFA selected
+                    </div>
+                </div>
+                <h2 style="margin:0; text-align:center;">REMOVE TRANSITION</h2>
             </div>
             <form asp-controller="AutomatonCreation" asp-action="RemoveTransition" method="post" style="padding:1rem;">
                 @Html.HiddenFor(m => m.Type)
@@ -339,7 +358,10 @@
                         </div>
                         <div style="display:flex; flex-direction:column; gap:0.25rem;">
                             <label style="font-weight:600;">Symbol:</label>
-                            <input type="text" name="symbol" class="control-btn" style="padding:0.5rem 0.75rem;" required maxlength="1" placeholder="a or ε" />
+                                <div style="display:flex; gap:0.5rem; align-items:center;">
+                                <input type="text" name="symbol" class="control-btn" style="padding:0.5rem 0.75rem;" required maxlength="1" placeholder="a or ε" />
+                                <button type="button" class="epsilon-btn control-btn" style="min-width:3.25rem; padding:0.4rem; display:none;" title="Insert ε">ε</button>
+                            </div>
                         </div>
                         <div style="display:flex; flex-direction:column; gap:0.25rem;">
                             <label style="font-weight:600;">To State:</label>
@@ -401,14 +423,93 @@
 @section Scripts {
     <script src="~/js/canvas.js" asp-append-version="true"></script>
     <script>
-        // Helper for epsilon symbol input
-        document.querySelectorAll('input[name="symbol"]').forEach(input => {
-            input.addEventListener('keydown', function(e) {
-                if (e.key === 'e' && e.altKey) {
-                    e.preventDefault();
-                    this.value = 'ε';
-                }
+        // Symbol input helpers and epsilon shortcut — active only for ε-NFA (typeField === 2)
+        (function(){
+            function insertEpsilonAtCaret(input){
+                const s = input.selectionStart ?? 0;
+                const t = input.selectionEnd ?? s;
+                input.value = input.value.slice(0, s) + 'ε' + input.value.slice(t);
+                input.selectionStart = input.selectionEnd = s + 1;
+            }
+
+            function symbolKeyHandler(e){
+                // Alt+E inserts epsilon only when epsilon NFA is selected
+                if (!e.altKey) return;
+                const key = (e.key || '').toLowerCase?.() || '';
+                if (key !== 'e') return;
+                const typeField = document.getElementById('typeField');
+                const typeVal = typeField ? parseInt(typeField.value || '0', 10) : 0;
+                if (typeVal !== 2) return; // only for ε-NFA
+                if (!(e.target && e.target.tagName && e.target.tagName.toLowerCase() === 'input')) return;
+                e.preventDefault();
+                insertEpsilonAtCaret(e.target);
+            }
+
+            function attachSymbolKeyHandlers(){
+                document.querySelectorAll('input[name="symbol"]').forEach(input => {
+                    input.removeEventListener('keydown', symbolKeyHandler);
+                    input.addEventListener('keydown', symbolKeyHandler);
+                });
+            }
+
+            function updateSymbolPlaceholders() {
+                const typeField = document.getElementById('typeField');
+                const typeVal = typeField ? parseInt(typeField.value || '0', 10) : 0;
+                const placeholder = (typeVal === 2) ? 'a or ε' : 'a';
+                document.querySelectorAll('input[name="symbol"]').forEach(i => i.setAttribute('placeholder', placeholder));
+                // Show epsilon insert button and hint only for EpsilonNFA
+                document.querySelectorAll('.epsilon-btn').forEach(btn => btn.style.display = (typeVal === 2) ? 'inline-flex' : 'none');
+                // Show the left-aligned info helper next to the section title when in ε-NFA
+                document.querySelectorAll('.epsilon-info').forEach(wrapper => wrapper.style.display = (typeVal === 2) ? 'inline-block' : 'none');
+            }
+
+            // Insert epsilon when epsilon button clicked
+            function attachEpsilonButtons(){
+                document.querySelectorAll('.epsilon-btn').forEach(btn => {
+                    btn.removeEventListener('click', onEpsilonClick);
+                    btn.addEventListener('click', onEpsilonClick);
+                });
+            }
+            function onEpsilonClick(e){
+                // find nearest input[name="symbol"] sibling
+                const btn = e.currentTarget;
+                const container = btn.parentElement;
+                if (!container) return;
+                const input = container.querySelector('input[name="symbol"]');
+                if (!input) return;
+                insertEpsilonAtCaret(input);
+                input.focus();
+            }
+
+            // Initialize on load
+            document.addEventListener('DOMContentLoaded', () => {
+                updateSymbolPlaceholders();
+                attachEpsilonButtons();
+                attachSymbolKeyHandlers();
+                // Update placeholders when type buttons are clicked (client-side feedback)
+                document.querySelectorAll('.type-btn').forEach(b => b.addEventListener('click', () => setTimeout(updateSymbolPlaceholders, 0)));
+                // Tooltip behavior for info buttons
+                document.querySelectorAll('.epsilon-info').forEach(wrapper => {
+                    const btn = wrapper.querySelector('.info-btn');
+                    const tip = wrapper.querySelector('.info-tooltip');
+                    if (!btn || !tip) return;
+                    wrapper.addEventListener('mouseenter', () => { tip.style.display = 'block'; });
+                    wrapper.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
+                    // Also click focuses the nearest symbol input (convenience)
+                    btn.addEventListener('click', () => {
+                        const formSection = wrapper.closest('.control-section');
+                        if (!formSection) return;
+                        const input = formSection.querySelector('input[name="symbol"]');
+                        if (input) input.focus();
+                    });
+                });
+                // Update placeholders when type buttons are clicked (client-side feedback)
+                document.querySelectorAll('.type-btn').forEach(b => b.addEventListener('click', () => setTimeout(updateSymbolPlaceholders, 0)));
             });
-        });
+
+            // If the hidden type field is changed via script, update placeholders
+            const tf = document.getElementById('typeField');
+            if (tf) tf.addEventListener('change', () => { updateSymbolPlaceholders(); });
+        })();
     </script>
 }
