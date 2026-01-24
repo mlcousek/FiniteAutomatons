@@ -602,6 +602,101 @@ public class InputGenerationServiceTests
     }
 
     [Fact]
+    public void GenerateEpsilonCase_PathLeadsToEpsilonSource()
+    {
+        // Arrange
+        var automaton = CreateEpsilonNfa();
+
+        // Act
+        var result = service.GenerateEpsilonCase(automaton, 15);
+
+        // Assert
+        result.ShouldNotBeNull();
+
+        // Simulate walking the returned path (epsilon transitions are not represented in the string)
+        var current = automaton.States!.First(s => s.IsStart).Id;
+        foreach (var ch in result!)
+        {
+            var trans = automaton.Transitions!.FirstOrDefault(t => t.FromStateId == current && t.Symbol == ch);
+            trans.ShouldNotBeNull($"No transition for symbol '{ch}' from state {current}");
+            current = trans!.ToStateId;
+        }
+
+        // After consuming the string, the current state should have an outgoing epsilon transition
+        automaton.Transitions!.Any(t => t.FromStateId == current && t.Symbol == '\0').ShouldBeTrue();
+    }
+
+    [Fact]
+    public void GenerateEpsilonCase_UnreachableEpsilon_ReturnsNull()
+    {
+        // Arrange - epsilon transition exists but is unreachable from start
+        var automaton = new AutomatonViewModel
+        {
+            Type = AutomatonType.EpsilonNFA,
+            States =
+            [
+                new State { Id = 0, IsStart = true, IsAccepting = false },
+                new State { Id = 1, IsStart = false, IsAccepting = false },
+                new State { Id = 2, IsStart = false, IsAccepting = true },
+                new State { Id = 3, IsStart = false, IsAccepting = false }
+            ],
+            Transitions =
+            [
+                new Transition { FromStateId = 2, ToStateId = 3, Symbol = '\0' } // unreachable epsilon
+            ]
+        };
+
+        // Act
+        var result = service.GenerateEpsilonCase(automaton, 15);
+
+        // Assert
+        result.ShouldBeNull();
+    }
+
+    [Fact]
+    public void GenerateEpsilonCase_MultipleEpsilons_ReturnsPathToOneOfThem()
+    {
+        // Arrange - two epsilon sources reachable via different symbols
+        var automaton = new AutomatonViewModel
+        {
+            Type = AutomatonType.EpsilonNFA,
+            States =
+            [
+                new State { Id = 0, IsStart = true, IsAccepting = false },
+                new State { Id = 1, IsStart = false, IsAccepting = false },
+                new State { Id = 2, IsStart = false, IsAccepting = true },
+                new State { Id = 3, IsStart = false, IsAccepting = false },
+                new State { Id = 4, IsStart = false, IsAccepting = true }
+            ],
+            Transitions =
+            [
+                new Transition { FromStateId = 0, ToStateId = 1, Symbol = 'a' },
+                new Transition { FromStateId = 1, ToStateId = 2, Symbol = '\0' }, // epsilon at state 1
+                new Transition { FromStateId = 0, ToStateId = 3, Symbol = 'b' },
+                new Transition { FromStateId = 3, ToStateId = 4, Symbol = '\0' }  // epsilon at state 3
+            ]
+        };
+
+        // Act
+        var result = service.GenerateEpsilonCase(automaton, 15);
+
+        // Assert
+        result.ShouldNotBeNull();
+
+        // Determine which state the path leads to
+        var current = automaton.States!.First(s => s.IsStart).Id;
+        foreach (var ch in result!)
+        {
+            var trans = automaton.Transitions!.FirstOrDefault(t => t.FromStateId == current && t.Symbol == ch);
+            trans.ShouldNotBeNull($"No transition for symbol '{ch}' from state {current}");
+            current = trans!.ToStateId;
+        }
+
+        // The resulting state should be either 1 or 3 (sources of epsilon)
+        (current == 1 || current == 3).ShouldBeTrue($"Path ended at state {current}, expected 1 or 3");
+    }
+
+    [Fact]
     public void GenerateEpsilonCase_WithNoEpsilonTransitions_ReturnsNull()
     {
         // Arrange
