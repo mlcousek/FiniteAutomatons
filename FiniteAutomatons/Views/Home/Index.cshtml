@@ -850,6 +850,104 @@
 
         <div class="control-section">
             <div class="section-header-custom">
+                <h2 style="margin:0;">EXPORT</h2>
+            </div>
+            <div class="control-content-left" style="text-align:center; margin-bottom:0.5rem; display:flex; gap:0.5rem; flex-wrap:wrap;">
+                @{ 
+                    // Helper to render the automaton fields into arbitrary forms
+                    void RenderAutomatonHiddenFieldsForForm()
+                    {
+                        if (Model != null)
+                        {
+                            <input type="hidden" name="Type" value="@Model.Type" />
+                            <input type="hidden" name="Input" value="@Model.Input" />
+                            <input type="hidden" name="HasExecuted" value="@Model.HasExecuted.ToString().ToLowerInvariant()" />
+                            <input type="hidden" name="Position" value="@Model.Position" />
+                            <input type="hidden" name="CurrentStateId" value="@(Model.CurrentStateId.HasValue ? Model.CurrentStateId.ToString() : "")" />
+                            <input type="hidden" name="IsAccepted" value="@(Model.IsAccepted.HasValue ? Model.IsAccepted.Value.ToString().ToLowerInvariant() : "")" />
+                            <input type="hidden" name="StateHistorySerialized" value="@Model.StateHistorySerialized" />
+                            <input type="hidden" name="StackSerialized" value="@Model.StackSerialized" />
+                            <input type="hidden" name="IsCustomAutomaton" value="@Model.IsCustomAutomaton.ToString().ToLowerInvariant()" />
+                            if (Model.States != null)
+                            {
+                                for (int i = 0; i < Model.States.Count; i++)
+                                {
+                                    <input type="hidden" name="States.Index" value="@i" />
+                                    <input type="hidden" name="States[@i].Id" value="@Model.States[i].Id" />
+                                    <input type="hidden" name="States[@i].IsStart" value="@Model.States[i].IsStart.ToString().ToLowerInvariant()" />
+                                    <input type="hidden" name="States[@i].IsAccepting" value="@Model.States[i].IsAccepting.ToString().ToLowerInvariant()" />
+                                }
+                            }
+                            if (Model.Transitions != null)
+                            {
+                                for (int i = 0; i < Model.Transitions.Count; i++)
+                                {
+                                    <input type="hidden" name="Transitions.Index" value="@i" />
+                                    <input type="hidden" name="Transitions[@i].FromStateId" value="@Model.Transitions[i].FromStateId" />
+                                    <input type="hidden" name="Transitions[@i].ToStateId" value="@Model.Transitions[i].ToStateId" />
+                                    <input type="hidden" name="Transitions[@i].Symbol" value="@Model.Transitions[i].Symbol" />
+                                    if (Model.Type == AutomatonType.PDA)
+                                    {
+                                        if (Model.Transitions[i].StackPop.HasValue)
+                                        {
+                                            <input type="hidden" name="Transitions[@i].StackPop" value="@Model.Transitions[i].StackPop" />
+                                        }
+                                        if (!string.IsNullOrEmpty(Model.Transitions[i].StackPush))
+                                        {
+                                            <input type="hidden" name="Transitions[@i].StackPush" value="@Model.Transitions[i].StackPush" />
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                <form asp-controller="ImportExport" asp-action="ExportJson" method="post" style="display:inline-block;">
+                    @{ RenderAutomatonHiddenFieldsForForm(); }
+                    <button type="submit" class="control-btn" title="Export automaton as JSON" @(Model == null ? "disabled" : "")>
+                        <i class="fas fa-file-export"></i>
+                        Export JSON
+                    </button>
+                </form>
+
+                <form asp-controller="ImportExport" asp-action="ExportText" method="post" style="display:inline-block;">
+                    @{ RenderAutomatonHiddenFieldsForForm(); }
+                    <button type="submit" class="control-btn" title="Export automaton as plain text" @(Model == null ? "disabled" : "")>
+                        <i class="fas fa-file-download"></i>
+                        Export Text
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="control-section">
+            <div class="section-header-custom">
+                <h2 style="margin:0;">IMPORT</h2>
+            </div>
+            <div class="control-content-left" style="text-align:center; margin-bottom:0.5rem;">
+                <form id="importForm" asp-controller="ImportExport" asp-action="ImportAutomaton" method="post" enctype="multipart/form-data" style="display:inline-block;">
+                    <div class="form-row" style="display:flex; gap:0.5rem; align-items:center;">
+                        <div class="form-group">
+                            <input type="file" name="upload" accept=".json,.txt" class="modern-input" />
+                        </div>
+                        <div class="form-group">
+                            <button type="submit" class="control-btn">
+                                <i class="fas fa-file-import"></i>
+                                Import Automaton
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="control-section">
+            <div class="section-header-custom">
+                <h2>PLACEHOLDER</h2>
+            </div>
+        </div>
+        <div class="control-section">
+            <div class="section-header-custom">
                 <h2>PLACEHOLDER</h2>
             </div>
         </div>
@@ -864,7 +962,6 @@
                 <h2>PLACEHOLDER</h2>
             </div>
         </div>
-
     </div>
 </div>
 

@@ -114,4 +114,17 @@ document.addEventListener('DOMContentLoaded', function(){
             });
         }
     }catch(e){ console.warn('panel drag init failed', e); }
+
+    // Enable import button only when file selected
+    try {
+        const importForm = document.getElementById('importForm');
+        if (importForm) {
+            const fileInput = importForm.querySelector('input[type="file"][name="upload"]');
+            const submitBtn = importForm.querySelector('button[type="submit"]');
+            if (fileInput && submitBtn) {
+                submitBtn.disabled = true;
+                fileInput.addEventListener('change', function(){ submitBtn.disabled = !fileInput.files || fileInput.files.length === 0; });
+            }
+        }
+    } catch(e) { }
 });
