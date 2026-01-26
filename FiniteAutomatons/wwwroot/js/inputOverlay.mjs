@@ -16,6 +16,16 @@ export function init() {
     } else {
         createOverlay();
     }
+
+    // Dynamic padding for inputField
+    const input = document.getElementById('inputField');
+    if (input) {
+        function updatePadding() {
+            input.style.padding = input.value.length > 0 ? '0.75rem 7rem' : '0.75rem 1.25rem';
+        }
+        input.addEventListener('input', updatePadding);
+        updatePadding();
+    }
 }
 
 function createOverlay() {

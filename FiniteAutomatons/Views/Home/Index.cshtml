@@ -332,7 +332,9 @@
                     <input type="text" class="input-field" name="Input" id="inputField"
                        placeholder="Enter input string..."
                        value="@(Model != null ? Model.Input : "")"
-                       @(Model != null && Model.HasExecuted ? "readonly" : "") />
+                       @(Model != null && Model.HasExecuted ? "readonly" : "") 
+                       style="padding: 0.75rem 7rem;"
+                       maxlength="100" />
                 </div>
             </div>
 
