@@ -168,6 +168,26 @@ export function render(position) {
     const scroll = inputEl.scrollLeft;
     inner.style.transform = `translateY(-50%) translateX(${-scroll}px)`;
 
+    // Auto-scroll to make the current character visible unless user is dragging
+    const currentSpan = inner.querySelector('.input-overlay-char.current');
+    if (currentSpan && !isDragging) {
+        const clientWidth = inputEl.clientWidth;
+        const scrollWidth = inputEl.scrollWidth;
+        // Position of the character within the overlay inner
+        const charLeft = currentSpan.offsetLeft;
+        const charWidth = currentSpan.offsetWidth || 1;
+        // Desired scroll so the character is centered (if possible)
+        let targetScroll = Math.round(charLeft - (clientWidth / 2) + (charWidth / 2));
+        targetScroll = Math.max(0, Math.min(scrollWidth - clientWidth, targetScroll));
+        try {
+            // Smooth scroll when supported
+            inputEl.scrollTo({ left: targetScroll, behavior: 'smooth' });
+        } catch (e) {
+            inputEl.scrollLeft = targetScroll;
+        }
+        inner.style.transform = `translateY(-50%) translateX(${-inputEl.scrollLeft}px)`;
+    }
+
     updateScrollbar();
 }
 
