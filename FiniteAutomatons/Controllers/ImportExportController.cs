@@ -33,25 +33,11 @@ public class ImportExportController(IAutomatonFileService fileService) : Control
     public async Task<IActionResult> ImportAutomaton(IFormFile upload)
     {
         if (upload == null)
-        {
-            return BadRequest("No file uploaded");
-        }
-        var (ok, model, error) = await fileService.LoadFromFileAsync(upload);
-        if (!ok || model == null)
-        {
-            return BadRequest(error ?? "Failed to load automaton");
-        }
-        // store in temp data handled by caller (AutomatonController) - redirect to Home is fine
-        TempData["CustomAutomaton"] = System.Text.Json.JsonSerializer.Serialize(model);
-        return RedirectToAction("Index", "Home");
-    }
-
-    [HttpPost]
-    public async Task<IActionResult> ImportAutomatonWithState(IFormFile upload)
-    {
-        if (upload == null)
             return BadRequest("No file uploaded");
 
+        // Single entry point: try to load a full view-model (with execution state) first,
+        // fallback to domain-only parsing inside the service. The service encapsulates
+        // detection and parsing logic so the controller remains thin.
         var (ok, model, error) = await fileService.LoadViewModelWithStateAsync(upload);
         if (!ok || model == null)
             return BadRequest(error ?? "Failed to load automaton");

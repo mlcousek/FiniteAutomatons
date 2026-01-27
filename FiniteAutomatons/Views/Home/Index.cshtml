@@ -903,28 +903,41 @@
                     }
                 }
 
-                <form asp-controller="ImportExport" asp-action="ExportJson" method="post" style="display:inline-block;">
-                    @{ RenderAutomatonHiddenFieldsForForm(); }
-                    <button type="submit" class="control-btn" title="Export automaton as JSON" @(Model == null ? "disabled" : "")>
+                <div class="btn-group">
+                    <button type="button" class="control-btn dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" @(Model == null ? "disabled" : "")>
                         <i class="fas fa-file-export"></i>
-                        Export JSON
+                        Export
                     </button>
-                </form>
-
-                <form asp-controller="ImportExport" asp-action="ExportText" method="post" style="display:inline-block;">
-                    @{ RenderAutomatonHiddenFieldsForForm(); }
-                    <button type="submit" class="control-btn" title="Export automaton as plain text" @(Model == null ? "disabled" : "")>
-                        <i class="fas fa-file-download"></i>
-                        Export Text
-                    </button>
-                </form>
-                <form asp-controller="ImportExport" asp-action="ExportJsonWithState" method="post" style="display:inline-block;">
-                    @{ RenderAutomatonHiddenFieldsForForm(); }
-                    <button type="submit" class="control-btn" title="Export automaton including execution state" @(Model == null ? "disabled" : "")>
-                        <i class="fas fa-file-archive"></i>
-                        Export With State
-                    </button>
-                </form>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <form asp-controller="ImportExport" asp-action="ExportJson" method="post" class="m-0 p-0">
+                                @{ RenderAutomatonHiddenFieldsForForm(); }
+                                <button type="submit" class="dropdown-item" @(Model == null ? "disabled" : "")>
+                                    <i class="fas fa-file-export"></i>
+                                    Export JSON
+                                </button>
+                            </form>
+                        </li>
+                        <li>
+                            <form asp-controller="ImportExport" asp-action="ExportText" method="post" class="m-0 p-0">
+                                @{ RenderAutomatonHiddenFieldsForForm(); }
+                                <button type="submit" class="dropdown-item" @(Model == null ? "disabled" : "")>
+                                    <i class="fas fa-file-download"></i>
+                                    Export Text
+                                </button>
+                            </form>
+                        </li>
+                        <li>
+                            <form asp-controller="ImportExport" asp-action="ExportJsonWithState" method="post" class="m-0 p-0">
+                                @{ RenderAutomatonHiddenFieldsForForm(); }
+                                <button type="submit" class="dropdown-item" @(Model == null ? "disabled" : "")>
+                                    <i class="fas fa-file-archive"></i>
+                                    Export With State
+                                </button>
+                            </form>
+                        </li>
+                    </ul>
+                </div>
             </div>
         </div>
 
@@ -947,19 +960,6 @@
                     </div>
                 </form>
                 <div style="margin-top:0.5rem;">
-                    <form id="importStateForm" asp-controller="ImportExport" asp-action="ImportAutomatonWithState" method="post" enctype="multipart/form-data" style="display:inline-block;">
-                        <div class="form-row" style="display:flex; gap:0.5rem; align-items:center;">
-                            <div class="form-group">
-                                <input type="file" name="upload" accept=".json" class="modern-input" />
-                            </div>
-                            <div class="form-group">
-                                <button type="submit" class="control-btn">
-                                    <i class="fas fa-file-import"></i>
-                                    Import With State
-                                </button>
-                            </div>
-                        </div>
-                    </form>
                 </div>
             </div>
         </div>
