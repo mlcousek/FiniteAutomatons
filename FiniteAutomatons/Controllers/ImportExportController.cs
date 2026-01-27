@@ -16,6 +16,13 @@ public class ImportExportController(IAutomatonFileService fileService) : Control
     }
 
     [HttpPost]
+    public IActionResult ExportJsonWithState([FromForm] AutomatonViewModel model)
+    {
+        var (name, content) = fileService.ExportJsonWithState(model);
+        return File(System.Text.Encoding.UTF8.GetBytes(content), "application/json", name);
+    }
+
+    [HttpPost]
     public IActionResult ExportText([FromForm] AutomatonViewModel model)
     {
         var (name, content) = fileService.ExportText(model);
@@ -35,6 +42,20 @@ public class ImportExportController(IAutomatonFileService fileService) : Control
             return BadRequest(error ?? "Failed to load automaton");
         }
         // store in temp data handled by caller (AutomatonController) - redirect to Home is fine
+        TempData["CustomAutomaton"] = System.Text.Json.JsonSerializer.Serialize(model);
+        return RedirectToAction("Index", "Home");
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> ImportAutomatonWithState(IFormFile upload)
+    {
+        if (upload == null)
+            return BadRequest("No file uploaded");
+
+        var (ok, model, error) = await fileService.LoadViewModelWithStateAsync(upload);
+        if (!ok || model == null)
+            return BadRequest(error ?? "Failed to load automaton");
+
         TempData["CustomAutomaton"] = System.Text.Json.JsonSerializer.Serialize(model);
         return RedirectToAction("Index", "Home");
     }

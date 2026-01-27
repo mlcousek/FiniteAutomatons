@@ -323,8 +323,8 @@ public class AutomatonPresetService(
         var withEpsilon = new AutomatonViewModel
         {
             Type = AutomatonType.EpsilonNFA,
-            States = new List<State>(enfa.States),
-            Transitions = new List<Transition>(enfa.Transitions),
+            States = [.. enfa.States],
+            Transitions = [.. enfa.Transitions],
             Input = enfa.Input,
             IsCustomAutomaton = enfa.IsCustomAutomaton
         };
@@ -335,31 +335,39 @@ public class AutomatonPresetService(
             return withEpsilon;
         }
 
-        // Add 2-3 epsilon transitions between random states
-        var epsilonTransitionsToAdd = Math.Min(3, withEpsilon.States.Count);
 
-        for (int i = 0; i < epsilonTransitionsToAdd; i++)
+        // Add 2-3 epsilon transitions between random states. Use retries to avoid rare cases
+        // where random picks produce only self-loops or duplicates (causing flakiness in tests).
+        var epsilonTransitionsToAdd = Math.Min(3, withEpsilon.States.Count);
+        var added = 0;
+        var attempts = 0;
+        var maxAttempts = Math.Max(10, epsilonTransitionsToAdd * 10);
+
+        while (added < epsilonTransitionsToAdd && attempts < maxAttempts)
         {
+            attempts++;
             var fromState = withEpsilon.States[random.Next(withEpsilon.States.Count)];
             var toState = withEpsilon.States[random.Next(withEpsilon.States.Count)];
 
             // Avoid self-loops and duplicate epsilon transitions
-            if (fromState.Id != toState.Id &&
-                !withEpsilon.Transitions.Any(t => t.FromStateId == fromState.Id && t.ToStateId == toState.Id && t.Symbol == '\0'))
-            {
-                withEpsilon.Transitions.Add(new Transition
-                {
-                    FromStateId = fromState.Id,
-                    ToStateId = toState.Id,
-                    Symbol = '\0'
-                });
+            if (fromState.Id == toState.Id)
+                continue;
+            if (withEpsilon.Transitions.Any(t => t.FromStateId == fromState.Id && t.ToStateId == toState.Id && t.Symbol == '\0'))
+                continue;
 
-                logger.LogInformation("Added epsilon transition: q{From} --ε--> q{To}", fromState.Id, toState.Id);
-            }
+            withEpsilon.Transitions.Add(new Transition
+            {
+                FromStateId = fromState.Id,
+                ToStateId = toState.Id,
+                Symbol = '\0'
+            });
+
+            added++;
+            logger.LogInformation("Added epsilon transition: q{From} --ε--> q{To}", fromState.Id, toState.Id);
         }
 
-        logger.LogInformation("Successfully created ε-NFA with {EpsilonCount} epsilon transitions",
-            withEpsilon.Transitions.Count(t => t.Symbol == '\0'));
+        logger.LogInformation("Successfully created ε-NFA: attempted {Attempts}, added {Added} epsilon transitions (total now {Total})",
+            attempts, added, withEpsilon.Transitions.Count(t => t.Symbol == '\0'));
 
         return withEpsilon;
     }

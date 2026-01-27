@@ -1,12 +1,12 @@
-using System.Text; 
-using Microsoft.AspNetCore.Http; 
-using Microsoft.Extensions.Logging; 
-using FiniteAutomatons.Services.Interfaces; 
-using FiniteAutomatons.Core.Models.Serialization; 
-using FiniteAutomatons.Core.Models.ViewModel; 
-using FiniteAutomatons.Core.Models.DoMain; 
-using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons; 
-using FiniteAutomatons.Core.Utilities; 
+using FiniteAutomatons.Core.Models.DoMain;
+using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
+using FiniteAutomatons.Core.Models.Serialization;
+using FiniteAutomatons.Core.Models.ViewModel;
+using FiniteAutomatons.Core.Utilities;
+using FiniteAutomatons.Services.Interfaces;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
+using System.Text;
 
 namespace FiniteAutomatons.Services.Services;
 
@@ -28,7 +28,7 @@ public class AutomatonFileService(ILogger<AutomatonFileService> logger) : IAutom
 
         var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
         Automaton? automaton = null;
-        List<string> textErrors = [];
+        var textErrors = new List<string>();
         string? jsonError = null;
         bool ok = false;
         try
@@ -68,8 +68,8 @@ public class AutomatonFileService(ILogger<AutomatonFileService> logger) : IAutom
                 PDA => AutomatonType.PDA,
                 _ => AutomatonType.DFA
             },
-            States = automaton.States.Select(s => new State { Id = s.Id, IsStart = s.IsStart, IsAccepting = s.IsAccepting }).ToList(),
-            Transitions = automaton.Transitions.Select(t => new Transition { FromStateId = t.FromStateId, ToStateId = t.ToStateId, Symbol = t.Symbol, StackPop = t.StackPop, StackPush = t.StackPush }).ToList(),
+            States = [.. automaton.States.Select(s => new State { Id = s.Id, IsStart = s.IsStart, IsAccepting = s.IsAccepting })],
+            Transitions = [.. automaton.Transitions.Select(t => new Transition { FromStateId = t.FromStateId, ToStateId = t.ToStateId, Symbol = t.Symbol, StackPop = t.StackPop, StackPush = t.StackPush })],
             IsCustomAutomaton = true
         };
 
@@ -78,12 +78,51 @@ public class AutomatonFileService(ILogger<AutomatonFileService> logger) : IAutom
         return (true, vm, null);
     }
 
+    public async Task<(bool Ok, AutomatonViewModel? Model, string? Error)> LoadViewModelWithStateAsync(IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+            return (false, null, "Empty file.");
+
+        string content;
+        using (var ms = new MemoryStream())
+        {
+            await file.CopyToAsync(ms);
+            content = Encoding.UTF8.GetString(ms.ToArray());
+        }
+
+        try
+        {
+            var vm = System.Text.Json.JsonSerializer.Deserialize<AutomatonViewModel>(content);
+            if (vm != null)
+            {
+                vm.IsCustomAutomaton = true;
+                vm.NormalizeEpsilonTransitions();
+                return (true, vm, null);
+            }
+        }
+        catch (System.Text.Json.JsonException ex)
+        {
+            logger.LogDebug(ex, "Uploaded file is not a full viewmodel JSON, falling back to domain parser.");
+        }
+
+        // Fallback to domain parsing
+        return await LoadFromFileAsync(file);
+    }
+
     public (string FileName, string Content) ExportJson(AutomatonViewModel model)
     {
         var automaton = BuildAutomaton(model);
         var json = AutomatonJsonSerializer.Serialize(automaton);
         var name = $"automaton-{DateTime.UtcNow:yyyyMMddHHmmss}.json";
         return (name, json);
+    }
+
+    public (string FileName, string Content) ExportJsonWithState(AutomatonViewModel model)
+    {
+        model = model ?? throw new ArgumentNullException(nameof(model));
+        var content = System.Text.Json.JsonSerializer.Serialize(model, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+        var name = $"automaton-withstate-{DateTime.UtcNow:yyyyMMddHHmmss}.json";
+        return (name, content);
     }
 
     public (string FileName, string Content) ExportText(AutomatonViewModel model)

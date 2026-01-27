@@ -918,6 +918,13 @@
                         Export Text
                     </button>
                 </form>
+                <form asp-controller="ImportExport" asp-action="ExportJsonWithState" method="post" style="display:inline-block;">
+                    @{ RenderAutomatonHiddenFieldsForForm(); }
+                    <button type="submit" class="control-btn" title="Export automaton including execution state" @(Model == null ? "disabled" : "")>
+                        <i class="fas fa-file-archive"></i>
+                        Export With State
+                    </button>
+                </form>
             </div>
         </div>
 
@@ -939,6 +946,21 @@
                         </div>
                     </div>
                 </form>
+                <div style="margin-top:0.5rem;">
+                    <form id="importStateForm" asp-controller="ImportExport" asp-action="ImportAutomatonWithState" method="post" enctype="multipart/form-data" style="display:inline-block;">
+                        <div class="form-row" style="display:flex; gap:0.5rem; align-items:center;">
+                            <div class="form-group">
+                                <input type="file" name="upload" accept=".json" class="modern-input" />
+                            </div>
+                            <div class="form-group">
+                                <button type="submit" class="control-btn">
+                                    <i class="fas fa-file-import"></i>
+                                    Import With State
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
         <div class="control-section">

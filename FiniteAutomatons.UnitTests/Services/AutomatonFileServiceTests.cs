@@ -1,8 +1,10 @@
+using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;
-using FiniteAutomatons.Core.Models.ViewModel;
+using System.Text;
+using System.Text.Json;
 
 namespace FiniteAutomatons.UnitTests.Services;
 
@@ -79,8 +81,8 @@ public class AutomatonFileServiceTests
         var model = new AutomatonViewModel
         {
             Type = AutomatonType.DFA,
-            States = [ new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true } ],
-            Transitions = [ new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' } ]
+            States = [new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true }],
+            Transitions = [new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' }]
         };
         var (name, content) = svc.ExportJson(model);
         name.ShouldEndWith(".json");
@@ -95,12 +97,96 @@ public class AutomatonFileServiceTests
         var model = new AutomatonViewModel
         {
             Type = AutomatonType.NFA,
-            States = [ new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true } ],
-            Transitions = [ new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' }, new() { FromStateId = 1, ToStateId = 1, Symbol = 'a' } ]
+            States = [new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true }],
+            Transitions = [new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' }, new() { FromStateId = 1, ToStateId = 1, Symbol = 'a' }]
         };
         var (name, content) = svc.ExportText(model);
         name.ShouldEndWith(".txt");
         content.ShouldContain("$states:");
         content.ShouldContain("$transitions:");
+    }
+
+    [Fact]
+    public void Export_JsonWithState_ProducesFullViewModel()
+    {
+        var svc = Create();
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.DFA,
+            States = [new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true }],
+            Transitions = [new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' }],
+            Input = "abba",
+            Position = 2,
+            HasExecuted = true,
+            CurrentStateId = 2,
+            IsCustomAutomaton = true,
+            StateHistorySerialized = "[]"
+        };
+
+        var (name, content) = svc.ExportJsonWithState(model);
+        name.ShouldEndWith(".json");
+        content.ShouldContain("\"Input\"");
+        content.ShouldContain("\"Position\"");
+        content.ShouldContain("\"StateHistorySerialized\"");
+        content.ShouldContain("abba");
+    }
+
+    [Fact]
+    public async Task Load_ViewModelWithState_FromJson_Works()
+    {
+        var svc = Create();
+        var original = new AutomatonViewModel
+        {
+            Type = AutomatonType.NFA,
+            States = [new() { Id = 1, IsStart = true, IsAccepting = false }],
+            Transitions = [new() { FromStateId = 1, ToStateId = 1, Symbol = 'a' }],
+            Input = "0101",
+            Position = 1,
+            HasExecuted = true,
+            CurrentStates = [1],
+            IsCustomAutomaton = false
+        };
+
+        var json = JsonSerializer.Serialize(original);
+        var bytes = Encoding.UTF8.GetBytes(json);
+        var file = new FormFile(new MemoryStream(bytes), 0, bytes.Length, "upload", "vm.json");
+
+        var (ok, model, error) = await svc.LoadViewModelWithStateAsync(file);
+        ok.ShouldBeTrue(error);
+        model.ShouldNotBeNull();
+        model!.Input.ShouldBe(original.Input);
+        model.Position.ShouldBe(original.Position);
+        model.IsCustomAutomaton.ShouldBeTrue(); // service ensures this flag
+    }
+
+    [Fact]
+    public async Task Load_ViewModelWithState_EmptyFile_ReturnsError()
+    {
+        var svc = Create();
+        var empty = new FormFile(new MemoryStream(), 0, 0, "upload", "empty.txt");
+        var (ok, model, error) = await svc.LoadViewModelWithStateAsync(empty);
+        ok.ShouldBeFalse();
+        model.ShouldBeNull();
+        error.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public async Task Load_ViewModelWithState_InvalidJson_FallsBackToDomainParser()
+    {
+        var svc = Create();
+        // Use a sample automaton text file (domain format) so JSON parse fails and fallback occurs
+        var file = LoadFile("AutomatonFiles/enfa-epsilon.txt");
+        var (ok, model, error) = await svc.LoadViewModelWithStateAsync(file);
+        ok.ShouldBeTrue(error);
+        model.ShouldNotBeNull();
+        model!.Type.ShouldBe(AutomatonType.EpsilonNFA);
+        model.IsCustomAutomaton.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Export_JsonWithState_Null_Throws()
+    {
+        var svc = Create();
+        Should.Throw<ArgumentNullException>(() => svc.ExportJsonWithState(null!));
     }
 }

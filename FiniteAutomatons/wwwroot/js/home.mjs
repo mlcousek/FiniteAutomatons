@@ -126,5 +126,14 @@ document.addEventListener('DOMContentLoaded', function(){
                 fileInput.addEventListener('change', function(){ submitBtn.disabled = !fileInput.files || fileInput.files.length === 0; });
             }
         }
+        const importStateForm = document.getElementById('importStateForm');
+        if (importStateForm) {
+            const fileInput = importStateForm.querySelector('input[type="file"][name="upload"]');
+            const submitBtn = importStateForm.querySelector('button[type="submit"]');
+            if (fileInput && submitBtn) {
+                submitBtn.disabled = true;
+                fileInput.addEventListener('change', function(){ submitBtn.disabled = !fileInput.files || fileInput.files.length === 0; });
+            }
+        }
     } catch(e) { }
 });
