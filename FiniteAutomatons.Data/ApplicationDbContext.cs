@@ -28,6 +28,7 @@ public class ApplicationDbContext : IdentityDbContext
     public DbSet<SavedAutomaton> SavedAutomatons { get; set; } = null!;
     public DbSet<SavedAutomatonGroup> SavedAutomatonGroups { get; set; } = null!;
     public DbSet<SavedAutomatonGroupMember> SavedAutomatonGroupMembers { get; set; } = null!;
+    public DbSet<SavedAutomatonGroupAssignment> SavedAutomatonGroupAssignments { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -36,10 +37,6 @@ public class ApplicationDbContext : IdentityDbContext
         modelBuilder.Entity<SavedAutomatonGroup>(b =>
         {
             b.HasKey(g => g.Id);
-            b.HasMany(g => g.SavedAutomatons)
-             .WithOne(a => a.Group)
-             .HasForeignKey(a => a.GroupId)
-             .OnDelete(DeleteBehavior.Cascade);
 
             b.Property(g => g.UserId).IsRequired();
             b.Property(g => g.Name).IsRequired().HasMaxLength(200);
@@ -48,6 +45,20 @@ public class ApplicationDbContext : IdentityDbContext
             b.HasMany(g => g.Members)
              .WithOne(m => m.Group)
              .HasForeignKey(m => m.GroupId)
+             .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<SavedAutomatonGroupAssignment>(b =>
+        {
+            b.HasKey(a => a.Id);
+            b.HasOne(a => a.Group)
+             .WithMany(g => g.Assignments)
+             .HasForeignKey(a => a.GroupId)
+             .OnDelete(DeleteBehavior.Cascade);
+
+            b.HasOne(a => a.Automaton)
+             .WithMany(a => a.Assignments)
+             .HasForeignKey(a => a.AutomatonId)
              .OnDelete(DeleteBehavior.Cascade);
         });
 

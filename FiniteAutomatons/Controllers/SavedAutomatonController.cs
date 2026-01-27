@@ -36,8 +36,57 @@ public class SavedAutomatonController(
         var user = await userManager.GetUserAsync(User);
         if (user == null) return Challenge();
         if (string.IsNullOrWhiteSpace(name)) return BadRequest("Name required");
-        var g = await savedAutomatonService.CreateGroupAsync(user.Id, name.Trim(), string.IsNullOrWhiteSpace(description) ? null : description.Trim());
-        return RedirectToAction("Index", new { groupId = g.Id });
+        try
+        {
+            var g = await savedAutomatonService.CreateGroupAsync(user.Id, name.Trim(), string.IsNullOrWhiteSpace(description) ? null : description.Trim());
+            TempData["CreateGroupResult"] = "Group created.";
+            TempData["CreateGroupSuccess"] = "1";
+            return RedirectToAction("Index", new { groupId = g.Id });
+        }
+        catch
+        {
+            TempData["CreateGroupResult"] = "Group was not created.";
+            TempData["CreateGroupSuccess"] = "0";
+            return RedirectToAction("Index");
+        }
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> RemoveFromGroup(int automatonId)
+    {
+        var user = await userManager.GetUserAsync(User);
+        if (user == null) return Challenge();
+        try
+        {
+            await savedAutomatonService.AssignAutomatonToGroupAsync(automatonId, user.Id, null);
+            TempData["CreateGroupResult"] = "Automaton removed from group.";
+            TempData["CreateGroupSuccess"] = "1";
+        }
+        catch
+        {
+            TempData["CreateGroupResult"] = "Automaton was not removed from group.";
+            TempData["CreateGroupSuccess"] = "0";
+        }
+        return RedirectToAction("Index");
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> DeleteGroup(int id)
+    {
+        var user = await userManager.GetUserAsync(User);
+        if (user == null) return Challenge();
+        try
+        {
+            await savedAutomatonService.DeleteGroupAsync(id, user.Id);
+            TempData["CreateGroupResult"] = "Group deleted.";
+            TempData["CreateGroupSuccess"] = "1";
+        }
+        catch
+        {
+            TempData["CreateGroupResult"] = "Group was not deleted.";
+            TempData["CreateGroupSuccess"] = "0";
+        }
+        return RedirectToAction("Index");
     }
 
     [HttpPost]
@@ -46,6 +95,26 @@ public class SavedAutomatonController(
         var user = await userManager.GetUserAsync(User);
         if (user == null) return Challenge();
         await savedAutomatonService.DeleteAsync(id, user.Id);
+        return RedirectToAction("Index");
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> AssignToGroup(int automatonId, int? groupId)
+    {
+        var user = await userManager.GetUserAsync(User);
+        if (user == null) return Challenge();
+        try
+        {
+            await savedAutomatonService.AssignAutomatonToGroupAsync(automatonId, user.Id, groupId);
+            TempData["CreateGroupResult"] = groupId.HasValue ? "Automaton added to group." : "Automaton removed from group.";
+            TempData["CreateGroupSuccess"] = "1";
+        }
+        catch
+        {
+            TempData["CreateGroupResult"] = "Automaton was not added to group.";
+            TempData["CreateGroupSuccess"] = "0";
+        }
+
         return RedirectToAction("Index");
     }
 

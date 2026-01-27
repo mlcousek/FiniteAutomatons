@@ -19,5 +19,7 @@
     <None Include="FiniteAutomatons.Controllers\AutomatonPresetController.cs" />
     <None Include="FiniteAutomatons.Controllers\ImportExportController.cs" />
     <None Include="FiniteAutomatons.Controllers\SavedAutomatonController.cs" />
+    <None Include="FiniteAutomatons.Core.Models.Database\SavedAutomaton.cs" />
+    <None Include="FiniteAutomatons.Core.Models.Database\SavedAutomatonGroup.cs" />
   </ItemGroup>
 </Project>

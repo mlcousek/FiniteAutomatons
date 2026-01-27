@@ -10,8 +10,8 @@ public class SavedAutomatonGroup
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
     public bool MembersCanShare { get; set; } = true;
-    public List<SavedAutomaton> SavedAutomatons { get; set; } = [];
-    public List<SavedAutomatonGroupMember> Members { get; set; } = [];
-    public List<SavedAutomatonGroupAssignment> Assignments { get; set; } = [];
+    public List<SavedAutomaton> SavedAutomatons { get; set; } = new();
+    // assignments for many-to-many relation (automaton can be in multiple groups)
+    public List<SavedAutomatonGroupAssignment> Assignments { get; set; } = new();
+    public List<SavedAutomatonGroupMember> Members { get; set; } = new();
 }
-

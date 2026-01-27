@@ -25,4 +25,13 @@ public interface ISavedAutomatonService
 
     // Set group's sharing policy (owner only)
     Task SetGroupSharingPolicyAsync(int groupId, bool membersCanShare);
+
+    // Assign an existing saved automaton to a group (many-to-many)
+    Task AssignAutomatonToGroupAsync(int automatonId, string userId, int? groupId);
+
+    // Remove an automaton assignment from a group
+    Task RemoveAutomatonFromGroupAsync(int automatonId, string userId, int groupId);
+
+    // Delete a group (only owner). Clears assignments on automatons then deletes the group.
+    Task DeleteGroupAsync(int groupId, string userId);
 }

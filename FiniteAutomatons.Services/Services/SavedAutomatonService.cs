@@ -76,19 +76,50 @@ public class SavedAutomatonService(ILogger<SavedAutomatonService> logger, Applic
             HasExecutionState = saveExecutionState,
             ExecutionStateJson = execJson,
             CreatedAt = DateTime.UtcNow,
-            GroupId = groupId
         };
 
         db.SavedAutomatons.Add(entity);
         await db.SaveChangesAsync();
+        // if saving into a specific group, create an assignment (many-to-many)
+        if (groupId.HasValue)
+        {
+            var exists = await db.SavedAutomatonGroupAssignments.AnyAsync(a => a.AutomatonId == entity.Id && a.GroupId == groupId.Value);
+            if (!exists)
+            {
+                db.SavedAutomatonGroupAssignments.Add(new SavedAutomatonGroupAssignment { AutomatonId = entity.Id, GroupId = groupId.Value });
+                await db.SaveChangesAsync();
+            }
+        }
         logger.LogInformation("Saved automaton {Id} for user {User} (withState={HasState})", entity.Id, userId, saveExecutionState);
         return entity;
     }
 
+    public async Task DeleteGroupAsync(int groupId, string userId)
+    {
+        var grp = await db.SavedAutomatonGroups.FirstOrDefaultAsync(g => g.Id == groupId);
+        if (grp == null) return;
+        if (grp.UserId != userId) throw new UnauthorizedAccessException("Only owner may delete the group.");
+
+        // remove assignments for this group (many-to-many)
+        var assigns = await db.SavedAutomatonGroupAssignments.Where(a => a.GroupId == groupId).ToListAsync();
+        if (assigns.Any()) db.SavedAutomatonGroupAssignments.RemoveRange(assigns);
+
+        db.SavedAutomatonGroups.Remove(grp);
+        await db.SaveChangesAsync();
+    }
+
     public async Task<List<SavedAutomaton>> ListForUserAsync(string userId, int? groupId = null)
     {
-        var q = db.SavedAutomatons.AsQueryable().Where(s => s.UserId == userId);
-        if (groupId.HasValue) q = q.Where(s => s.GroupId == groupId.Value);
+        var q = db.SavedAutomatons
+            .Include(s => s.Assignments)
+            .ThenInclude(a => a.Group)
+            .Where(s => s.UserId == userId);
+        
+        if (groupId.HasValue)
+        {
+            q = q.Where(s => s.Assignments.Any(a => a.GroupId == groupId.Value));
+        }
+        
         return await q.OrderByDescending(s => s.CreatedAt).ToListAsync();
     }
 
@@ -107,7 +138,18 @@ public class SavedAutomatonService(ILogger<SavedAutomatonService> logger, Applic
 
     public async Task<SavedAutomatonGroup> CreateGroupAsync(string userId, string name, string? description)
     {
-        var group = new SavedAutomatonGroup { UserId = userId, Name = name, Description = description };
+        ArgumentNullException.ThrowIfNull(userId);
+        ArgumentNullException.ThrowIfNull(name);
+
+        var normalized = name.Trim();
+        // load existing groups for the user and check duplicates in-memory (avoids translation issues)
+        var userGroups = await db.SavedAutomatonGroups.Where(g => g.UserId == userId).ToListAsync();
+        if (userGroups.Any(g => string.Equals(g.Name, normalized, StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new InvalidOperationException("A group with the same name already exists.");
+        }
+
+        var group = new SavedAutomatonGroup { UserId = userId, Name = normalized, Description = description };
         db.SavedAutomatonGroups.Add(group);
         await db.SaveChangesAsync();
         return group;
@@ -164,11 +206,47 @@ public class SavedAutomatonService(ILogger<SavedAutomatonService> logger, Applic
         await db.SaveChangesAsync();
     }
 
+    public async Task AssignAutomatonToGroupAsync(int automatonId, string userId, int? groupId)
+    {
+        var entity = await db.SavedAutomatons.FirstOrDefaultAsync(s => s.Id == automatonId && s.UserId == userId);
+        if (entity == null) throw new InvalidOperationException("Automaton not found or access denied.");
+        
+        if (!groupId.HasValue)
+        {
+            var assigns = await db.SavedAutomatonGroupAssignments.Where(a => a.AutomatonId == automatonId).ToListAsync();
+            if (assigns.Any())
+            {
+                db.SavedAutomatonGroupAssignments.RemoveRange(assigns);
+                await db.SaveChangesAsync();
+            }
+            return;
+        }
+
+        var grp = await db.SavedAutomatonGroups.FirstOrDefaultAsync(g => g.Id == groupId.Value);
+        if (grp == null) throw new InvalidOperationException("Group not found");
+        if (!await CanUserSaveToGroupAsync(grp.Id, userId)) throw new UnauthorizedAccessException("You are not allowed to assign to this group.");
+
+        var exists = await db.SavedAutomatonGroupAssignments.AnyAsync(a => a.AutomatonId == automatonId && a.GroupId == groupId.Value);
+        if (exists) return;
+        db.SavedAutomatonGroupAssignments.Add(new SavedAutomatonGroupAssignment { AutomatonId = automatonId, GroupId = groupId.Value });
+        await db.SaveChangesAsync();
+    }
+
+    public async Task RemoveAutomatonFromGroupAsync(int automatonId, string userId, int groupId)
+    {
+        var entity = await db.SavedAutomatons.FirstOrDefaultAsync(s => s.Id == automatonId && s.UserId == userId);
+        if (entity == null) throw new InvalidOperationException("Automaton not found or access denied.");
+        var ass = await db.SavedAutomatonGroupAssignments.FirstOrDefaultAsync(a => a.AutomatonId == automatonId && a.GroupId == groupId);
+        if (ass == null) return;
+        db.SavedAutomatonGroupAssignments.Remove(ass);
+        await db.SaveChangesAsync();
+    }
+
     private sealed class AutomatonPayloadDto
     {
         public AutomatonType Type { get; set; }
-        public List<FiniteAutomatons.Core.Models.DoMain.State>? States { get; set; }
-        public List<FiniteAutomatons.Core.Models.DoMain.Transition>? Transitions { get; set; }
+        public List<Core.Models.DoMain.State>? States { get; set; }
+        public List<Core.Models.DoMain.Transition>? Transitions { get; set; }
     }
 
     private sealed class SavedExecutionStateDto

@@ -777,7 +777,7 @@ public class AutomatonPresetServiceTests
 
         mockGeneratorService.RandomAutomatonToReturn = epsilonButDeterministic;
 
-        // Act
+        // Act 
         var result = service.GenerateEpsilonNfaNondeterministic(3, 10, 3, 0.3);
 
         // Assert

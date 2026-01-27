@@ -36,8 +36,19 @@ public class SavedAutomatonController(
         var user = await userManager.GetUserAsync(User);
         if (user == null) return Challenge();
         if (string.IsNullOrWhiteSpace(name)) return BadRequest("Name required");
-        var g = await savedAutomatonService.CreateGroupAsync(user.Id, name.Trim(), string.IsNullOrWhiteSpace(description) ? null : description.Trim());
-        return RedirectToAction("Index", new { groupId = g.Id });
+        try
+        {
+            var g = await savedAutomatonService.CreateGroupAsync(user.Id, name.Trim(), string.IsNullOrWhiteSpace(description) ? null : description.Trim());
+            TempData["CreateGroupResult"] = "Group created.";
+            TempData["CreateGroupSuccess"] = "1";
+            return RedirectToAction("Index", new { groupId = g.Id });
+        }
+        catch
+        {
+            TempData["CreateGroupResult"] = "Group was not created.";
+            TempData["CreateGroupSuccess"] = "0";
+            return RedirectToAction("Index");
+        }
     }
 
     [HttpPost]

@@ -165,6 +165,16 @@ public class AutomatonControllerSavedTests
         {
             return Task.FromResult(Members.FirstOrDefault(m => m.GroupId == groupId && m.UserId == userId));
         }
+
+        public Task AssignAutomatonToGroupAsync(int automatonId, string userId, int? groupId)
+        {
+            return Task.CompletedTask;
+        }
+
+        public Task RemoveAutomatonFromGroupAsync(int automatonId, string userId, int groupId)
+        {
+            return Task.CompletedTask;
+        }
     }
 
     private static SavedAutomatonController BuildController(MockSavedAutomatonService svc, IdentityUser user)

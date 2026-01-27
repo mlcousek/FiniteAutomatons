@@ -221,11 +221,15 @@ public class AutomatonPresetService(
             return nondetNfa;
         }
 
-        // Add 2-3 nondeterministic transitions to guarantee nondeterminism
-        var transitionsToAdd = Math.Min(3, statesWithTransitions.Count);
+        // GUARANTEE at least one nondeterministic transition is added
+        var added = 0;
+        var attempts = 0;
+        var maxAttempts = Math.Max(50, statesWithTransitions.Count * alphabet.Count * 2);
+        var desiredTransitions = Math.Min(3, statesWithTransitions.Count);
 
-        for (int i = 0; i < transitionsToAdd; i++)
+        while (added < desiredTransitions && attempts < maxAttempts)
         {
+            attempts++;
             var fromState = statesWithTransitions[random.Next(statesWithTransitions.Count)];
             var symbol = alphabet[random.Next(alphabet.Count)];
 
@@ -252,13 +256,21 @@ public class AutomatonPresetService(
                     Symbol = symbol
                 });
 
+                added++;
                 logger.LogInformation("Added nondeterministic transition: q{From} --{Symbol}--> q{To}",
                     fromState, symbol, toState);
             }
         }
 
-        logger.LogInformation("Successfully created nondeterministic NFA with {OriginalTransitions} + {AddedTransitions} transitions",
-            nfa.Transitions.Count, transitionsToAdd);
+        if (added == 0)
+        {
+            logger.LogWarning("Failed to add any nondeterministic transitions after {Attempts} attempts", attempts);
+        }
+        else
+        {
+            logger.LogInformation("Successfully created nondeterministic NFA: added {Added} transitions in {Attempts} attempts",
+                added, attempts);
+        }
 
         return nondetNfa;
     }
