@@ -1,0 +1,78 @@
+@using FiniteAutomatons.Core.Models.Database
+@model List<SavedAutomaton>
+@{
+    ViewData["Title"] = "Saved Automatons";
+    var groups = ViewData["Groups"] as List<SavedAutomatonGroup> ?? new List<SavedAutomatonGroup>();
+    var selectedGroup = ViewData["SelectedGroupId"] as int?;
+}
+
+<div class="container mt-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>Saved Automatons</h2>
+        <a class="btn btn-primary" asp-controller="Home" asp-action="Index">Back to Editor</a>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col-md-8">
+            <form method="get" asp-action="Index" asp-controller="SavedAutomaton" class="d-flex gap-2 align-items-center">
+                <label class="mb-0">Filter by group:</label>
+                <select name="groupId" class="form-select" style="width:auto;">
+                    <option value="">All</option>
+                    @foreach (var g in groups)
+                    {
+                        if (selectedGroup.HasValue && selectedGroup.Value == g.Id)
+                        {
+                            <option value="@g.Id" selected>@g.Name</option>
+                        }
+                        else
+                        {
+                            <option value="@g.Id">@g.Name</option>
+                        }
+                    }
+                </select>
+                <button type="submit" class="btn btn-outline-secondary">Apply</button>
+            </form>
+        </div>
+        <div class="col-md-4 text-end">
+            <form asp-action="CreateGroup" asp-controller="SavedAutomaton" method="post" class="d-inline">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="name" value="New group" />
+                <button type="submit" class="btn btn-sm btn-success">Create Group</button>
+            </form>
+        </div>
+    </div>
+
+    @if (Model == null || Model.Count == 0)
+    {
+        <div class="alert alert-info">You have no saved automatons yet.</div>
+    }
+    else
+    {
+        <div class="list-group">
+            @foreach (var item in Model)
+            {
+                <div class="list-group-item">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h5 class="mb-1">@item.Name</h5>
+                            @if (!string.IsNullOrWhiteSpace(item.Description))
+                            {
+                                <p class="mb-1 text-muted">@item.Description</p>
+                            }
+                            <small class="text-muted">Created: @item.CreatedAt.ToLocalTime().ToString("g") @if (item.GroupId.HasValue) { <text>• Group: @item.GroupId</text> }</small>
+                        </div>
+                        <div class="text-end">
+                            <a asp-controller="SavedAutomaton" asp-action="Load" asp-route-id="@item.Id" class="btn btn-sm btn-primary mb-1">Load</a>
+                            <a asp-controller="SavedAutomaton" asp-action="Load" asp-route-id="@item.Id" asp-route-asState="true" class="btn btn-sm btn-outline-primary mb-1">Load as State</a>
+                            <form asp-action="Delete" asp-controller="SavedAutomaton" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@item.Id" />
+                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this saved automaton?');">Delete</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>

@@ -1128,6 +1128,16 @@ border-top: 3px solid #000;
   overflow: hidden;
 }
 
+/* Opening animation for modern modals */
+.modern-modal.modal-open .modern-modal-content {
+  animation: modalIn 180ms ease-out;
+}
+
+@keyframes modalIn {
+  from { transform: translateY(-8px) scale(0.98); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
 /* Modal Header - simple style matching generateModal */
 .modal-header {
   position: relative;
