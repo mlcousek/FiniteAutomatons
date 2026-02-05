@@ -12,10 +12,12 @@ namespace FiniteAutomatons.Controllers;
 public class SavedAutomatonController(
     ISavedAutomatonService savedAutomatonService,
     IAutomatonTempDataService tempDataService,
+    IAutomatonFileService fileService,
     UserManager<IdentityUser> userManager) : Controller
 {
     private readonly ISavedAutomatonService savedAutomatonService = savedAutomatonService;
     private readonly IAutomatonTempDataService tempDataService = tempDataService;
+    private readonly IAutomatonFileService fileService = fileService;
     private readonly UserManager<IdentityUser> userManager = userManager;
 
     [HttpGet]
@@ -135,7 +137,7 @@ public class SavedAutomatonController(
     }
 
     [HttpGet]
-    public async Task<IActionResult> Load(int id, bool asState = false)
+    public async Task<IActionResult> Load(int id, string mode = "structure")
     {
         var user = await userManager.GetUserAsync(User);
         if (user == null) return Challenge();
@@ -147,6 +149,7 @@ public class SavedAutomatonController(
         {
             var payload = JsonSerializer.Deserialize<AutomatonPayloadDto>(entity.ContentJson);
             if (payload == null) return NotFound();
+            
             var model = new AutomatonViewModel
             {
                 Type = payload.Type,
@@ -155,20 +158,27 @@ public class SavedAutomatonController(
                 IsCustomAutomaton = true
             };
 
-            if (asState && entity.HasExecutionState && !string.IsNullOrWhiteSpace(entity.ExecutionStateJson))
+            // Load based on mode
+            if ((mode == "input" || mode == "state") && !string.IsNullOrWhiteSpace(entity.ExecutionStateJson))
             {
                 try
                 {
                     var exec = JsonSerializer.Deserialize<SavedExecutionStateDto>(entity.ExecutionStateJson);
                     if (exec != null)
                     {
+                        // Always load input for both modes
                         model.Input = exec.Input ?? string.Empty;
-                        model.Position = exec.Position;
-                        model.CurrentStateId = exec.CurrentStateId;
-                        model.CurrentStates = exec.CurrentStates != null ? [.. exec.CurrentStates] : null;
-                        model.IsAccepted = exec.IsAccepted;
-                        model.StateHistorySerialized = exec.StateHistorySerialized ?? string.Empty;
-                        model.StackSerialized = exec.StackSerialized;
+
+                        // Load execution state only for "state" mode
+                        if (mode == "state" && entity.HasExecutionState)
+                        {
+                            model.Position = exec.Position;
+                            model.CurrentStateId = exec.CurrentStateId;
+                            model.CurrentStates = exec.CurrentStates != null ? [.. exec.CurrentStates] : null;
+                            model.IsAccepted = exec.IsAccepted;
+                            model.StateHistorySerialized = exec.StateHistorySerialized ?? string.Empty;
+                            model.StackSerialized = exec.StackSerialized;
+                        }
                     }
                 }
                 catch { }
@@ -241,4 +251,97 @@ public class SavedAutomatonController(
         await savedAutomatonService.SetGroupSharingPolicyAsync(groupId, membersCanShare);
         return RedirectToAction("ManageGroup", new { id = groupId });
     }
+
+    [HttpGet]
+    public async Task<IActionResult> ExportGroup(int groupId)
+    {
+        var user = await userManager.GetUserAsync(User);
+        if (user == null) return Challenge();
+
+        var group = await savedAutomatonService.GetGroupAsync(groupId);
+        if (group == null) return NotFound();
+
+        var automatons = await savedAutomatonService.ListForUserAsync(user.Id, groupId);
+        if (automatons == null || automatons.Count == 0)
+        {
+            TempData["CreateGroupResult"] = "No automatons in this group to export.";
+            TempData["CreateGroupSuccess"] = "0";
+            return RedirectToAction("Index", new { groupId });
+        }
+
+        var (fileName, content) = fileService.ExportGroup(group.Name, group.Description, automatons);
+
+        return File(System.Text.Encoding.UTF8.GetBytes(content), "application/json", fileName);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> ImportGroup(int groupId, IFormFile file)
+    {
+        var user = await userManager.GetUserAsync(User);
+        if (user == null) return Challenge();
+
+        var group = await savedAutomatonService.GetGroupAsync(groupId);
+        if (group == null) return NotFound();
+
+        var (ok, importData, error) = await fileService.ImportGroupAsync(file);
+
+        if (!ok || importData == null)
+        {
+            TempData["CreateGroupResult"] = error ?? "Failed to import group.";
+            TempData["CreateGroupSuccess"] = "0";
+            return RedirectToAction("Index", new { groupId });
+        }
+
+        var importedCount = 0;
+        var failedCount = 0;
+
+        foreach (var auto in importData.Automatons)
+        {
+            try
+            {
+                var model = new AutomatonViewModel
+                {
+                    Type = auto.Content?.Type ?? AutomatonType.DFA,
+                    States = auto.Content?.States ?? [],
+                    Transitions = auto.Content?.Transitions ?? [],
+                    IsCustomAutomaton = true
+                };
+
+                // If execution state exists, prepare it but let SaveAsync handle it
+                var hasExecState = auto.HasExecutionState && auto.ExecutionState != null;
+
+                await savedAutomatonService.SaveAsync(
+                    user.Id,
+                    auto.Name ?? "Imported",
+                    auto.Description,
+                    model,
+                    hasExecState,
+                    groupId);
+
+                importedCount++;
+            }
+            catch
+            {
+                failedCount++;
+            }
+        }
+
+        if (importedCount > 0)
+        {
+            var message = failedCount > 0
+                ? $"Imported {importedCount} automaton(s) into group. {failedCount} failed."
+                : $"Imported {importedCount} automaton(s) into group.";
+            TempData["CreateGroupResult"] = message;
+            TempData["CreateGroupSuccess"] = "1";
+        }
+        else
+        {
+            TempData["CreateGroupResult"] = "Failed to import any automatons.";
+            TempData["CreateGroupSuccess"] = "0";
+        }
+
+        return RedirectToAction("Index", new { groupId });
+    }
 }
+
+

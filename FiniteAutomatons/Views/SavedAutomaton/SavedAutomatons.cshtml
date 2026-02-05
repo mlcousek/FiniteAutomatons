@@ -74,7 +74,13 @@
             <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#createGroupModal">Create Group</button>
             @if (selectedGroup.HasValue)
             {
-                <form asp-action="DeleteGroup" asp-controller="SavedAutomaton" method="post" class="d-inline ms-2" onsubmit="return confirm('Delete this group? This will ungroup all automatons.');">
+                <a asp-action="ExportGroup" asp-controller="SavedAutomaton" asp-route-groupId="@selectedGroup.Value" class="btn btn-sm btn-primary ms-2">
+                    <i class="fas fa-file-export"></i> Export Group
+                </a>
+                <button type="button" class="btn btn-sm btn-primary ms-1" data-bs-toggle="modal" data-bs-target="#importGroupModal">
+                    <i class="fas fa-file-import"></i> Import Group
+                </button>
+                <form asp-action="DeleteGroup" asp-controller="SavedAutomaton" method="post" class="d-inline ms-1" onsubmit="return confirm('Delete this group? This will ungroup all automatons.');">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="id" value="@selectedGroup.Value" />
                     <button type="submit" class="btn btn-sm btn-outline-danger">Delete Group</button>
@@ -93,6 +99,7 @@
     {
         <div class="list-group">
             @foreach (var item in Model)
+
             {
                 <div class="list-group-item">
                     <div class="d-flex justify-content-between align-items-start">
@@ -112,12 +119,31 @@
                         </div>
 
                         
+                        
                         <div class="text-end">
-                            <a asp-controller="SavedAutomaton" asp-action="Load" asp-route-id="@item.Id" class="btn btn-sm btn-primary mb-1">Load</a>
-                            @if (item.HasExecutionState)
-                            {
-                                <a asp-controller="SavedAutomaton" asp-action="Load" asp-route-id="@item.Id" asp-route-asState="true" class="btn btn-sm btn-outline-primary mb-1">Load as State</a>
+                            @{
+                                var hasInput = item.HasInput();
+                                var hasState = item.HasExecutionState;
                             }
+
+                            @* Always show Load (structure only) *@
+                            <a asp-controller="SavedAutomaton" asp-action="Load" asp-route-id="@item.Id" asp-route-mode="structure" class="btn btn-sm btn-primary mb-1">Load</a>
+                            
+                            @* Show "Load with Input" if input was saved *@
+                            @if (hasInput)
+                            {
+                                <a asp-controller="SavedAutomaton" asp-action="Load" asp-route-id="@item.Id" asp-route-mode="input" class="btn btn-sm btn-info mb-1">Load with Input</a>
+                            }
+                            
+                            @* Show "Load as State" if execution state was saved *@
+                            @if (hasState)
+                            {
+                                <a asp-controller="SavedAutomaton" asp-action="Load" asp-route-id="@item.Id" asp-route-mode="state" class="btn btn-sm btn-outline-primary mb-1">Load as State</a>
+                            }
+                            
+                            <button type="button" class="btn btn-sm btn-outline-info mb-1" data-bs-toggle="modal" data-bs-target="#exportModal" data-automaton-id="@item.Id" data-automaton-name="@item.Name">
+                                <i class="fas fa-download"></i> Export
+                            </button>
                             <button type="button" class="btn btn-sm btn-outline-secondary mb-1" data-bs-toggle="modal" data-bs-target="#assignGroupModal" data-automaton-id="@item.Id" data-automaton-group="@((item.Assignments != null && item.Assignments.Any()) ? item.Assignments.First().GroupId.ToString() : String.Empty)">Add to Group</button>
                             @if (selectedGroup.HasValue && item.Assignments != null && item.Assignments.Any(a => a.GroupId == selectedGroup.Value))
                             {
@@ -138,6 +164,8 @@
                 </div>
             }
         </div>
+
+
     }
 
     <!-- Assign to Group Modal (single instance) -->
@@ -171,7 +199,71 @@
             </div>
         </div>
     </div>
+
+    <!-- Export Modal (single instance) -->
+    <div class="modal fade" id="exportModal" tabindex="-1" aria-labelledby="exportModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header py-3 px-4">
+                    <h5 class="modal-title mb-0" id="exportModalLabel">Export Automaton</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body py-4 px-4">
+                    <p class="mb-3">Select the format to export <strong id="exportAutomatonName"></strong>:</p>
+                    <input type="hidden" id="exportAutomatonId" value="" />
+                    <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-outline-primary" onclick="exportSavedAutomaton('json')">
+                            <i class="fas fa-code"></i> JSON Format
+                        </button>
+                        <button type="button" class="btn btn-outline-primary" onclick="exportSavedAutomaton('txt')">
+                            <i class="fas fa-file-alt"></i> Text Format
+                        </button>
+                        <button type="button" class="btn btn-outline-primary" onclick="exportSavedAutomaton('custom')">
+                            <i class="fas fa-file-code"></i> Custom Format
+                        </button>
+                    </div>
+                </div>
+                <div class="modal-footer py-3 px-4">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Group Modal -->
+    <div class="modal fade" id="importGroupModal" tabindex="-1" aria-labelledby="importGroupModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form asp-action="ImportGroup" asp-controller="SavedAutomaton" method="post" enctype="multipart/form-data">
+                    @Html.AntiForgeryToken()
+                    @if (selectedGroup.HasValue)
+                    {
+                        <input type="hidden" name="groupId" value="@selectedGroup.Value" />
+                    }
+                    <div class="modal-header py-3 px-4">
+                        <h5 class="modal-title mb-0" id="importGroupModalLabel">Import Group</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body py-4 px-4">
+                        <p class="mb-3">Upload a JSON file containing the group export:</p>
+                        <div class="mb-3">
+                            <label for="groupFile" class="form-label">Choose file</label>
+                            <input type="file" class="form-control" id="groupFile" name="file" accept=".json" required />
+                        </div>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> The file should contain all automatons from the exported group.
+                        </div>
+                    </div>
+                    <div class="modal-footer py-3 px-4">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Import</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 </div>
+
 
 <script>
     (function(){
@@ -195,4 +287,36 @@
             }
         });
     })();
+
+    // Handle export modal
+    (function(){
+        var exportModal = document.getElementById('exportModal');
+        if (!exportModal) return;
+        exportModal.addEventListener('show.bs.modal', function (event) {
+            var button = event.relatedTarget;
+            var automatonId = button.getAttribute('data-automaton-id');
+            var automatonName = button.getAttribute('data-automaton-name');
+            var input = document.getElementById('exportAutomatonId');
+            var nameDisplay = document.getElementById('exportAutomatonName');
+            if (input) input.value = automatonId || '';
+            if (nameDisplay) nameDisplay.textContent = automatonName || '';
+        });
+    })();
+
+    // Export function
+    function exportSavedAutomaton(format) {
+        var automatonId = document.getElementById('exportAutomatonId').value;
+        if (!automatonId) {
+            alert('No automaton selected');
+            return;
+        }
+        
+        // Close the modal
+        var modal = bootstrap.Modal.getInstance(document.getElementById('exportModal'));
+        if (modal) modal.hide();
+        
+        // Redirect to export endpoint with the saved automaton ID
+        var url = '@Url.Action("ExportSaved", "ImportExport")?id=' + automatonId + '&format=' + format;
+        window.location.href = url;
+    }
 </script>

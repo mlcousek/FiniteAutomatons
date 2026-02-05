@@ -13,5 +13,31 @@ public class SavedAutomaton
     public string? ExecutionStateJson { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public List<SavedAutomatonGroupAssignment> Assignments { get; set; } = [];
+
+    /// <summary>
+    /// Checks if this automaton was saved with input (either just input or with execution state).
+    /// </summary>
+    public bool HasInput()
+    {
+        if (string.IsNullOrEmpty(ExecutionStateJson))
+            return false;
+
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(ExecutionStateJson);
+            if (doc.RootElement.TryGetProperty("Input", out var inputProp))
+            {
+                var input = inputProp.GetString();
+                return !string.IsNullOrEmpty(input);
+            }
+        }
+        catch
+        {
+            // If parsing fails, assume no input
+        }
+
+        return false;
+    }
 }
+
 

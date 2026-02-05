@@ -1,5 +1,7 @@
+﻿using FiniteAutomatons.Core.Models.Database;
 using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
+using FiniteAutomatons.Core.Models.DTOs;
 using FiniteAutomatons.Core.Models.Serialization;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Core.Utilities;
@@ -7,6 +9,7 @@ using FiniteAutomatons.Services.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using System.Text;
+using System.Text.Json;
 
 namespace FiniteAutomatons.Services.Services;
 
@@ -92,7 +95,7 @@ public class AutomatonFileService(ILogger<AutomatonFileService> logger) : IAutom
 
         try
         {
-            var vm = System.Text.Json.JsonSerializer.Deserialize<AutomatonViewModel>(content);
+            var vm = JsonSerializer.Deserialize<AutomatonViewModel>(content);
             if (vm != null)
             {
                 vm.IsCustomAutomaton = true;
@@ -100,7 +103,7 @@ public class AutomatonFileService(ILogger<AutomatonFileService> logger) : IAutom
                 return (true, vm, null);
             }
         }
-        catch (System.Text.Json.JsonException ex)
+        catch (JsonException ex)
         {
             logger.LogDebug(ex, "Uploaded file is not a full viewmodel JSON, falling back to domain parser.");
         }
@@ -120,8 +123,46 @@ public class AutomatonFileService(ILogger<AutomatonFileService> logger) : IAutom
     public (string FileName, string Content) ExportJsonWithState(AutomatonViewModel model)
     {
         model = model ?? throw new ArgumentNullException(nameof(model));
-        var content = System.Text.Json.JsonSerializer.Serialize(model, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+        var content = System.Text.Json.JsonSerializer.Serialize(model, new JsonSerializerOptions { WriteIndented = true });
         var name = $"automaton-withstate-{DateTime.UtcNow:yyyyMMddHHmmss}.json";
+        return (name, content);
+    }
+
+    public (string FileName, string Content) ExportWithInput(AutomatonViewModel model)
+    {
+        model = model ?? throw new ArgumentNullException(nameof(model));
+
+        var exportModel = new AutomatonViewModel
+        {
+            Type = model.Type,
+            States = model.States,
+            Transitions = model.Transitions,
+            Input = model.Input,
+            IsCustomAutomaton = model.IsCustomAutomaton,
+            Position = 0,
+            CurrentStateId = null,
+            CurrentStates = null,
+            IsAccepted = null,
+            StateHistorySerialized = string.Empty,
+            StackSerialized = null
+        };
+
+        var content = System.Text.Json.JsonSerializer.Serialize(exportModel, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+        var name = $"automaton-withinput-{DateTime.UtcNow:yyyyMMddHHmmss}.json";
+        return (name, content);
+    }
+
+    public (string FileName, string Content) ExportWithExecutionState(AutomatonViewModel model)
+    {
+        model = model ?? throw new ArgumentNullException(nameof(model));
+
+        if (string.IsNullOrEmpty(model.Input))
+        {
+            logger.LogWarning("Exporting automaton with execution state but no input provided");
+        }
+
+        var content = System.Text.Json.JsonSerializer.Serialize(model, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+        var name = $"automaton-execution-{DateTime.UtcNow:yyyyMMddHHmmss}.json";
         return (name, content);
     }
 
@@ -131,6 +172,123 @@ public class AutomatonFileService(ILogger<AutomatonFileService> logger) : IAutom
         var text = AutomatonCustomTextSerializer.Serialize(automaton);
         var name = $"automaton-{DateTime.UtcNow:yyyyMMddHHmmss}.txt";
         return (name, text);
+    }
+
+    public (string FileName, string Content) ExportGroup(string groupName, string? groupDescription, List<SavedAutomaton> automatons)
+    {
+        ArgumentNullException.ThrowIfNull(groupName);
+        ArgumentNullException.ThrowIfNull(automatons);
+
+        logger.LogInformation("Exporting group '{GroupName}' with {Count} automaton(s)", groupName, automatons.Count);
+
+        var exportData = new GroupExportDto
+        {
+            GroupName = groupName,
+            GroupDescription = groupDescription,
+            ExportedAt = DateTime.UtcNow,
+            Automatons = automatons.Select(a =>
+            {
+                AutomatonPayloadDto? content = null;
+                SavedExecutionStateDto? execState = null;
+
+                try
+                {
+                    content = JsonSerializer.Deserialize<AutomatonPayloadDto>(a.ContentJson);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "Failed to deserialize content for automaton {Id}", a.Id);
+                    content = new AutomatonPayloadDto();
+                }
+
+                if (a.HasExecutionState && !string.IsNullOrEmpty(a.ExecutionStateJson))
+                {
+                    try
+                    {
+                        execState = JsonSerializer.Deserialize<SavedExecutionStateDto>(a.ExecutionStateJson);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogWarning(ex, "Failed to deserialize execution state for automaton {Id}", a.Id);
+                    }
+                }
+
+                return new AutomatonExportItemDto
+                {
+                    Name = a.Name,
+                    Description = a.Description,
+                    HasExecutionState = a.HasExecutionState,
+                    Content = content ?? new AutomatonPayloadDto(),
+                    ExecutionState = execState
+                };
+            }).ToList()
+        };
+
+        var json = JsonSerializer.Serialize(exportData, new JsonSerializerOptions { WriteIndented = true });
+        var fileName = $"{SanitizeFileName(groupName)}_export_{DateTime.UtcNow:yyyyMMdd_HHmmss}.json";
+
+        logger.LogInformation("Successfully exported group '{GroupName}' to {FileName}", groupName, fileName);
+        return (fileName, json);
+    }
+
+    public async Task<(bool Ok, GroupExportDto? Data, string? Error)> ImportGroupAsync(IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+        {
+            logger.LogWarning("ImportGroupAsync called with empty file");
+            return (false, null, "No file uploaded.");
+        }
+
+        logger.LogInformation("Importing group from file {FileName}", file.FileName);
+
+        try
+        {
+            string content;
+            using (var ms = new MemoryStream())
+            {
+                await file.CopyToAsync(ms);
+                content = Encoding.UTF8.GetString(ms.ToArray());
+            }
+
+            var importData = JsonSerializer.Deserialize<GroupExportDto>(content, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+            if (importData == null)
+            {
+                logger.LogWarning("Failed to deserialize group import file {FileName}", file.FileName);
+                return (false, null, "Invalid group export file format.");
+            }
+
+            if (importData.Automatons == null || importData.Automatons.Count == 0)
+            {
+                logger.LogWarning("Group import file {FileName} contains no automatons", file.FileName);
+                return (false, null, "Group export file contains no automatons.");
+            }
+
+            logger.LogInformation("Successfully imported group '{GroupName}' with {Count} automaton(s)",
+                importData.GroupName, importData.Automatons.Count);
+
+            return (true, importData, null);
+        }
+        catch (JsonException ex)
+        {
+            logger.LogError(ex, "JSON parsing error while importing group from {FileName}", file.FileName);
+            return (false, null, "Invalid JSON format in group export file.");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Unexpected error while importing group from {FileName}", file.FileName);
+            return (false, null, "Failed to import group: " + ex.Message);
+        }
+    }
+
+    private static string SanitizeFileName(string fileName)
+    {
+        var invalid = Path.GetInvalidFileNameChars();
+        var sanitized = string.Join("_", fileName.Split(invalid, StringSplitOptions.RemoveEmptyEntries));
+        return string.IsNullOrWhiteSpace(sanitized) ? "group" : sanitized;
     }
 
     private static Automaton BuildAutomaton(AutomatonViewModel model)

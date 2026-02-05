@@ -57,21 +57,66 @@ public class AutomatonControllerSavedTests
         public readonly List<SavedAutomatonGroup> Groups = [];
         public readonly List<SavedAutomaton> Items = [];
         public readonly List<SavedAutomatonGroupMember> Members = [];
+        public readonly List<SavedAutomatonGroupAssignment> Assignments = [];
         public int NextGroupId = 1;
         public int NextItemId = 1;
         public int NextMemberId = 1;
+        public int NextAssignmentId = 1;
 
         public Task<SavedAutomaton> SaveAsync(string userId, string name, string? description, AutomatonViewModel model, bool saveExecutionState = false, int? groupId = null)
         {
-            var entity = new SavedAutomaton { Id = NextItemId++, UserId = userId, Name = name, Description = description, ContentJson = "{}", HasExecutionState = saveExecutionState, ExecutionStateJson = saveExecutionState ? "{}" : null, GroupId = groupId, CreatedAt = DateTime.UtcNow };
+            var contentDto = new
+            {
+                Type = model.Type,
+                States = model.States ?? [],
+                Transitions = model.Transitions ?? []
+            };
+
+            var execDto = saveExecutionState ? new
+            {
+                Input = model.Input ?? string.Empty,
+                Position = model.Position,
+                CurrentStateId = model.CurrentStateId,
+                CurrentStates = model.CurrentStates?.ToArray() ?? Array.Empty<int>(),
+                IsAccepted = model.IsAccepted,
+                StateHistorySerialized = model.StateHistorySerialized,
+                StackSerialized = model.StackSerialized
+            } : null;
+
+            var entity = new SavedAutomaton
+            {
+                Id = NextItemId++,
+                UserId = userId,
+                Name = name,
+                Description = description,
+                ContentJson = System.Text.Json.JsonSerializer.Serialize(contentDto),
+                HasExecutionState = saveExecutionState,
+                ExecutionStateJson = execDto != null ? System.Text.Json.JsonSerializer.Serialize(execDto) : null,
+                CreatedAt = DateTime.UtcNow
+            };
             Items.Add(entity);
+
+            if (groupId.HasValue)
+            {
+                Assignments.Add(new SavedAutomatonGroupAssignment
+                {
+                    Id = NextAssignmentId++,
+                    AutomatonId = entity.Id,
+                    GroupId = groupId.Value
+                });
+            }
+
             return Task.FromResult(entity);
         }
 
         public Task<List<SavedAutomaton>> ListForUserAsync(string userId, int? groupId = null)
         {
             var q = Items.Where(i => i.UserId == userId);
-            if (groupId.HasValue) q = q.Where(i => i.GroupId == groupId.Value);
+            if (groupId.HasValue)
+            {
+                var automatonIds = Assignments.Where(a => a.GroupId == groupId.Value).Select(a => a.AutomatonId).ToHashSet();
+                q = q.Where(i => automatonIds.Contains(i.Id));
+            }
             return Task.FromResult(q.OrderByDescending(i => i.CreatedAt).ToList());
         }
 
@@ -146,7 +191,8 @@ public class AutomatonControllerSavedTests
 
         public Task<List<SavedAutomaton>> ListByGroupAsync(int groupId)
         {
-            return Task.FromResult(Items.Where(i => i.GroupId == groupId).OrderByDescending(i => i.CreatedAt).ToList());
+            var automatonIds = Assignments.Where(a => a.GroupId == groupId).Select(a => a.AutomatonId).ToHashSet();
+            return Task.FromResult(Items.Where(i => automatonIds.Contains(i.Id)).OrderByDescending(i => i.CreatedAt).ToList());
         }
 
         public Task<SavedAutomatonGroup?> GetGroupAsync(int id, string userId)
@@ -157,7 +203,12 @@ public class AutomatonControllerSavedTests
         public Task DeleteGroupAsync(int id, string userId)
         {
             var g = Groups.FirstOrDefault(i => i.Id == id && i.UserId == userId);
-            if (g != null) Groups.Remove(g);
+            if (g != null)
+            {
+                Groups.Remove(g);
+                var assigns = Assignments.Where(a => a.GroupId == id).ToList();
+                foreach (var a in assigns) Assignments.Remove(a);
+            }
             return Task.CompletedTask;
         }
 
@@ -168,11 +219,37 @@ public class AutomatonControllerSavedTests
 
         public Task AssignAutomatonToGroupAsync(int automatonId, string userId, int? groupId)
         {
+            var auto = Items.FirstOrDefault(i => i.Id == automatonId && i.UserId == userId);
+            if (auto == null) return Task.CompletedTask;
+
+            if (!groupId.HasValue)
+            {
+                var assigns = Assignments.Where(a => a.AutomatonId == automatonId).ToList();
+                foreach (var a in assigns) Assignments.Remove(a);
+            }
+            else
+            {
+                var exists = Assignments.Any(a => a.AutomatonId == automatonId && a.GroupId == groupId.Value);
+                if (!exists)
+                {
+                    Assignments.Add(new SavedAutomatonGroupAssignment
+                    {
+                        Id = NextAssignmentId++,
+                        AutomatonId = automatonId,
+                        GroupId = groupId.Value
+                    });
+                }
+            }
             return Task.CompletedTask;
         }
 
         public Task RemoveAutomatonFromGroupAsync(int automatonId, string userId, int groupId)
         {
+            var auto = Items.FirstOrDefault(i => i.Id == automatonId && i.UserId == userId);
+            if (auto == null) return Task.CompletedTask;
+
+            var assign = Assignments.FirstOrDefault(a => a.AutomatonId == automatonId && a.GroupId == groupId);
+            if (assign != null) Assignments.Remove(assign);
             return Task.CompletedTask;
         }
     }
@@ -190,7 +267,7 @@ public class AutomatonControllerSavedTests
 
         var userManager = new TestUserManager(user);
 
-        var controller = new SavedAutomatonController(svc, tempDataSvc, userManager);
+        var controller = new SavedAutomatonController(svc, tempDataSvc, fileSvc, userManager);
 
         var httpContext = new DefaultHttpContext();
         controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
@@ -312,7 +389,7 @@ public class AutomatonControllerSavedTests
 
         svc.Items.Add(entity);
 
-        var res = await c.Load(entity.Id, asState: true) as RedirectToActionResult; // No change
+        var res = await c.Load(entity.Id, mode: "state") as RedirectToActionResult;
         res.ShouldNotBeNull();
         res.ActionName.ShouldBe("Index");
         res.ControllerName.ShouldBe("Home");
@@ -344,4 +421,517 @@ public class AutomatonControllerSavedTests
         var fetched = await svc.GetAsync(e.Id, user.Id);
         fetched.ShouldBeNull();
     }
+
+    #region ExportGroup Tests
+
+    [Fact]
+    public async Task ExportGroup_ValidGroup_ReturnsFileWithCorrectContent()
+    {
+        var svc = new MockSavedAutomatonService();
+        var user = new IdentityUser { Id = "export-user-1" };
+        var c = BuildController(svc, user);
+
+        var group = await svc.CreateGroupAsync(user.Id, "TestGroup", "Test Description");
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.DFA,
+            States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
+            Transitions = [new() { FromStateId = 1, ToStateId = 1, Symbol = 'a' }]
+        };
+
+        await svc.SaveAsync(user.Id, "Auto1", "Desc1", model, false, group.Id);
+        await svc.SaveAsync(user.Id, "Auto2", "Desc2", model, false, group.Id);
+
+        var result = await c.ExportGroup(group.Id) as FileContentResult;
+
+        result.ShouldNotBeNull();
+        result.ContentType.ShouldBe("application/json");
+        result.FileDownloadName.ShouldContain("TestGroup_export_");
+        result.FileDownloadName.ShouldEndWith(".json");
+
+        var json = System.Text.Encoding.UTF8.GetString(result.FileContents);
+        json.ShouldContain("TestGroup");
+        json.ShouldContain("Auto1");
+        json.ShouldContain("Auto2");
+    }
+
+    [Fact]
+    public async Task ExportGroup_NonExistentGroup_ReturnsNotFound()
+    {
+        var svc = new MockSavedAutomatonService();
+        var user = new IdentityUser { Id = "export-user-2" };
+        var c = BuildController(svc, user);
+
+        var result = await c.ExportGroup(99999);
+
+        result.ShouldBeOfType<NotFoundResult>();
+    }
+
+    [Fact]
+    public async Task ExportGroup_EmptyGroup_ShowsMessageAndRedirects()
+    {
+        var svc = new MockSavedAutomatonService();
+        var user = new IdentityUser { Id = "export-user-3" };
+        var c = BuildController(svc, user);
+
+        var group = await svc.CreateGroupAsync(user.Id, "EmptyGroup", null);
+
+        var result = await c.ExportGroup(group.Id) as RedirectToActionResult;
+
+        result.ShouldNotBeNull();
+        result.ActionName.ShouldBe("Index");
+        c.TempData["CreateGroupResult"].ShouldBe("No automatons in this group to export.");
+        c.TempData["CreateGroupSuccess"].ShouldBe("0");
+    }
+
+    [Fact]
+    public async Task ExportGroup_WithExecutionState_IncludesExecutionState()
+    {
+        var svc = new MockSavedAutomatonService();
+        var user = new IdentityUser { Id = "export-user-4" };
+        var c = BuildController(svc, user);
+
+        var group = await svc.CreateGroupAsync(user.Id, "StateGroup", null);
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.DFA,
+            States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
+            Transitions = []
+        };
+
+        await svc.SaveAsync(user.Id, "WithState", null, model, saveExecutionState: true, group.Id);
+
+        var result = await c.ExportGroup(group.Id) as FileContentResult;
+
+        result.ShouldNotBeNull();
+        var json = System.Text.Encoding.UTF8.GetString(result.FileContents);
+        json.ShouldContain("HasExecutionState");
+        json.ShouldContain("ExecutionState");
+    }
+
+    #endregion
+
+    #region ImportGroup Tests
+
+    [Fact]
+    public async Task ImportGroup_ValidFile_ImportsAllAutomatons()
+    {
+        var svc = new MockSavedAutomatonService();
+        var user = new IdentityUser { Id = "import-user-1" };
+        var c = BuildController(svc, user);
+
+        var group = await svc.CreateGroupAsync(user.Id, "ImportTarget", null);
+
+        var jsonContent = @"{
+            ""GroupName"": ""ExportedGroup"",
+            ""GroupDescription"": ""Exported"",
+            ""ExportedAt"": ""2026-01-01T00:00:00Z"",
+            ""Automatons"": [
+                {
+                    ""Name"": ""ImportedAuto1"",
+                    ""Description"": ""Desc1"",
+                    ""HasExecutionState"": false,
+                    ""Content"": {
+                        ""Type"": 0,
+                        ""States"": [{""Id"": 1, ""IsStart"": true, ""IsAccepting"": true}],
+                        ""Transitions"": []
+                    },
+                    ""ExecutionState"": null
+                },
+                {
+                    ""Name"": ""ImportedAuto2"",
+                    ""Description"": ""Desc2"",
+                    ""HasExecutionState"": false,
+                    ""Content"": {
+                        ""Type"": 0,
+                        ""States"": [{""Id"": 1, ""IsStart"": true, ""IsAccepting"": false}],
+                        ""Transitions"": []
+                    },
+                    ""ExecutionState"": null
+                }
+            ]
+        }";
+
+        var file = CreateMockFormFile("group.json", jsonContent);
+
+        var result = await c.ImportGroup(group.Id, file) as RedirectToActionResult;
+
+        result.ShouldNotBeNull();
+        result.ActionName.ShouldBe("Index");
+        ((string)c.TempData["CreateGroupResult"]!).ShouldContain("Imported 2 automaton(s)");
+        c.TempData["CreateGroupSuccess"].ShouldBe("1");
+
+        var list = await svc.ListForUserAsync(user.Id, group.Id);
+        list.Count.ShouldBe(2);
+    }
+
+    [Fact]
+    public async Task ImportGroup_NonExistentGroup_ReturnsNotFound()
+    {
+        var svc = new MockSavedAutomatonService();
+        var user = new IdentityUser { Id = "import-user-2" };
+        var c = BuildController(svc, user);
+
+        var file = CreateMockFormFile("group.json", "{}");
+
+        var result = await c.ImportGroup(99999, file);
+
+        result.ShouldBeOfType<NotFoundResult>();
+    }
+
+    [Fact]
+    public async Task ImportGroup_NoFileUploaded_ShowsError()
+    {
+        var svc = new MockSavedAutomatonService();
+        var user = new IdentityUser { Id = "import-user-3" };
+        var c = BuildController(svc, user);
+
+        var group = await svc.CreateGroupAsync(user.Id, "TargetGroup", null);
+
+        var result = await c.ImportGroup(group.Id, null!) as RedirectToActionResult;
+
+        result.ShouldNotBeNull();
+        c.TempData["CreateGroupResult"].ShouldBe("No file uploaded.");
+        c.TempData["CreateGroupSuccess"].ShouldBe("0");
+    }
+
+    [Fact]
+    public async Task ImportGroup_InvalidJson_ShowsError()
+    {
+        var svc = new MockSavedAutomatonService();
+        var user = new IdentityUser { Id = "import-user-4" };
+        var c = BuildController(svc, user);
+
+        var group = await svc.CreateGroupAsync(user.Id, "TargetGroup", null);
+        var file = CreateMockFormFile("invalid.json", "not valid json");
+
+        var result = await c.ImportGroup(group.Id, file) as RedirectToActionResult;
+
+        result.ShouldNotBeNull();
+        c.TempData["CreateGroupResult"].ShouldBe("Failed to import group.");
+        c.TempData["CreateGroupSuccess"].ShouldBe("0");
+    }
+
+    [Fact]
+    public async Task ImportGroup_EmptyAutomatonsList_ShowsError()
+    {
+        var svc = new MockSavedAutomatonService();
+        var user = new IdentityUser { Id = "import-user-5" };
+        var c = BuildController(svc, user);
+
+        var group = await svc.CreateGroupAsync(user.Id, "TargetGroup", null);
+
+        var jsonContent = @"{
+            ""GroupName"": ""Empty"",
+            ""Automatons"": null
+        }";
+
+        var file = CreateMockFormFile("empty.json", jsonContent);
+
+        var result = await c.ImportGroup(group.Id, file) as RedirectToActionResult;
+
+        result.ShouldNotBeNull();
+        c.TempData["CreateGroupResult"].ShouldBe("Invalid group export file.");
+        c.TempData["CreateGroupSuccess"].ShouldBe("0");
+    }
+
+    [Fact]
+    public async Task ImportGroup_PartialFailure_ImportsSuccessfulOnes()
+    {
+        var svc = new MockSavedAutomatonService();
+        var user = new IdentityUser { Id = "import-user-6" };
+        var c = BuildController(svc, user);
+
+        var group = await svc.CreateGroupAsync(user.Id, "TargetGroup", null);
+
+        var jsonContent = @"{
+            ""GroupName"": ""Mixed"",
+            ""Automatons"": [
+                {
+                    ""Name"": ""Valid"",
+                    ""HasExecutionState"": false,
+                    ""Content"": {
+                        ""Type"": 0,
+                        ""States"": [{""Id"": 1, ""IsStart"": true, ""IsAccepting"": true}],
+                        ""Transitions"": []
+                    }
+                }
+            ]
+        }";
+
+        var file = CreateMockFormFile("mixed.json", jsonContent);
+
+        var result = await c.ImportGroup(group.Id, file) as RedirectToActionResult;
+
+        result.ShouldNotBeNull();
+        c.TempData["CreateGroupSuccess"].ShouldBe("1");
+
+        var list = await svc.ListForUserAsync(user.Id, group.Id);
+        list.Count.ShouldBeGreaterThan(0);
+    }
+
+    [Fact]
+    public async Task ImportGroup_WithExecutionState_PreservesExecutionState()
+    {
+        var svc = new MockSavedAutomatonService();
+        var user = new IdentityUser { Id = "import-user-7" };
+        var c = BuildController(svc, user);
+
+        var group = await svc.CreateGroupAsync(user.Id, "TargetGroup", null);
+
+        var jsonContent = @"{
+            ""GroupName"": ""WithState"",
+            ""Automatons"": [
+                {
+                    ""Name"": ""StatefulAuto"",
+                    ""HasExecutionState"": true,
+                    ""Content"": {
+                        ""Type"": 0,
+                        ""States"": [{""Id"": 1, ""IsStart"": true, ""IsAccepting"": true}],
+                        ""Transitions"": []
+                    },
+                    ""ExecutionState"": {
+                        ""Input"": ""test"",
+                        ""Position"": 0
+                    }
+                }
+            ]
+        }";
+
+        var file = CreateMockFormFile("state.json", jsonContent);
+
+        var result = await c.ImportGroup(group.Id, file) as RedirectToActionResult;
+
+        result.ShouldNotBeNull();
+        c.TempData["CreateGroupSuccess"].ShouldBe("1");
+    }
+
+    #endregion
+
+    #region Load Mode Tests
+
+    [Fact]
+    public async Task Load_StructureMode_LoadsOnlyStructure()
+    {
+        var svc = new MockSavedAutomatonService();
+        var user = new IdentityUser { Id = "load-user-1" };
+        var c = BuildController(svc, user);
+
+        var payload = new
+        {
+            Type = AutomatonType.DFA,
+            States = new[] { new { Id = 1, IsStart = true, IsAccepting = true } },
+            Transitions = Array.Empty<object>()
+        };
+        var exec = new
+        {
+            Input = "test123",
+            Position = 3,
+            CurrentStateId = 1,
+            IsAccepted = true
+        };
+
+        var entity = new SavedAutomaton
+        {
+            Id = 1,
+            UserId = user.Id,
+            ContentJson = System.Text.Json.JsonSerializer.Serialize(payload),
+            HasExecutionState = true,
+            ExecutionStateJson = System.Text.Json.JsonSerializer.Serialize(exec)
+        };
+        svc.Items.Add(entity);
+
+        var result = await c.Load(entity.Id, mode: "structure") as RedirectToActionResult;
+
+        result.ShouldNotBeNull();
+        var td = c.TempData["CustomAutomaton"] as string;
+        td.ShouldNotBeNull();
+        var model = System.Text.Json.JsonSerializer.Deserialize<AutomatonViewModel>(td!);
+        model.ShouldNotBeNull();
+        model!.States.Count.ShouldBe(1);
+        model.Input.ShouldBe(string.Empty); // No input loaded
+        model.Position.ShouldBe(0);
+        model.CurrentStateId.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Load_InputMode_LoadsStructureAndInput()
+    {
+        var svc = new MockSavedAutomatonService();
+        var user = new IdentityUser { Id = "load-user-2" };
+        var c = BuildController(svc, user);
+
+        var payload = new
+        {
+            Type = AutomatonType.DFA,
+            States = new[] { new { Id = 1, IsStart = true, IsAccepting = true } },
+            Transitions = Array.Empty<object>()
+        };
+        var exec = new
+        {
+            Input = "test123",
+            Position = 3,
+            CurrentStateId = 1,
+            IsAccepted = true,
+            StateHistorySerialized = "[1,1,1]"
+        };
+
+        var entity = new SavedAutomaton
+        {
+            Id = 2,
+            UserId = user.Id,
+            ContentJson = System.Text.Json.JsonSerializer.Serialize(payload),
+            HasExecutionState = true,
+            ExecutionStateJson = System.Text.Json.JsonSerializer.Serialize(exec)
+        };
+        svc.Items.Add(entity);
+
+        var result = await c.Load(entity.Id, mode: "input") as RedirectToActionResult;
+
+        result.ShouldNotBeNull();
+        var td = c.TempData["CustomAutomaton"] as string;
+        td.ShouldNotBeNull();
+        var model = System.Text.Json.JsonSerializer.Deserialize<AutomatonViewModel>(td!);
+        model.ShouldNotBeNull();
+        model!.Input.ShouldBe("test123"); // Input loaded
+        model.Position.ShouldBe(0); // Execution state cleared
+        model.CurrentStateId.ShouldBeNull();
+        model.StateHistorySerialized.ShouldBe(string.Empty);
+    }
+
+    [Fact]
+    public async Task Load_StateMode_LoadsEverything()
+    {
+        var svc = new MockSavedAutomatonService();
+        var user = new IdentityUser { Id = "load-user-3" };
+        var c = BuildController(svc, user);
+
+        var payload = new
+        {
+            Type = AutomatonType.DFA,
+            States = new[] { new { Id = 1, IsStart = true, IsAccepting = true } },
+            Transitions = Array.Empty<object>()
+        };
+        var exec = new
+        {
+            Input = "test123",
+            Position = 3,
+            CurrentStateId = 1,
+            IsAccepted = true,
+            StateHistorySerialized = "[1,1,1]"
+        };
+
+        var entity = new SavedAutomaton
+        {
+            Id = 3,
+            UserId = user.Id,
+            ContentJson = System.Text.Json.JsonSerializer.Serialize(payload),
+            HasExecutionState = true,
+            ExecutionStateJson = System.Text.Json.JsonSerializer.Serialize(exec)
+        };
+        svc.Items.Add(entity);
+
+        var result = await c.Load(entity.Id, mode: "state") as RedirectToActionResult;
+
+        result.ShouldNotBeNull();
+        var td = c.TempData["CustomAutomaton"] as string;
+        td.ShouldNotBeNull();
+        var model = System.Text.Json.JsonSerializer.Deserialize<AutomatonViewModel>(td!);
+        model.ShouldNotBeNull();
+        model!.Input.ShouldBe("test123");
+        model.Position.ShouldBe(3); // Full execution state loaded
+        model.CurrentStateId.ShouldBe(1);
+        model.StateHistorySerialized.ShouldBe("[1,1,1]");
+        model.IsAccepted.ShouldBe(true);
+    }
+
+    [Fact]
+    public async Task Load_InputMode_WithoutExecutionState_LoadsStructureOnly()
+    {
+        var svc = new MockSavedAutomatonService();
+        var user = new IdentityUser { Id = "load-user-4" };
+        var c = BuildController(svc, user);
+
+        var payload = new
+        {
+            Type = AutomatonType.DFA,
+            States = new[] { new { Id = 1, IsStart = true, IsAccepting = true } },
+            Transitions = Array.Empty<object>()
+        };
+
+        var entity = new SavedAutomaton
+        {
+            Id = 4,
+            UserId = user.Id,
+            ContentJson = System.Text.Json.JsonSerializer.Serialize(payload),
+            HasExecutionState = false,
+            ExecutionStateJson = null
+        };
+        svc.Items.Add(entity);
+
+        var result = await c.Load(entity.Id, mode: "input") as RedirectToActionResult;
+
+        result.ShouldNotBeNull();
+        var td = c.TempData["CustomAutomaton"] as string;
+        td.ShouldNotBeNull();
+        var model = System.Text.Json.JsonSerializer.Deserialize<AutomatonViewModel>(td!);
+        model.ShouldNotBeNull();
+        model!.Input.ShouldBe(string.Empty); // No input available
+    }
+
+    [Fact]
+    public void HasInput_WithInput_ReturnsTrue()
+    {
+        var exec = new { Input = "test" };
+        var automaton = new SavedAutomaton
+        {
+            ExecutionStateJson = System.Text.Json.JsonSerializer.Serialize(exec)
+        };
+
+        automaton.HasInput().ShouldBeTrue();
+    }
+
+    [Fact]
+    public void HasInput_WithEmptyInput_ReturnsFalse()
+    {
+        var exec = new { Input = "" };
+        var automaton = new SavedAutomaton
+        {
+            ExecutionStateJson = System.Text.Json.JsonSerializer.Serialize(exec)
+        };
+
+        automaton.HasInput().ShouldBeFalse();
+    }
+
+    [Fact]
+    public void HasInput_NoExecutionState_ReturnsFalse()
+    {
+        var automaton = new SavedAutomaton
+        {
+            ExecutionStateJson = null
+        };
+
+        automaton.HasInput().ShouldBeFalse();
+    }
+
+    #endregion
+
+    #region Helper Methods
+
+    private static IFormFile CreateMockFormFile(string fileName, string content)
+    {
+        var bytes = System.Text.Encoding.UTF8.GetBytes(content);
+        var stream = new MemoryStream(bytes);
+
+        var file = new FormFile(stream, 0, bytes.Length, "file", fileName)
+        {
+            Headers = new HeaderDictionary(),
+            ContentType = "application/json"
+        };
+
+        return file;
+    }
+
+    #endregion
 }
+
