@@ -400,6 +400,73 @@ public class AutomatonPresetService(
 
         // Add nondeterministic transitions (including possibly epsilon-based nondeterminism)
         logger.LogInformation("Generated ε-NFA is deterministic, adding nondeterministic transitions");
-        return AddNondeterministicTransitions(baseEnfa, seed);
+        var result = AddNondeterministicTransitions(baseEnfa, seed);
+        
+        // GUARANTEE: If still not nondeterministic after AddNondeterministicTransitions, force add one
+        if (!IsNondeterministic(result))
+        {
+            logger.LogWarning("Failed to add nondeterministic transitions via random method, forcing one guaranteed nondeterministic transition");
+            result = ForceNondeterministicTransition(result, seed);
+        }
+        
+        return result;
+    }
+    
+    private AutomatonViewModel ForceNondeterministicTransition(AutomatonViewModel automaton, int? seed)
+    {
+        var random = seed.HasValue ? new Random(seed.Value) : new Random();
+        
+        // Get alphabet (non-epsilon symbols)
+        var alphabet = automaton.Transitions
+            .Where(t => t.Symbol != '\0')
+            .Select(t => t.Symbol)
+            .Distinct()
+            .ToList();
+        
+        if (alphabet.Count == 0 || automaton.States.Count < 2)
+        {
+            logger.LogWarning("Cannot force nondeterministic transition - insufficient alphabet or states");
+            return automaton;
+        }
+        
+        // Strategy 1: Find an existing transition and duplicate it to a different target
+        var existingTransitions = automaton.Transitions.Where(t => t.Symbol != '\0').ToList();
+        if (existingTransitions.Any())
+        {
+            var baseTransition = existingTransitions[random.Next(existingTransitions.Count)];
+            var otherStates = automaton.States.Where(s => s.Id != baseTransition.ToStateId).ToList();
+            
+            if (otherStates.Any())
+            {
+                var newTarget = otherStates[random.Next(otherStates.Count)];
+                automaton.Transitions.Add(new Transition
+                {
+                    FromStateId = baseTransition.FromStateId,
+                    ToStateId = newTarget.Id,
+                    Symbol = baseTransition.Symbol
+                });
+                
+                logger.LogInformation("Force-added nondeterministic transition: q{From} --{Symbol}--> q{To}",
+                    baseTransition.FromStateId, baseTransition.Symbol, newTarget.Id);
+                return automaton;
+            }
+        }
+        
+        // Strategy 2: Create a new transition from any state on any symbol to create nondeterminism
+        var fromState = automaton.States[random.Next(automaton.States.Count)];
+        var symbol = alphabet[random.Next(alphabet.Count)];
+        var toState = automaton.States[random.Next(automaton.States.Count)];
+        
+        automaton.Transitions.Add(new Transition
+        {
+            FromStateId = fromState.Id,
+            ToStateId = toState.Id,
+            Symbol = symbol
+        });
+        
+        logger.LogInformation("Force-added nondeterministic transition: q{From} --{Symbol}--> q{To}",
+            fromState.Id, symbol, toState.Id);
+        
+        return automaton;
     }
 }
