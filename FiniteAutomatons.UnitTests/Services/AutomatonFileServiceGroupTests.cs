@@ -566,4 +566,508 @@ public class AutomatonFileServiceGroupTests
     }
 
     #endregion
+
+    #region ExportGroup SaveMode Integration Tests
+
+    [Fact]
+    public void ExportGroup_MixedSaveModes_ExportsCorrectly()
+    {
+        var svc = Create();
+
+        var execState1 = new SavedExecutionStateDto
+        {
+            Input = "test1",
+            Position = 2,
+            CurrentStateId = 1,
+            IsAccepted = true,
+            StateHistorySerialized = "[1]"
+        };
+
+        var execState2 = new SavedExecutionStateDto
+        {
+            Input = "test2",
+            Position = 0,
+            CurrentStateId = null,
+            IsAccepted = null,
+            StateHistorySerialized = string.Empty
+        };
+
+        var automatons = new List<SavedAutomaton>
+        {
+            // Structure only
+            new()
+            {
+                Id = 1,
+                Name = "StructureOnly",
+                ContentJson = JsonSerializer.Serialize(new AutomatonPayloadDto
+                {
+                    Type = AutomatonType.DFA,
+                    States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
+                    Transitions = []
+                }),
+                SaveMode = AutomatonSaveMode.Structure,
+                ExecutionStateJson = null
+            },
+            // With input
+            new()
+            {
+                Id = 2,
+                Name = "WithInput",
+                ContentJson = JsonSerializer.Serialize(new AutomatonPayloadDto
+                {
+                    Type = AutomatonType.DFA,
+                    States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
+                    Transitions = []
+                }),
+                SaveMode = AutomatonSaveMode.WithInput,
+                ExecutionStateJson = JsonSerializer.Serialize(execState2)
+            },
+            // With state
+            new()
+            {
+                Id = 3,
+                Name = "WithState",
+                ContentJson = JsonSerializer.Serialize(new AutomatonPayloadDto
+                {
+                    Type = AutomatonType.DFA,
+                    States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
+                    Transitions = []
+                }),
+                SaveMode = AutomatonSaveMode.WithState,
+                ExecutionStateJson = JsonSerializer.Serialize(execState1)
+            }
+        };
+
+        var (_, content) = svc.ExportGroup("Mixed Group", null, automatons);
+
+        var exported = JsonSerializer.Deserialize<GroupExportDto>(content);
+        exported.ShouldNotBeNull();
+        exported!.Automatons.Count.ShouldBe(3);
+
+        // Structure only - no execution state
+        exported.Automatons[0].Name.ShouldBe("StructureOnly");
+        exported.Automatons[0].HasExecutionState.ShouldBeFalse();
+        exported.Automatons[0].ExecutionState.ShouldBeNull();
+
+        // With input - has execution state with only input
+        exported.Automatons[1].Name.ShouldBe("WithInput");
+        exported.Automatons[1].HasExecutionState.ShouldBeFalse();
+        exported.Automatons[1].ExecutionState.ShouldNotBeNull();
+        exported.Automatons[1].ExecutionState!.Input.ShouldBe("test2");
+        exported.Automatons[1].ExecutionState!.Position.ShouldBe(0);
+        exported.Automatons[1].ExecutionState!.CurrentStateId.ShouldBeNull();
+        exported.Automatons[1].ExecutionState!.IsAccepted.ShouldBeNull();
+
+        // With state - has full execution state
+        exported.Automatons[2].Name.ShouldBe("WithState");
+        exported.Automatons[2].HasExecutionState.ShouldBeTrue();
+        exported.Automatons[2].ExecutionState.ShouldNotBeNull();
+        exported.Automatons[2].ExecutionState!.Input.ShouldBe("test1");
+        exported.Automatons[2].ExecutionState!.Position.ShouldBe(2);
+        exported.Automatons[2].ExecutionState!.CurrentStateId.ShouldBe(1);
+        exported.Automatons[2].ExecutionState!.IsAccepted.ShouldBe(true);
+    }
+
+    [Fact]
+    public void ExportGroup_AllStructureMode_NoExecutionState()
+    {
+        var svc = Create();
+
+        var automatons = new List<SavedAutomaton>
+        {
+            new()
+            {
+                Id = 1,
+                Name = "Auto1",
+                ContentJson = JsonSerializer.Serialize(new AutomatonPayloadDto
+                {
+                    Type = AutomatonType.DFA,
+                    States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
+                    Transitions = []
+                }),
+                SaveMode = AutomatonSaveMode.Structure
+            },
+            new()
+            {
+                Id = 2,
+                Name = "Auto2",
+                ContentJson = JsonSerializer.Serialize(new AutomatonPayloadDto
+                {
+                    Type = AutomatonType.NFA,
+                    States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
+                    Transitions = []
+                }),
+                SaveMode = AutomatonSaveMode.Structure
+            }
+        };
+
+        var (_, content) = svc.ExportGroup("Structure Group", null, automatons);
+
+        var exported = JsonSerializer.Deserialize<GroupExportDto>(content);
+        exported!.Automatons.All(a => !a.HasExecutionState).ShouldBeTrue();
+        exported.Automatons.All(a => a.ExecutionState == null).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void ExportGroup_AllWithInputMode_ExportsOnlyInput()
+    {
+        var svc = Create();
+
+        var execState = new SavedExecutionStateDto
+        {
+            Input = "abc",
+            Position = 3,
+            CurrentStateId = 1,
+            IsAccepted = false,
+            StateHistorySerialized = "[1,1,1]"
+        };
+
+        var automatons = new List<SavedAutomaton>
+        {
+            new()
+            {
+                Id = 1,
+                Name = "Input1",
+                ContentJson = JsonSerializer.Serialize(new AutomatonPayloadDto
+                {
+                    Type = AutomatonType.DFA,
+                    States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
+                    Transitions = []
+                }),
+                SaveMode = AutomatonSaveMode.WithInput,
+                ExecutionStateJson = JsonSerializer.Serialize(execState)
+            }
+        };
+
+        var (_, content) = svc.ExportGroup("Input Group", null, automatons);
+
+        var exported = JsonSerializer.Deserialize<GroupExportDto>(content);
+        exported!.Automatons[0].HasExecutionState.ShouldBeFalse();
+        exported.Automatons[0].ExecutionState.ShouldNotBeNull();
+        exported.Automatons[0].ExecutionState!.Input.ShouldBe("abc");
+        exported.Automatons[0].ExecutionState!.Position.ShouldBe(0);
+        exported.Automatons[0].ExecutionState!.CurrentStateId.ShouldBeNull();
+        exported.Automatons[0].ExecutionState!.StateHistorySerialized.ShouldBe(string.Empty);
+    }
+
+    [Fact]
+    public void ExportGroup_AllWithStateMode_ExportsFullState()
+    {
+        var svc = Create();
+
+        var execState1 = new SavedExecutionStateDto
+        {
+            Input = "test1",
+            Position = 1,
+            CurrentStateId = 1,
+            IsAccepted = true,
+            StateHistorySerialized = "[1]",
+            StackSerialized = null
+        };
+
+        var execState2 = new SavedExecutionStateDto
+        {
+            Input = "test2",
+            Position = 2,
+            CurrentStateId = 2,
+            IsAccepted = false,
+            StateHistorySerialized = "[1,2]",
+            StackSerialized = "#AB"
+        };
+
+        var automatons = new List<SavedAutomaton>
+        {
+            new()
+            {
+                Id = 1,
+                Name = "State1",
+                ContentJson = JsonSerializer.Serialize(new AutomatonPayloadDto
+                {
+                    Type = AutomatonType.DFA,
+                    States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
+                    Transitions = []
+                }),
+                SaveMode = AutomatonSaveMode.WithState,
+                ExecutionStateJson = JsonSerializer.Serialize(execState1)
+            },
+            new()
+            {
+                Id = 2,
+                Name = "State2",
+                ContentJson = JsonSerializer.Serialize(new AutomatonPayloadDto
+                {
+                    Type = AutomatonType.PDA,
+                    States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
+                    Transitions = []
+                }),
+                SaveMode = AutomatonSaveMode.WithState,
+                ExecutionStateJson = JsonSerializer.Serialize(execState2)
+            }
+        };
+
+        var (_, content) = svc.ExportGroup("State Group", null, automatons);
+
+        var exported = JsonSerializer.Deserialize<GroupExportDto>(content);
+        exported!.Automatons.All(a => a.HasExecutionState).ShouldBeTrue();
+
+        exported.Automatons[0].ExecutionState!.Input.ShouldBe("test1");
+        exported.Automatons[0].ExecutionState!.Position.ShouldBe(1);
+        exported.Automatons[0].ExecutionState!.CurrentStateId.ShouldBe(1);
+        exported.Automatons[0].ExecutionState!.IsAccepted.ShouldBe(true);
+
+        exported.Automatons[1].ExecutionState!.Input.ShouldBe("test2");
+        exported.Automatons[1].ExecutionState!.Position.ShouldBe(2);
+        exported.Automatons[1].ExecutionState!.StackSerialized.ShouldBe("#AB");
+    }
+
+    [Fact]
+    public void ExportGroup_WithInputMode_ClearsExecutionFields()
+    {
+        var svc = Create();
+
+        var fullExecState = new SavedExecutionStateDto
+        {
+            Input = "input123",
+            Position = 5,
+            CurrentStateId = 3,
+            CurrentStates = [1, 2, 3],
+            IsAccepted = true,
+            StateHistorySerialized = "[1,2,3]",
+            StackSerialized = "#XYZ"
+        };
+
+        var automatons = new List<SavedAutomaton>
+        {
+            new()
+            {
+                Id = 1,
+                Name = "ClearState",
+                ContentJson = JsonSerializer.Serialize(new AutomatonPayloadDto
+                {
+                    Type = AutomatonType.PDA,
+                    States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
+                    Transitions = []
+                }),
+                SaveMode = AutomatonSaveMode.WithInput,
+                ExecutionStateJson = JsonSerializer.Serialize(fullExecState)
+            }
+        };
+
+        var (_, content) = svc.ExportGroup("Clear Group", null, automatons);
+
+        var exported = JsonSerializer.Deserialize<GroupExportDto>(content);
+        var execState = exported!.Automatons[0].ExecutionState!;
+
+        execState.Input.ShouldBe("input123");
+        execState.Position.ShouldBe(0);
+        execState.CurrentStateId.ShouldBeNull();
+        execState.CurrentStates.ShouldBeNull();
+        execState.IsAccepted.ShouldBeNull();
+        execState.StateHistorySerialized.ShouldBe(string.Empty);
+        execState.StackSerialized.ShouldBeNull();
+    }
+
+    [Fact]
+    public void ExportGroup_StructureMode_WithExecutionStateJson_IgnoresIt()
+    {
+        var svc = Create();
+
+        var execState = new SavedExecutionStateDto
+        {
+            Input = "shouldnotappear",
+            Position = 1,
+            CurrentStateId = 1
+        };
+
+        var automatons = new List<SavedAutomaton>
+        {
+            new()
+            {
+                Id = 1,
+                Name = "IgnoreExec",
+                ContentJson = JsonSerializer.Serialize(new AutomatonPayloadDto
+                {
+                    Type = AutomatonType.DFA,
+                    States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
+                    Transitions = []
+                }),
+                SaveMode = AutomatonSaveMode.Structure,
+                ExecutionStateJson = JsonSerializer.Serialize(execState)
+            }
+        };
+
+        var (_, content) = svc.ExportGroup("Ignore Group", null, automatons);
+
+        var exported = JsonSerializer.Deserialize<GroupExportDto>(content);
+        exported!.Automatons[0].ExecutionState.ShouldBeNull();
+    }
+
+    [Fact]
+    public void ExportGroup_EmptyInput_WithInputMode_ExportsEmptyString()
+    {
+        var svc = Create();
+
+        var execState = new SavedExecutionStateDto
+        {
+            Input = string.Empty,
+            Position = 0,
+            CurrentStateId = null
+        };
+
+        var automatons = new List<SavedAutomaton>
+        {
+            new()
+            {
+                Id = 1,
+                Name = "EmptyInput",
+                ContentJson = JsonSerializer.Serialize(new AutomatonPayloadDto
+                {
+                    Type = AutomatonType.DFA,
+                    States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
+                    Transitions = []
+                }),
+                SaveMode = AutomatonSaveMode.WithInput,
+                ExecutionStateJson = JsonSerializer.Serialize(execState)
+            }
+        };
+
+        var (_, content) = svc.ExportGroup("Empty Input Group", null, automatons);
+
+        var exported = JsonSerializer.Deserialize<GroupExportDto>(content);
+        exported!.Automatons[0].ExecutionState.ShouldNotBeNull();
+        exported.Automatons[0].ExecutionState!.Input.ShouldBe(string.Empty);
+    }
+
+    [Fact]
+    public void ExportGroup_InvalidExecutionStateJson_HandlesGracefully()
+    {
+        var svc = Create();
+
+        var automatons = new List<SavedAutomaton>
+        {
+            new()
+            {
+                Id = 1,
+                Name = "InvalidJson",
+                ContentJson = JsonSerializer.Serialize(new AutomatonPayloadDto
+                {
+                    Type = AutomatonType.DFA,
+                    States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
+                    Transitions = []
+                }),
+                SaveMode = AutomatonSaveMode.WithInput,
+                ExecutionStateJson = "invalid json {"
+            }
+        };
+
+        var (_, content) = svc.ExportGroup("Invalid Group", null, automatons);
+
+        var exported = JsonSerializer.Deserialize<GroupExportDto>(content);
+        exported!.Automatons[0].ExecutionState.ShouldBeNull();
+    }
+
+    [Fact]
+    public void ExportGroup_NullCurrentStates_WithStateMode_ExportsCorrectly()
+    {
+        var svc = Create();
+
+        var execState = new SavedExecutionStateDto
+        {
+            Input = "test",
+            Position = 1,
+            CurrentStateId = 1,
+            CurrentStates = null,
+            IsAccepted = false,
+            StateHistorySerialized = "[1]"
+        };
+
+        var automatons = new List<SavedAutomaton>
+        {
+            new()
+            {
+                Id = 1,
+                Name = "NullStates",
+                ContentJson = JsonSerializer.Serialize(new AutomatonPayloadDto
+                {
+                    Type = AutomatonType.DFA,
+                    States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
+                    Transitions = []
+                }),
+                SaveMode = AutomatonSaveMode.WithState,
+                ExecutionStateJson = JsonSerializer.Serialize(execState)
+            }
+        };
+
+        var (_, content) = svc.ExportGroup("Null States Group", null, automatons);
+
+        var exported = JsonSerializer.Deserialize<GroupExportDto>(content);
+        exported!.Automatons[0].ExecutionState.ShouldNotBeNull();
+        exported.Automatons[0].ExecutionState!.CurrentStates.ShouldBeNull();
+        exported.Automatons[0].ExecutionState!.Position.ShouldBe(1);
+    }
+
+    [Fact]
+    public void ExportGroup_LargeGroup_AllSaveModes_ProcessesCorrectly()
+    {
+        var svc = Create();
+
+        var automatons = new List<SavedAutomaton>();
+        for (int i = 0; i < 10; i++)
+        {
+            var saveMode = (AutomatonSaveMode)(i % 3);
+            var execState = saveMode >= AutomatonSaveMode.WithInput
+                ? JsonSerializer.Serialize(new SavedExecutionStateDto
+                {
+                    Input = $"input{i}",
+                    Position = i,
+                    CurrentStateId = 1,
+                    IsAccepted = i % 2 == 0
+                })
+                : null;
+
+            automatons.Add(new SavedAutomaton
+            {
+                Id = i,
+                Name = $"Auto{i}",
+                ContentJson = JsonSerializer.Serialize(new AutomatonPayloadDto
+                {
+                    Type = AutomatonType.DFA,
+                    States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
+                    Transitions = []
+                }),
+                SaveMode = saveMode,
+                ExecutionStateJson = execState
+            });
+        }
+
+        var (_, content) = svc.ExportGroup("Large Group", "Testing large export", automatons);
+
+        var exported = JsonSerializer.Deserialize<GroupExportDto>(content);
+        exported!.Automatons.Count.ShouldBe(10);
+
+        // Verify structure automatons
+        foreach (var auto in exported.Automatons.Where(a => a.Name!.Contains("0") || a.Name!.Contains("3") || a.Name!.Contains("6") || a.Name!.Contains("9")))
+        {
+            auto.ExecutionState.ShouldBeNull();
+        }
+
+        // Verify input automatons
+        foreach (var auto in exported.Automatons.Where(a => a.Name!.Contains("1") || a.Name!.Contains("4") || a.Name!.Contains("7")))
+        {
+            auto.ExecutionState.ShouldNotBeNull();
+            auto.ExecutionState!.Position.ShouldBe(0);
+            auto.ExecutionState!.CurrentStateId.ShouldBeNull();
+        }
+
+        // Verify state automatons  
+        foreach (var auto in exported.Automatons.Where(a => a.Name!.Contains("2") || a.Name!.Contains("5") || a.Name!.Contains("8")))
+        {
+            auto.HasExecutionState.ShouldBeTrue();
+            auto.ExecutionState.ShouldNotBeNull();
+            auto.ExecutionState!.Position.ShouldBeGreaterThan(0);
+        }
+    }
+
+    #endregion
 }
+

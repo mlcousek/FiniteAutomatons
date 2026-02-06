@@ -203,25 +203,49 @@
 
     <!-- Export Modal (single instance) -->
     <div class="modal fade" id="exportModal" tabindex="-1" aria-labelledby="exportModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
                 <div class="modal-header py-3 px-4">
                     <h5 class="modal-title mb-0" id="exportModalLabel">Export Automaton</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body py-4 px-4">
-                    <p class="mb-3">Select the format to export <strong id="exportAutomatonName"></strong>:</p>
+                    <p class="mb-3">Export <strong id="exportAutomatonName"></strong>:</p>
                     <input type="hidden" id="exportAutomatonId" value="" />
-                    <div class="d-grid gap-2">
-                        <button type="button" class="btn btn-outline-primary" onclick="exportSavedAutomaton('json')">
-                            <i class="fas fa-code"></i> JSON Format
-                        </button>
-                        <button type="button" class="btn btn-outline-primary" onclick="exportSavedAutomaton('txt')">
-                            <i class="fas fa-file-alt"></i> Text Format
-                        </button>
-                        <button type="button" class="btn btn-outline-primary" onclick="exportSavedAutomaton('custom')">
-                            <i class="fas fa-file-code"></i> Custom Format
-                        </button>
+                    
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <h6 class="mb-2">Structure Only</h6>
+                            <p class="text-muted small">Export automaton structure (states and transitions)</p>
+                            <div class="d-grid gap-2">
+                                <button type="button" class="btn btn-outline-primary" onclick="exportSavedAutomaton('json', 'structure')">
+                                    <i class="fas fa-code"></i> JSON Format
+                                </button>
+                                <button type="button" class="btn btn-outline-primary" onclick="exportSavedAutomaton('txt', 'structure')">
+                                    <i class="fas fa-file-alt"></i> Text Format
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h6 class="mb-2">With Input</h6>
+                            <p class="text-muted small">Export structure + input string (no execution state)</p>
+                            <div class="d-grid gap-2">
+                                <button type="button" class="btn btn-outline-info" onclick="exportSavedAutomaton('json', 'input')">
+                                    <i class="fas fa-keyboard"></i> Export with Input
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="col-12 mt-4">
+                            <h6 class="mb-2">Full Execution State</h6>
+                            <p class="text-muted small">Export everything (structure, input, position, current states, history)</p>
+                            <div class="d-grid">
+                                <button type="button" class="btn btn-outline-success" onclick="exportSavedAutomaton('json', 'state')">
+                                    <i class="fas fa-save"></i> Export Full State
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer py-3 px-4">
@@ -305,7 +329,7 @@
     })();
 
     // Export function
-    function exportSavedAutomaton(format) {
+    function exportSavedAutomaton(format, mode) {
         var automatonId = document.getElementById('exportAutomatonId').value;
         if (!automatonId) {
             alert('No automaton selected');
@@ -316,8 +340,9 @@
         var modal = bootstrap.Modal.getInstance(document.getElementById('exportModal'));
         if (modal) modal.hide();
         
-        // Redirect to export endpoint with the saved automaton ID
-        var url = '@Url.Action("ExportSaved", "ImportExport")?id=' + automatonId + '&format=' + format;
+        // Redirect to export endpoint with the saved automaton ID, format, and mode
+        var url = '@Url.Action("ExportSaved", "ImportExport")?id=' + automatonId + '&format=' + format + '&mode=' + mode;
         window.location.href = url;
     }
 </script>
+

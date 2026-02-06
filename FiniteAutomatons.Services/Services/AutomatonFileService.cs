@@ -201,18 +201,42 @@ public class AutomatonFileService(ILogger<AutomatonFileService> logger) : IAutom
                     content = new AutomatonPayloadDto();
                 }
 
-                var hasExecutionState = a.SaveMode == AutomatonSaveMode.WithState;
-                if (hasExecutionState && !string.IsNullOrEmpty(a.ExecutionStateJson))
+                // Handle execution state based on SaveMode
+                if (a.SaveMode >= AutomatonSaveMode.WithInput && !string.IsNullOrEmpty(a.ExecutionStateJson))
                 {
                     try
                     {
-                        execState = JsonSerializer.Deserialize<SavedExecutionStateDto>(a.ExecutionStateJson);
+                        var fullExecState = JsonSerializer.Deserialize<SavedExecutionStateDto>(a.ExecutionStateJson);
+                        if (fullExecState != null)
+                        {
+                            if (a.SaveMode == AutomatonSaveMode.WithInput)
+                            {
+                                // Export only input, clear execution state
+                                execState = new SavedExecutionStateDto
+                                {
+                                    Input = fullExecState.Input,
+                                    Position = 0,
+                                    CurrentStateId = null,
+                                    CurrentStates = null,
+                                    IsAccepted = null,
+                                    StateHistorySerialized = string.Empty,
+                                    StackSerialized = null
+                                };
+                            }
+                            else if (a.SaveMode == AutomatonSaveMode.WithState)
+                            {
+                                // Export full execution state
+                                execState = fullExecState;
+                            }
+                        }
                     }
                     catch (Exception ex)
                     {
                         logger.LogWarning(ex, "Failed to deserialize execution state for automaton {Id}", a.Id);
                     }
                 }
+
+                var hasExecutionState = a.SaveMode == AutomatonSaveMode.WithState;
 
                 return new AutomatonExportItemDto
                 {

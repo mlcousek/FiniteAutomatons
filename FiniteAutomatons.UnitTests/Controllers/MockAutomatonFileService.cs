@@ -17,19 +17,31 @@ public class MockAutomatonFileService : IAutomatonFileService
         => Task.FromResult<(bool, AutomatonViewModel?, string?)>((false, null, "Not implemented in mock"));
 
     public (string FileName, string Content) ExportJson(AutomatonViewModel model)
-        => ("test.json", "{}");
+    {
+        var json = JsonSerializer.Serialize(model, new JsonSerializerOptions { WriteIndented = true });
+        return ("test.json", json);
+    }
 
     public (string FileName, string Content) ExportText(AutomatonViewModel model)
         => ("test.txt", string.Empty);
 
     public (string FileName, string Content) ExportJsonWithState(AutomatonViewModel model)
-        => ("test-withstate.json", "{}");
+    {
+        var json = JsonSerializer.Serialize(model, new JsonSerializerOptions { WriteIndented = true });
+        return ("test-withstate.json", json);
+    }
 
     public (string FileName, string Content) ExportWithInput(AutomatonViewModel model)
-        => ("test-withinput.json", "{}");
+    {
+        var json = JsonSerializer.Serialize(model, new JsonSerializerOptions { WriteIndented = true });
+        return ("test-withinput.json", json);
+    }
 
     public (string FileName, string Content) ExportWithExecutionState(AutomatonViewModel model)
-        => ("test-execution.json", "{}");
+    {
+        var json = JsonSerializer.Serialize(model, new JsonSerializerOptions { WriteIndented = true });
+        return ("test-execution.json", json);
+    }
 
     public (string FileName, string Content) ExportGroup(string groupName, string? groupDescription, List<SavedAutomaton> automatons)
     {

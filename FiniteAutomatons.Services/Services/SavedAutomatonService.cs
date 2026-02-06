@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.Database;
+﻿using FiniteAutomatons.Core.Models.Database;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Data;
 using FiniteAutomatons.Services.Interfaces;

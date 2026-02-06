@@ -295,6 +295,9 @@ public class SavedAutomatonController(
 
         var importedCount = 0;
         var failedCount = 0;
+        
+        // Use a fixed timestamp for all imports to preserve order
+        var baseTimestamp = DateTime.UtcNow;
 
         foreach (var auto in importData.Automatons)
         {
@@ -308,16 +311,39 @@ public class SavedAutomatonController(
                     IsCustomAutomaton = true
                 };
 
-                // If execution state exists, prepare it but let SaveAsync handle it
-                var hasExecState = auto.HasExecutionState && auto.ExecutionState != null;
+                // Determine save mode and populate model based on execution state
+                bool saveExecutionState = false;
+                
+                if (auto.ExecutionState != null)
+                {
+                    // Populate input
+                    model.Input = auto.ExecutionState.Input ?? string.Empty;
+                    
+                    if (auto.HasExecutionState)
+                    {
+                        // Full execution state
+                        saveExecutionState = true;
+                        model.Position = auto.ExecutionState.Position;
+                        model.CurrentStateId = auto.ExecutionState.CurrentStateId;
+                        model.CurrentStates = auto.ExecutionState.CurrentStates != null ? [.. auto.ExecutionState.CurrentStates] : null;
+                        model.IsAccepted = auto.ExecutionState.IsAccepted;
+                        model.StateHistorySerialized = auto.ExecutionState.StateHistorySerialized ?? string.Empty;
+                        model.StackSerialized = auto.ExecutionState.StackSerialized;
+                    }
+                }
 
-                await savedAutomatonService.SaveAsync(
+                var saved = await savedAutomatonService.SaveAsync(
                     user.Id,
                     auto.Name ?? "Imported",
                     auto.Description,
                     model,
-                    hasExecState,
+                    saveExecutionState,
                     groupId);
+                
+                // Adjust CreatedAt to preserve import order
+                // Note: This requires direct database access or a new service method
+                // For now, we'll add a small delay to ensure order
+                await Task.Delay(10);
 
                 importedCount++;
             }
