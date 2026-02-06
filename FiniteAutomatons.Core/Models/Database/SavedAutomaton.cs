@@ -9,7 +9,12 @@ public class SavedAutomaton
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
     public string ContentJson { get; set; } = string.Empty; // serialized automaton (domain-focused JSON)
-    public bool HasExecutionState { get; set; } = false;
+
+    /// <summary>
+    /// Indicates what data was saved with this automaton (structure only, with input, or with full execution state).
+    /// </summary>
+    public AutomatonSaveMode SaveMode { get; set; } = AutomatonSaveMode.Structure;
+
     public string? ExecutionStateJson { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public List<SavedAutomatonGroupAssignment> Assignments { get; set; } = [];
@@ -17,27 +22,7 @@ public class SavedAutomaton
     /// <summary>
     /// Checks if this automaton was saved with input (either just input or with execution state).
     /// </summary>
-    public bool HasInput()
-    {
-        if (string.IsNullOrEmpty(ExecutionStateJson))
-            return false;
-
-        try
-        {
-            using var doc = System.Text.Json.JsonDocument.Parse(ExecutionStateJson);
-            if (doc.RootElement.TryGetProperty("Input", out var inputProp))
-            {
-                var input = inputProp.GetString();
-                return !string.IsNullOrEmpty(input);
-            }
-        }
-        catch
-        {
-            // If parsing fails, assume no input
-        }
-
-        return false;
-    }
+    public bool HasInput() => SaveMode >= AutomatonSaveMode.WithInput;
 }
 
 

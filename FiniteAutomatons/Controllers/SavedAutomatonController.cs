@@ -1,4 +1,5 @@
-﻿using FiniteAutomatons.Core.Models.DTOs;
+﻿using FiniteAutomatons.Core.Models.Database;
+using FiniteAutomatons.Core.Models.DTOs;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -149,7 +150,7 @@ public class SavedAutomatonController(
         {
             var payload = JsonSerializer.Deserialize<AutomatonPayloadDto>(entity.ContentJson);
             if (payload == null) return NotFound();
-            
+
             var model = new AutomatonViewModel
             {
                 Type = payload.Type,
@@ -170,7 +171,7 @@ public class SavedAutomatonController(
                         model.Input = exec.Input ?? string.Empty;
 
                         // Load execution state only for "state" mode
-                        if (mode == "state" && entity.HasExecutionState)
+                        if (mode == "state" && entity.SaveMode == AutomatonSaveMode.WithState)
                         {
                             model.Position = exec.Position;
                             model.CurrentStateId = exec.CurrentStateId;

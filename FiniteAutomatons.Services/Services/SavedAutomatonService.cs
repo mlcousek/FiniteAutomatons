@@ -51,9 +51,12 @@ public class SavedAutomatonService(ILogger<SavedAutomatonService> logger, Applic
         }, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
 
         string? execJson = null;
+        AutomatonSaveMode saveMode = AutomatonSaveMode.Structure;
+
         if (saveExecutionState)
         {
-            // capture relevant execution state fields
+            // Full execution state saved
+            saveMode = AutomatonSaveMode.WithState;
             var exec = new SavedExecutionStateDto
             {
                 Input = model.Input,
@@ -66,6 +69,22 @@ public class SavedAutomatonService(ILogger<SavedAutomatonService> logger, Applic
             };
             execJson = System.Text.Json.JsonSerializer.Serialize(exec, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
         }
+        else if (!string.IsNullOrEmpty(model.Input))
+        {
+            // Only input saved (no execution state)
+            saveMode = AutomatonSaveMode.WithInput;
+            var exec = new SavedExecutionStateDto
+            {
+                Input = model.Input,
+                Position = 0,
+                CurrentStateId = null,
+                CurrentStates = null,
+                IsAccepted = null,
+                StateHistorySerialized = string.Empty,
+                StackSerialized = null
+            };
+            execJson = System.Text.Json.JsonSerializer.Serialize(exec, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+        }
 
         var entity = new SavedAutomaton
         {
@@ -73,7 +92,7 @@ public class SavedAutomatonService(ILogger<SavedAutomatonService> logger, Applic
             Name = name,
             Description = description,
             ContentJson = payload,
-            HasExecutionState = saveExecutionState,
+            SaveMode = saveMode,
             ExecutionStateJson = execJson,
             CreatedAt = DateTime.UtcNow,
         };
@@ -90,7 +109,7 @@ public class SavedAutomatonService(ILogger<SavedAutomatonService> logger, Applic
                 await db.SaveChangesAsync();
             }
         }
-        logger.LogInformation("Saved automaton {Id} for user {User} (withState={HasState})", entity.Id, userId, saveExecutionState);
+        logger.LogInformation("Saved automaton {Id} for user {User} (saveMode={SaveMode})", entity.Id, userId, saveMode);
         return entity;
     }
 
@@ -114,12 +133,12 @@ public class SavedAutomatonService(ILogger<SavedAutomatonService> logger, Applic
             .Include(s => s.Assignments)
             .ThenInclude(a => a.Group)
             .Where(s => s.UserId == userId);
-        
+
         if (groupId.HasValue)
         {
             q = q.Where(s => s.Assignments.Any(a => a.GroupId == groupId.Value));
         }
-        
+
         return await q.OrderByDescending(s => s.CreatedAt).ToListAsync();
     }
 
@@ -210,7 +229,7 @@ public class SavedAutomatonService(ILogger<SavedAutomatonService> logger, Applic
     {
         var entity = await db.SavedAutomatons.FirstOrDefaultAsync(s => s.Id == automatonId && s.UserId == userId);
         if (entity == null) throw new InvalidOperationException("Automaton not found or access denied.");
-        
+
         if (!groupId.HasValue)
         {
             var assigns = await db.SavedAutomatonGroupAssignments.Where(a => a.AutomatonId == automatonId).ToListAsync();

@@ -44,7 +44,7 @@ public class AutomatonFileServiceGroupTests
                     States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
                     Transitions = [new() { FromStateId = 1, ToStateId = 1, Symbol = 'a' }]
                 }),
-                HasExecutionState = false,
+                SaveMode = AutomatonSaveMode.Structure,
                 ExecutionStateJson = null
             }
         };
@@ -110,7 +110,7 @@ public class AutomatonFileServiceGroupTests
                     States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
                     Transitions = []
                 }),
-                HasExecutionState = false
+                SaveMode = AutomatonSaveMode.Structure
             },
             new()
             {
@@ -122,7 +122,7 @@ public class AutomatonFileServiceGroupTests
                     States = [new() { Id = 1, IsStart = true, IsAccepting = false }],
                     Transitions = []
                 }),
-                HasExecutionState = false
+                SaveMode = AutomatonSaveMode.Structure
             }
         };
 
@@ -158,7 +158,7 @@ public class AutomatonFileServiceGroupTests
                     States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
                     Transitions = []
                 }),
-                HasExecutionState = true,
+                SaveMode = AutomatonSaveMode.WithState,
                 ExecutionStateJson = JsonSerializer.Serialize(execState)
             }
         };
@@ -183,7 +183,7 @@ public class AutomatonFileServiceGroupTests
                 Id = 1,
                 Name = "Invalid",
                 ContentJson = "not valid json",
-                HasExecutionState = false
+                SaveMode = AutomatonSaveMode.Structure
             }
         };
 
@@ -218,7 +218,7 @@ public class AutomatonFileServiceGroupTests
                 Id = 1,
                 Name = "Test",
                 ContentJson = JsonSerializer.Serialize(new AutomatonPayloadDto()),
-                HasExecutionState = false
+                SaveMode = AutomatonSaveMode.Structure
             }
         };
 
@@ -486,7 +486,7 @@ public class AutomatonFileServiceGroupTests
                         new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' }
                     ]
                 }),
-                HasExecutionState = false
+                SaveMode = AutomatonSaveMode.Structure
             }
         };
 
@@ -529,7 +529,7 @@ public class AutomatonFileServiceGroupTests
                     States = [new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true }],
                     Transitions = [new() { FromStateId = 1, ToStateId = 2, Symbol = 't' }]
                 }),
-                HasExecutionState = true,
+                SaveMode = AutomatonSaveMode.WithState,
                 ExecutionStateJson = JsonSerializer.Serialize(execState)
             }
         };
@@ -561,7 +561,7 @@ public class AutomatonFileServiceGroupTests
                 States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
                 Transitions = []
             }),
-            HasExecutionState = false
+            SaveMode = AutomatonSaveMode.Structure
         };
     }
 

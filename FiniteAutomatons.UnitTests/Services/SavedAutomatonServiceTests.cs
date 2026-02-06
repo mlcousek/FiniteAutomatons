@@ -1,3 +1,4 @@
+using FiniteAutomatons.Core.Models.Database;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Data;
 using FiniteAutomatons.Services.Services;
@@ -36,7 +37,7 @@ public class SavedAutomatonServiceTests
         res.Id.ShouldBeGreaterThan(0);
         res.UserId.ShouldBe("user-1");
         res.Name.ShouldBe("MyAut");
-        res.HasExecutionState.ShouldBeFalse();
+        res.SaveMode.ShouldBe(AutomatonSaveMode.Structure);
         res.ContentJson.ShouldNotBeNullOrWhiteSpace();
 
         // content should be valid JSON and contain type information
@@ -66,7 +67,7 @@ public class SavedAutomatonServiceTests
 
         var res = await svc.SaveAsync("user-2", "WithState", null, model, saveExecutionState: true);
 
-        res.HasExecutionState.ShouldBeTrue();
+        res.SaveMode.ShouldBe(AutomatonSaveMode.WithState);
         res.ExecutionStateJson.ShouldNotBeNullOrWhiteSpace();
 
         // Execution JSON should deserialize and contain fields we set
@@ -693,6 +694,259 @@ public class SavedAutomatonServiceTests
         var group = await svc.CreateGroupAsync(userId, "  Trimmed  ", null);
 
         group.Name.ShouldBe("Trimmed");
+    }
+
+    #endregion
+
+    #region SaveMode Tests
+
+    [Fact]
+    public async Task SaveAsync_StructureOnly_SetsSaveModeToStructure()
+    {
+        using var db = CreateInMemoryDb("savemode_structure");
+        var svc = new SavedAutomatonService(new NullLogger<SavedAutomatonService>(), db);
+
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.DFA,
+            States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
+            Transitions = [new() { FromStateId = 1, ToStateId = 1, Symbol = 'a' }],
+            Input = string.Empty
+        };
+
+        var res = await svc.SaveAsync("user-savemode-1", "StructureOnly", null, model, saveExecutionState: false);
+
+        res.SaveMode.ShouldBe(AutomatonSaveMode.Structure);
+        res.ExecutionStateJson.ShouldBeNullOrEmpty();
+        res.HasInput().ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task SaveAsync_WithInput_SetsSaveModeToWithInput()
+    {
+        using var db = CreateInMemoryDb("savemode_withinput");
+        var svc = new SavedAutomatonService(new NullLogger<SavedAutomatonService>(), db);
+
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.DFA,
+            States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
+            Transitions = [],
+            Input = "test123"
+        };
+
+        var res = await svc.SaveAsync("user-savemode-2", "WithInput", "Only input saved", model, saveExecutionState: false);
+
+        res.SaveMode.ShouldBe(AutomatonSaveMode.WithInput);
+        res.ExecutionStateJson.ShouldNotBeNullOrWhiteSpace();
+        res.HasInput().ShouldBeTrue();
+
+        var execDoc = JsonDocument.Parse(res.ExecutionStateJson!);
+        execDoc.RootElement.GetProperty("Input").GetString().ShouldBe("test123");
+        execDoc.RootElement.GetProperty("Position").GetInt32().ShouldBe(0);
+        execDoc.RootElement.GetProperty("CurrentStateId").ValueKind.ShouldBe(JsonValueKind.Null);
+        execDoc.RootElement.GetProperty("StateHistorySerialized").GetString().ShouldBe(string.Empty);
+    }
+
+    [Fact]
+    public async Task SaveAsync_WithFullExecutionState_SetsSaveModeToWithState()
+    {
+        using var db = CreateInMemoryDb("savemode_withstate");
+        var svc = new SavedAutomatonService(new NullLogger<SavedAutomatonService>(), db);
+
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.NFA,
+            States = [
+                new() { Id = 1, IsStart = true, IsAccepting = false },
+                new() { Id = 2, IsStart = false, IsAccepting = true }
+            ],
+            Transitions = [new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' }],
+            Input = "aa",
+            Position = 2,
+            CurrentStateId = 2,
+            CurrentStates = [2],
+            IsAccepted = true,
+            StateHistorySerialized = "[1,2]",
+            StackSerialized = null
+        };
+
+        var res = await svc.SaveAsync("user-savemode-3", "WithState", "Full state saved", model, saveExecutionState: true);
+
+        res.SaveMode.ShouldBe(AutomatonSaveMode.WithState);
+        res.ExecutionStateJson.ShouldNotBeNullOrWhiteSpace();
+        res.HasInput().ShouldBeTrue();
+
+        var execDoc = JsonDocument.Parse(res.ExecutionStateJson!);
+        execDoc.RootElement.GetProperty("Input").GetString().ShouldBe("aa");
+        execDoc.RootElement.GetProperty("Position").GetInt32().ShouldBe(2);
+        execDoc.RootElement.GetProperty("CurrentStateId").GetInt32().ShouldBe(2);
+        execDoc.RootElement.GetProperty("IsAccepted").GetBoolean().ShouldBeTrue();
+        execDoc.RootElement.GetProperty("StateHistorySerialized").GetString().ShouldBe("[1,2]");
+    }
+
+    [Fact]
+    public async Task SaveAsync_WithEmptyInput_SetsSaveModeToStructure()
+    {
+        using var db = CreateInMemoryDb("savemode_emptyinput");
+        var svc = new SavedAutomatonService(new NullLogger<SavedAutomatonService>(), db);
+
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.PDA,
+            States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
+            Transitions = [],
+            Input = string.Empty
+        };
+
+        var res = await svc.SaveAsync("user-savemode-4", "EmptyInput", null, model, saveExecutionState: false);
+
+        res.SaveMode.ShouldBe(AutomatonSaveMode.Structure);
+        res.ExecutionStateJson.ShouldBeNullOrEmpty();
+    }
+
+    [Fact]
+    public async Task SaveAsync_WithWhitespaceInput_SetsSaveModeToWithInput()
+    {
+        using var db = CreateInMemoryDb("savemode_whitespace");
+        var svc = new SavedAutomatonService(new NullLogger<SavedAutomatonService>(), db);
+
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.DFA,
+            States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
+            Transitions = [],
+            Input = "   "
+        };
+
+        var res = await svc.SaveAsync("user-savemode-5", "WhitespaceInput", null, model, saveExecutionState: false);
+
+        res.SaveMode.ShouldBe(AutomatonSaveMode.WithInput);
+        res.ExecutionStateJson.ShouldNotBeNullOrWhiteSpace();
+        
+        var execDoc = JsonDocument.Parse(res.ExecutionStateJson!);
+        execDoc.RootElement.GetProperty("Input").GetString().ShouldBe("   ");
+    }
+
+    [Fact]
+    public async Task SaveAsync_WithInputButNoExecutionState_DoesNotSavePosition()
+    {
+        using var db = CreateInMemoryDb("savemode_input_no_position");
+        var svc = new SavedAutomatonService(new NullLogger<SavedAutomatonService>(), db);
+
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.DFA,
+            States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
+            Transitions = [],
+            Input = "abc",
+            Position = 5,
+            CurrentStateId = 1,
+            IsAccepted = true
+        };
+
+        var res = await svc.SaveAsync("user-savemode-6", "InputNoState", null, model, saveExecutionState: false);
+
+        res.SaveMode.ShouldBe(AutomatonSaveMode.WithInput);
+        
+        var execDoc = JsonDocument.Parse(res.ExecutionStateJson!);
+        execDoc.RootElement.GetProperty("Input").GetString().ShouldBe("abc");
+        execDoc.RootElement.GetProperty("Position").GetInt32().ShouldBe(0);
+        execDoc.RootElement.GetProperty("CurrentStateId").ValueKind.ShouldBe(JsonValueKind.Null);
+        execDoc.RootElement.GetProperty("IsAccepted").ValueKind.ShouldBe(JsonValueKind.Null);
+    }
+
+    [Fact]
+    public async Task SaveAsync_WithExecutionState_SavesAllExecutionFields()
+    {
+        using var db = CreateInMemoryDb("savemode_full_exec");
+        var svc = new SavedAutomatonService(new NullLogger<SavedAutomatonService>(), db);
+
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.PDA,
+            States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
+            Transitions = [],
+            Input = "xyz",
+            Position = 3,
+            CurrentStateId = 1,
+            CurrentStates = [1],
+            IsAccepted = false,
+            StateHistorySerialized = "[1,1,1]",
+            StackSerialized = "#ABC"
+        };
+
+        var res = await svc.SaveAsync("user-savemode-7", "FullState", null, model, saveExecutionState: true);
+
+        res.SaveMode.ShouldBe(AutomatonSaveMode.WithState);
+        
+        var execDoc = JsonDocument.Parse(res.ExecutionStateJson!);
+        execDoc.RootElement.GetProperty("Input").GetString().ShouldBe("xyz");
+        execDoc.RootElement.GetProperty("Position").GetInt32().ShouldBe(3);
+        execDoc.RootElement.GetProperty("CurrentStateId").GetInt32().ShouldBe(1);
+        execDoc.RootElement.GetProperty("IsAccepted").GetBoolean().ShouldBe(false);
+        execDoc.RootElement.GetProperty("StateHistorySerialized").GetString().ShouldBe("[1,1,1]");
+        execDoc.RootElement.GetProperty("StackSerialized").GetString().ShouldBe("#ABC");
+    }
+
+    [Fact]
+    public async Task SaveAsync_HasInput_ReturnsTrueForWithInputMode()
+    {
+        using var db = CreateInMemoryDb("savemode_hasinput_withinput");
+        var svc = new SavedAutomatonService(new NullLogger<SavedAutomatonService>(), db);
+
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.DFA,
+            States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
+            Transitions = [],
+            Input = "test"
+        };
+
+        var res = await svc.SaveAsync("user-savemode-8", "Test", null, model, saveExecutionState: false);
+
+        res.SaveMode.ShouldBe(AutomatonSaveMode.WithInput);
+        res.HasInput().ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task SaveAsync_HasInput_ReturnsTrueForWithStateMode()
+    {
+        using var db = CreateInMemoryDb("savemode_hasinput_withstate");
+        var svc = new SavedAutomatonService(new NullLogger<SavedAutomatonService>(), db);
+
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.DFA,
+            States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
+            Transitions = [],
+            Input = "test",
+            Position = 1
+        };
+
+        var res = await svc.SaveAsync("user-savemode-9", "Test", null, model, saveExecutionState: true);
+
+        res.SaveMode.ShouldBe(AutomatonSaveMode.WithState);
+        res.HasInput().ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task SaveAsync_HasInput_ReturnsFalseForStructureMode()
+    {
+        using var db = CreateInMemoryDb("savemode_hasinput_structure");
+        var svc = new SavedAutomatonService(new NullLogger<SavedAutomatonService>(), db);
+
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.DFA,
+            States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
+            Transitions = []
+        };
+
+        var res = await svc.SaveAsync("user-savemode-10", "Test", null, model, saveExecutionState: false);
+
+        res.SaveMode.ShouldBe(AutomatonSaveMode.Structure);
+        res.HasInput().ShouldBeFalse();
     }
 
     #endregion

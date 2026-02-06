@@ -1,4 +1,5 @@
-﻿using FiniteAutomatons.Core.Models.ViewModel;
+﻿using FiniteAutomatons.Core.Models.Database;
+using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -64,7 +65,8 @@ public class ImportExportController(
         if (model == null) return BadRequest("Failed to deserialize automaton");
 
         // If there's execution state and format is json, include it
-        if (saved.HasExecutionState && !string.IsNullOrEmpty(saved.ExecutionStateJson) && format == "json")
+        var hasExecutionState = saved.SaveMode == AutomatonSaveMode.WithState;
+        if (hasExecutionState && !string.IsNullOrEmpty(saved.ExecutionStateJson) && format == "json")
         {
             var execState = JsonSerializer.Deserialize<JsonElement>(saved.ExecutionStateJson);
             if (execState.ValueKind != JsonValueKind.Undefined)

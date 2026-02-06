@@ -81,7 +81,25 @@ public class AutomatonControllerSavedTests
                 IsAccepted = model.IsAccepted,
                 StateHistorySerialized = model.StateHistorySerialized,
                 StackSerialized = model.StackSerialized
-            } : null;
+            } : (!string.IsNullOrEmpty(model.Input) ? new
+            {
+                Input = model.Input,
+                Position = 0,
+                CurrentStateId = (int?)null,
+                CurrentStates = Array.Empty<int>(),
+                IsAccepted = (bool?)null,
+                StateHistorySerialized = string.Empty,
+                StackSerialized = (string?)null
+            } : null);
+
+            // Determine SaveMode
+            AutomatonSaveMode saveMode;
+            if (saveExecutionState)
+                saveMode = AutomatonSaveMode.WithState;
+            else if (!string.IsNullOrEmpty(model.Input))
+                saveMode = AutomatonSaveMode.WithInput;
+            else
+                saveMode = AutomatonSaveMode.Structure;
 
             var entity = new SavedAutomaton
             {
@@ -90,7 +108,7 @@ public class AutomatonControllerSavedTests
                 Name = name,
                 Description = description,
                 ContentJson = System.Text.Json.JsonSerializer.Serialize(contentDto),
-                HasExecutionState = saveExecutionState,
+                SaveMode = saveMode,
                 ExecutionStateJson = execDto != null ? System.Text.Json.JsonSerializer.Serialize(execDto) : null,
                 CreatedAt = DateTime.UtcNow
             };
@@ -357,7 +375,7 @@ public class AutomatonControllerSavedTests
         var list = await svc.ListForUserAsync(user.Id);
         list.Count.ShouldBe(1);
         list[0].Name.ShouldBe("name1");
-        list[0].HasExecutionState.ShouldBeTrue();
+        list[0].SaveMode.ShouldBe(AutomatonSaveMode.WithState);
     }
 
     [Fact]
@@ -385,7 +403,14 @@ public class AutomatonControllerSavedTests
             StackSerialized = "s"
         };
 
-        var entity = new SavedAutomaton { Id = 123, UserId = user.Id, ContentJson = System.Text.Json.JsonSerializer.Serialize(payload), HasExecutionState = true, ExecutionStateJson = System.Text.Json.JsonSerializer.Serialize(exec) };
+        var entity = new SavedAutomaton 
+        { 
+            Id = 123, 
+            UserId = user.Id, 
+            ContentJson = System.Text.Json.JsonSerializer.Serialize(payload), 
+            SaveMode = AutomatonSaveMode.WithState, 
+            ExecutionStateJson = System.Text.Json.JsonSerializer.Serialize(exec) 
+        };
 
         svc.Items.Add(entity);
 
@@ -736,7 +761,7 @@ public class AutomatonControllerSavedTests
             Id = 1,
             UserId = user.Id,
             ContentJson = System.Text.Json.JsonSerializer.Serialize(payload),
-            HasExecutionState = true,
+            SaveMode = AutomatonSaveMode.WithState,
             ExecutionStateJson = System.Text.Json.JsonSerializer.Serialize(exec)
         };
         svc.Items.Add(entity);
@@ -781,7 +806,7 @@ public class AutomatonControllerSavedTests
             Id = 2,
             UserId = user.Id,
             ContentJson = System.Text.Json.JsonSerializer.Serialize(payload),
-            HasExecutionState = true,
+            SaveMode = AutomatonSaveMode.WithState,
             ExecutionStateJson = System.Text.Json.JsonSerializer.Serialize(exec)
         };
         svc.Items.Add(entity);
@@ -826,7 +851,7 @@ public class AutomatonControllerSavedTests
             Id = 3,
             UserId = user.Id,
             ContentJson = System.Text.Json.JsonSerializer.Serialize(payload),
-            HasExecutionState = true,
+            SaveMode = AutomatonSaveMode.WithState,
             ExecutionStateJson = System.Text.Json.JsonSerializer.Serialize(exec)
         };
         svc.Items.Add(entity);
@@ -864,7 +889,7 @@ public class AutomatonControllerSavedTests
             Id = 4,
             UserId = user.Id,
             ContentJson = System.Text.Json.JsonSerializer.Serialize(payload),
-            HasExecutionState = false,
+            SaveMode = AutomatonSaveMode.Structure,
             ExecutionStateJson = null
         };
         svc.Items.Add(entity);
@@ -885,6 +910,7 @@ public class AutomatonControllerSavedTests
         var exec = new { Input = "test" };
         var automaton = new SavedAutomaton
         {
+            SaveMode = AutomatonSaveMode.WithInput,
             ExecutionStateJson = System.Text.Json.JsonSerializer.Serialize(exec)
         };
 
@@ -897,6 +923,7 @@ public class AutomatonControllerSavedTests
         var exec = new { Input = "" };
         var automaton = new SavedAutomaton
         {
+            SaveMode = AutomatonSaveMode.Structure, // No input saved
             ExecutionStateJson = System.Text.Json.JsonSerializer.Serialize(exec)
         };
 

@@ -201,4 +201,26 @@ public class SavedAutomatonController(
         public string? StateHistorySerialized { get; set; }
         public string? StackSerialized { get; set; }
     }
+        if (!ok || importData == null)
+        {
+            var msg = error ?? "Failed to import group.";
+
+            // Normalize known provider messages to the user-facing messages expected by callers/tests
+            if (msg.IndexOf("no automatons", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                msg.IndexOf("contains no automatons", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                msg = "Invalid group export file.";
+            }
+            else if (msg.IndexOf("invalid json", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                     msg.IndexOf("invalid json format", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                     msg.IndexOf("json", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                // Genericize JSON parsing errors
+                msg = "Failed to import group.";
+            }
+
+            TempData["CreateGroupResult"] = msg;
+            TempData["CreateGroupSuccess"] = "0";
+            return RedirectToAction("Index", new { groupId });
+        }
 }

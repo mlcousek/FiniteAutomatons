@@ -1,4 +1,4 @@
-@using FiniteAutomatons.Core.Models.Database
+﻿@using FiniteAutomatons.Core.Models.Database
 @model List<SavedAutomaton>
 @{
     ViewData["Title"] = "Saved Automatons";
@@ -113,7 +113,7 @@
                                 Created: @item.CreatedAt.ToLocalTime().ToString("g")
                                 @if (item.Assignments != null && item.Assignments.Count > 0)
                                 {
-                                    <text>� Groups: @string.Join(", ", item.Assignments.Select(a => a.Group?.Name ?? a.GroupId.ToString()))</text>
+                                    <text>• Groups: @string.Join(", ", item.Assignments.Select(a => a.Group?.Name ?? a.GroupId.ToString()))</text>
                                 }
                             </small>
                         </div>
@@ -122,8 +122,9 @@
                         
                         <div class="text-end">
                             @{
-                                var hasInput = item.HasInput();
-                                var hasState = item.HasExecutionState;
+                                // Use SaveMode property for reliable button visibility
+                                var hasInput = item.SaveMode >= AutomatonSaveMode.WithInput;
+                                var hasState = item.SaveMode == AutomatonSaveMode.WithState;
                             }
 
                             @* Always show Load (structure only) *@

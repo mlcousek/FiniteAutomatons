@@ -201,7 +201,8 @@ public class AutomatonFileService(ILogger<AutomatonFileService> logger) : IAutom
                     content = new AutomatonPayloadDto();
                 }
 
-                if (a.HasExecutionState && !string.IsNullOrEmpty(a.ExecutionStateJson))
+                var hasExecutionState = a.SaveMode == AutomatonSaveMode.WithState;
+                if (hasExecutionState && !string.IsNullOrEmpty(a.ExecutionStateJson))
                 {
                     try
                     {
@@ -217,7 +218,7 @@ public class AutomatonFileService(ILogger<AutomatonFileService> logger) : IAutom
                 {
                     Name = a.Name,
                     Description = a.Description,
-                    HasExecutionState = a.HasExecutionState,
+                    HasExecutionState = hasExecutionState,
                     Content = content ?? new AutomatonPayloadDto(),
                     ExecutionState = execState
                 };
