@@ -1,4 +1,4 @@
-# Finite Automata Simulator
+﻿# Finite Automata Simulator
 
 ## Overview
 

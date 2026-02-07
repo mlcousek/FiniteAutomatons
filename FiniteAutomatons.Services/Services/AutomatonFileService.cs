@@ -311,9 +311,23 @@ public class AutomatonFileService(ILogger<AutomatonFileService> logger) : IAutom
 
     private static string SanitizeFileName(string fileName)
     {
-        var invalid = Path.GetInvalidFileNameChars();
-        var sanitized = string.Join("_", fileName.Split(invalid, StringSplitOptions.RemoveEmptyEntries));
-        return string.IsNullOrWhiteSpace(sanitized) ? "group" : sanitized;
+        if (string.IsNullOrWhiteSpace(fileName))
+            return "group";
+
+        var invalid = new HashSet<char>(Path.GetInvalidFileNameChars());
+        invalid.UnionWith(['<', '>', ':', '"', '/', '\\', '|', '?', '*']);
+
+        var sanitized = new StringBuilder();
+        foreach (var c in fileName)
+        {
+            if (invalid.Contains(c))
+                sanitized.Append('_');
+            else
+                sanitized.Append(c);
+        }
+
+        var result = sanitized.ToString().Trim('_');
+        return string.IsNullOrWhiteSpace(result) ? "group" : result;
     }
 
     private static Automaton BuildAutomaton(AutomatonViewModel model)
