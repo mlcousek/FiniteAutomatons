@@ -1,0 +1,143 @@
+@using FiniteAutomatons.Core.Models.Database
+@{
+    ViewData["Title"] = "Accept Invitation";
+    var invitation = ViewBag.Invitation as SharedAutomatonGroupInvitation;
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white text-center py-4">
+                    <h3 class="mb-0"><i class="fas fa-envelope-open-text"></i> Group Invitation</h3>
+                </div>
+                <div class="card-body p-4">
+                    @if (invitation == null)
+                    {
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle"></i> Invalid or expired invitation.
+                        </div>
+                        <a asp-action="Index" asp-controller="Home" class="btn btn-secondary">
+                            <i class="fas fa-home"></i> Go Home
+                        </a>
+                    }
+                    else if (invitation.Status != InvitationStatus.Pending)
+                    {
+                        <div class="alert alert-warning">
+                            <i class="fas fa-info-circle"></i> This invitation is no longer valid. Status: <strong>@invitation.Status</strong>
+                        </div>
+                        <a asp-action="Index" asp-controller="SharedAutomaton" class="btn btn-primary">
+                            <i class="fas fa-users"></i> View Shared Groups
+                        </a>
+                    }
+                    else if (invitation.ExpiresAt.HasValue && invitation.ExpiresAt.Value < DateTime.UtcNow)
+                    {
+                        <div class="alert alert-danger">
+                            <i class="fas fa-clock"></i> This invitation has expired on @invitation.ExpiresAt.Value.ToLocalTime().ToString("g")
+                        </div>
+                        <a asp-action="Index" asp-controller="Home" class="btn btn-secondary">
+                            <i class="fas fa-home"></i> Go Home
+                        </a>
+                    }
+                    else
+                    {
+                        <div class="text-center mb-4">
+                            <i class="fas fa-users fa-3x text-primary mb-3"></i>
+                            <h4>You've been invited!</h4>
+                            <p class="text-muted">Join the shared automatons group</p>
+                        </div>
+
+                        <div class="invitation-details mb-4">
+                            <div class="row mb-3">
+                                <div class="col-4 text-muted"><strong>Group:</strong></div>
+                                <div class="col-8">
+                                    <strong>@(invitation.Group?.Name ?? "Shared Group")</strong>
+                                    @if (!string.IsNullOrWhiteSpace(invitation.Group?.Description))
+                                    {
+                                        <br /><small class="text-muted">@invitation.Group.Description</small>
+                                    }
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-4 text-muted"><strong>Your Role:</strong></div>
+                                <div class="col-8">
+                                    <span class="badge bg-primary">@invitation.Role</span>
+                                    <br /><small class="text-muted">@GetRoleDescription(invitation.Role)</small>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-4 text-muted"><strong>Invited by:</strong></div>
+                                <div class="col-8">@invitation.InvitedByUserId</div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-4 text-muted"><strong>Invited on:</strong></div>
+                                <div class="col-8">@invitation.CreatedAt.ToLocalTime().ToString("g")</div>
+                            </div>
+                            @if (invitation.ExpiresAt.HasValue)
+                            {
+                                <div class="row">
+                                    <div class="col-4 text-muted"><strong>Expires:</strong></div>
+                                    <div class="col-8 text-warning">@invitation.ExpiresAt.Value.ToLocalTime().ToString("g")</div>
+                                </div>
+                            }
+                        </div>
+
+                        @if (TempData["Error"] is string error)
+                        {
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-circle"></i> @error
+                            </div>
+                        }
+
+                        @if (!User.Identity?.IsAuthenticated ?? true)
+                        {
+                            <div class="alert alert-info">
+                                <i class="fas fa-sign-in-alt"></i> You need to be logged in to accept this invitation.
+                            </div>
+                            <a asp-area="Identity" asp-page="/Account/Login" asp-route-returnUrl="@Context.Request.Path@Context.Request.QueryString" class="btn btn-primary w-100 mb-2">
+                                <i class="fas fa-sign-in-alt"></i> Login to Accept
+                            </a>
+                            <a asp-area="Identity" asp-page="/Account/Register" asp-route-returnUrl="@Context.Request.Path@Context.Request.QueryString" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-user-plus"></i> Register & Accept
+                            </a>
+                        }
+                        else
+                        {
+                            <div class="d-grid gap-2">
+                                <form asp-action="AcceptInvitationConfirm" asp-controller="SharedAutomaton" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="token" value="@invitation.Token" />
+                                    <button type="submit" class="btn btn-success btn-lg w-100">
+                                        <i class="fas fa-check-circle"></i> Accept Invitation
+                                    </button>
+                                </form>
+                                <form asp-action="DeclineInvitation" asp-controller="SharedAutomaton" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="token" value="@invitation.Token" />
+                                    <button type="submit" class="btn btn-outline-danger w-100" onclick="return confirm('Decline this invitation?');">
+                                        <i class="fas fa-times-circle"></i> Decline
+                                    </button>
+                                </form>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@functions {
+    string GetRoleDescription(SharedGroupRole role)
+    {
+        return role switch
+        {
+            SharedGroupRole.Viewer => "View all automatons in the group",
+            SharedGroupRole.Contributor => "View and add new automatons",
+            SharedGroupRole.Editor => "View, add, edit, and delete automatons",
+            SharedGroupRole.Admin => "Full access including member management",
+            SharedGroupRole.Owner => "Complete control over the group",
+            _ => role.ToString()
+        };
+    }
+}

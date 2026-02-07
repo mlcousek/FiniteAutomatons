@@ -1,0 +1,310 @@
+@using FiniteAutomatons.Core.Models.Database
+@{
+    ViewData["Title"] = "Manage Members";
+    var group = ViewBag.Group as SharedAutomatonGroup;
+    var members = ViewBag.Members as List<SharedAutomatonGroupMember> ?? [];
+    var pendingInvitations = ViewBag.PendingInvitations as List<SharedAutomatonGroupInvitation> ?? [];
+    var inviteLink = ViewBag.InviteLink as string;
+    var userRole = ViewBag.UserRole as SharedGroupRole?;
+    var userEmails = ViewBag.UserEmails as Dictionary<string, string> ?? new Dictionary<string, string>();
+}
+
+<div class="container mt-3">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2><i class="fas fa-users-cog"></i> Manage Members</h2>
+            <p class="text-muted mb-0">Group: <strong>@group?.Name</strong></p>
+        </div>
+        <a asp-action="Index" asp-controller="SharedAutomaton" asp-route-groupId="@group?.Id" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Group
+        </a>
+    </div>
+
+    @if (TempData["MemberMessage"] is string msg)
+    {
+        var success = TempData["MemberSuccess"] as string == "1";
+        <div class="alert @(success ? "alert-success" : "alert-danger") alert-dismissible fade show">
+            @msg
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Members List -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-users"></i> Members (@members.Count)</h5>
+            @if (userRole >= SharedGroupRole.Admin)
+            {
+                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#inviteModal">
+                    <i class="fas fa-user-plus"></i> Invite Member
+                </button>
+            }
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Joined</th>
+                            <th>Invited By</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var member in members)
+                        {
+                            <tr>
+                                <td>
+                                    <strong>@(userEmails.ContainsKey(member.UserId) ? userEmails[member.UserId] : member.UserId)</strong>
+                                    @if (member.UserId == User.Identity?.Name)
+                                    {
+                                        <span class="badge bg-info">You</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (member.Role == SharedGroupRole.Owner)
+                                    {
+                                        <span class="badge bg-danger">Owner</span>
+                                    }
+                                    else if (userRole >= SharedGroupRole.Admin && member.Role != SharedGroupRole.Owner)
+                                    {
+                                        <select class="form-select form-select-sm" style="width: 150px;" 
+                                                onchange="updateMemberRole(@group?.Id, '@member.UserId', this.value)">
+                                            <option value="@SharedGroupRole.Viewer" selected="@(member.Role == SharedGroupRole.Viewer)">Viewer</option>
+                                            <option value="@SharedGroupRole.Contributor" selected="@(member.Role == SharedGroupRole.Contributor)">Contributor</option>
+                                            <option value="@SharedGroupRole.Editor" selected="@(member.Role == SharedGroupRole.Editor)">Editor</option>
+                                            <option value="@SharedGroupRole.Admin" selected="@(member.Role == SharedGroupRole.Admin)">Admin</option>
+                                        </select>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-primary">@member.Role</span>
+                                    }
+                                </td>
+                                <td>
+                                    <small>@member.JoinedAt.ToLocalTime().ToString("g")</small>
+                                </td>
+                                <td>
+                                    <small>@(member.InvitedByUserId != null && userEmails.ContainsKey(member.InvitedByUserId) ? userEmails[member.InvitedByUserId] : member.InvitedByUserId ?? "Link")</small>
+                                </td>
+                                <td>
+                                    @if (userRole >= SharedGroupRole.Admin && member.Role != SharedGroupRole.Owner && member.UserId != User.Identity?.Name)
+                                    {
+                                        <form asp-action="RemoveMember" asp-controller="SharedAutomaton" method="post" class="d-inline"
+                                              onsubmit="return confirm('Remove @(userEmails.ContainsKey(member.UserId) ? userEmails[member.UserId] : member.UserId) from the group?');">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="groupId" value="@group?.Id" />
+                                            <input type="hidden" name="memberUserId" value="@member.UserId" />
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="fas fa-user-minus"></i> Remove
+                                            </button>
+                                        </form>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending Invitations -->
+    @if (userRole >= SharedGroupRole.Admin && pendingInvitations.Count > 0)
+    {
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-envelope"></i> Pending Invitations (@pendingInvitations.Count)</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Email</th>
+                                <th>Role</th>
+                                <th>Invited By</th>
+                                <th>Sent</th>
+                                <th>Expires</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var inv in pendingInvitations)
+                            {
+                                <tr>
+                                    <td><strong>@inv.Email</strong></td>
+                                    <td><span class="badge bg-secondary">@inv.Role</span></td>
+                                    <td><small>@(inv.InvitedByUserId != null && userEmails.ContainsKey(inv.InvitedByUserId) ? userEmails[inv.InvitedByUserId] : inv.InvitedByUserId ?? "Unknown")</small></td>
+                                    <td><small>@inv.CreatedAt.ToLocalTime().ToString("g")</small></td>
+                                    <td>
+                                        <small class="@(inv.ExpiresAt.HasValue && inv.ExpiresAt.Value < DateTime.UtcNow ? "text-danger" : "")">
+                                            @(inv.ExpiresAt?.ToLocalTime().ToString("g") ?? "Never")
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <form asp-action="CancelInvitation" asp-controller="SharedAutomaton" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="groupId" value="@group?.Id" />
+                                            <input type="hidden" name="invitationId" value="@inv.Id" />
+                                            <button type="submit" class="btn btn-sm btn-outline-warning">
+                                                <i class="fas fa-times"></i> Cancel
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Shareable Link -->
+    @if (userRole >= SharedGroupRole.Admin)
+    {
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-link"></i> Shareable Invite Link</h5>
+            </div>
+            <div class="card-body">
+                @if (!string.IsNullOrEmpty(inviteLink))
+                {
+                    var fullUrl = $"{Context.Request.Scheme}://{Context.Request.Host}/SharedAutomaton/JoinViaLink?code={inviteLink}";
+                    <div class="alert alert-success">
+                        <p class="mb-2"><strong>Active invite link:</strong></p>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="inviteLinkUrl" value="@fullUrl" readonly />
+                            <button class="btn btn-outline-secondary" type="button" onclick="copyInviteLink()">
+                                <i class="fas fa-copy"></i> Copy
+                            </button>
+                        </div>
+                        <small class="text-muted">Anyone with this link can join the group.</small>
+                    </div>
+                    <form asp-action="DeactivateInviteLink" asp-controller="SharedAutomaton" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="groupId" value="@group?.Id" />
+                        <button type="submit" class="btn btn-sm btn-warning" onclick="return confirm('Deactivate the invite link? Current link will stop working.');">
+                            <i class="fas fa-ban"></i> Deactivate Link
+                        </button>
+                    </form>
+                }
+                else
+                {
+                    <p class="text-muted mb-3">No active invite link. Generate one to allow easy group joining.</p>
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#generateLinkModal">
+                        <i class="fas fa-link"></i> Generate Invite Link
+                    </button>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Invite Member Modal -->
+<div class="modal fade" id="inviteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form asp-action="InviteByEmail" asp-controller="SharedAutomaton" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="groupId" value="@group?.Id" />
+                <div class="modal-header py-4 px-4">
+                    <h5 class="modal-title">Invite Member by Email</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body py-4 px-5">
+                    <div class="mb-4">
+                        <label for="inviteEmail" class="form-label">Email Address</label>
+                        <input type="email" class="form-control" id="inviteEmail" name="email" required placeholder="user@example.com" />
+                    </div>
+                    <div class="mb-4">
+                        <label for="inviteRole" class="form-label">Role</label>
+                        <select class="form-select" id="inviteRole" name="role">
+                            <option value="@SharedGroupRole.Viewer">Viewer (Read Only)</option>
+                            <option value="@SharedGroupRole.Contributor" selected>Contributor (Can Add)</option>
+                            <option value="@SharedGroupRole.Editor">Editor (Can Modify)</option>
+                            <option value="@SharedGroupRole.Admin">Admin (Can Manage)</option>
+                        </select>
+                    </div>
+                    <div class="alert alert-info mt-3 mb-0">
+                        <i class="fas fa-info-circle"></i> An email invitation will be sent to this address.
+                    </div>
+                </div>
+                <div class="modal-footer px-4">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Send Invitation</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Generate Link Modal -->
+<div class="modal fade" id="generateLinkModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form asp-action="GenerateInviteLink" asp-controller="SharedAutomaton" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="groupId" value="@group?.Id" />
+                <div class="modal-header py-4 px-4">
+                    <h5 class="modal-title">Generate Invite Link</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body py-4 px-5">
+                    <div class="mb-3">
+                        <label for="linkRole" class="form-label">Default Role for New Members</label>
+                        <select class="form-select" id="linkRole" name="defaultRole">
+                            <option value="@SharedGroupRole.Viewer" selected>Viewer (Read Only)</option>
+                            <option value="@SharedGroupRole.Contributor">Contributor (Can Add)</option>
+                            <option value="@SharedGroupRole.Editor">Editor (Can Modify)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="linkExpiration" class="form-label">Expiration (days)</label>
+                        <input type="number" class="form-control" id="linkExpiration" name="expirationDays" min="1" max="365" placeholder="Leave empty for no expiration" />
+                        <small class="text-muted">Optional: Link will expire after this many days</small>
+                    </div>
+                </div>
+                <div class="modal-footer px-4">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Generate Link</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyInviteLink() {
+    var linkInput = document.getElementById('inviteLinkUrl');
+    linkInput.select();
+    linkInput.setSelectionRange(0, 99999); // For mobile
+    navigator.clipboard.writeText(linkInput.value);
+    alert('Invite link copied to clipboard!');
+}
+
+function updateMemberRole(groupId, memberUserId, newRole) {
+    if (!confirm('Change role for ' + memberUserId + '?')) {
+        location.reload(); // Reset dropdown
+        return;
+    }
+    
+    var form = document.createElement('form');
+    form.method = 'post';
+    form.action = '@Url.Action("UpdateMemberRole", "SharedAutomaton")';
+    
+    var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+    form.innerHTML = `
+        <input type="hidden" name="__RequestVerificationToken" value="${token}" />
+        <input type="hidden" name="groupId" value="${groupId}" />
+        <input type="hidden" name="memberUserId" value="${memberUserId}" />
+        <input type="hidden" name="role" value="${newRole}" />
+    `;
+    
+    document.body.appendChild(form);
+    form.submit();
+}
+</script>

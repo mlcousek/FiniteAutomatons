@@ -48,6 +48,34 @@ public partial class Program
             await audit.AuditAsync("ApplicationStart", "Application started", new Dictionary<string, string?> { ["Environment"] = app.Environment.EnvironmentName });
         }
 
+        // Apply pending migrations automatically
+        using (var scope = app.Services.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+
+            try
+            {
+                var pendingMigrations = await dbContext.Database.GetPendingMigrationsAsync();
+                if (pendingMigrations.Any())
+                {
+                    logger.LogInformation("Applying {Count} pending migration(s): {Migrations}",
+                        pendingMigrations.Count(), string.Join(", ", pendingMigrations));
+                    await dbContext.Database.MigrateAsync();
+                    logger.LogInformation("Migrations applied successfully");
+                }
+                else
+                {
+                    logger.LogInformation("Database is up to date, no pending migrations");
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error applying database migrations. The application will continue but database may be out of sync.");
+                // Don't crash the app - let it start and show a friendly error page
+            }
+        }
+
         ConfigureRequestPipeline(app);
 
         await app.RunAsync();
@@ -136,6 +164,10 @@ public partial class Program
 
         // register saved automaton service
         builder.Services.AddScoped<ISavedAutomatonService, SavedAutomatonService>();
+
+        // register shared automaton services
+        builder.Services.AddScoped<ISharedAutomatonService, SharedAutomatonService>();
+        builder.Services.AddScoped<ISharedAutomatonSharingService, SharedAutomatonSharingService>();
     }
 
     private static void RegisterApplicationServices(IServiceCollection services)

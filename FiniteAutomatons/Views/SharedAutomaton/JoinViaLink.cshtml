@@ -1,0 +1,159 @@
+@using FiniteAutomatons.Core.Models.Database
+@{
+    ViewData["Title"] = "Join Group";
+    var group = ViewBag.Group as SharedAutomatonGroup;
+    var inviteCode = ViewBag.InviteCode as string;
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow">
+                <div class="card-header bg-success text-white text-center py-4">
+                    <h3 class="mb-0"><i class="fas fa-link"></i> Join Shared Group</h3>
+                </div>
+                <div class="card-body p-4">
+                    @if (group == null)
+                    {
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle"></i> Invalid or inactive invite link.
+                        </div>
+                        <a asp-action="Index" asp-controller="Home" class="btn btn-secondary">
+                            <i class="fas fa-home"></i> Go Home
+                        </a>
+                    }
+                    else if (!group.IsInviteLinkActive)
+                    {
+                        <div class="alert alert-warning">
+                            <i class="fas fa-ban"></i> This invite link is no longer active.
+                        </div>
+                        <a asp-action="Index" asp-controller="SharedAutomaton" class="btn btn-primary">
+                            <i class="fas fa-users"></i> View Shared Groups
+                        </a>
+                    }
+                    else if (group.InviteLinkExpiresAt.HasValue && group.InviteLinkExpiresAt.Value < DateTime.UtcNow)
+                    {
+                        <div class="alert alert-danger">
+                            <i class="fas fa-clock"></i> This invite link expired on @group.InviteLinkExpiresAt.Value.ToLocalTime().ToString("g")
+                        </div>
+                        <a asp-action="Index" asp-controller="Home" class="btn btn-secondary">
+                            <i class="fas fa-home"></i> Go Home
+                        </a>
+                    }
+                    else
+                    {
+                        <div class="text-center mb-4">
+                            <i class="fas fa-users fa-3x text-success mb-3"></i>
+                            <h4>Join the Collaboration!</h4>
+                            <p class="text-muted">You've been invited via shareable link</p>
+                        </div>
+
+                        <div class="group-details mb-4">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h5 class="card-title mb-3">
+                                        <i class="fas fa-folder-open"></i> @group.Name
+                                    </h5>
+                                    @if (!string.IsNullOrWhiteSpace(group.Description))
+                                    {
+                                        <p class="card-text text-muted">@group.Description</p>
+                                    }
+                                    <hr />
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <small class="text-muted">
+                                                <i class="fas fa-user"></i> Created by<br />
+                                                <strong>@group.UserId</strong>
+                                            </small>
+                                        </div>
+                                        <div class="col-6 text-end">
+                                            <small class="text-muted">
+                                                <i class="fas fa-clock"></i> Created<br />
+                                                <strong>@group.CreatedAt.ToLocalTime().ToString("d")</strong>
+                                            </small>
+                                        </div>
+                                    </div>
+                                    <div class="mt-3">
+                                        <span class="badge bg-primary">
+                                            <i class="fas fa-user-tag"></i> Default Role: @group.DefaultRoleForInvite
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info mb-4">
+                            <h6><i class="fas fa-info-circle"></i> What you'll be able to do:</h6>
+                            <ul class="mb-0">
+                                @switch (group.DefaultRoleForInvite)
+                                {
+                                    case SharedGroupRole.Viewer:
+                                        <li>View all automatons in this group</li>
+                                        <li>Load automatons to work with</li>
+                                        break;
+                                    case SharedGroupRole.Contributor:
+                                        <li>View all automatons in this group</li>
+                                        <li>Add your own automatons to share</li>
+                                        <li>Load automatons to work with</li>
+                                        break;
+                                    case SharedGroupRole.Editor:
+                                        <li>View all automatons in this group</li>
+                                        <li>Add, edit, and delete automatons</li>
+                                        <li>Collaborate with team members</li>
+                                        break;
+                                    case SharedGroupRole.Admin:
+                                        <li>Full access to all automatons</li>
+                                        <li>Manage group members and invitations</li>
+                                        <li>Generate new invite links</li>
+                                        break;
+                                }
+                            </ul>
+                        </div>
+
+                        @if (TempData["Error"] is string error)
+                        {
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-circle"></i> @error
+                            </div>
+                        }
+
+                        @if (!User.Identity?.IsAuthenticated ?? true)
+                        {
+                            <div class="alert alert-warning">
+                                <i class="fas fa-sign-in-alt"></i> You need to be logged in to join this group.
+                            </div>
+                            <a asp-area="Identity" asp-page="/Account/Login" asp-route-returnUrl="@Context.Request.Path@Context.Request.QueryString" class="btn btn-success w-100 mb-2">
+                                <i class="fas fa-sign-in-alt"></i> Login to Join
+                            </a>
+                            <a asp-area="Identity" asp-page="/Account/Register" asp-route-returnUrl="@Context.Request.Path@Context.Request.QueryString" class="btn btn-outline-success w-100">
+                                <i class="fas fa-user-plus"></i> Register & Join
+                            </a>
+                        }
+                        else
+                        {
+                            <form asp-action="JoinViaLinkConfirm" asp-controller="SharedAutomaton" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="code" value="@inviteCode" />
+                                <div class="d-grid">
+                                    <button type="submit" class="btn btn-success btn-lg">
+                                        <i class="fas fa-user-plus"></i> Join Group Now
+                                    </button>
+                                </div>
+                            </form>
+                        }
+
+                        @if (group.InviteLinkExpiresAt.HasValue)
+                        {
+                            <div class="text-center mt-3">
+                                <small class="text-muted">
+                                    <i class="fas fa-hourglass-half"></i> 
+                                    This link expires on @group.InviteLinkExpiresAt.Value.ToLocalTime().ToString("g")
+                                </small>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
