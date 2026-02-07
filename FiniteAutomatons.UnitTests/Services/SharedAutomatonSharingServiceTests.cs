@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.Database;
+﻿using FiniteAutomatons.Core.Models.Database;
 using FiniteAutomatons.Data;
 using FiniteAutomatons.Services.Services;
 using Microsoft.AspNetCore.Identity;
@@ -15,7 +15,7 @@ public class SharedAutomatonSharingServiceTests : IDisposable
     private readonly SharedAutomatonService sharedAutomatonService;
     private readonly SharedAutomatonSharingService sharingService;
     private readonly TestUserManager userManager;
-    
+
     private const string User1Id = "user1@test.com";
     private const string User2Id = "user2@test.com";
     private const string User1Email = "user1@test.com";
@@ -80,7 +80,7 @@ public class SharedAutomatonSharingServiceTests : IDisposable
 
         context = new ApplicationDbContext(options);
         sharedAutomatonService = new SharedAutomatonService(context, NullLogger<SharedAutomatonService>.Instance);
-        
+
         userManager = new TestUserManager();
 
         sharingService = new SharedAutomatonSharingService(
@@ -230,7 +230,7 @@ public class SharedAutomatonSharingServiceTests : IDisposable
     {
         // Arrange
         var group = await CreateGroupWithMember(User1Id, SharedGroupRole.Admin);
-        
+
         // Create invitation for User2
         var invitation = await sharingService.InviteByEmailAsync(
             group.Id, User1Id, User2Email, SharedGroupRole.Contributor);
@@ -301,7 +301,7 @@ public class SharedAutomatonSharingServiceTests : IDisposable
         // Arrange
         var group = await CreateGroupWithMember(User1Id, SharedGroupRole.Admin);
         await AddMemberToGroup(group.Id, User2Id, SharedGroupRole.Viewer);
-        
+
         var invitation = await sharingService.InviteByEmailAsync(
             group.Id, User1Id, "invited@test.com", SharedGroupRole.Viewer);
 
@@ -315,7 +315,7 @@ public class SharedAutomatonSharingServiceTests : IDisposable
     {
         // Arrange
         var group = await CreateGroupWithMember(User1Id, SharedGroupRole.Admin);
-        
+
         var pending1 = await sharingService.InviteByEmailAsync(
             group.Id, User1Id, "pending1@test.com", SharedGroupRole.Viewer);
         var pending2 = await sharingService.InviteByEmailAsync(
@@ -531,7 +531,7 @@ public class SharedAutomatonSharingServiceTests : IDisposable
         var group = await CreateGroupWithMember(User1Id, SharedGroupRole.Admin);
         var code = await sharingService.GenerateInviteLinkAsync(
             group.Id, User1Id, SharedGroupRole.Viewer);
-        
+
         // User2 is already a member
         await AddMemberToGroup(group.Id, User2Id, SharedGroupRole.Viewer);
 
