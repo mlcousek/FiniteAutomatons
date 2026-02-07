@@ -110,7 +110,7 @@ public partial class Program
         builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connectionString));
         builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
-        builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
+        builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
             .AddEntityFrameworkStores<ApplicationDbContext>();
 
         // MVC and filters
@@ -168,6 +168,7 @@ public partial class Program
         // register shared automaton services
         builder.Services.AddScoped<ISharedAutomatonService, SharedAutomatonService>();
         builder.Services.AddScoped<ISharedAutomatonSharingService, SharedAutomatonSharingService>();
+        builder.Services.AddScoped<IInvitationNotificationService, InvitationNotificationService>();
     }
 
     private static void RegisterApplicationServices(IServiceCollection services)

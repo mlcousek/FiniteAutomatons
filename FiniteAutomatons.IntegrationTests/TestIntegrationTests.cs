@@ -1,3 +1,4 @@
+using FiniteAutomatons.Core.Models.Database;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -30,15 +31,15 @@ public class TestIntegrationTests(IntegrationTestsFixture fixture) : Integration
         var password = "Test@1234";
 
         using var scope = GetServiceScope();
-        
+
         // Ensure database is created
-        var dbContext = scope.ServiceProvider.GetRequiredService<FiniteAutomatons.Data.ApplicationDbContext>();
+        var dbContext = scope.ServiceProvider.GetRequiredService<Data.ApplicationDbContext>();
         await dbContext.Database.EnsureCreatedAsync();
-        
-        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
+
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
         // Act
-        var user = new IdentityUser { UserName = userName, Email = userName };
+        var user = new ApplicationUser { UserName = userName, Email = userName };
         var result = await userManager.CreateAsync(user, password);
 
         // Assert

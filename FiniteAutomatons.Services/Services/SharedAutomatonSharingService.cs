@@ -12,12 +12,12 @@ namespace FiniteAutomatons.Services.Services;
 public class SharedAutomatonSharingService(
     ApplicationDbContext context,
     ISharedAutomatonService sharedAutomatonService,
-    UserManager<IdentityUser> userManager,
+    UserManager<ApplicationUser> userManager,
     ILogger<SharedAutomatonSharingService> logger) : ISharedAutomatonSharingService
 {
     private readonly ApplicationDbContext context = context;
     private readonly ISharedAutomatonService sharedAutomatonService = sharedAutomatonService;
-    private readonly UserManager<IdentityUser> userManager = userManager;
+    private readonly UserManager<ApplicationUser> userManager = userManager;
     private readonly ILogger<SharedAutomatonSharingService> logger = logger;
 
     #region Email Invitations

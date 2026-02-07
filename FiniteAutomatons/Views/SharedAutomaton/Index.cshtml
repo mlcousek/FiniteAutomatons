@@ -1,10 +1,11 @@
-@using FiniteAutomatons.Core.Models.Database
+ï»¿@using FiniteAutomatons.Core.Models.Database
 @model List<SharedAutomaton>
 @{
     ViewData["Title"] = "Shared Automatons";
     var groups = ViewData["Groups"] as List<SharedAutomatonGroup> ?? [];
     var selectedGroup = ViewData["SelectedGroupId"] as int?;
     var userRole = ViewData["UserRole"] as SharedGroupRole?;
+    var pendingInvitations = ViewData["PendingInvitations"] as List<SharedAutomatonGroupInvitation>;
 }
 
 <div class="container mt-3">
@@ -30,6 +31,26 @@
         <div class="alert alert-danger alert-dismissible fade show">
             @errorMsg
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (pendingInvitations != null && pendingInvitations.Count > 0)
+    {
+        <div class="alert alert-info alert-dismissible fade show" role="alert">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <i class="fas fa-envelope-open-text"></i>
+                    <strong>You have @pendingInvitations.Count pending group @(pendingInvitations.Count == 1 ? "invitation" : "invitations")!</strong>
+                    <br />
+                    <small>Review and accept invitations to start collaborating.</small>
+                </div>
+                <div class="ms-2">
+                    <a asp-controller="SharedAutomaton" asp-action="Invitations" class="btn btn-sm btn-primary me-2">
+                        <i class="fas fa-inbox"></i> View All
+                    </a>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            </div>
         </div>
     }
 
@@ -152,14 +173,14 @@
                             }
                             <small class="text-muted">
                                 <i class="fas fa-user"></i> Created by: <strong>@item.CreatedByUserId</strong>
-                                • <i class="fas fa-clock"></i> @item.CreatedAt.ToLocalTime().ToString("g")
+                                â€¢ <i class="fas fa-clock"></i> @item.CreatedAt.ToLocalTime().ToString("g")
                                 @if (item.ModifiedAt.HasValue)
                                 {
-                                    <text>• <i class="fas fa-edit"></i> Modified: @item.ModifiedAt.Value.ToLocalTime().ToString("g")</text>
+                                    <text>â€¢ <i class="fas fa-edit"></i> Modified: @item.ModifiedAt.Value.ToLocalTime().ToString("g")</text>
                                 }
                                 @if (item.Assignments != null && item.Assignments.Count > 0)
                                 {
-                                    <text>• <i class="fas fa-folder"></i> Groups: @string.Join(", ", item.Assignments.Select(a => a.Group?.Name ?? a.GroupId.ToString()))</text>
+                                    <text>â€¢ <i class="fas fa-folder"></i> Groups: @string.Join(", ", item.Assignments.Select(a => a.Group?.Name ?? a.GroupId.ToString()))</text>
                                 }
                             </small>
                         </div>

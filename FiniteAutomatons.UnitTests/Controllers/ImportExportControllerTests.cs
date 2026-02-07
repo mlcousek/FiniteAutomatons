@@ -15,42 +15,42 @@ namespace FiniteAutomatons.UnitTests.Controllers;
 
 public class ImportExportControllerTests
 {
-    private sealed class TestUserStore : IUserStore<IdentityUser>
+    private sealed class TestUserStore : IUserStore<ApplicationUser>
     {
-        public Task<IdentityResult> CreateAsync(IdentityUser user, CancellationToken cancellationToken) => Task.FromResult(IdentityResult.Success);
-        public Task<IdentityResult> DeleteAsync(IdentityUser user, CancellationToken cancellationToken) => Task.FromResult(IdentityResult.Success);
-        public Task<IdentityUser?> FindByIdAsync(string userId, CancellationToken cancellationToken) => Task.FromResult<IdentityUser?>(null);
-        public Task<IdentityUser?> FindByNameAsync(string normalizedUserName, CancellationToken cancellationToken) => Task.FromResult<IdentityUser?>(null);
-        public Task<string?> GetNormalizedUserNameAsync(IdentityUser user, CancellationToken cancellationToken) => Task.FromResult<string?>(user.NormalizedUserName);
-        public Task<string> GetUserIdAsync(IdentityUser user, CancellationToken cancellationToken) => Task.FromResult(user.Id);
-        public Task<string?> GetUserNameAsync(IdentityUser user, CancellationToken cancellationToken) => Task.FromResult<string?>(user.UserName);
-        public Task SetNormalizedUserNameAsync(IdentityUser user, string? normalizedName, CancellationToken cancellationToken) { user.NormalizedUserName = normalizedName; return Task.CompletedTask; }
-        public Task SetUserNameAsync(IdentityUser user, string? userName, CancellationToken cancellationToken) { user.UserName = userName; return Task.CompletedTask; }
-        public Task<IdentityResult> UpdateAsync(IdentityUser user, CancellationToken cancellationToken) => Task.FromResult(IdentityResult.Success);
+        public Task<IdentityResult> CreateAsync(ApplicationUser user, CancellationToken cancellationToken) => Task.FromResult(IdentityResult.Success);
+        public Task<IdentityResult> DeleteAsync(ApplicationUser user, CancellationToken cancellationToken) => Task.FromResult(IdentityResult.Success);
+        public Task<ApplicationUser?> FindByIdAsync(string userId, CancellationToken cancellationToken) => Task.FromResult<ApplicationUser?>(null);
+        public Task<ApplicationUser?> FindByNameAsync(string normalizedUserName, CancellationToken cancellationToken) => Task.FromResult<ApplicationUser?>(null);
+        public Task<string?> GetNormalizedUserNameAsync(ApplicationUser user, CancellationToken cancellationToken) => Task.FromResult<string?>(user.NormalizedUserName);
+        public Task<string> GetUserIdAsync(ApplicationUser user, CancellationToken cancellationToken) => Task.FromResult(user.Id);
+        public Task<string?> GetUserNameAsync(ApplicationUser user, CancellationToken cancellationToken) => Task.FromResult<string?>(user.UserName);
+        public Task SetNormalizedUserNameAsync(ApplicationUser user, string? normalizedName, CancellationToken cancellationToken) { user.NormalizedUserName = normalizedName; return Task.CompletedTask; }
+        public Task SetUserNameAsync(ApplicationUser user, string? userName, CancellationToken cancellationToken) { user.UserName = userName; return Task.CompletedTask; }
+        public Task<IdentityResult> UpdateAsync(ApplicationUser user, CancellationToken cancellationToken) => Task.FromResult(IdentityResult.Success);
         public void Dispose() { }
     }
 
-    private sealed class TestUserManager : UserManager<IdentityUser>
+    private sealed class TestUserManager : UserManager<ApplicationUser>
     {
-        private readonly IdentityUser user;
+        private readonly ApplicationUser user;
 
-        public TestUserManager(IdentityUser user) : base(
+        public TestUserManager(ApplicationUser user) : base(
             new TestUserStore(),
             new OptionsWrapper<IdentityOptions>(new IdentityOptions()),
-            new PasswordHasher<IdentityUser>(),
-            Array.Empty<IUserValidator<IdentityUser>>(),
-            Array.Empty<IPasswordValidator<IdentityUser>>(),
+            new PasswordHasher<ApplicationUser>(),
+            Array.Empty<IUserValidator<ApplicationUser>>(),
+            Array.Empty<IPasswordValidator<ApplicationUser>>(),
             new UpperInvariantLookupNormalizer(),
             new IdentityErrorDescriber(),
             null!,
-            new Logger<UserManager<IdentityUser>>(new LoggerFactory()))
+            new Logger<UserManager<ApplicationUser>>(new LoggerFactory()))
         {
             this.user = user;
         }
 
-        public override Task<IdentityUser?> GetUserAsync(ClaimsPrincipal principal)
+        public override Task<ApplicationUser?> GetUserAsync(ClaimsPrincipal principal)
         {
-            return Task.FromResult<IdentityUser?>(user);
+            return Task.FromResult<ApplicationUser?>(user);
         }
     }
 
@@ -94,7 +94,7 @@ public class ImportExportControllerTests
             => throw new NotImplementedException();
     }
 
-    private static ImportExportController BuildController(MockSavedAutomatonService savedSvc, IAutomatonFileService fileSvc, IdentityUser user)
+    private static ImportExportController BuildController(MockSavedAutomatonService savedSvc, IAutomatonFileService fileSvc, ApplicationUser user)
     {
         var userManager = new TestUserManager(user);
         var controller = new ImportExportController(fileSvc, savedSvc, userManager);
@@ -113,7 +113,7 @@ public class ImportExportControllerTests
     {
         var savedSvc = new MockSavedAutomatonService();
         var fileSvc = new MockAutomatonFileService();
-        var user = new IdentityUser { Id = "user-export-1" };
+        var user = new ApplicationUser { Id = "user-export-1" };
         var controller = BuildController(savedSvc, fileSvc, user);
 
         var payload = new
@@ -166,7 +166,7 @@ public class ImportExportControllerTests
     {
         var savedSvc = new MockSavedAutomatonService();
         var fileSvc = new MockAutomatonFileService();
-        var user = new IdentityUser { Id = "user-export-2" };
+        var user = new ApplicationUser { Id = "user-export-2" };
         var controller = BuildController(savedSvc, fileSvc, user);
 
         var payload = new
@@ -203,7 +203,7 @@ public class ImportExportControllerTests
     {
         var savedSvc = new MockSavedAutomatonService();
         var fileSvc = new MockAutomatonFileService();
-        var user = new IdentityUser { Id = "user-export-3" };
+        var user = new ApplicationUser { Id = "user-export-3" };
         var controller = BuildController(savedSvc, fileSvc, user);
 
         var payload = new
@@ -255,7 +255,7 @@ public class ImportExportControllerTests
     {
         var savedSvc = new MockSavedAutomatonService();
         var fileSvc = new MockAutomatonFileService();
-        var user = new IdentityUser { Id = "user-export-4" };
+        var user = new ApplicationUser { Id = "user-export-4" };
         var controller = BuildController(savedSvc, fileSvc, user);
 
         var payload = new
@@ -295,7 +295,7 @@ public class ImportExportControllerTests
     {
         var savedSvc = new MockSavedAutomatonService();
         var fileSvc = new MockAutomatonFileService();
-        var user = new IdentityUser { Id = "user-export-5" };
+        var user = new ApplicationUser { Id = "user-export-5" };
         var controller = BuildController(savedSvc, fileSvc, user);
 
         var payload = new
@@ -351,7 +351,7 @@ public class ImportExportControllerTests
     {
         var savedSvc = new MockSavedAutomatonService();
         var fileSvc = new MockAutomatonFileService();
-        var user = new IdentityUser { Id = "user-export-6" };
+        var user = new ApplicationUser { Id = "user-export-6" };
         var controller = BuildController(savedSvc, fileSvc, user);
 
         var payload = new
@@ -399,7 +399,7 @@ public class ImportExportControllerTests
     {
         var savedSvc = new MockSavedAutomatonService();
         var fileSvc = new MockAutomatonFileService();
-        var user = new IdentityUser { Id = "user-export-7" };
+        var user = new ApplicationUser { Id = "user-export-7" };
         var controller = BuildController(savedSvc, fileSvc, user);
 
         var payload = new
@@ -441,7 +441,7 @@ public class ImportExportControllerTests
     {
         var savedSvc = new MockSavedAutomatonService();
         var fileSvc = new MockAutomatonFileService();
-        var user = new IdentityUser { Id = "user-export-8" };
+        var user = new ApplicationUser { Id = "user-export-8" };
         var controller = BuildController(savedSvc, fileSvc, user);
 
         var result = await controller.ExportSaved(999, "json", "structure");
@@ -454,7 +454,7 @@ public class ImportExportControllerTests
     {
         var savedSvc = new MockSavedAutomatonService();
         var fileSvc = new MockAutomatonFileService();
-        var user = new IdentityUser { Id = "user-export-9" };
+        var user = new ApplicationUser { Id = "user-export-9" };
         var controller = BuildController(savedSvc, fileSvc, user);
 
         var payload = new
@@ -485,7 +485,7 @@ public class ImportExportControllerTests
     {
         var savedSvc = new MockSavedAutomatonService();
         var fileSvc = new MockAutomatonFileService();
-        var user = new IdentityUser { Id = "user-export-10" };
+        var user = new ApplicationUser { Id = "user-export-10" };
         var controller = BuildController(savedSvc, fileSvc, user);
 
         var payload = new
@@ -517,7 +517,7 @@ public class ImportExportControllerTests
     {
         var savedSvc = new MockSavedAutomatonService();
         var fileSvc = new MockAutomatonFileService();
-        var user = new IdentityUser { Id = "user-export-11" };
+        var user = new ApplicationUser { Id = "user-export-11" };
         var controller = BuildController(savedSvc, fileSvc, user);
 
         var payload = new
@@ -567,7 +567,7 @@ public class ImportExportControllerTests
     {
         var savedSvc = new MockSavedAutomatonService();
         var fileSvc = new MockAutomatonFileService();
-        var user = new IdentityUser { Id = "user-name-1" };
+        var user = new ApplicationUser { Id = "user-name-1" };
         var controller = BuildController(savedSvc, fileSvc, user);
 
         var payload = new
@@ -599,7 +599,7 @@ public class ImportExportControllerTests
     {
         var savedSvc = new MockSavedAutomatonService();
         var fileSvc = new MockAutomatonFileService();
-        var user = new IdentityUser { Id = "user-name-2" };
+        var user = new ApplicationUser { Id = "user-name-2" };
         var controller = BuildController(savedSvc, fileSvc, user);
 
         var payload = new
@@ -631,7 +631,7 @@ public class ImportExportControllerTests
     {
         var savedSvc = new MockSavedAutomatonService();
         var fileSvc = new MockAutomatonFileService();
-        var user = new IdentityUser { Id = "user-name-3" };
+        var user = new ApplicationUser { Id = "user-name-3" };
         var controller = BuildController(savedSvc, fileSvc, user);
 
         var payload = new
@@ -667,7 +667,7 @@ public class ImportExportControllerTests
     {
         var savedSvc = new MockSavedAutomatonService();
         var fileSvc = new MockAutomatonFileService();
-        var user = new IdentityUser { Id = "user-mode-1" };
+        var user = new ApplicationUser { Id = "user-mode-1" };
         var controller = BuildController(savedSvc, fileSvc, user);
 
         var payload = new
@@ -704,7 +704,7 @@ public class ImportExportControllerTests
     {
         var savedSvc = new MockSavedAutomatonService();
         var fileSvc = new MockAutomatonFileService();
-        var user = new IdentityUser { Id = "user-mode-2" };
+        var user = new ApplicationUser { Id = "user-mode-2" };
         var controller = BuildController(savedSvc, fileSvc, user);
 
         var payload = new

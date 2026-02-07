@@ -10,11 +10,11 @@ namespace FiniteAutomatons.Controllers;
 public class ImportExportController(
     IAutomatonFileService fileService,
     ISavedAutomatonService savedAutomatonService,
-    UserManager<IdentityUser> userManager) : Controller
+    UserManager<ApplicationUser> userManager) : Controller
 {
     private readonly IAutomatonFileService fileService = fileService;
     private readonly ISavedAutomatonService savedAutomatonService = savedAutomatonService;
-    private readonly UserManager<IdentityUser> userManager = userManager;
+    private readonly UserManager<ApplicationUser> userManager = userManager;
 
     [HttpPost]
     public IActionResult ExportJson([FromForm] AutomatonViewModel model)
@@ -95,13 +95,13 @@ public class ImportExportController(
                     {
                         if (execState.TryGetProperty("Input", out var input)) model.Input = input.GetString() ?? string.Empty;
                         if (execState.TryGetProperty("Position", out var pos)) model.Position = pos.GetInt32();
-                        if (execState.TryGetProperty("CurrentStateId", out var csid) && csid.ValueKind != JsonValueKind.Null) 
+                        if (execState.TryGetProperty("CurrentStateId", out var csid) && csid.ValueKind != JsonValueKind.Null)
                             model.CurrentStateId = csid.GetInt32();
                         if (execState.TryGetProperty("IsAccepted", out var acc) && acc.ValueKind != JsonValueKind.Null)
                             model.IsAccepted = acc.GetBoolean();
-                        if (execState.TryGetProperty("StateHistorySerialized", out var hist)) 
+                        if (execState.TryGetProperty("StateHistorySerialized", out var hist))
                             model.StateHistorySerialized = hist.GetString() ?? string.Empty;
-                        if (execState.TryGetProperty("StackSerialized", out var stack) && stack.ValueKind != JsonValueKind.Null) 
+                        if (execState.TryGetProperty("StackSerialized", out var stack) && stack.ValueKind != JsonValueKind.Null)
                             model.StackSerialized = stack.GetString();
                     }
                 }

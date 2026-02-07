@@ -1,0 +1,70 @@
+@using FiniteAutomatons.Core.Models.Database
+@model List<SharedAutomatonGroupInvitation>
+@{
+    ViewData["Title"] = "Group Invitations";
+}
+
+<div class="container mt-3">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-envelope"></i> Group Invitations</h2>
+        <a asp-controller="SharedAutomaton" asp-action="Index" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back
+        </a>
+    </div>
+
+    @if (Model == null || Model.Count == 0)
+    {
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle"></i> You have no pending group invitations.
+        </div>
+    }
+    else
+    {
+        <div class="list-group">
+            @foreach (var invitation in Model)
+            {
+                <div class="list-group-item">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                            <h5 class="mb-1">
+                                @invitation.Group?.Name
+                                <span class="badge bg-warning ms-2">Pending</span>
+                            </h5>
+                            @if (!string.IsNullOrWhiteSpace(invitation.Group?.Description))
+                            {
+                                <p class="mb-1 text-muted">@invitation.Group.Description</p>
+                            }
+                            <small class="text-muted">
+                                <i class="fas fa-user"></i> Invited by: <strong>@invitation.InvitedByUserId</strong>
+                                • <i class="fas fa-clock"></i> @invitation.CreatedAt.ToLocalTime().ToString("g")
+                                @if (invitation.ExpiresAt.HasValue)
+                                {
+                                    <text>• <i class="fas fa-hourglass-end"></i> Expires: @invitation.ExpiresAt.Value.ToLocalTime().ToString("g")</text>
+                                }
+                                • <i class="fas fa-shield-alt"></i> Role: <strong>@invitation.Role</strong>
+                            </small>
+                        </div>
+
+                        <div class="text-end ms-3">
+                            <a asp-controller="SharedAutomaton" asp-action="AcceptInvitation" asp-route-token="@invitation.Token" class="btn btn-sm btn-success mb-1">
+                                <i class="fas fa-check"></i> Accept
+                            </a>
+                            <form asp-controller="SharedAutomaton" asp-action="DeclineInvitation" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="token" value="@invitation.Token" />
+                                <button type="submit" class="btn btn-sm btn-danger mb-1" onclick="return confirm('Decline this invitation?');">
+                                    <i class="fas fa-times"></i> Decline
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="alert alert-info mt-4">
+            <i class="fas fa-lightbulb"></i> 
+            You can manage your notification preferences in your profile settings.
+        </div>
+    }
+</div>

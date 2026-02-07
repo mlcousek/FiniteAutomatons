@@ -26,27 +26,27 @@ public class AutomatonControllerSavedTests
         }
     }
 
-    private sealed class FakeUserStore : IUserStore<IdentityUser>
+    private sealed class FakeUserStore : IUserStore<ApplicationUser>
     {
-        public Task<IdentityResult> CreateAsync(IdentityUser user, CancellationToken cancellationToken) => Task.FromResult(IdentityResult.Success);
-        public Task<IdentityResult> DeleteAsync(IdentityUser user, CancellationToken cancellationToken) => Task.FromResult(IdentityResult.Success);
+        public Task<IdentityResult> CreateAsync(ApplicationUser user, CancellationToken cancellationToken) => Task.FromResult(IdentityResult.Success);
+        public Task<IdentityResult> DeleteAsync(ApplicationUser user, CancellationToken cancellationToken) => Task.FromResult(IdentityResult.Success);
         public void Dispose() { }
-        public Task<IdentityUser?> FindByIdAsync(string userId, CancellationToken cancellationToken) => Task.FromResult<IdentityUser?>(null);
-        public Task<IdentityUser?> FindByNameAsync(string normalizedUserName, CancellationToken cancellationToken) => Task.FromResult<IdentityUser?>(null);
+        public Task<ApplicationUser?> FindByIdAsync(string userId, CancellationToken cancellationToken) => Task.FromResult<ApplicationUser?>(null);
+        public Task<ApplicationUser?> FindByNameAsync(string normalizedUserName, CancellationToken cancellationToken) => Task.FromResult<ApplicationUser?>(null);
         // IUserStore signature uses non-nullable string return in this target framework
-        public Task<string?> GetNormalizedUserNameAsync(IdentityUser user, CancellationToken cancellationToken) => Task.FromResult<string?>(user.UserName?.ToUpperInvariant());
-        public Task<string> GetUserIdAsync(IdentityUser user, CancellationToken cancellationToken) => Task.FromResult<string>(user.Id);
-        public Task<string?> GetUserNameAsync(IdentityUser user, CancellationToken cancellationToken) => Task.FromResult<string?>(user.UserName);
-        public Task SetNormalizedUserNameAsync(IdentityUser user, string? normalizedName, CancellationToken cancellationToken) { user.NormalizedUserName = normalizedName; return Task.CompletedTask; }
-        public Task SetUserNameAsync(IdentityUser user, string? userName, CancellationToken cancellationToken) { user.UserName = userName; return Task.CompletedTask; }
-        public Task<IdentityResult> UpdateAsync(IdentityUser user, CancellationToken cancellationToken) => Task.FromResult(IdentityResult.Success);
+        public Task<string?> GetNormalizedUserNameAsync(ApplicationUser user, CancellationToken cancellationToken) => Task.FromResult<string?>(user.UserName?.ToUpperInvariant());
+        public Task<string> GetUserIdAsync(ApplicationUser user, CancellationToken cancellationToken) => Task.FromResult<string>(user.Id);
+        public Task<string?> GetUserNameAsync(ApplicationUser user, CancellationToken cancellationToken) => Task.FromResult<string?>(user.UserName);
+        public Task SetNormalizedUserNameAsync(ApplicationUser user, string? normalizedName, CancellationToken cancellationToken) { user.NormalizedUserName = normalizedName; return Task.CompletedTask; }
+        public Task SetUserNameAsync(ApplicationUser user, string? userName, CancellationToken cancellationToken) { user.UserName = userName; return Task.CompletedTask; }
+        public Task<IdentityResult> UpdateAsync(ApplicationUser user, CancellationToken cancellationToken) => Task.FromResult(IdentityResult.Success);
     }
 
-    private class TestUserManager(IdentityUser? user) : UserManager<IdentityUser>(new FakeUserStore(), Microsoft.Extensions.Options.Options.Create(new IdentityOptions()), new PasswordHasher<IdentityUser>(), [], [], new UpperInvariantLookupNormalizer(), new IdentityErrorDescriber(), services: null!, logger: new NullLogger<UserManager<IdentityUser>>())
+    private class TestUserManager(ApplicationUser? user) : UserManager<ApplicationUser>(new FakeUserStore(), Microsoft.Extensions.Options.Options.Create(new IdentityOptions()), new PasswordHasher<ApplicationUser>(), [], [], new UpperInvariantLookupNormalizer(), new IdentityErrorDescriber(), services: null!, logger: new NullLogger<UserManager<ApplicationUser>>())
     {
-        private readonly IdentityUser? userToReturn = user;
+        private readonly ApplicationUser? userToReturn = user;
 
-        public override Task<IdentityUser?> GetUserAsync(ClaimsPrincipal principal)
+        public override Task<ApplicationUser?> GetUserAsync(ClaimsPrincipal principal)
         {
             return Task.FromResult(userToReturn);
         }
@@ -272,7 +272,7 @@ public class AutomatonControllerSavedTests
         }
     }
 
-    private static SavedAutomatonController BuildController(MockSavedAutomatonService svc, IdentityUser user)
+    private static SavedAutomatonController BuildController(MockSavedAutomatonService svc, ApplicationUser user)
     {
         var logger = new NullLogger<AutomatonCreationController>();
         var mockGenerator = new MockAutomatonGeneratorService();
@@ -300,7 +300,7 @@ public class AutomatonControllerSavedTests
     public async Task SavedAutomatons_Get_ReturnsViewWithGroupsAndSelectedGroup()
     {
         var svc = new MockSavedAutomatonService();
-        var user = new IdentityUser { Id = "u1", UserName = "a@b" };
+        var user = new ApplicationUser { Id = "u1", UserName = "a@b" };
         var c = BuildController(svc, user);
 
         var g1 = await svc.CreateGroupAsync(user.Id, "Group1", null);
@@ -323,7 +323,7 @@ public class AutomatonControllerSavedTests
     public async Task CreateSavedGroup_Post_EmptyName_ReturnsBadRequest()
     {
         var svc = new MockSavedAutomatonService();
-        var user = new IdentityUser { Id = "u2" };
+        var user = new ApplicationUser { Id = "u2" };
         var c = BuildController(svc, user);
 
         var res = await c.CreateGroup("   ", null) as BadRequestObjectResult; // No change
@@ -334,7 +334,7 @@ public class AutomatonControllerSavedTests
     public async Task CreateSavedGroup_Post_Valid_CreatesAndRedirects()
     {
         var svc = new MockSavedAutomatonService();
-        var user = new IdentityUser { Id = "u3" };
+        var user = new ApplicationUser { Id = "u3" };
         var c = BuildController(svc, user);
 
         var res = await c.CreateGroup("  mygroup  ", "d") as RedirectToActionResult; // No change
@@ -350,7 +350,7 @@ public class AutomatonControllerSavedTests
     public async Task SaveAutomaton_Post_NameMissing_ReturnsCreateViewWithModelError()
     {
         var svc = new MockSavedAutomatonService();
-        var user = new IdentityUser { Id = "u4" };
+        var user = new ApplicationUser { Id = "u4" };
         var c = BuildController(svc, user);
 
         var model = new AutomatonViewModel();
@@ -364,7 +364,7 @@ public class AutomatonControllerSavedTests
     public async Task SaveAutomaton_Post_Valid_CallsSaveAndRedirects()
     {
         var svc = new MockSavedAutomatonService();
-        var user = new IdentityUser { Id = "u5" };
+        var user = new ApplicationUser { Id = "u5" };
         var c = BuildController(svc, user);
 
         var model = new AutomatonViewModel { Type = AutomatonType.DFA };
@@ -382,7 +382,7 @@ public class AutomatonControllerSavedTests
     public async Task LoadSavedAutomaton_Get_LoadsAutomaton_And_LoadsAsState_WhenRequested()
     {
         var svc = new MockSavedAutomatonService();
-        var user = new IdentityUser { Id = "u6" };
+        var user = new ApplicationUser { Id = "u6" };
         var c = BuildController(svc, user);
 
         // create payload JSON
@@ -403,13 +403,13 @@ public class AutomatonControllerSavedTests
             StackSerialized = "s"
         };
 
-        var entity = new SavedAutomaton 
-        { 
-            Id = 123, 
-            UserId = user.Id, 
-            ContentJson = System.Text.Json.JsonSerializer.Serialize(payload), 
-            SaveMode = AutomatonSaveMode.WithState, 
-            ExecutionStateJson = System.Text.Json.JsonSerializer.Serialize(exec) 
+        var entity = new SavedAutomaton
+        {
+            Id = 123,
+            UserId = user.Id,
+            ContentJson = System.Text.Json.JsonSerializer.Serialize(payload),
+            SaveMode = AutomatonSaveMode.WithState,
+            ExecutionStateJson = System.Text.Json.JsonSerializer.Serialize(exec)
         };
 
         svc.Items.Add(entity);
@@ -435,7 +435,7 @@ public class AutomatonControllerSavedTests
     public async Task DeleteSavedAutomaton_Post_DeletesAndRedirects()
     {
         var svc = new MockSavedAutomatonService();
-        var user = new IdentityUser { Id = "u7" };
+        var user = new ApplicationUser { Id = "u7" };
         var c = BuildController(svc, user);
 
         var e = await svc.SaveAsync(user.Id, "todel", null, new AutomatonViewModel { Type = AutomatonType.DFA }, false);
@@ -453,7 +453,7 @@ public class AutomatonControllerSavedTests
     public async Task ExportGroup_ValidGroup_ReturnsFileWithCorrectContent()
     {
         var svc = new MockSavedAutomatonService();
-        var user = new IdentityUser { Id = "export-user-1" };
+        var user = new ApplicationUser { Id = "export-user-1" };
         var c = BuildController(svc, user);
 
         var group = await svc.CreateGroupAsync(user.Id, "TestGroup", "Test Description");
@@ -484,7 +484,7 @@ public class AutomatonControllerSavedTests
     public async Task ExportGroup_NonExistentGroup_ReturnsNotFound()
     {
         var svc = new MockSavedAutomatonService();
-        var user = new IdentityUser { Id = "export-user-2" };
+        var user = new ApplicationUser { Id = "export-user-2" };
         var c = BuildController(svc, user);
 
         var result = await c.ExportGroup(99999);
@@ -496,7 +496,7 @@ public class AutomatonControllerSavedTests
     public async Task ExportGroup_EmptyGroup_ShowsMessageAndRedirects()
     {
         var svc = new MockSavedAutomatonService();
-        var user = new IdentityUser { Id = "export-user-3" };
+        var user = new ApplicationUser { Id = "export-user-3" };
         var c = BuildController(svc, user);
 
         var group = await svc.CreateGroupAsync(user.Id, "EmptyGroup", null);
@@ -513,7 +513,7 @@ public class AutomatonControllerSavedTests
     public async Task ExportGroup_WithExecutionState_IncludesExecutionState()
     {
         var svc = new MockSavedAutomatonService();
-        var user = new IdentityUser { Id = "export-user-4" };
+        var user = new ApplicationUser { Id = "export-user-4" };
         var c = BuildController(svc, user);
 
         var group = await svc.CreateGroupAsync(user.Id, "StateGroup", null);
@@ -542,7 +542,7 @@ public class AutomatonControllerSavedTests
     public async Task ImportGroup_ValidFile_ImportsAllAutomatons()
     {
         var svc = new MockSavedAutomatonService();
-        var user = new IdentityUser { Id = "import-user-1" };
+        var user = new ApplicationUser { Id = "import-user-1" };
         var c = BuildController(svc, user);
 
         var group = await svc.CreateGroupAsync(user.Id, "ImportTarget", null);
@@ -594,7 +594,7 @@ public class AutomatonControllerSavedTests
     public async Task ImportGroup_NonExistentGroup_ReturnsNotFound()
     {
         var svc = new MockSavedAutomatonService();
-        var user = new IdentityUser { Id = "import-user-2" };
+        var user = new ApplicationUser { Id = "import-user-2" };
         var c = BuildController(svc, user);
 
         var file = CreateMockFormFile("group.json", "{}");
@@ -608,7 +608,7 @@ public class AutomatonControllerSavedTests
     public async Task ImportGroup_NoFileUploaded_ShowsError()
     {
         var svc = new MockSavedAutomatonService();
-        var user = new IdentityUser { Id = "import-user-3" };
+        var user = new ApplicationUser { Id = "import-user-3" };
         var c = BuildController(svc, user);
 
         var group = await svc.CreateGroupAsync(user.Id, "TargetGroup", null);
@@ -624,7 +624,7 @@ public class AutomatonControllerSavedTests
     public async Task ImportGroup_InvalidJson_ShowsError()
     {
         var svc = new MockSavedAutomatonService();
-        var user = new IdentityUser { Id = "import-user-4" };
+        var user = new ApplicationUser { Id = "import-user-4" };
         var c = BuildController(svc, user);
 
         var group = await svc.CreateGroupAsync(user.Id, "TargetGroup", null);
@@ -641,7 +641,7 @@ public class AutomatonControllerSavedTests
     public async Task ImportGroup_EmptyAutomatonsList_ShowsError()
     {
         var svc = new MockSavedAutomatonService();
-        var user = new IdentityUser { Id = "import-user-5" };
+        var user = new ApplicationUser { Id = "import-user-5" };
         var c = BuildController(svc, user);
 
         var group = await svc.CreateGroupAsync(user.Id, "TargetGroup", null);
@@ -664,7 +664,7 @@ public class AutomatonControllerSavedTests
     public async Task ImportGroup_PartialFailure_ImportsSuccessfulOnes()
     {
         var svc = new MockSavedAutomatonService();
-        var user = new IdentityUser { Id = "import-user-6" };
+        var user = new ApplicationUser { Id = "import-user-6" };
         var c = BuildController(svc, user);
 
         var group = await svc.CreateGroupAsync(user.Id, "TargetGroup", null);
@@ -699,7 +699,7 @@ public class AutomatonControllerSavedTests
     public async Task ImportGroup_WithExecutionState_PreservesExecutionState()
     {
         var svc = new MockSavedAutomatonService();
-        var user = new IdentityUser { Id = "import-user-7" };
+        var user = new ApplicationUser { Id = "import-user-7" };
         var c = BuildController(svc, user);
 
         var group = await svc.CreateGroupAsync(user.Id, "TargetGroup", null);
@@ -739,7 +739,7 @@ public class AutomatonControllerSavedTests
     public async Task Load_StructureMode_LoadsOnlyStructure()
     {
         var svc = new MockSavedAutomatonService();
-        var user = new IdentityUser { Id = "load-user-1" };
+        var user = new ApplicationUser { Id = "load-user-1" };
         var c = BuildController(svc, user);
 
         var payload = new
@@ -783,7 +783,7 @@ public class AutomatonControllerSavedTests
     public async Task Load_InputMode_LoadsStructureAndInput()
     {
         var svc = new MockSavedAutomatonService();
-        var user = new IdentityUser { Id = "load-user-2" };
+        var user = new ApplicationUser { Id = "load-user-2" };
         var c = BuildController(svc, user);
 
         var payload = new
@@ -828,7 +828,7 @@ public class AutomatonControllerSavedTests
     public async Task Load_StateMode_LoadsEverything()
     {
         var svc = new MockSavedAutomatonService();
-        var user = new IdentityUser { Id = "load-user-3" };
+        var user = new ApplicationUser { Id = "load-user-3" };
         var c = BuildController(svc, user);
 
         var payload = new
@@ -874,7 +874,7 @@ public class AutomatonControllerSavedTests
     public async Task Load_InputMode_WithoutExecutionState_LoadsStructureOnly()
     {
         var svc = new MockSavedAutomatonService();
-        var user = new IdentityUser { Id = "load-user-4" };
+        var user = new ApplicationUser { Id = "load-user-4" };
         var c = BuildController(svc, user);
 
         var payload = new

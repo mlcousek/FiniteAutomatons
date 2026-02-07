@@ -1,4 +1,4 @@
-﻿using FiniteAutomatons.Core.Models.Database;
+using FiniteAutomatons.Core.Models.Database;
 using FiniteAutomatons.Data;
 using FiniteAutomatons.Services.Services;
 using Microsoft.AspNetCore.Identity;
@@ -22,53 +22,53 @@ public class SharedAutomatonSharingServiceTests : IDisposable
     private const string User2Email = "user2@test.com";
 
     // Test UserManager implementation
-    private sealed class FakeUserStore : IUserStore<IdentityUser>
+    private sealed class FakeUserStore : IUserStore<ApplicationUser>
     {
-        public Task<IdentityResult> CreateAsync(IdentityUser user, CancellationToken cancellationToken) => Task.FromResult(IdentityResult.Success);
-        public Task<IdentityResult> DeleteAsync(IdentityUser user, CancellationToken cancellationToken) => Task.FromResult(IdentityResult.Success);
+        public Task<IdentityResult> CreateAsync(ApplicationUser user, CancellationToken cancellationToken) => Task.FromResult(IdentityResult.Success);
+        public Task<IdentityResult> DeleteAsync(ApplicationUser user, CancellationToken cancellationToken) => Task.FromResult(IdentityResult.Success);
         public void Dispose() { }
-        public Task<IdentityUser?> FindByIdAsync(string userId, CancellationToken cancellationToken) => Task.FromResult<IdentityUser?>(null);
-        public Task<IdentityUser?> FindByNameAsync(string normalizedUserName, CancellationToken cancellationToken) => Task.FromResult<IdentityUser?>(null);
-        public Task<string?> GetNormalizedUserNameAsync(IdentityUser user, CancellationToken cancellationToken) => Task.FromResult<string?>(user.UserName?.ToUpperInvariant());
-        public Task<string> GetUserIdAsync(IdentityUser user, CancellationToken cancellationToken) => Task.FromResult<string>(user.Id);
-        public Task<string?> GetUserNameAsync(IdentityUser user, CancellationToken cancellationToken) => Task.FromResult<string?>(user.UserName);
-        public Task SetNormalizedUserNameAsync(IdentityUser user, string? normalizedName, CancellationToken cancellationToken) { user.NormalizedUserName = normalizedName; return Task.CompletedTask; }
-        public Task SetUserNameAsync(IdentityUser user, string? userName, CancellationToken cancellationToken) { user.UserName = userName; return Task.CompletedTask; }
-        public Task<IdentityResult> UpdateAsync(IdentityUser user, CancellationToken cancellationToken) => Task.FromResult(IdentityResult.Success);
+        public Task<ApplicationUser?> FindByIdAsync(string userId, CancellationToken cancellationToken) => Task.FromResult<ApplicationUser?>(null);
+        public Task<ApplicationUser?> FindByNameAsync(string normalizedUserName, CancellationToken cancellationToken) => Task.FromResult<ApplicationUser?>(null);
+        public Task<string?> GetNormalizedUserNameAsync(ApplicationUser user, CancellationToken cancellationToken) => Task.FromResult<string?>(user.UserName?.ToUpperInvariant());
+        public Task<string> GetUserIdAsync(ApplicationUser user, CancellationToken cancellationToken) => Task.FromResult<string>(user.Id);
+        public Task<string?> GetUserNameAsync(ApplicationUser user, CancellationToken cancellationToken) => Task.FromResult<string?>(user.UserName);
+        public Task SetNormalizedUserNameAsync(ApplicationUser user, string? normalizedName, CancellationToken cancellationToken) { user.NormalizedUserName = normalizedName; return Task.CompletedTask; }
+        public Task SetUserNameAsync(ApplicationUser user, string? userName, CancellationToken cancellationToken) { user.UserName = userName; return Task.CompletedTask; }
+        public Task<IdentityResult> UpdateAsync(ApplicationUser user, CancellationToken cancellationToken) => Task.FromResult(IdentityResult.Success);
     }
 
-    private class TestUserManager() : UserManager<IdentityUser>(
+    private class TestUserManager() : UserManager<ApplicationUser>(
         new FakeUserStore(),
         Microsoft.Extensions.Options.Options.Create(new IdentityOptions()),
-        new PasswordHasher<IdentityUser>(),
+        new PasswordHasher<ApplicationUser>(),
         [],
         [],
         new UpperInvariantLookupNormalizer(),
         new IdentityErrorDescriber(),
         services: null!,
-        logger: new NullLogger<UserManager<IdentityUser>>())
+        logger: new NullLogger<UserManager<ApplicationUser>>())
     {
-        private readonly Dictionary<string, IdentityUser> users = [];
+        private readonly Dictionary<string, ApplicationUser> users = [];
 
         public void AddTestUser(string userId, string email)
         {
-            users[userId] = new IdentityUser { Id = userId, Email = email, UserName = email };
+            users[userId] = new ApplicationUser { Id = userId, Email = email, UserName = email, EnableInvitationNotifications = true };
         }
 
-        public override Task<IdentityUser?> FindByIdAsync(string userId)
+        public override Task<ApplicationUser?> FindByIdAsync(string userId)
         {
             users.TryGetValue(userId, out var user);
             return Task.FromResult(user);
         }
 
-        public override Task<IdentityUser?> GetUserAsync(ClaimsPrincipal principal)
+        public override Task<ApplicationUser?> GetUserAsync(ClaimsPrincipal principal)
         {
             var userId = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (userId != null && users.TryGetValue(userId, out var user))
             {
-                return Task.FromResult<IdentityUser?>(user);
+                return Task.FromResult<ApplicationUser?>(user);
             }
-            return Task.FromResult<IdentityUser?>(null);
+            return Task.FromResult<ApplicationUser?>(null);
         }
     }
 

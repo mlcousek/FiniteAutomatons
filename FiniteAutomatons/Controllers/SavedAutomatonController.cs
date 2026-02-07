@@ -14,12 +14,12 @@ public class SavedAutomatonController(
     ISavedAutomatonService savedAutomatonService,
     IAutomatonTempDataService tempDataService,
     IAutomatonFileService fileService,
-    UserManager<IdentityUser> userManager) : Controller
+    UserManager<ApplicationUser> userManager) : Controller
 {
     private readonly ISavedAutomatonService savedAutomatonService = savedAutomatonService;
     private readonly IAutomatonTempDataService tempDataService = tempDataService;
     private readonly IAutomatonFileService fileService = fileService;
-    private readonly UserManager<IdentityUser> userManager = userManager;
+    private readonly UserManager<ApplicationUser> userManager = userManager;
 
     [HttpGet]
     public async Task<IActionResult> Index(int? groupId = null)
@@ -295,7 +295,7 @@ public class SavedAutomatonController(
 
         var importedCount = 0;
         var failedCount = 0;
-        
+
         // Use a fixed timestamp for all imports to preserve order
         var baseTimestamp = DateTime.UtcNow;
 
@@ -313,12 +313,12 @@ public class SavedAutomatonController(
 
                 // Determine save mode and populate model based on execution state
                 bool saveExecutionState = false;
-                
+
                 if (auto.ExecutionState != null)
                 {
                     // Populate input
                     model.Input = auto.ExecutionState.Input ?? string.Empty;
-                    
+
                     if (auto.HasExecutionState)
                     {
                         // Full execution state
@@ -339,7 +339,7 @@ public class SavedAutomatonController(
                     model,
                     saveExecutionState,
                     groupId);
-                
+
                 // Adjust CreatedAt to preserve import order
                 // Note: This requires direct database access or a new service method
                 // For now, we'll add a small delay to ensure order

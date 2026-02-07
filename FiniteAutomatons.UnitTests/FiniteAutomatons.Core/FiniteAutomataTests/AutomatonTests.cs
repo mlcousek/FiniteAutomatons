@@ -1,4 +1,4 @@
-﻿using FiniteAutomatons.Core.Models.DoMain;
+using FiniteAutomatons.Core.Models.DoMain;
 using Shouldly;
 
 namespace FiniteAutomatons.UnitTests.FiniteAutomatons.Core.FiniteAutomataTests;

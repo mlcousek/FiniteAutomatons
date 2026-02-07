@@ -38,35 +38,35 @@ public class SharedAutomatonControllerTests : IDisposable
         }
     }
 
-    private sealed class FakeUserStore : IUserStore<IdentityUser>
+    private sealed class FakeUserStore : IUserStore<ApplicationUser>
     {
-        public Task<IdentityResult> CreateAsync(IdentityUser user, CancellationToken cancellationToken) => Task.FromResult(IdentityResult.Success);
-        public Task<IdentityResult> DeleteAsync(IdentityUser user, CancellationToken cancellationToken) => Task.FromResult(IdentityResult.Success);
+        public Task<IdentityResult> CreateAsync(ApplicationUser user, CancellationToken cancellationToken) => Task.FromResult(IdentityResult.Success);
+        public Task<IdentityResult> DeleteAsync(ApplicationUser user, CancellationToken cancellationToken) => Task.FromResult(IdentityResult.Success);
         public void Dispose() { }
-        public Task<IdentityUser?> FindByIdAsync(string userId, CancellationToken cancellationToken) => Task.FromResult<IdentityUser?>(null);
-        public Task<IdentityUser?> FindByNameAsync(string normalizedUserName, CancellationToken cancellationToken) => Task.FromResult<IdentityUser?>(null);
-        public Task<string?> GetNormalizedUserNameAsync(IdentityUser user, CancellationToken cancellationToken) => Task.FromResult<string?>(user.UserName?.ToUpperInvariant());
-        public Task<string> GetUserIdAsync(IdentityUser user, CancellationToken cancellationToken) => Task.FromResult<string>(user.Id);
-        public Task<string?> GetUserNameAsync(IdentityUser user, CancellationToken cancellationToken) => Task.FromResult<string?>(user.UserName);
-        public Task SetNormalizedUserNameAsync(IdentityUser user, string? normalizedName, CancellationToken cancellationToken) { user.NormalizedUserName = normalizedName; return Task.CompletedTask; }
-        public Task SetUserNameAsync(IdentityUser user, string? userName, CancellationToken cancellationToken) { user.UserName = userName; return Task.CompletedTask; }
-        public Task<IdentityResult> UpdateAsync(IdentityUser user, CancellationToken cancellationToken) => Task.FromResult(IdentityResult.Success);
+        public Task<ApplicationUser?> FindByIdAsync(string userId, CancellationToken cancellationToken) => Task.FromResult<ApplicationUser?>(null);
+        public Task<ApplicationUser?> FindByNameAsync(string normalizedUserName, CancellationToken cancellationToken) => Task.FromResult<ApplicationUser?>(null);
+        public Task<string?> GetNormalizedUserNameAsync(ApplicationUser user, CancellationToken cancellationToken) => Task.FromResult<string?>(user.UserName?.ToUpperInvariant());
+        public Task<string> GetUserIdAsync(ApplicationUser user, CancellationToken cancellationToken) => Task.FromResult<string>(user.Id);
+        public Task<string?> GetUserNameAsync(ApplicationUser user, CancellationToken cancellationToken) => Task.FromResult<string?>(user.UserName);
+        public Task SetNormalizedUserNameAsync(ApplicationUser user, string? normalizedName, CancellationToken cancellationToken) { user.NormalizedUserName = normalizedName; return Task.CompletedTask; }
+        public Task SetUserNameAsync(ApplicationUser user, string? userName, CancellationToken cancellationToken) { user.UserName = userName; return Task.CompletedTask; }
+        public Task<IdentityResult> UpdateAsync(ApplicationUser user, CancellationToken cancellationToken) => Task.FromResult(IdentityResult.Success);
     }
 
-    private class TestUserManager(IdentityUser? user) : UserManager<IdentityUser>(
+    private class TestUserManager(ApplicationUser? user) : UserManager<ApplicationUser>(
         new FakeUserStore(),
         Microsoft.Extensions.Options.Options.Create(new IdentityOptions()),
-        new PasswordHasher<IdentityUser>(),
+        new PasswordHasher<ApplicationUser>(),
         [],
         [],
         new UpperInvariantLookupNormalizer(),
         new IdentityErrorDescriber(),
         services: null!,
-        logger: new NullLogger<UserManager<IdentityUser>>())
+        logger: new NullLogger<UserManager<ApplicationUser>>())
     {
-        private readonly IdentityUser? userToReturn = user;
+        private readonly ApplicationUser? userToReturn = user;
 
-        public override Task<IdentityUser?> GetUserAsync(ClaimsPrincipal principal)
+        public override Task<ApplicationUser?> GetUserAsync(ClaimsPrincipal principal)
         {
             return Task.FromResult(userToReturn);
         }
@@ -108,6 +108,24 @@ public class SharedAutomatonControllerTests : IDisposable
         }
     }
 
+    private class MockInvitationNotificationService : IInvitationNotificationService
+    {
+        public Task<List<SharedAutomatonGroupInvitation>> GetPendingInvitationsForUserAsync(string userId, string email)
+        {
+            return Task.FromResult(new List<SharedAutomatonGroupInvitation>());
+        }
+
+        public Task<bool> HasInvitationNotificationsEnabledAsync(string userId)
+        {
+            return Task.FromResult(true);
+        }
+
+        public Task SetInvitationNotificationsAsync(string userId, bool enabled)
+        {
+            return Task.CompletedTask;
+        }
+    }
+
     #endregion
 
     public SharedAutomatonControllerTests()
@@ -118,7 +136,7 @@ public class SharedAutomatonControllerTests : IDisposable
 
         context = new ApplicationDbContext(options);
 
-        var testUser = new IdentityUser { Id = TestUserId, UserName = TestUserId, Email = TestUserId };
+        var testUser = new ApplicationUser { Id = TestUserId, UserName = TestUserId, Email = TestUserId, EnableInvitationNotifications = true };
         userManager = new TestUserManager(testUser);
 
         sharedService = new SharedAutomatonService(context, NullLogger<SharedAutomatonService>.Instance);
@@ -129,6 +147,7 @@ public class SharedAutomatonControllerTests : IDisposable
             NullLogger<SharedAutomatonSharingService>.Instance);
 
         var tempDataService = new MockAutomatonTempDataService();
+        var invitationService = new MockInvitationNotificationService();
 
         controller = new SharedAutomatonController(
             sharedService,
@@ -136,6 +155,7 @@ public class SharedAutomatonControllerTests : IDisposable
             tempDataService,
             userManager,
             context,
+            invitationService,
             NullLogger<SharedAutomatonController>.Instance);
 
         SetupControllerContext();
@@ -320,6 +340,7 @@ public class SharedAutomatonControllerTests : IDisposable
             new MockAutomatonTempDataService(),
             new TestUserManager(null),
             context,
+            new MockInvitationNotificationService(),
             NullLogger<SharedAutomatonController>.Instance);
 
         unauthController.ControllerContext = new ControllerContext

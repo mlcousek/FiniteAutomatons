@@ -16,15 +16,17 @@ public class SharedAutomatonController(
     ISharedAutomatonService sharedAutomatonService,
     ISharedAutomatonSharingService sharingService,
     IAutomatonTempDataService tempDataService,
-    UserManager<IdentityUser> userManager,
+    UserManager<ApplicationUser> userManager,
     ApplicationDbContext context,
+    IInvitationNotificationService invitationNotificationService,
     ILogger<SharedAutomatonController> logger) : Controller
 {
     private readonly ISharedAutomatonService sharedAutomatonService = sharedAutomatonService;
     private readonly ISharedAutomatonSharingService sharingService = sharingService;
     private readonly IAutomatonTempDataService tempDataService = tempDataService;
-    private readonly UserManager<IdentityUser> userManager = userManager;
+    private readonly UserManager<ApplicationUser> userManager = userManager;
     private readonly ApplicationDbContext context = context;
+    private readonly IInvitationNotificationService invitationNotificationService = invitationNotificationService;
     private readonly ILogger<SharedAutomatonController> logger = logger;
 
     #region View Actions
@@ -44,7 +46,7 @@ public class SharedAutomatonController(
             {
                 automatons = await sharedAutomatonService.ListForGroupAsync(groupId.Value, user.Id);
                 ViewData["SelectedGroupId"] = groupId.Value;
-                
+
                 // Get user role in this group
                 var role = await sharedAutomatonService.GetUserRoleInGroupAsync(groupId.Value, user.Id);
                 ViewData["UserRole"] = role;
@@ -52,6 +54,15 @@ public class SharedAutomatonController(
             else
             {
                 automatons = await sharedAutomatonService.ListForUserAsync(user.Id);
+            }
+
+            // Load pending invitations if notifications are enabled
+            var notificationsEnabled = await invitationNotificationService.HasInvitationNotificationsEnabledAsync(user.Id);
+            if (notificationsEnabled && user.Email != null)
+            {
+                var pendingInvitations = await invitationNotificationService.GetPendingInvitationsForUserAsync(
+                    user.Id, user.Email);
+                ViewData["PendingInvitations"] = pendingInvitations;
             }
 
             ViewData["Groups"] = groups;
@@ -103,6 +114,31 @@ public class SharedAutomatonController(
         {
             logger.LogWarning(ex, "User {UserId} unauthorized to manage members of group {GroupId}", user.Id, groupId);
             TempData["Error"] = "You do not have permission to manage members of this group.";
+            return RedirectToAction(nameof(Index));
+        }
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Invitations()
+    {
+        var user = await userManager.GetUserAsync(User);
+        if (user == null) return Challenge();
+
+        try
+        {
+            var pendingInvitations = new List<SharedAutomatonGroupInvitation>();
+            if (user.Email != null)
+            {
+                pendingInvitations = await invitationNotificationService.GetPendingInvitationsForUserAsync(
+                    user.Id, user.Email);
+            }
+
+            return View(pendingInvitations);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error loading invitations for user {UserId}", user.Id);
+            TempData["Error"] = "An error occurred while loading your invitations.";
             return RedirectToAction(nameof(Index));
         }
     }
@@ -168,6 +204,29 @@ public class SharedAutomatonController(
             TempData["CreateGroupResult"] = "Failed to delete group.";
             TempData["CreateGroupSuccess"] = "0";
             return RedirectToAction(nameof(Index), new { groupId = id });
+        }
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ToggleInvitationNotifications(bool enabled)
+    {
+        var user = await userManager.GetUserAsync(User);
+        if (user == null) return Challenge();
+
+        try
+        {
+            await invitationNotificationService.SetInvitationNotificationsAsync(user.Id, enabled);
+            TempData["SettingsMessage"] = enabled
+                ? "Invitation notifications enabled."
+                : "Invitation notifications disabled.";
+            return RedirectToAction("Index", "Home");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error toggling notification preferences for user {UserId}", user.Id);
+            TempData["SettingsMessage"] = "Failed to update notification preferences.";
+            return RedirectToAction("Index", "Home");
         }
     }
 
@@ -396,7 +455,7 @@ public class SharedAutomatonController(
         try
         {
             var invitation = await sharingService.InviteByEmailAsync(groupId, user.Id, email, role);
-            
+
             // TODO: Send actual email (for now just log)
             var emailContent = await sharingService.GetInvitationEmailContentAsync(invitation);
             logger.LogInformation("Email invitation created for {Email} to group {GroupId}. Token: {Token}",
@@ -617,7 +676,7 @@ public class SharedAutomatonController(
                 TempData["CreateGroupSuccess"] = "1";
                 return RedirectToAction(nameof(Index), new { groupId = group.Id });
             }
-            
+
             TempData["Error"] = "Failed to join group";
             return RedirectToAction("Index", "Home");
         }

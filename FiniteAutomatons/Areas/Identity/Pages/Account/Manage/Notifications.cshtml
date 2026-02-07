@@ -1,0 +1,38 @@
+@page
+@model FiniteAutomatons.Areas.Identity.Pages.Account.Manage.NotificationsModel
+@{
+    ViewData["Title"] = "Notification Preferences";
+    ViewData["ActivePage"] = ManageNavPages.Notifications;
+}
+
+<h3>@ViewData["Title"]</h3>
+<partial name="_StatusMessage" model="Model.StatusMessage" />
+
+<div class="row">
+    <div class="col-md-6">
+        <form id="notifications-form" method="post">
+            <div asp-validation-summary="All" class="text-danger" role="alert"></div>
+
+            <div class="form-group mb-3">
+                <div class="form-check form-switch">
+                    <input type="checkbox" class="form-check-input" id="enableInvitationNotifications" 
+                           name="enableInvitationNotifications" value="true" 
+                           @(Model.EnableInvitationNotifications ? "checked" : "") />
+                    <label class="form-check-label" for="enableInvitationNotifications">
+                        <strong>Group Invitation Notifications</strong>
+                        <br />
+                        <small class="text-muted">
+                            When enabled, you'll see a notification alert when you log in if you have pending group invitations.
+                        </small>
+                    </label>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Save Preferences</button>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
