@@ -253,7 +253,8 @@ public class SharedAutomatonController(
                 Type = payload.Type,
                 States = payload.States ?? [],
                 Transitions = payload.Transitions ?? [],
-                IsCustomAutomaton = true
+                IsCustomAutomaton = true,
+                SourceRegex = entity.SourceRegex
             };
 
             // Load execution state based on mode

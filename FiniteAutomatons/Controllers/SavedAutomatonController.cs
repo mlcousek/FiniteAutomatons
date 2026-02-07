@@ -156,7 +156,8 @@ public class SavedAutomatonController(
                 Type = payload.Type,
                 States = payload.States ?? [],
                 Transitions = payload.Transitions ?? [],
-                IsCustomAutomaton = true
+                IsCustomAutomaton = true,
+                SourceRegex = entity.SourceRegex
             };
 
             // Load based on mode

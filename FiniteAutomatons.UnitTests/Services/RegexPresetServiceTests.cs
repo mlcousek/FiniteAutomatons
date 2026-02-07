@@ -1,17 +1,11 @@
-using FiniteAutomatons.Services.Interfaces;
-using FiniteAutomatons.Services.Services;
+﻿using FiniteAutomatons.Services.Services;
 using Shouldly;
 
 namespace FiniteAutomatons.UnitTests.Services;
 
 public class RegexPresetServiceTests
 {
-    private readonly IRegexPresetService service;
-
-    public RegexPresetServiceTests(IRegexPresetService service)
-    {
-        this.service = service;
-    }
+    private readonly RegexPresetService service;
 
     public RegexPresetServiceTests()
     {

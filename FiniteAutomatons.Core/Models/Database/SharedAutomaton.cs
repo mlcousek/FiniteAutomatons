@@ -32,6 +32,11 @@ public class SharedAutomaton
     /// </summary>
     public string? ExecutionStateJson { get; set; }
     
+    /// <summary>
+    /// The source regular expression if this automaton was created from a regex.
+    /// </summary>
+    public string? SourceRegex { get; set; }
+    
     public DateTime CreatedAt { get; set; }
     
     public DateTime? ModifiedAt { get; set; }

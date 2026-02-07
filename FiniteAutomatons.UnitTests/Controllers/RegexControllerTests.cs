@@ -176,6 +176,19 @@ public class RegexControllerTests
         mockTempDataService.StoreAutomatonCallCount.ShouldBe(1);
         mockTempDataService.StoreMessageCallCount.ShouldBe(1);
         mockTempDataService.StoredAutomaton.ShouldNotBeNull();
+        mockTempDataService.StoredAutomaton.SourceRegex.ShouldBe("a");
+    }
+
+    [Fact]
+    public void BuildFromRegex_StoresSourceRegex()
+    {
+        var controller = CreateController();
+
+        controller.BuildFromRegex("(a|b)*c");
+
+        mockTempDataService.StoredAutomaton.ShouldNotBeNull();
+        mockTempDataService.StoredAutomaton.SourceRegex.ShouldBe("(a|b)*c");
+        mockTempDataService.StoredAutomaton.Type.ShouldBe(AutomatonType.EpsilonNFA);
     }
 
     [Fact]

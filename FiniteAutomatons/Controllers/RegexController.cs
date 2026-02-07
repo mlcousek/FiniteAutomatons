@@ -56,7 +56,8 @@ public class RegexController : Controller
                 States = enfa.States.Select(s => new State { Id = s.Id, IsStart = s.IsStart, IsAccepting = s.IsAccepting }).ToList(),
                 Transitions = enfa.Transitions.Select(t => new Transition { FromStateId = t.FromStateId, ToStateId = t.ToStateId, Symbol = t.Symbol }).ToList(),
                 IsCustomAutomaton = true,
-                Input = string.Empty
+                Input = string.Empty,
+                SourceRegex = regex.Trim()
             };
 
             model.NormalizeEpsilonTransitions();

@@ -94,6 +94,7 @@ public class SavedAutomatonService(ILogger<SavedAutomatonService> logger, Applic
             ContentJson = payload,
             SaveMode = saveMode,
             ExecutionStateJson = execJson,
+            SourceRegex = model.SourceRegex,
             CreatedAt = DateTime.UtcNow,
         };
 

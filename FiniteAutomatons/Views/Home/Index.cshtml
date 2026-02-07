@@ -59,6 +59,17 @@
                             </div>
                         </div>
 
+                        <!-- Source Regex Section (if created from regex) -->
+                        @if (!string.IsNullOrWhiteSpace(Model.SourceRegex))
+                        {
+                            <div class="automaton-detail-section" data-panel-id="source-regex">
+                                <h4>Source Regular Expression</h4>
+                                <div class="source-regex-display">
+                                    <code class="regex-code">@Model.SourceRegex</code>
+                                </div>
+                            </div>
+                        }
+
                         <!-- States Section -->
                         <div class="automaton-detail-section" data-panel-id="states">
                             <h4>States</h4>

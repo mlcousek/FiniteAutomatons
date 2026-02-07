@@ -44,6 +44,7 @@ public class SharedAutomatonService(
             Description = description?.Trim(),
             ContentJson = JsonSerializer.Serialize(payload),
             SaveMode = AutomatonSaveMode.Structure,
+            SourceRegex = model.SourceRegex,
             CreatedAt = DateTime.UtcNow
         };
 

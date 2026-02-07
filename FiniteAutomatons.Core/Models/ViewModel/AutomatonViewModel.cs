@@ -35,6 +35,9 @@ public class AutomatonViewModel
     public string? StackSerialized { get; set; } // PDA stack serialization (top-first JSON array of chars)
     public bool IsCustomAutomaton { get; set; } = false;
 
+    // Source information for automatons created from regex
+    public string? SourceRegex { get; set; }
+
     // Minimization metadata populated when DFA is minimized
     public Dictionary<int, int>? StateMapping { get; set; }
     public Dictionary<int, List<int>>? MergedStateGroups { get; set; }

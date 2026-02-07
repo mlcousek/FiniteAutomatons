@@ -16,6 +16,12 @@ public class SavedAutomaton
     public AutomatonSaveMode SaveMode { get; set; } = AutomatonSaveMode.Structure;
 
     public string? ExecutionStateJson { get; set; }
+
+    /// <summary>
+    /// The source regular expression if this automaton was created from a regex.
+    /// </summary>
+    public string? SourceRegex { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public List<SavedAutomatonGroupAssignment> Assignments { get; set; } = [];
 
