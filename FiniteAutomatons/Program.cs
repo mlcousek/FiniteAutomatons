@@ -219,8 +219,9 @@ public partial class Program
         services.AddTransient<NFA>();
         services.AddTransient<EpsilonNFA>();
 
-        // Register regex -> automaton service
+        // Register regex services
         services.AddScoped<IRegexToAutomatonService, RegexToAutomatonService>();
+        services.AddSingleton<IRegexPresetService, RegexPresetService>();
     }
 
     private static void ConfigureRequestPipeline(WebApplication app)

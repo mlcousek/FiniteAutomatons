@@ -832,6 +832,98 @@
                             </form>
                         </div>
 
+                        <!-- Regex to Automaton -->
+                        <div class="input-section-card" data-section-id="regex">
+                            <div class="section-card-header">
+                                <i class="fas fa-code"></i>
+                                <h4>From Regular Expression</h4>
+                            </div>
+                            <div class="section-card-body">
+                                
+                                <!-- Custom Regex Input -->
+                                <div class="regex-custom-section">
+                                    <form id="regexCustomForm" asp-controller="Regex" asp-action="BuildFromRegex" method="post">
+                                        @Html.AntiForgeryToken()
+                                        <div class="form-group">
+                                            <label for="regexInput" class="form-label">
+                                                <i class="fas fa-terminal"></i>
+                                                Regular Expression
+                                            </label>
+                                            <input 
+                                                type="text" 
+                                                id="regexInput" 
+                                                name="regex" 
+                                                class="modern-input" 
+                                                placeholder="e.g., (a|b)*c"
+                                                autocomplete="off"
+                                                spellcheck="false"
+                                                aria-describedby="regexValidationFeedback"
+                                            />
+                                            <div id="regexValidationFeedback" class="regex-validation-feedback" style="display:none;" role="alert"></div>
+                                        </div>
+                                        
+                                        <button type="submit" class="modern-btn btn-primary btn-full" id="regexSubmitBtn" aria-label="Convert regular expression to automaton">
+                                            <i class="fas fa-cogs"></i>
+                                            Convert to Automaton
+                                        </button>
+                                    </form>
+                                </div>
+
+                                <!-- Divider -->
+                                <div class="section-divider">
+                                    <span>or choose preset</span>
+                                </div>
+
+                                <!-- Preset Examples -->
+                                <form id="regexPresetForm" asp-controller="Regex" asp-action="BuildFromPreset" method="post">
+                                    @Html.AntiForgeryToken()
+                                    <div class="form-group">
+                                        <label for="regexPresetSelect" class="form-label">
+                                            <i class="fas fa-list"></i>
+                                            Example Patterns
+                                        </label>
+                                        <select id="regexPresetSelect" name="presetKey" class="modern-input" aria-describedby="regexPresetInfo">
+                                            <option value="">-- Select Example --</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <!-- Preset Description Box -->
+                                    <div id="regexPresetInfo" class="preset-info-box" style="display:none;">
+                                        <p id="regexPresetDescription"></p>
+                                        <div class="preset-examples">
+                                            <div class="examples-column">
+                                                <h5>✓ Accepts</h5>
+                                                <ul id="regexAcceptList"></ul>
+                                            </div>
+                                            <div class="examples-column">
+                                                <h5>✗ Rejects</h5>
+                                                <ul id="regexRejectList"></ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <button type="submit" class="modern-btn btn-success btn-full" id="regexPresetSubmitBtn" disabled aria-label="Generate automaton from preset pattern">
+                                        <i class="fas fa-magic"></i>
+                                        Generate from Preset
+                                    </button>
+                                </form>
+
+                                <!-- Help Text -->
+                                <details class="regex-help">
+                                    <summary>Supported Regex Syntax</summary>
+                                    <ul>
+                                        <li><strong>Literals:</strong> abc, 123</li>
+                                        <li><strong>Operators:</strong> * (zero or more), + (one or more), ? (optional)</li>
+                                        <li><strong>Alternation:</strong> a|b (a OR b)</li>
+                                        <li><strong>Grouping:</strong> (ab)*</li>
+                                        <li><strong>Character Classes:</strong> [abc], [a-z]</li>
+                                        <li><strong>Escape:</strong> \* for literal asterisk</li>
+                                    </ul>
+                                    <p><strong>Not supported:</strong> Negated classes [^abc], lookahead, backreferences</p>
+                                </details>
+                            </div>
+                        </div>
+
                         <!-- Create Custom Automaton -->
                         <div class="input-section-card card-special" data-section-id="fully-custom">
                             <div class="section-card-header">
@@ -847,6 +939,7 @@
                 </div>
             </div>
         </div>
+
 
         <div class="control-section">
             <div class="section-header-custom">
@@ -1138,7 +1231,7 @@
     <script type="module" src="~/js/automatonTypeControls.mjs" asp-append-version="true"></script>
     <script src="~/js/generateModal.js" asp-append-version="true"></script>
     <script src="~/js/generateInputModal.js" asp-append-version="true"></script>
+    <script src="~/js/regexModal.js" asp-append-version="true"></script>
     <script src="~/js/alerts.js" asp-append-version="true"></script>
     <script src="~/js/saveAutomatonModal.js" asp-append-version="true"></script>
 }
-

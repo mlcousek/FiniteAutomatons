@@ -9,14 +9,25 @@ namespace FiniteAutomatons.Controllers;
 public class RegexController : Controller
 {
     private readonly ILogger<RegexController> logger;
-    private readonly IRegexToAutomatonService? regexService;
+    private readonly IRegexToAutomatonService regexService;
     private readonly IAutomatonTempDataService tempDataService;
+    private readonly IRegexPresetService presetService;
 
-    public RegexController(ILogger<RegexController> logger, IAutomatonTempDataService tempDataService, IRegexToAutomatonService? regexService = null)
+    public RegexController(
+        ILogger<RegexController> logger,
+        IAutomatonTempDataService tempDataService,
+        IRegexToAutomatonService regexService,
+        IRegexPresetService presetService)
     {
-        this.logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        this.tempDataService = tempDataService ?? throw new ArgumentNullException(nameof(tempDataService));
+        ArgumentNullException.ThrowIfNull(logger);
+        ArgumentNullException.ThrowIfNull(tempDataService);
+        ArgumentNullException.ThrowIfNull(regexService);
+        ArgumentNullException.ThrowIfNull(presetService);
+
+        this.logger = logger;
+        this.tempDataService = tempDataService;
         this.regexService = regexService;
+        this.presetService = presetService;
     }
 
     // GET: Regex to Automaton UI (development/testing helper)
@@ -33,12 +44,6 @@ public class RegexController : Controller
         if (string.IsNullOrWhiteSpace(regex))
         {
             return Json(new { success = false, error = "Empty regex provided" });
-        }
-
-        if (regexService == null)
-        {
-            logger.LogWarning("Attempt to build from regex but IRegexToAutomatonService is not available");
-            return Json(new { success = false, error = "Service unavailable" });
         }
 
         try
@@ -61,10 +66,54 @@ public class RegexController : Controller
             var redirect = Url.Action("Index", "Home");
             return Json(new { success = true, redirect });
         }
+        catch (ArgumentException ex) when (ex.Message.Contains("not supported"))
+        {
+            logger.LogWarning(ex, "Unsupported regex feature");
+            return Json(new
+            {
+                success = false,
+                error = $"{ex.Message}. Supported: literals, [char-class], ranges [a-z], *, +, ?, |, ()."
+            });
+        }
         catch (Exception ex)
         {
             logger.LogWarning(ex, "Failed to build automaton from regex via controller");
             return Json(new { success = false, error = ex.Message });
         }
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult BuildFromPreset([FromForm] string presetKey)
+    {
+        if (string.IsNullOrWhiteSpace(presetKey))
+        {
+            return Json(new { success = false, error = "No preset selected" });
+        }
+
+        var preset = presetService.GetPresetByKey(presetKey);
+        if (preset == null)
+        {
+            return Json(new { success = false, error = "Invalid preset" });
+        }
+
+        return BuildFromRegex(preset.Pattern);
+    }
+
+    [HttpGet]
+    public IActionResult GetPresets()
+    {
+        var presets = presetService.GetAllPresets()
+            .Select(p => new
+            {
+                key = p.Key,
+                displayName = p.DisplayName,
+                pattern = p.Pattern,
+                description = p.Description,
+                acceptExamples = p.AcceptExamples,
+                rejectExamples = p.RejectExamples
+            });
+
+        return Json(presets);
     }
 }
