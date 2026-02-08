@@ -30,6 +30,7 @@ function initAutomatonTypeControls(){
             case 'DFA': disable(['NFA','EpsilonNFA','PDA']); break;
             case 'NFA': disable(['EpsilonNFA','PDA']); break;
             case 'EpsilonNFA': disable(['PDA']); break;
+            case 'PDA': disable(['DFA','NFA','EpsilonNFA']); break;
         }
     }
     function disable(types){ types.forEach(t => { const b = buttons.find(x=>x.dataset.type===t); if (b) b.setAttribute('disabled','');}); }

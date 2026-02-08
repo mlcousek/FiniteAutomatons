@@ -455,7 +455,7 @@
             </div>
             @if (Model?.Type == AutomatonType.DFA && analysis != null && analysis.SupportsMinimization)
             {
-            <!-- Minimalize Section -->
+            <!-- Minimalize Section TODO MAKE VISIBLE BUT DISABLED --> 
             <div class="control-section minimize-section">
                 <div class="section-header-custom">
                     <h2>MINIMALIZE</h2>
@@ -761,6 +761,7 @@
                                         <option value="DFA">DFA</option>
                                         <option value="NFA">NFA</option>
                                         <option value="EpsilonNFA">ε-NFA</option>
+                                        <option value="PDA">PDA</option>
                                     </select>
                                 </div>
                                 

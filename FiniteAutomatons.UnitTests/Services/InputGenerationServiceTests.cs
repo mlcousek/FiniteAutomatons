@@ -12,7 +12,9 @@ public class InputGenerationServiceTests
 
     public InputGenerationServiceTests()
     {
-        service = new InputGenerationService(NullLogger<InputGenerationService>.Instance);
+        // Provide a real AutomatonBuilderService with a null logger so tests can build PDAs/NFAs when needed
+        var builderService = new AutomatonBuilderService(NullLogger<AutomatonBuilderService>.Instance);
+        service = new InputGenerationService(NullLogger<InputGenerationService>.Instance, builderService);
     }
 
     #region GenerateRandomString Tests

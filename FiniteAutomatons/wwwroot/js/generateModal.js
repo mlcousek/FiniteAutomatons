@@ -63,6 +63,9 @@
             optionSelect.appendChild(new Option('Random ε-NFA', 'random-enfa'));
             optionSelect.appendChild(new Option('ε-NFA (with ε transitions)', 'enfa-eps'));
             optionSelect.appendChild(new Option('ε-NFA nondeterministic', 'enfa-nondet'));
+        } else if (family === 'PDA') {
+            optionSelect.appendChild(new Option('Random PDA', 'random-pda'));
+            optionSelect.appendChild(new Option('PDA with push/pop pairs', 'pda-pushpop'));
         }
     }
 

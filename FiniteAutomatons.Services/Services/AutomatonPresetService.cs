@@ -37,6 +37,72 @@ public class AutomatonPresetService(
         return minModel;
     }
 
+    public AutomatonViewModel GenerateRandomPda(int stateCount = 5, int transitionCount = 10, int alphabetSize = 3, double acceptingRatio = 0.3, int? seed = null)
+    {
+        logger.LogInformation("Generating random PDA preset with {StateCount} states", stateCount);
+        return generatorService.GenerateRandomAutomaton(AutomatonType.PDA, stateCount, transitionCount, alphabetSize, acceptingRatio, seed);
+    }
+
+    public AutomatonViewModel GeneratePdaWithPushPopPairs(int stateCount = 5, int transitionCount = 12, int alphabetSize = 3, double acceptingRatio = 0.3, int? seed = null)
+    {
+        logger.LogInformation("Generating PDA preset with push/pop pairs, states={StateCount}", stateCount);
+        // Create a PDA with additional push/pop matching pairs to be educational
+        var basePda = generatorService.GenerateRandomAutomaton(AutomatonType.PDA, stateCount, transitionCount, alphabetSize, acceptingRatio, seed);
+
+        // Try to add a few push/pop pairs if possible
+        var random = seed.HasValue ? new Random(seed.Value) : new Random();
+        var alphabet = basePda.Transitions.Where(t => t.Symbol != '\0').Select(t => t.Symbol).Distinct().ToList();
+        if (alphabet.Count == 0)
+        {
+            // nothing to do
+            return basePda;
+        }
+
+        // Add couple of paired transitions that push on one symbol and pop on another
+        int added = 0;
+        for (int i = 0; i < Math.Min(3, alphabet.Count) && added < 3; i++)
+        {
+            var pushSym = alphabet[random.Next(alphabet.Count)];
+            var popSym = alphabet[random.Next(alphabet.Count)];
+            if (pushSym == popSym) continue;
+
+            // choose random from/to states
+            var from = basePda.States[random.Next(basePda.States.Count)].Id;
+            var to = basePda.States[random.Next(basePda.States.Count)].Id;
+            basePda.Transitions.Add(new Transition { FromStateId = from, ToStateId = to, Symbol = pushSym, StackPop = null, StackPush = pushSym.ToString() });
+
+            var from2 = basePda.States[random.Next(basePda.States.Count)].Id;
+            var to2 = basePda.States[random.Next(basePda.States.Count)].Id;
+            basePda.Transitions.Add(new Transition { FromStateId = from2, ToStateId = to2, Symbol = popSym, StackPop = pushSym, StackPush = null });
+            added += 2;
+        }
+
+        logger.LogInformation("Generated PDA preset with {Transitions} transitions (including push/pop)", basePda.Transitions.Count);
+        return basePda;
+    }
+
+    public AutomatonViewModel GenerateBalancedParenthesesPda(int maxDepth = 5)
+    {
+        // Construct a simple PDA that accepts balanced parentheses of '(' and ')'
+        // using a single state that pushes '(' and pops on ')', accepting on empty stack.
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.PDA,
+            States = new List<State> { new() { Id = 1, IsStart = true, IsAccepting = true } },
+            Transitions = new List<Transition>(),
+            IsCustomAutomaton = true
+        };
+
+        // push '(' on reading '('
+        model.Transitions.Add(new Transition { FromStateId = 1, ToStateId = 1, Symbol = '(', StackPop = '\0', StackPush = "(" });
+        // pop '(' on reading ')'
+        model.Transitions.Add(new Transition { FromStateId = 1, ToStateId = 1, Symbol = ')', StackPop = '(', StackPush = null });
+
+        return model;
+    }
+
+
+
     public AutomatonViewModel GenerateUnminimalizedDfa(int stateCount = 5, int transitionCount = 10, int alphabetSize = 3, double acceptingRatio = 0.3, int? seed = null)
     {
         logger.LogInformation("Generating unminimalized DFA preset with {StateCount} states", stateCount);
@@ -401,41 +467,41 @@ public class AutomatonPresetService(
         // Add nondeterministic transitions (including possibly epsilon-based nondeterminism)
         logger.LogInformation("Generated ε-NFA is deterministic, adding nondeterministic transitions");
         var result = AddNondeterministicTransitions(baseEnfa, seed);
-        
+
         // GUARANTEE: If still not nondeterministic after AddNondeterministicTransitions, force add one
         if (!IsNondeterministic(result))
         {
             logger.LogWarning("Failed to add nondeterministic transitions via random method, forcing one guaranteed nondeterministic transition");
             result = ForceNondeterministicTransition(result, seed);
         }
-        
+
         return result;
     }
-    
+
     private AutomatonViewModel ForceNondeterministicTransition(AutomatonViewModel automaton, int? seed)
     {
         var random = seed.HasValue ? new Random(seed.Value) : new Random();
-        
+
         // Get alphabet (non-epsilon symbols)
         var alphabet = automaton.Transitions
             .Where(t => t.Symbol != '\0')
             .Select(t => t.Symbol)
             .Distinct()
             .ToList();
-        
+
         if (alphabet.Count == 0 || automaton.States.Count < 2)
         {
             logger.LogWarning("Cannot force nondeterministic transition - insufficient alphabet or states");
             return automaton;
         }
-        
+
         // Strategy 1: Find an existing transition and duplicate it to a different target
         var existingTransitions = automaton.Transitions.Where(t => t.Symbol != '\0').ToList();
         if (existingTransitions.Any())
         {
             var baseTransition = existingTransitions[random.Next(existingTransitions.Count)];
             var otherStates = automaton.States.Where(s => s.Id != baseTransition.ToStateId).ToList();
-            
+
             if (otherStates.Any())
             {
                 var newTarget = otherStates[random.Next(otherStates.Count)];
@@ -445,28 +511,28 @@ public class AutomatonPresetService(
                     ToStateId = newTarget.Id,
                     Symbol = baseTransition.Symbol
                 });
-                
+
                 logger.LogInformation("Force-added nondeterministic transition: q{From} --{Symbol}--> q{To}",
                     baseTransition.FromStateId, baseTransition.Symbol, newTarget.Id);
                 return automaton;
             }
         }
-        
+
         // Strategy 2: Create a new transition from any state on any symbol to create nondeterminism
         var fromState = automaton.States[random.Next(automaton.States.Count)];
         var symbol = alphabet[random.Next(alphabet.Count)];
         var toState = automaton.States[random.Next(automaton.States.Count)];
-        
+
         automaton.Transitions.Add(new Transition
         {
             FromStateId = fromState.Id,
             ToStateId = toState.Id,
             Symbol = symbol
         });
-        
+
         logger.LogInformation("Force-added nondeterministic transition: q{From} --{Symbol}--> q{To}",
             fromState.Id, symbol, toState.Id);
-        
+
         return automaton;
     }
 }

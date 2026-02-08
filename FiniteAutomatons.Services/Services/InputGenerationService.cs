@@ -5,9 +5,10 @@ using Microsoft.Extensions.Logging;
 
 namespace FiniteAutomatons.Services.Services;
 
-public class InputGenerationService(ILogger<InputGenerationService> logger) : IInputGenerationService
+public class InputGenerationService(ILogger<InputGenerationService> logger, IAutomatonBuilderService automatonBuilderService) : IInputGenerationService
 {
     private readonly ILogger<InputGenerationService> logger = logger;
+    private readonly IAutomatonBuilderService automatonBuilderService = automatonBuilderService;
 
     public string GenerateRandomString(AutomatonViewModel automaton, int minLength = 0, int maxLength = 10, int? seed = null)
     {
@@ -58,6 +59,51 @@ public class InputGenerationService(ILogger<InputGenerationService> logger) : II
         if (acceptingStates.Count == 0)
         {
             logger.LogWarning("Cannot generate accepting string - no accepting states");
+            return null;
+        }
+
+        // PDA-aware shortest accepting generation: simulate PDA on candidate inputs
+        if (automaton.Type == AutomatonType.PDA)
+        {
+            var alphabet = automaton.Alphabet?.Where(c => c != '\0').ToList() ?? new List<char>();
+            var pda = automatonBuilderService.CreatePDA(automaton);
+
+            // check empty string first
+            try
+            {
+                if (pda.Execute(string.Empty))
+                {
+                    logger.LogInformation("Found accepting empty string for PDA");
+                    return string.Empty;
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "PDA simulation failed while checking empty string");
+            }
+
+            // brute-force by increasing length (safe for small alphabets / lengths)
+            for (int len = 1; len <= maxLength; len++)
+            {
+                if (alphabet.Count == 0) break;
+                foreach (var candidate in EnumerateStrings(alphabet, len))
+                {
+                    try
+                    {
+                        if (pda.Execute(candidate))
+                        {
+                            logger.LogInformation("Found accepting PDA string: '{String}'", candidate);
+                            return candidate;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogDebug(ex, "PDA simulation error for candidate '{Candidate}'", candidate);
+                    }
+                }
+            }
+
+            logger.LogWarning("No accepting PDA string found within length {MaxLength}", maxLength);
             return null;
         }
 
@@ -385,6 +431,67 @@ public class InputGenerationService(ILogger<InputGenerationService> logger) : II
             cases.Add((longString, "Long string test"));
         }
 
+        // PDA-specific interesting cases
+        if (automaton.Type == AutomatonType.PDA)
+        {
+            logger.LogInformation("Adding PDA-specific interesting cases");
+
+            // Push-loop: find a transition that pushes to the stack (StackPush not empty)
+            var pushTransitions = automaton.Transitions?.Where(t => !string.IsNullOrEmpty(t.StackPush)).ToList() ?? new List<Transition>();
+            if (pushTransitions.Count > 0)
+            {
+                var t = pushTransitions.First();
+                var pathToState = FindPathToState(automaton, t.FromStateId, maxLength);
+                var pushSymbol = t.Symbol != '\0' ? t.Symbol.ToString() : string.Empty;
+                // Repeat the push action to exercise stack growth (may include ε-transitions)
+                var repeatCount = Math.Min(4, Math.Max(1, maxLength / (Math.Max(1, pushSymbol.Length))));
+                var pushSegment = (pathToState ?? string.Empty) + string.Concat(Enumerable.Repeat(pushSymbol, repeatCount));
+                if (pushSegment.Length <= maxLength)
+                {
+                    cases.Add((pushSegment, "PDA push-loop (exercises stack growth)"));
+                }
+            }
+
+            // Pop-requiring transition: find a transition that checks/pops a specific stack symbol
+            var popTransitions = automaton.Transitions?.Where(t => t.StackPop.HasValue && t.StackPop.Value != '\0').ToList() ?? new List<Transition>();
+            if (popTransitions.Count > 0)
+            {
+                var t = popTransitions.First();
+                var pathToState = FindPathToState(automaton, t.FromStateId, maxLength);
+                var symbol = t.Symbol != '\0' ? t.Symbol.ToString() : string.Empty;
+                var candidate = (pathToState ?? string.Empty) + symbol;
+                if (!string.IsNullOrEmpty(candidate) && candidate.Length <= maxLength)
+                {
+                    cases.Add((candidate, "PDA pop (requires specific stack top)"));
+                }
+            }
+
+            // Balanced-like pattern: attempt to create a push...pop sequence using a push transition and a pop transition
+            if (pushTransitions.Count > 0 && popTransitions.Count > 0)
+            {
+                var push = pushTransitions.First();
+                var pop = popTransitions.First();
+                // Try to find path to push.FromState, then to pop.FromState
+                var toPush = FindPathToState(automaton, push.FromStateId, maxLength);
+                var toPop = FindPathToState(automaton, pop.FromStateId, maxLength);
+                var pushSym = push.Symbol != '\0' ? push.Symbol.ToString() : string.Empty;
+                var popSym = pop.Symbol != '\0' ? pop.Symbol.ToString() : string.Empty;
+
+                if (toPush != null && toPop != null)
+                {
+                    // build pattern: reach push, repeat pushSym N times, then reach pop and emit popSym N times
+                    var n = Math.Min(3, Math.Max(1, maxLength / Math.Max(1, pushSym.Length + popSym.Length + 1)));
+                    var middle = string.Concat(Enumerable.Repeat(pushSym, n));
+                    var trailing = string.Concat(Enumerable.Repeat(popSym, n));
+                    var candidate = (toPush ?? string.Empty) + middle + (toPop ?? string.Empty) + trailing;
+                    if (candidate.Length <= maxLength && candidate.Length > 0)
+                    {
+                        cases.Add((candidate, "PDA push/pop pattern (balanced-like)"));
+                    }
+                }
+            }
+        }
+
         logger.LogInformation("Generated {Count} interesting test cases", cases.Count);
         return cases;
     }
@@ -531,6 +638,34 @@ public class InputGenerationService(ILogger<InputGenerationService> logger) : II
             result[i] = alphabet[random.Next(alphabet.Count)];
         }
         return new string(result);
+    }
+
+    private static IEnumerable<string> EnumerateStrings(List<char> alphabet, int length)
+    {
+        if (length == 0)
+        {
+            yield return string.Empty;
+            yield break;
+        }
+
+        var indices = new int[length];
+        var n = alphabet.Count;
+        while (true)
+        {
+            var chars = new char[length];
+            for (int i = 0; i < length; i++) chars[i] = alphabet[indices[i]];
+            yield return new string(chars);
+
+            int pos = length - 1;
+            while (pos >= 0)
+            {
+                indices[pos]++;
+                if (indices[pos] < n) break;
+                indices[pos] = 0;
+                pos--;
+            }
+            if (pos < 0) break;
+        }
     }
 
     private static bool WouldLikelyReject(AutomatonViewModel automaton, string input)

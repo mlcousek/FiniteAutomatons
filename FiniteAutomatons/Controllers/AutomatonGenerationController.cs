@@ -90,6 +90,9 @@ public class AutomatonGenerationController(
                 "enfa-eps" => presetService.GenerateEpsilonNfa(stateCount, transitionCount, alphabetSize, acceptingRatio, seed),
                 "enfa-nondet" => presetService.GenerateEpsilonNfaNondeterministic(stateCount, transitionCount, alphabetSize, acceptingRatio, seed),
                 "random-enfa" => presetService.GenerateEpsilonNfa(stateCount, transitionCount, alphabetSize, acceptingRatio, seed),
+                "random-pda" => presetService.GenerateRandomPda(stateCount, transitionCount, alphabetSize, acceptingRatio, seed),
+                "pda-pushpop" => presetService.GeneratePdaWithPushPopPairs(stateCount, transitionCount, alphabetSize, acceptingRatio, seed),
+                "pda-balanced-parens" => presetService.GenerateBalancedParenthesesPda(),
                 _ => throw new ArgumentException($"Unknown preset: {preset}")
             };
 
@@ -127,6 +130,9 @@ public class AutomatonGenerationController(
         "enfa-eps" => "ε-NFA (with ε transitions)",
         "enfa-nondet" => "ε-NFA (nondeterministic)",
         "random-enfa" => "Random ε-NFA",
+        "random-pda" => "Random PDA",
+        "pda-pushpop" => "PDA (push/pop pairs)",
+        "pda-balanced-parens" => "PDA (Balanced Parentheses)",
         _ => preset
     };
 }

@@ -248,7 +248,9 @@ public class PDA : Automaton
                 Stack<char>? foundStack = null;
                 Transition? foundTransition = null;
 
-                while (q.Count > 0 && safety++ < 10000)
+                // Use configurable execution safety limit to avoid unbounded exploration
+                var maxExpansion = Configuration.PdaExecutionSettings.MaxBfsExpansion;
+                while (q.Count > 0 && safety++ < maxExpansion)
                 {
                     var (curState, stackCopy) = q.Dequeue();
 
@@ -285,6 +287,13 @@ public class PDA : Automaton
                         }
 
                         var key = t.ToStateId + "|" + new string([.. newStack.Reverse()]);
+                        // enforce stack growth safety: do not enqueue configurations with excessive stack size
+                        if (newStack.Count > Configuration.PdaExecutionSettings.MaxStackGrowthTolerance)
+                        {
+                            // skip this expansion to avoid unbounded growth
+                            continue;
+                        }
+
                         if (visited.Add(key))
                         {
                             q.Enqueue((t.ToStateId, newStack));
@@ -338,7 +347,8 @@ public class PDA : Automaton
         visited2.Add(initKey2);
 
         int safety2 = 0;
-        while (q2.Count > 0 && safety2++ < 10000)
+        var maxExpansion2 = Configuration.PdaExecutionSettings.MaxBfsExpansion;
+        while (q2.Count > 0 && safety2++ < maxExpansion2)
         {
             var (curState, stackKey, stackCopy) = q2.Dequeue();
             // check acceptance: accepting state and only bottom
@@ -364,6 +374,13 @@ public class PDA : Automaton
                 {
                     for (int i = t.StackPush.Length - 1; i >= 0; i--)
                         newStack.Push(t.StackPush[i]);
+                }
+
+                // enforce stack growth safety for epsilon closure expansions
+                if (newStack.Count > Configuration.PdaExecutionSettings.MaxStackGrowthTolerance)
+                {
+                    // skip this expansion
+                    continue;
                 }
 
                 var newKey = t.ToStateId + "|" + new string([.. newStack.Reverse()]);
@@ -439,7 +456,8 @@ public class PDA : Automaton
     private bool TryApplyEpsilonClosure(PDAExecutionState state)
     {
         int safety = 0;
-        while (safety++ < 1000)
+        var maxEps = Configuration.PdaExecutionSettings.MaxEpsilonIterations;
+        while (safety++ < maxEps)
         {
             var top = state.Stack.Count > 0 ? state.Stack.Peek() : (char?)null;
             try
