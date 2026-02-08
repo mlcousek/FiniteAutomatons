@@ -32,7 +32,7 @@ public sealed class RegexPresetService : IRegexPresetService
 
         new("even-as", "Even Number of 'a'", "(b*ab*ab*)*",
             "Strings with even count of 'a'",
-            ["", "aa", "babb"], ["a", "aaa"]),
+            ["", "aa", "baab"], ["a", "aaa"]),
 
         new("char-class", "Character Class [aeiou]+", "[aeiou]+",
             "One or more vowels",

@@ -1,4 +1,4 @@
-using Shouldly;
+﻿using Shouldly;
 using System.Net;
 using System.Text.Json;
 
