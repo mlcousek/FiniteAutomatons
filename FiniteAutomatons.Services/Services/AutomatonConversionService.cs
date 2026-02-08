@@ -1,8 +1,8 @@
 using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.ViewModel;
+using FiniteAutomatons.Core.Utilities;
 using FiniteAutomatons.Services.Interfaces;
 using Microsoft.Extensions.Logging;
-using FiniteAutomatons.Core.Utilities; // added for NormalizeEpsilonTransitions
 
 namespace FiniteAutomatons.Services.Services;
 
@@ -38,7 +38,8 @@ public class AutomatonConversionService(IAutomatonBuilderService builderService,
                         States = [.. nfa.States],
                         Transitions = [.. nfa.Transitions],
                         Input = model.Input ?? string.Empty,
-                        IsCustomAutomaton = model.IsCustomAutomaton
+                        IsCustomAutomaton = model.IsCustomAutomaton,
+                        SourceRegex = model.SourceRegex
                     };
                     warnings.Add("Converted EpsilonNFA to NFA via epsilon-closure elimination. Epsilon transitions removed.");
                     logger.LogInformation("Performed full EpsilonNFA -> NFA conversion. States={StateCount} Transitions={TransitionCount}", convertedModelFull.States.Count, convertedModelFull.Transitions.Count);
@@ -56,7 +57,8 @@ public class AutomatonConversionService(IAutomatonBuilderService builderService,
                 States = [.. model.States],
                 Transitions = [.. model.Transitions.Where(t => t.Symbol != '\0')],
                 Input = model.Input ?? string.Empty,
-                IsCustomAutomaton = model.IsCustomAutomaton
+                IsCustomAutomaton = model.IsCustomAutomaton,
+                SourceRegex = model.SourceRegex
             };
             warnings.Add("Performed fallback conversion by removing epsilon transitions.");
             return (fallback, warnings);
@@ -69,7 +71,8 @@ public class AutomatonConversionService(IAutomatonBuilderService builderService,
             States = [.. model.States],
             Transitions = [.. model.Transitions],
             Input = model.Input ?? string.Empty,
-            IsCustomAutomaton = model.IsCustomAutomaton
+            IsCustomAutomaton = model.IsCustomAutomaton,
+            SourceRegex = model.SourceRegex
         };
 
         switch ((model.Type, newType))
@@ -126,7 +129,8 @@ public class AutomatonConversionService(IAutomatonBuilderService builderService,
             States = [.. convertedDFA.States],
             Transitions = [.. convertedDFA.Transitions],
             Input = model.Input ?? string.Empty,
-            IsCustomAutomaton = true
+            IsCustomAutomaton = true,
+            SourceRegex = model.SourceRegex
         };
 
         logger.LogInformation("Successfully converted {SourceType} to DFA with {StateCount} states", model.Type, convertedModel.States.Count);

@@ -27,6 +27,8 @@ public class AutomatonMinimizationService(IAutomatonBuilderService builderServic
             Transitions = [.. minimized.Transitions],
             Input = model.Input ?? string.Empty,
             IsCustomAutomaton = true,
+            // preserve the original source regex if present
+            SourceRegex = model.SourceRegex,
             // Manually clear execution state (keep input)
             Result = null,
             CurrentStateId = null,
