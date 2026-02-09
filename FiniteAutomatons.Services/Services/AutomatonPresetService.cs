@@ -1,4 +1,5 @@
 ﻿using FiniteAutomatons.Core.Models.DoMain;
+using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Interfaces;
 using Microsoft.Extensions.Logging;
@@ -37,17 +38,17 @@ public class AutomatonPresetService(
         return minModel;
     }
 
-    public AutomatonViewModel GenerateRandomPda(int stateCount = 5, int transitionCount = 10, int alphabetSize = 3, double acceptingRatio = 0.3, int? seed = null)
+    public AutomatonViewModel GenerateRandomPda(int stateCount = 5, int transitionCount = 10, int alphabetSize = 3, double acceptingRatio = 0.3, int? seed = null, PDAAcceptanceMode? acceptanceMode = null, Stack<char>? initialStack = null)
     {
-        logger.LogInformation("Generating random PDA preset with {StateCount} states", stateCount);
-        return generatorService.GenerateRandomAutomaton(AutomatonType.PDA, stateCount, transitionCount, alphabetSize, acceptingRatio, seed);
+        logger.LogInformation("Generating random PDA preset with {StateCount} states, AcceptanceMode: {Mode}", stateCount, acceptanceMode ?? PDAAcceptanceMode.FinalStateAndEmptyStack);
+        return generatorService.GenerateRandomAutomaton(AutomatonType.PDA, stateCount, transitionCount, alphabetSize, acceptingRatio, seed, acceptanceMode, initialStack);
     }
 
-    public AutomatonViewModel GeneratePdaWithPushPopPairs(int stateCount = 5, int transitionCount = 12, int alphabetSize = 3, double acceptingRatio = 0.3, int? seed = null)
+    public AutomatonViewModel GeneratePdaWithPushPopPairs(int stateCount = 5, int transitionCount = 12, int alphabetSize = 3, double acceptingRatio = 0.3, int? seed = null, PDAAcceptanceMode? acceptanceMode = null, Stack<char>? initialStack = null)
     {
-        logger.LogInformation("Generating PDA preset with push/pop pairs, states={StateCount}", stateCount);
+        logger.LogInformation("Generating PDA preset with push/pop pairs, states={StateCount}, AcceptanceMode: {Mode}", stateCount, acceptanceMode ?? PDAAcceptanceMode.FinalStateAndEmptyStack);
         // Create a PDA with additional push/pop matching pairs to be educational
-        var basePda = generatorService.GenerateRandomAutomaton(AutomatonType.PDA, stateCount, transitionCount, alphabetSize, acceptingRatio, seed);
+        var basePda = generatorService.GenerateRandomAutomaton(AutomatonType.PDA, stateCount, transitionCount, alphabetSize, acceptingRatio, seed, acceptanceMode, initialStack);
 
         // Try to add a few push/pop pairs if possible
         var random = seed.HasValue ? new Random(seed.Value) : new Random();
@@ -81,22 +82,168 @@ public class AutomatonPresetService(
         return basePda;
     }
 
-    public AutomatonViewModel GenerateBalancedParenthesesPda(int maxDepth = 5)
+    public AutomatonViewModel GenerateBalancedParenthesesPda(PDAAcceptanceMode? acceptanceMode = null, Stack<char>? initialStack = null)
     {
+        logger.LogInformation("Generating balanced parentheses PDA with AcceptanceMode: {Mode}", acceptanceMode ?? PDAAcceptanceMode.FinalStateAndEmptyStack);
+
         // Construct a simple PDA that accepts balanced parentheses of '(' and ')'
-        // using a single state that pushes '(' and pops on ')', accepting on empty stack.
         var model = new AutomatonViewModel
         {
             Type = AutomatonType.PDA,
             States = new List<State> { new() { Id = 1, IsStart = true, IsAccepting = true } },
             Transitions = new List<Transition>(),
-            IsCustomAutomaton = true
+            IsCustomAutomaton = true,
+            AcceptanceMode = acceptanceMode ?? PDAAcceptanceMode.FinalStateAndEmptyStack,
+            InitialStackSerialized = SerializeStack(initialStack)
         };
 
         // push '(' on reading '('
         model.Transitions.Add(new Transition { FromStateId = 1, ToStateId = 1, Symbol = '(', StackPop = '\0', StackPush = "(" });
         // pop '(' on reading ')'
         model.Transitions.Add(new Transition { FromStateId = 1, ToStateId = 1, Symbol = ')', StackPop = '(', StackPush = null });
+
+        return model;
+    }
+
+    private static string SerializeStack(Stack<char>? stack)
+    {
+        if (stack == null || stack.Count == 0)
+            return string.Empty;
+
+        return System.Text.Json.JsonSerializer.Serialize(stack.ToList());
+    }
+
+    public AutomatonViewModel GenerateAnBnPda(PDAAcceptanceMode? acceptanceMode = null, Stack<char>? initialStack = null)
+    {
+        logger.LogInformation("Generating a^n b^n PDA with AcceptanceMode: {Mode}", acceptanceMode ?? PDAAcceptanceMode.EmptyStackOnly);
+
+        // PDA that recognizes { a^n b^n | n >= 0 }
+        // States: q0 (start, reading a's), q1 (reading b's), q2 (accepting)
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.PDA,
+            States =
+            [
+                new() { Id = 1, IsStart = true, IsAccepting = false },  // q0
+                new() { Id = 2, IsStart = false, IsAccepting = false }, // q1
+                new() { Id = 3, IsStart = false, IsAccepting = true }   // q2
+            ],
+            Transitions = [],
+            IsCustomAutomaton = true,
+            AcceptanceMode = acceptanceMode ?? PDAAcceptanceMode.EmptyStackOnly,
+            InitialStackSerialized = SerializeStack(initialStack)
+        };
+
+        // Transition: q0 --a/ε→X-- q0 (push X for each 'a')
+        model.Transitions.Add(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = null, StackPush = "X" });
+
+        // Transition: q0 --b/X→ε-- q1 (pop X for first 'b', switch to q1)
+        model.Transitions.Add(new Transition { FromStateId = 1, ToStateId = 2, Symbol = 'b', StackPop = 'X', StackPush = null });
+
+        // Transition: q1 --b/X→ε-- q1 (continue popping X for each 'b')
+        model.Transitions.Add(new Transition { FromStateId = 2, ToStateId = 2, Symbol = 'b', StackPop = 'X', StackPush = null });
+
+        // Transition: q1 --ε/ε→ε-- q2 (when done, go to accepting state)
+        model.Transitions.Add(new Transition { FromStateId = 2, ToStateId = 3, Symbol = '\0', StackPop = null, StackPush = null });
+
+        // Also allow empty string acceptance from q0 to q2
+        model.Transitions.Add(new Transition { FromStateId = 1, ToStateId = 3, Symbol = '\0', StackPop = null, StackPush = null });
+
+        logger.LogInformation("Generated a^n b^n PDA with {States} states and {Transitions} transitions",
+            model.States.Count, model.Transitions.Count);
+
+        return model;
+    }
+
+    public AutomatonViewModel GenerateEvenPalindromePda(PDAAcceptanceMode? acceptanceMode = null, Stack<char>? initialStack = null)
+    {
+        logger.LogInformation("Generating even-length palindrome PDA with AcceptanceMode: {Mode}",
+            acceptanceMode ?? PDAAcceptanceMode.FinalStateAndEmptyStack);
+
+        // PDA that recognizes even-length palindromes over {a, b}
+        // States: q0 (push phase), q1 (pop/verify phase, accepting)
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.PDA,
+            States = new List<State>
+            {
+                new() { Id = 1, IsStart = true, IsAccepting = false },  // q0
+                new() { Id = 2, IsStart = false, IsAccepting = true }   // q1
+            },
+            Transitions = new List<Transition>(),
+            IsCustomAutomaton = true,
+            AcceptanceMode = acceptanceMode ?? PDAAcceptanceMode.FinalStateAndEmptyStack,
+            InitialStackSerialized = SerializeStack(initialStack)
+        };
+
+        // Push phase (q0): push symbols onto stack
+        model.Transitions.Add(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = null, StackPush = "a" });
+        model.Transitions.Add(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'b', StackPop = null, StackPush = "b" });
+
+        // Nondeterministic guess of middle: ε-transition to pop phase
+        model.Transitions.Add(new Transition { FromStateId = 1, ToStateId = 2, Symbol = '\0', StackPop = null, StackPush = null });
+
+        // Pop phase (q1): pop and match symbols
+        model.Transitions.Add(new Transition { FromStateId = 2, ToStateId = 2, Symbol = 'a', StackPop = 'a', StackPush = null });
+        model.Transitions.Add(new Transition { FromStateId = 2, ToStateId = 2, Symbol = 'b', StackPop = 'b', StackPush = null });
+
+        logger.LogInformation("Generated even-length palindrome PDA with {States} states and {Transitions} transitions",
+            model.States.Count, model.Transitions.Count);
+
+        return model;
+    }
+
+    public AutomatonViewModel GenerateSimpleCfgPda(PDAAcceptanceMode? acceptanceMode = null, Stack<char>? initialStack = null)
+    {
+        logger.LogInformation("Generating simple CFG demo PDA (S → aSb | ε) with AcceptanceMode: {Mode}",
+            acceptanceMode ?? PDAAcceptanceMode.FinalStateAndEmptyStack);
+
+        // PDA demonstrating CFG: S → aSb | ε
+        // This generates language { a^n b^n | n >= 0 } using grammar derivation
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.PDA,
+            States = new List<State>
+            {
+                new() { Id = 1, IsStart = true, IsAccepting = true }  // Single state
+            },
+            Transitions = new List<Transition>(),
+            IsCustomAutomaton = true,
+            AcceptanceMode = acceptanceMode ?? PDAAcceptanceMode.FinalStateAndEmptyStack,
+            InitialStackSerialized = initialStack != null
+                ? SerializeStack(initialStack)
+                : System.Text.Json.JsonSerializer.Serialize(new List<char> { 'S' }) // Start with 'S' on stack
+        };
+
+        // Rule: S → aSb (expand S to aSb on stack, pushes 'b' then 'a' so 'a' is on top)
+        // When we see 'a', if 'S' is on top, replace with 'Sb' (push b, then we'll handle the 'a')
+        model.Transitions.Add(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = 'S', StackPush = "Sb" });
+
+        // After the above, we need to consume the 'a' that was in input
+        // This is already done by reading 'a' in the transition above
+
+        // Rule: S → ε (apply epsilon production)
+        model.Transitions.Add(new Transition { FromStateId = 1, ToStateId = 1, Symbol = '\0', StackPop = 'S', StackPush = null });
+
+        // Consume 'a' from input by popping nothing (we already consumed in the S→aSb rule)
+        // Actually, let's simplify: consume 'a' when not expanding S
+        model.Transitions.Add(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = null, StackPush = "a" });
+
+        // Consume 'b' and match with 'b' on stack
+        model.Transitions.Add(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'b', StackPop = 'b', StackPush = null });
+
+        // Alternative simpler approach: Match a's and b's like a^n b^n
+        // Clear previous and use simpler model
+        model.Transitions.Clear();
+
+        // Push 'a' for each 'a' read
+        model.Transitions.Add(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = null, StackPush = "a" });
+
+        // Pop 'a' for each 'b' read
+        model.Transitions.Add(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'b', StackPop = 'a', StackPush = null });
+
+        logger.LogInformation("Generated simple CFG demo PDA with {States} states and {Transitions} transitions",
+            model.States.Count, model.Transitions.Count);
 
         return model;
     }

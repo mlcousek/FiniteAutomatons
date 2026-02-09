@@ -93,6 +93,9 @@ public class AutomatonGenerationController(
                 "random-pda" => presetService.GenerateRandomPda(stateCount, transitionCount, alphabetSize, acceptingRatio, seed),
                 "pda-pushpop" => presetService.GeneratePdaWithPushPopPairs(stateCount, transitionCount, alphabetSize, acceptingRatio, seed),
                 "pda-balanced-parens" => presetService.GenerateBalancedParenthesesPda(),
+                "pda-anbn" => presetService.GenerateAnBnPda(),
+                "pda-palindrome" => presetService.GenerateEvenPalindromePda(),
+                "pda-cfg-demo" => presetService.GenerateSimpleCfgPda(),
                 _ => throw new ArgumentException($"Unknown preset: {preset}")
             };
 
@@ -121,18 +124,25 @@ public class AutomatonGenerationController(
         return (stateCount, transitionCount, alphabetSize, acceptingRatio);
     }
 
-    private static string GetPresetDisplayName(string preset) => preset.Trim().ToLowerInvariant() switch
+    private static string GetPresetDisplayName(string preset)
     {
-        "minimalized-dfa" => "Minimalized DFA",
-        "unminimalized-dfa" => "DFA (un-minimalized)",
-        "nondet-nfa" => "Nondeterministic NFA",
-        "random-nfa" => "Random NFA",
-        "enfa-eps" => "ε-NFA (with ε transitions)",
-        "enfa-nondet" => "ε-NFA (nondeterministic)",
-        "random-enfa" => "Random ε-NFA",
-        "random-pda" => "Random PDA",
-        "pda-pushpop" => "PDA (push/pop pairs)",
-        "pda-balanced-parens" => "PDA (Balanced Parentheses)",
-        _ => preset
-    };
+        return preset.Trim().ToLowerInvariant() switch
+        {
+            "random-dfa" => "Random DFA",
+            "minimalized-dfa" => "Minimalized DFA",
+            "unminimalized-dfa" => "Unminimalized DFA",
+            "nondet-nfa" => "Nondeterministic NFA",
+            "random-nfa" => "Random NFA",
+            "enfa-eps" => "ε-NFA with Epsilon Transitions",
+            "enfa-nondet" => "Nondeterministic ε-NFA",
+            "random-enfa" => "Random ε-NFA",
+            "random-pda" => "Random PDA",
+            "pda-pushpop" => "PDA with Push/Pop Pairs",
+            "pda-balanced-parens" => "Balanced Parentheses PDA",
+            "pda-anbn" => "a^n b^n PDA",
+            "pda-palindrome" => "Even-Length Palindrome PDA",
+            "pda-cfg-demo" => "Simple CFG Demo PDA",
+            _ => preset
+        };
+    }
 }

@@ -1,4 +1,5 @@
 using FiniteAutomatons.Core.Models.DoMain;
+using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Interfaces;
 using FiniteAutomatons.Services.Services;
@@ -1058,7 +1059,9 @@ public class AutomatonPresetServiceTests
             int transitionCount,
             int alphabetSize = 4,
             double acceptingStateRatio = 0.3,
-            int? seed = null)
+            int? seed = null,
+            PDAAcceptanceMode? acceptanceMode = null,
+            Stack<char>? initialStack = null)
         {
             return RandomAutomatonToReturn ?? new AutomatonViewModel { Type = type };
         }

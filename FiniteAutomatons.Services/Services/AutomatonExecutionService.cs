@@ -34,7 +34,7 @@ public class AutomatonExecutionService(IAutomatonBuilderService builderService, 
                     try
                     {
                         var stackArray = JsonSerializer.Deserialize<List<char>>(model.StackSerialized) ?? [];
-                        pdaState.Stack = new Stack<char>(stackArray.Reverse<char>()); // incoming top-first; Stack enumerates top-first, so reverse to push bottom-first
+                        pdaState.Stack = new Stack<char>(Enumerable.Reverse(stackArray)); // incoming top-first; Stack enumerates top-first, so reverse to push bottom-first
                     }
                     catch (Exception ex)
                     {
@@ -236,9 +236,26 @@ public class AutomatonExecutionService(IAutomatonBuilderService builderService, 
         model.Input ??= "";
 
         var automaton = builderService.CreateAutomatonFromModel(model);
-        var execState = automaton.StartExecution(model.Input);
+
+        // Deserialize initial stack for PDA if present
+        Stack<char>? initialStack = null;
+        if (model.Type == AutomatonType.PDA && !string.IsNullOrEmpty(model.InitialStackSerialized))
+        {
+            try
+            {
+                var stackArray = JsonSerializer.Deserialize<List<char>>(model.InitialStackSerialized) ?? [];
+                // InitialStackSerialized is bottom-first, so reverse to get proper stack order
+                initialStack = new Stack<char>(Enumerable.Reverse(stackArray));
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to deserialize initial stack; using default.");
+            }
+        }
+
+        var execState = automaton.StartExecution(model.Input, initialStack);
         UpdateModelFromState(model, execState);
-        
+
         logger.LogInformation("Reset to start state, position: {Position}", model.Position);
 
         return model;
@@ -257,6 +274,7 @@ public class AutomatonExecutionService(IAutomatonBuilderService builderService, 
         model.IsAccepted = null;
         model.StateHistorySerialized = string.Empty;
         model.StackSerialized = null;
+        model.InitialStackSerialized = null;
 
         logger.LogInformation("Reset execution state while preserving automaton structure");
 

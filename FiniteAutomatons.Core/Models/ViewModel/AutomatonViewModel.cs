@@ -1,6 +1,7 @@
 ﻿namespace FiniteAutomatons.Core.Models.ViewModel;
 
 using FiniteAutomatons.Core.Models.DoMain;
+using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -33,6 +34,8 @@ public class AutomatonViewModel
     public bool? IsAccepted { get; set; }
     public string StateHistorySerialized { get; set; } = string.Empty; // for round-tripping state history
     public string? StackSerialized { get; set; } // PDA stack serialization (top-first JSON array of chars)
+    public string? InitialStackSerialized { get; set; } // PDA initial stack configuration (bottom-first JSON array of chars)
+    public PDAAcceptanceMode AcceptanceMode { get; set; } = PDAAcceptanceMode.FinalStateAndEmptyStack; // PDA acceptance criterion
     public bool IsCustomAutomaton { get; set; } = false;
 
     // Source information for automatons created from regex

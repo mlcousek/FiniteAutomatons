@@ -89,12 +89,12 @@ public abstract class Automaton : IAutomaton
 
     public bool Execute(string input)
     {
-        var state = StartExecution(input);
+        var state = StartExecution(input, null);
         ExecuteAll(state);
         return state.IsAccepted ?? false;
     }
 
-    public virtual AutomatonExecutionState StartExecution(string input)
+    public virtual AutomatonExecutionState StartExecution(string input, Stack<char>? initialStack = null)
     {
         var state = new AutomatonExecutionState(input, ValidateStartState());
 

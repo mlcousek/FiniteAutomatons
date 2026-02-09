@@ -1,7 +1,6 @@
-using System.Collections.Generic;
-using System.Linq;
-using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Core.Models.DoMain;
+using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
+using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Interfaces;
 using FiniteAutomatons.Services.Services;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -25,7 +24,7 @@ public class AutomatonPresetPdaTests
     {
         public AutomatonViewModel? RandomAutomatonToReturn { get; set; }
 
-        public AutomatonViewModel GenerateRandomAutomaton(AutomatonType type, int stateCount, int transitionCount, int alphabetSize = 3, double acceptingStateRatio = 0.3, int? seed = null)
+        public AutomatonViewModel GenerateRandomAutomaton(AutomatonType type, int stateCount, int transitionCount, int alphabetSize = 3, double acceptingStateRatio = 0.3, int? seed = null, PDAAcceptanceMode? acceptanceMode = null, Stack<char>? initialStack = null)
         {
             if (RandomAutomatonToReturn != null) return RandomAutomatonToReturn;
             stateCount = Math.Max(1, stateCount);
@@ -40,7 +39,15 @@ public class AutomatonPresetPdaTests
                 transitions.Add(new Transition { FromStateId = 1, ToStateId = Math.Min(2, stateCount), Symbol = sym });
             }
 
-            return new AutomatonViewModel { Type = type, States = states, Transitions = transitions, IsCustomAutomaton = true };
+            var model = new AutomatonViewModel { Type = type, States = states, Transitions = transitions, IsCustomAutomaton = true };
+
+            if (type == AutomatonType.PDA)
+            {
+                model.AcceptanceMode = acceptanceMode ?? PDAAcceptanceMode.FinalStateAndEmptyStack;
+                model.InitialStackSerialized = initialStack != null ? System.Text.Json.JsonSerializer.Serialize(initialStack.ToList()) : string.Empty;
+            }
+
+            return model;
         }
 
         public bool ValidateGenerationParameters(AutomatonType type, int stateCount, int transitionCount, int alphabetSize) => true;
@@ -82,7 +89,7 @@ public class AutomatonPresetPdaTests
     [Fact]
     public void GenerateBalancedParenthesesPda_HasPushAndPopTransitions()
     {
-        var result = service.GenerateBalancedParenthesesPda(4);
+        var result = service.GenerateBalancedParenthesesPda();
         result.ShouldNotBeNull();
         result.Type.ShouldBe(AutomatonType.PDA);
         // Expect a push on '(' and a pop on ')'

@@ -4,13 +4,36 @@ public class PDA : Automaton
 {
     private const char Bottom = '#';
 
-    public override AutomatonExecutionState StartExecution(string input)
+    public PDAAcceptanceMode AcceptanceMode { get; set; } = PDAAcceptanceMode.FinalStateAndEmptyStack;
+
+    private Stack<char>? initialStack;
+
+    public override AutomatonExecutionState StartExecution(string input, Stack<char>? initialStack = null)
     {
         var state = new PDAExecutionState(input, ValidateStartState())
         {
             Stack = new Stack<char>()
         };
-        state.Stack.Push(Bottom);
+
+        // Initialize stack with provided configuration or default to bottom marker
+        if (initialStack != null && initialStack.Count > 0)
+        {
+            // Store initial stack for BackToStart restoration
+            this.initialStack = new Stack<char>(initialStack.Reverse());
+
+            // Copy initial stack to execution state (reverse to maintain order)
+            foreach (var symbol in initialStack.Reverse())
+            {
+                state.Stack.Push(symbol);
+            }
+        }
+        else
+        {
+            // Default: just bottom marker
+            state.Stack.Push(Bottom);
+            this.initialStack = null;
+        }
+
         // acceptance decided only after explicit evaluation
         state.IsAccepted = null;
         return state;
@@ -65,7 +88,7 @@ public class PDA : Automaton
             }
 
             // otherwise (input consumed and no epsilon transitions) decide acceptance based on state and stack
-            state.IsAccepted = IsAccepting(state.CurrentStateId) && IsOnlyBottom(state.Stack);
+            state.IsAccepted = CheckAcceptance(state.CurrentStateId, state.Stack);
             return;
         }
 
@@ -112,7 +135,7 @@ public class PDA : Automaton
             }
 
             // If no epsilon transitions lead to acceptance, decide acceptance based on current state and stack
-            state.IsAccepted = IsAccepting(state.CurrentStateId) && IsOnlyBottom(state.Stack);
+            state.IsAccepted = CheckAcceptance(state.CurrentStateId, state.Stack);
             return;
 
             // do not set rejection here; leave to caller (ExecuteAll or Execute) to decide after no more transitions
@@ -144,7 +167,7 @@ public class PDA : Automaton
                 return;
             }
 
-            state.IsAccepted = IsAccepting(state.CurrentStateId) && IsOnlyBottom(state.Stack);
+            state.IsAccepted = CheckAcceptance(state.CurrentStateId, state.Stack);
             return;
         }
 
@@ -197,7 +220,7 @@ public class PDA : Automaton
         }
 
         // Otherwise input consumed, acceptance depends on accepting state and empty stack (only bottom)
-        state.IsAccepted = IsAccepting(state.CurrentStateId) && IsOnlyBottom(state.Stack);
+        state.IsAccepted = CheckAcceptance(state.CurrentStateId, state.Stack);
     }
 
     public override void BackToStart(AutomatonExecutionState baseState)
@@ -207,7 +230,20 @@ public class PDA : Automaton
         state.CurrentStateId = start;
         state.Position = 0;
         state.Stack.Clear();
-        state.Stack.Push(Bottom);
+
+        // Restore initial stack configuration
+        if (initialStack != null && initialStack.Count > 0)
+        {
+            foreach (var symbol in initialStack.Reverse())
+            {
+                state.Stack.Push(symbol);
+            }
+        }
+        else
+        {
+            state.Stack.Push(Bottom);
+        }
+
         state.IsAccepted = null;
         state.History.Clear();
     }
@@ -352,7 +388,7 @@ public class PDA : Automaton
         {
             var (curState, stackKey, stackCopy) = q2.Dequeue();
             // check acceptance: accepting state and only bottom
-            if (IsAccepting(curState) && IsOnlyBottom(stackCopy))
+            if (CheckAcceptance(curState, stackCopy))
                 return true;
 
             // explore epsilon transitions
@@ -395,6 +431,17 @@ public class PDA : Automaton
     }
 
     private bool IsAccepting(int? stateId) => stateId != null && States.Any(s => s.Id == stateId && s.IsAccepting);
+
+    private bool CheckAcceptance(int? stateId, Stack<char> stack)
+    {
+        return AcceptanceMode switch
+        {
+            PDAAcceptanceMode.FinalStateOnly => IsAccepting(stateId),
+            PDAAcceptanceMode.EmptyStackOnly => IsOnlyBottom(stack),
+            PDAAcceptanceMode.FinalStateAndEmptyStack => IsAccepting(stateId) && IsOnlyBottom(stack),
+            _ => IsAccepting(stateId) && IsOnlyBottom(stack) // default
+        };
+    }
 
     private static bool StackMatches(Transition t, char? top)
     {
@@ -494,7 +541,7 @@ public class PDA : Automaton
 
             state.CurrentStateId = transition.ToStateId;
 
-            if (IsAccepting(state.CurrentStateId) && IsOnlyBottom(state.Stack))
+            if (CheckAcceptance(state.CurrentStateId, state.Stack))
                 return true;
         }
 

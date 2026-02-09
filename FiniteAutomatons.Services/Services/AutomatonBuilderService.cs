@@ -113,7 +113,10 @@ public class AutomatonBuilderService(ILogger<AutomatonBuilderService> logger) : 
 
     public PDA CreatePDA(AutomatonViewModel model)
     {
-        var pda = new PDA();
+        var pda = new PDA
+        {
+            AcceptanceMode = model.AcceptanceMode
+        };
 
         foreach (var state in model.States ?? [])
         {
@@ -131,8 +134,8 @@ public class AutomatonBuilderService(ILogger<AutomatonBuilderService> logger) : 
             pda.SetStartState(startState.Id);
         }
 
-        logger.LogInformation("Created PDA with {StateCount} states and {TransitionCount} transitions",
-            pda.States.Count, pda.Transitions.Count);
+        logger.LogInformation("Created PDA with {StateCount} states and {TransitionCount} transitions, AcceptanceMode: {AcceptanceMode}",
+            pda.States.Count, pda.Transitions.Count, pda.AcceptanceMode);
 
         return pda;
     }

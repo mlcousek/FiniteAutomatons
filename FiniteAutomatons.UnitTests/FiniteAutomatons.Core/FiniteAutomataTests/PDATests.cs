@@ -1,10 +1,10 @@
 using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
-using Shouldly;
+using FiniteAutomatons.Core.Models.Serialization;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Services;
 using Microsoft.Extensions.Logging.Abstractions;
-using FiniteAutomatons.Core.Models.Serialization;
+using Shouldly;
 
 namespace FiniteAutomatons.UnitTests.FiniteAutomatons.Core.FiniteAutomataTests;
 
@@ -376,5 +376,132 @@ public class PDATests
         var arr = pdaState.Stack.ToArray();
         arr[0].ShouldBe('X');
         arr[1].ShouldBe('Y');
+    }
+
+    [Fact]
+    public void CustomInitialStack_IsUsedOnStartExecution()
+    {
+        var pda = new PDA();
+        pda.AddState(new State { Id = 1, IsStart = true, IsAccepting = false });
+        pda.AddTransition(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = 'X', StackPush = null });
+
+        // Create initial stack with custom symbols
+        var initialStack = new Stack<char>();
+        initialStack.Push('#');
+        initialStack.Push('X');
+        initialStack.Push('Y');
+
+        var state = (PDAExecutionState)pda.StartExecution("", initialStack);
+
+        // Stack should have 3 symbols: #, X, Y (Y on top)
+        state.Stack.Count.ShouldBe(3);
+        state.Stack.Peek().ShouldBe('Y');
+        var arr = state.Stack.ToArray(); // top-first
+        arr[0].ShouldBe('Y');
+        arr[1].ShouldBe('X');
+        arr[2].ShouldBe('#');
+    }
+
+    [Fact]
+    public void BackToStart_RestoresCustomInitialStack()
+    {
+        var pda = new PDA();
+        pda.AddState(new State { Id = 1, IsStart = true, IsAccepting = false });
+        pda.AddTransition(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = 'Y', StackPush = null });
+
+        var initialStack = new Stack<char>();
+        initialStack.Push('#');
+        initialStack.Push('X');
+        initialStack.Push('Y');
+
+        var state = (PDAExecutionState)pda.StartExecution("a", initialStack);
+        pda.StepForward(state); // consumes 'a', pops 'Y'
+
+        state.Stack.Count.ShouldBe(2); // Now just #,X
+
+        pda.BackToStart(state);
+
+        // Should restore to initial stack
+        state.Stack.Count.ShouldBe(3);
+        var arr = state.Stack.ToArray();
+        arr[0].ShouldBe('Y');
+        arr[1].ShouldBe('X');
+        arr[2].ShouldBe('#');
+    }
+
+    [Fact]
+    public void AcceptanceMode_FinalStateOnly_AcceptsWithNonEmptyStack()
+    {
+        var pda = new PDA
+        {
+            AcceptanceMode = PDAAcceptanceMode.FinalStateOnly
+        };
+        pda.AddState(new State { Id = 1, IsStart = true, IsAccepting = true });
+        pda.AddTransition(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '\0', StackPush = "X" });
+
+        // Push X onto stack, should still accept because we're in accepting state
+        var result = pda.Execute("a");
+        result.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void AcceptanceMode_EmptyStackOnly_AcceptsWithNonAcceptingState()
+    {
+        var pda = new PDA
+        {
+            AcceptanceMode = PDAAcceptanceMode.EmptyStackOnly
+        };
+        pda.AddState(new State { Id = 1, IsStart = true, IsAccepting = false });
+        pda.AddTransition(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '\0', StackPush = "X" });
+        pda.AddTransition(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'b', StackPop = 'X', StackPush = null });
+
+        // Input "ab" - push X, then pop X, stack becomes only bottom (#)
+        // State is non-accepting but stack is empty
+        var result = pda.Execute("ab");
+        result.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void AcceptanceMode_FinalStateAndEmptyStack_RequiresBoth()
+    {
+        var pda = new PDA
+        {
+            AcceptanceMode = PDAAcceptanceMode.FinalStateAndEmptyStack // default, but explicit
+        };
+        pda.AddState(new State { Id = 1, IsStart = true, IsAccepting = true });
+        pda.AddTransition(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '\0', StackPush = "X" });
+
+        // In accepting state but stack has X -> should reject
+        pda.Execute("a").ShouldBeFalse();
+
+        // No input, accepting state, only bottom -> should accept
+        pda.Execute("").ShouldBeTrue();
+    }
+
+    [Fact]
+    public void AcceptanceMode_FinalStateOnly_RejectsNonAcceptingState()
+    {
+        var pda = new PDA
+        {
+            AcceptanceMode = PDAAcceptanceMode.FinalStateOnly
+        };
+        pda.AddState(new State { Id = 1, IsStart = true, IsAccepting = false });
+
+        // Empty input, non-accepting state -> reject
+        pda.Execute("").ShouldBeFalse();
+    }
+
+    [Fact]
+    public void AcceptanceMode_EmptyStackOnly_RejectsNonEmptyStack()
+    {
+        var pda = new PDA
+        {
+            AcceptanceMode = PDAAcceptanceMode.EmptyStackOnly
+        };
+        pda.AddState(new State { Id = 1, IsStart = true, IsAccepting = true });
+        pda.AddTransition(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '\0', StackPush = "X" });
+
+        // Stack has X on top of bottom -> reject
+        pda.Execute("a").ShouldBeFalse();
     }
 }

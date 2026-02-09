@@ -348,6 +348,56 @@
                        maxlength="100" />
                 </div>
             </div>
+            
+            @if (Model?.Type == AutomatonType.PDA)
+            {
+            <!-- Initial Stack Section (PDA only) -->
+            <div class="control-section input-section">
+                <div class="section-header-custom">
+                    <h2>INITIAL STACK</h2>
+                </div>
+                <div class="control-content-left">
+                    @{
+                        string stackDisplay = "";
+                        if (!string.IsNullOrEmpty(Model.InitialStackSerialized))
+                        {
+                            try
+                            {
+                                var stackList = System.Text.Json.JsonSerializer.Deserialize<List<char>>(Model.InitialStackSerialized);
+                                if (stackList != null && stackList.Count > 0)
+                                {
+                                    stackDisplay = string.Join(",", stackList);
+                                }
+                            }
+                            catch { /* ignore */ }
+                        }
+                    }
+                    <input type="text" class="input-field" id="initialStackDisplayField"
+                       placeholder="Enter stack symbols (bottom-first, e.g., #,X,Y)..."
+                       value="@stackDisplay"
+                       @(Model.HasExecuted ? "readonly" : "")
+                       style="padding: 0.75rem 3rem;"
+                       maxlength="100"
+                       title="Comma-separated stack symbols, bottom-first (e.g., #,X,Y means # at bottom, Y at top)"
+                       oninput="updateInitialStackSerialized()" />
+                    <input type="hidden" name="InitialStackSerialized" id="initialStackSerialized" value="@Model.InitialStackSerialized" />
+                </div>
+            </div>
+            
+            <!-- Acceptance Mode Section (PDA only) -->
+            <div class="control-section">
+                <div class="section-header-custom">
+                    <h2>ACCEPTANCE MODE</h2>
+                </div>
+                <div class="control-content type-buttons" style="display:flex; flex-wrap:wrap; gap:0.5rem; justify-content:center;">
+                    <select name="AcceptanceMode" id="acceptanceModeSelect" class="modern-input" style="min-width:250px; padding:0.5rem;" @(Model.HasExecuted ? "disabled" : "")>
+                        <option value="0" selected="@(Model.AcceptanceMode == PDAAcceptanceMode.FinalStateAndEmptyStack)">Final State + Empty Stack</option>
+                        <option value="1" selected="@(Model.AcceptanceMode == PDAAcceptanceMode.FinalStateOnly)">Final State Only</option>
+                        <option value="2" selected="@(Model.AcceptanceMode == PDAAcceptanceMode.EmptyStackOnly)">Empty Stack Only</option>
+                    </select>
+                </div>
+            </div>
+            }
 
             <!-- Simulate Section -->
             <div class="control-section simulate-section">
@@ -1246,4 +1296,5 @@
     <script src="~/js/regexModal.js" asp-append-version="true"></script>
     <script src="~/js/alerts.js" asp-append-version="true"></script>
     <script src="~/js/saveAutomatonModal.js" asp-append-version="true"></script>
+    <script src="~/js/initialStack.js" asp-append-version="true"></script>
 }

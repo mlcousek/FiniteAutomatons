@@ -143,7 +143,7 @@ public class NFA : Automaton
         return dfa;
     }
 
-    public override AutomatonExecutionState StartExecution(string input)
+    public override AutomatonExecutionState StartExecution(string input, Stack<char>? initialStack = null)
     {
         var state = new AutomatonExecutionState(input, null, GetInitialStates());
 

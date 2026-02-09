@@ -1,4 +1,5 @@
 using FiniteAutomatons.Core.Models.DoMain;
+using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Interfaces;
 
@@ -6,7 +7,7 @@ namespace FiniteAutomatons.UnitTests.Controllers;
 
 public class MockAutomatonGeneratorService : IAutomatonGeneratorService
 {
-    public AutomatonViewModel GenerateRandomAutomaton(AutomatonType type, int stateCount, int transitionCount, int alphabetSize = 3, double acceptingStateRatio = 0.3, int? seed = null)
+    public AutomatonViewModel GenerateRandomAutomaton(AutomatonType type, int stateCount, int transitionCount, int alphabetSize = 3, double acceptingStateRatio = 0.3, int? seed = null, PDAAcceptanceMode? acceptanceMode = null, Stack<char>? initialStack = null)
     {
         stateCount = Math.Max(1, stateCount);
         var states = new List<State>();
@@ -28,13 +29,21 @@ public class MockAutomatonGeneratorService : IAutomatonGeneratorService
             transitions.Add(new Transition { FromStateId = 1, ToStateId = 1, Symbol = transitions[0].Symbol });
         }
 
-        return new AutomatonViewModel
+        var model = new AutomatonViewModel
         {
             Type = type,
             States = states,
             Transitions = transitions,
             IsCustomAutomaton = true
         };
+
+        if (type == AutomatonType.PDA)
+        {
+            model.AcceptanceMode = acceptanceMode ?? PDAAcceptanceMode.FinalStateAndEmptyStack;
+            model.InitialStackSerialized = initialStack != null ? System.Text.Json.JsonSerializer.Serialize(initialStack.ToList()) : string.Empty;
+        }
+
+        return model;
     }
 
     public AutomatonViewModel GenerateRealisticAutomaton(

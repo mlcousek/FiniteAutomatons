@@ -1,4 +1,5 @@
 using FiniteAutomatons.Core.Models.DoMain;
+using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Interfaces;
 
@@ -19,7 +20,9 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
         int transitionCount,
         int alphabetSize = 3,
         double acceptingStateRatio = 0.3,
-        int? seed = null)
+        int? seed = null,
+        PDAAcceptanceMode? acceptanceMode = null,
+        Stack<char>? initialStack = null)
     {
         if (!ValidateGenerationParameters(type, stateCount, transitionCount, alphabetSize))
         {
@@ -32,7 +35,7 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
         var states = GenerateStates(stateCount, acceptingStateRatio, random);
         var transitions = GenerateTransitions(type, states, transitionCount, alphabet, random);
 
-        return new AutomatonViewModel
+        var viewModel = new AutomatonViewModel
         {
             Type = type,
             States = states,
@@ -40,6 +43,22 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
             Input = "",
             IsCustomAutomaton = true
         };
+
+        if (type == AutomatonType.PDA)
+        {
+            viewModel.AcceptanceMode = acceptanceMode ?? PDAAcceptanceMode.FinalStateAndEmptyStack;
+            viewModel.InitialStackSerialized = SerializeStack(initialStack);
+        }
+
+        return viewModel;
+    }
+
+    private static string SerializeStack(Stack<char>? stack)
+    {
+        if (stack == null || stack.Count == 0)
+            return string.Empty;
+
+        return System.Text.Json.JsonSerializer.Serialize(stack.ToList());
     }
 
     public bool ValidateGenerationParameters(AutomatonType type, int stateCount, int transitionCount, int alphabetSize)
