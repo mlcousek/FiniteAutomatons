@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.DoMain;
+﻿using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Interfaces;
@@ -40,6 +40,12 @@ public class AutomatonExecutionService(IAutomatonBuilderService builderService, 
                     {
                         logger.LogWarning(ex, "Failed to deserialize PDA stack; initializing empty.");
                     }
+                }
+                else
+                {
+                    // Initialize stack with bottom marker if not already serialized
+                    pdaState.Stack = new Stack<char>();
+                    pdaState.Stack.Push('#'); // Default bottom marker
                 }
                 // Deserialize PDA history if present (list of snapshots)
                 if (!string.IsNullOrEmpty(model.StateHistorySerialized))

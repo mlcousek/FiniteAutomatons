@@ -1,7 +1,7 @@
+﻿using FiniteAutomatons.Core.Models.DoMain;
+using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Observability;
 using FiniteAutomatons.Services.Interfaces;
-using FiniteAutomatons.Core.Models.ViewModel;
-using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Services.Services;
 
 namespace FiniteAutomatons.Services.Observability;

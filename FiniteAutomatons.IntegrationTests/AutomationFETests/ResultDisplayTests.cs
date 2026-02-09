@@ -1,3 +1,4 @@
+using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.ViewModel;
 using Shouldly;
 using System.Net;
@@ -240,15 +241,25 @@ public class ResultDisplayTests(IntegrationTestsFixture fixture) : IntegrationTe
         var formData = new List<KeyValuePair<string, string>>
         {
             new("Type", ((int)model.Type).ToString()),
-    new("Input", model.Input ?? ""),
-         new("Position", model.Position.ToString()),
+            new("Input", model.Input ?? ""),
+            new("Position", model.Position.ToString()),
             new("HasExecuted", model.HasExecuted.ToString().ToLower()),
-     new("IsCustomAutomaton", model.IsCustomAutomaton.ToString().ToLower()),
-        new("StateHistorySerialized", model.StateHistorySerialized ?? "")
-      };
+            new("IsCustomAutomaton", model.IsCustomAutomaton.ToString().ToLower()),
+            new("StateHistorySerialized", model.StateHistorySerialized ?? ""),
+            new("AcceptanceMode", ((int)model.AcceptanceMode).ToString())
+        };
 
         if (model.CurrentStateId.HasValue)
             formData.Add(new("CurrentStateId", model.CurrentStateId.Value.ToString()));
+
+        if (model.IsAccepted.HasValue)
+            formData.Add(new("IsAccepted", model.IsAccepted.Value.ToString().ToLower()));
+
+        if (!string.IsNullOrEmpty(model.StackSerialized))
+            formData.Add(new("StackSerialized", model.StackSerialized));
+
+        if (!string.IsNullOrEmpty(model.InitialStackSerialized))
+            formData.Add(new("InitialStackSerialized", model.InitialStackSerialized));
 
         if (model.CurrentStates != null)
         {
@@ -274,7 +285,16 @@ public class ResultDisplayTests(IntegrationTestsFixture fixture) : IntegrationTe
             formData.Add(new($"Transitions.Index", i.ToString()));
             formData.Add(new($"Transitions[{i}].FromStateId", model.Transitions[i].FromStateId.ToString()));
             formData.Add(new($"Transitions[{i}].ToStateId", model.Transitions[i].ToStateId.ToString()));
-            formData.Add(new($"Transitions[{i}].Symbol", model.Transitions[i].Symbol.ToString()));
+            // Serialize '\0' as "\\0" for epsilon transitions, otherwise use ToString()
+            formData.Add(new($"Transitions[{i}].Symbol", model.Transitions[i].Symbol == '\0' ? "\\0" : model.Transitions[i].Symbol.ToString()));
+            if (model.Transitions[i].StackPop.HasValue)
+            {
+                // Serialize '\0' as "\\0" for epsilon stack pop, otherwise use ToString()
+                var stackPopValue = model.Transitions[i].StackPop!.Value == '\0' ? "\\0" : model.Transitions[i].StackPop!.Value.ToString();
+                formData.Add(new($"Transitions[{i}].StackPop", stackPopValue));
+            }
+            if (!string.IsNullOrEmpty(model.Transitions[i].StackPush))
+                formData.Add(new($"Transitions[{i}].StackPush", model.Transitions[i].StackPush ?? ""));
         }
 
         return formData;
@@ -397,4 +417,477 @@ public class ResultDisplayTests(IntegrationTestsFixture fixture) : IntegrationTe
 
         return model;
     }
+
+    #region PDA Result Display Tests
+
+    private static AutomatonViewModel BuildBalancedParenthesesPda(string input, PDAAcceptanceMode? acceptanceMode = null) => new()
+    {
+        Type = AutomatonType.PDA,
+        States =
+        [
+            new() { Id = 1, IsStart = true, IsAccepting = true }
+        ],
+        Transitions =
+        [
+            new() { FromStateId = 1, ToStateId = 1, Symbol = '(', StackPop = '\0', StackPush = "(" },
+            new() { FromStateId = 1, ToStateId = 1, Symbol = ')', StackPop = '(', StackPush = null }
+        ],
+        Input = input,
+        IsCustomAutomaton = true,
+        AcceptanceMode = acceptanceMode ?? PDAAcceptanceMode.FinalStateAndEmptyStack
+    };
+
+    private static AutomatonViewModel BuildAnBnPda(string input, PDAAcceptanceMode? acceptanceMode = null) => new()
+    {
+        Type = AutomatonType.PDA,
+        States =
+        [
+            new() { Id = 1, IsStart = true, IsAccepting = false },
+            new() { Id = 2, IsStart = false, IsAccepting = true }
+        ],
+        Transitions =
+        [
+            new() { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '\0', StackPush = "X" },
+            new() { FromStateId = 1, ToStateId = 1, Symbol = 'b', StackPop = 'X', StackPush = null },
+            new() { FromStateId = 1, ToStateId = 2, Symbol = '\0', StackPop = '\0', StackPush = null }
+        ],
+        Input = input,
+        IsCustomAutomaton = true,
+        AcceptanceMode = acceptanceMode ?? PDAAcceptanceMode.FinalStateAndEmptyStack
+    };
+
+    [Fact]
+    public async Task Pda_ResultDisplay_BalancedParentheses_Accepted_ShowsAcceptedBadge()
+    {
+        var client = GetHttpClient();
+        var model = BuildBalancedParenthesesPda("(())");
+
+        var response = await PostAutomatonAsync(client, "/AutomatonExecution/ExecuteAll", model);
+        var html = await response.Content.ReadAsStringAsync();
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        html.ShouldContain("Result:");
+        html.ShouldContain("ACCEPTED", Case.Insensitive);
+
+        var hasAcceptedBadge = Regex.IsMatch(html, @"result-badge.*result-accepted", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        hasAcceptedBadge.ShouldBeTrue("Should display accepted badge");
+    }
+
+    [Fact]
+    public async Task Pda_ResultDisplay_UnbalancedParentheses_Rejected_ShowsRejectedBadge()
+    {
+        var client = GetHttpClient();
+        var model = BuildBalancedParenthesesPda("(()");
+
+        var response = await PostAutomatonAsync(client, "/AutomatonExecution/ExecuteAll", model);
+        var html = await response.Content.ReadAsStringAsync();
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        html.ShouldContain("Result:");
+        html.ShouldContain("REJECTED", Case.Insensitive);
+
+        var hasRejectedBadge = Regex.IsMatch(html, @"result-badge.*result-rejected", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        hasRejectedBadge.ShouldBeTrue("Should display rejected badge");
+    }
+
+    [Fact]
+    public async Task Pda_ResultDisplay_AnBn_Valid_ShowsAccepted()
+    {
+        var client = GetHttpClient();
+        var model = BuildAnBnPda("aaabbb");
+
+        var response = await PostAutomatonAsync(client, "/AutomatonExecution/ExecuteAll", model);
+        var html = await response.Content.ReadAsStringAsync();
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        html.ShouldContain("ACCEPTED", Case.Insensitive);
+    }
+
+    [Fact]
+    public async Task Pda_ResultDisplay_AnBn_WrongCount_ShowsRejected()
+    {
+        var client = GetHttpClient();
+        var model = BuildAnBnPda("aaabb");
+
+        var response = await PostAutomatonAsync(client, "/AutomatonExecution/ExecuteAll", model);
+        var html = await response.Content.ReadAsStringAsync();
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        html.ShouldContain("REJECTED", Case.Insensitive);
+    }
+
+    [Fact]
+    public async Task Pda_ResultDisplay_BeforeFullInputRead_DoesNotShowResult()
+    {
+        var client = GetHttpClient();
+        var model = BuildBalancedParenthesesPda("()()");
+
+        var startResponse = await PostAutomatonAsync(client, "/AutomatonExecution/Start", model);
+        var result = await DeserializeResponseAsync(startResponse);
+
+        var response = await PostAutomatonAsync(client, "/AutomatonExecution/StepForward", result);
+        var html = await response.Content.ReadAsStringAsync();
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var parsedResult = await DeserializeResponseAsync(response);
+        parsedResult.Position.ShouldBeLessThan(parsedResult.Input!.Length);
+
+        var hasResultBadge = Regex.IsMatch(html, @"<span[^>]*class=""[^""]*result-badge", RegexOptions.IgnoreCase);
+        hasResultBadge.ShouldBeFalse("Should not display result badge until input is fully read");
+    }
+
+    [Fact]
+    public async Task Pda_ResultDisplay_EmptyInput_AcceptingStart_ShowsAccepted()
+    {
+        var client = GetHttpClient();
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.PDA,
+            States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
+            Transitions = [],
+            Input = "",
+            IsCustomAutomaton = true,
+            AcceptanceMode = PDAAcceptanceMode.FinalStateAndEmptyStack
+        };
+
+        var response = await PostAutomatonAsync(client, "/AutomatonExecution/ExecuteAll", model);
+        var html = await response.Content.ReadAsStringAsync();
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var result = await DeserializeResponseAsync(response);
+        result.Position.ShouldBe(0);
+        result.IsAccepted.ShouldBe(true);
+
+        html.ShouldContain("ACCEPTED", Case.Insensitive);
+    }
+
+    [Fact]
+    public async Task Pda_ResultDisplay_FinalStateOnly_AcceptWithNonEmptyStack_ShowsAccepted()
+    {
+        var client = GetHttpClient();
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.PDA,
+            States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
+            Transitions = [new() { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '\0', StackPush = "X" }],
+            Input = "a",
+            IsCustomAutomaton = true,
+            AcceptanceMode = PDAAcceptanceMode.FinalStateOnly
+        };
+
+        var response = await PostAutomatonAsync(client, "/AutomatonExecution/ExecuteAll", model);
+        var html = await response.Content.ReadAsStringAsync();
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        html.ShouldContain("ACCEPTED", Case.Insensitive);
+    }
+
+    [Fact]
+    public async Task Pda_ResultDisplay_FinalStateOnly_NonAcceptingState_ShowsRejected()
+    {
+        var client = GetHttpClient();
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.PDA,
+            States = [new() { Id = 1, IsStart = true, IsAccepting = false }],
+            Transitions = [],
+            Input = "",
+            IsCustomAutomaton = true,
+            AcceptanceMode = PDAAcceptanceMode.FinalStateOnly
+        };
+
+        var response = await PostAutomatonAsync(client, "/AutomatonExecution/ExecuteAll", model);
+        var html = await response.Content.ReadAsStringAsync();
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        html.ShouldContain("REJECTED", Case.Insensitive);
+    }
+
+    [Fact]
+    public async Task Pda_ResultDisplay_EmptyStackOnly_EmptyStackAnyState_ShowsAccepted()
+    {
+        var client = GetHttpClient();
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.PDA,
+            States = [new() { Id = 1, IsStart = true, IsAccepting = false }],
+            Transitions =
+            [
+                new() { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '\0', StackPush = "X" },
+                new() { FromStateId = 1, ToStateId = 1, Symbol = 'b', StackPop = 'X', StackPush = null }
+            ],
+            Input = "ab",
+            IsCustomAutomaton = true,
+            AcceptanceMode = PDAAcceptanceMode.EmptyStackOnly
+        };
+
+        var response = await PostAutomatonAsync(client, "/AutomatonExecution/ExecuteAll", model);
+        var html = await response.Content.ReadAsStringAsync();
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        html.ShouldContain("ACCEPTED", Case.Insensitive);
+    }
+
+    [Fact]
+    public async Task Pda_ResultDisplay_EmptyStackOnly_NonEmptyStack_ShowsRejected()
+    {
+        var client = GetHttpClient();
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.PDA,
+            States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
+            Transitions = [new() { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '\0', StackPush = "X" }],
+            Input = "a",
+            IsCustomAutomaton = true,
+            AcceptanceMode = PDAAcceptanceMode.EmptyStackOnly
+        };
+
+        var response = await PostAutomatonAsync(client, "/AutomatonExecution/ExecuteAll", model);
+        var html = await response.Content.ReadAsStringAsync();
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        html.ShouldContain("REJECTED", Case.Insensitive);
+    }
+
+    [Fact]
+    public async Task Pda_ResultDisplay_FinalStateAndEmptyStack_BothConditionsMet_ShowsAccepted()
+    {
+        var client = GetHttpClient();
+        var model = BuildBalancedParenthesesPda("()", PDAAcceptanceMode.FinalStateAndEmptyStack);
+
+        var response = await PostAutomatonAsync(client, "/AutomatonExecution/ExecuteAll", model);
+        var html = await response.Content.ReadAsStringAsync();
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        html.ShouldContain("ACCEPTED", Case.Insensitive);
+    }
+
+    [Fact]
+    public async Task Pda_ResultDisplay_FinalStateAndEmptyStack_OnlyFinalState_ShowsRejected()
+    {
+        var client = GetHttpClient();
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.PDA,
+            States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
+            Transitions = [new() { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '\0', StackPush = "X" }],
+            Input = "a",
+            IsCustomAutomaton = true,
+            AcceptanceMode = PDAAcceptanceMode.FinalStateAndEmptyStack
+        };
+
+        var response = await PostAutomatonAsync(client, "/AutomatonExecution/ExecuteAll", model);
+        var html = await response.Content.ReadAsStringAsync();
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        html.ShouldContain("REJECTED", Case.Insensitive);
+    }
+
+    [Fact]
+    public async Task Pda_ResultDisplay_FinalStateAndEmptyStack_OnlyEmptyStack_ShowsRejected()
+    {
+        var client = GetHttpClient();
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.PDA,
+            States = [new() { Id = 1, IsStart = true, IsAccepting = false }],
+            Transitions =
+            [
+                new() { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '\0', StackPush = "X" },
+                new() { FromStateId = 1, ToStateId = 1, Symbol = 'b', StackPop = 'X', StackPush = null }
+            ],
+            Input = "ab",
+            IsCustomAutomaton = true,
+            AcceptanceMode = PDAAcceptanceMode.FinalStateAndEmptyStack
+        };
+
+        var response = await PostAutomatonAsync(client, "/AutomatonExecution/ExecuteAll", model);
+        var html = await response.Content.ReadAsStringAsync();
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        html.ShouldContain("REJECTED", Case.Insensitive);
+    }
+
+    [Fact]
+    public async Task Pda_ResultDisplay_AfterBackToStart_DoesNotShowResult()
+    {
+        var client = GetHttpClient();
+        var model = BuildBalancedParenthesesPda("()");
+
+        var execResponse = await PostAutomatonAsync(client, "/AutomatonExecution/ExecuteAll", model);
+        var execResult = await DeserializeResponseAsync(execResponse);
+
+        var response = await PostAutomatonAsync(client, "/AutomatonExecution/BackToStart", execResult);
+        var html = await response.Content.ReadAsStringAsync();
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var result = await DeserializeResponseAsync(response);
+        result.Position.ShouldBe(0);
+
+        var hasResultBadge = Regex.IsMatch(html, @"result-badge", RegexOptions.IgnoreCase);
+        hasResultBadge.ShouldBeFalse("Should not show result badge at start position");
+    }
+
+    [Fact]
+    public async Task Pda_ResultDisplay_EpsilonClosureToAccepting_ShowsAccepted()
+    {
+        var client = GetHttpClient();
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.PDA,
+            States =
+            [
+                new() { Id = 1, IsStart = true, IsAccepting = false },
+                new() { Id = 2, IsStart = false, IsAccepting = true }
+            ],
+            Transitions = [new() { FromStateId = 1, ToStateId = 2, Symbol = '\0', StackPop = '\0', StackPush = null }],
+            Input = "",
+            IsCustomAutomaton = true,
+            AcceptanceMode = PDAAcceptanceMode.FinalStateAndEmptyStack
+        };
+
+        var response = await PostAutomatonAsync(client, "/AutomatonExecution/ExecuteAll", model);
+        var html = await response.Content.ReadAsStringAsync();
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        html.ShouldContain("ACCEPTED", Case.Insensitive);
+    }
+
+    [Fact]
+    public async Task Pda_ResultDisplay_LongValidInput_ShowsAccepted()
+    {
+        var client = GetHttpClient();
+        var longInput = string.Concat(Enumerable.Repeat("()", 20));
+        var model = BuildBalancedParenthesesPda(longInput);
+
+        var response = await PostAutomatonAsync(client, "/AutomatonExecution/ExecuteAll", model);
+        var html = await response.Content.ReadAsStringAsync();
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        html.ShouldContain("ACCEPTED", Case.Insensitive);
+    }
+
+    [Fact]
+    public async Task Pda_ResultDisplay_DeepNesting_Accepted_ShowsAccepted()
+    {
+        var client = GetHttpClient();
+        var deep = string.Concat(Enumerable.Repeat("(", 15)) + string.Concat(Enumerable.Repeat(")", 15));
+        var model = BuildBalancedParenthesesPda(deep);
+
+        var response = await PostAutomatonAsync(client, "/AutomatonExecution/ExecuteAll", model);
+        var html = await response.Content.ReadAsStringAsync();
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        html.ShouldContain("ACCEPTED", Case.Insensitive);
+    }
+
+    [Fact]
+    public async Task Pda_ResultDisplay_MultipleSymbols_AnBn_ShowsCorrect()
+    {
+        var client = GetHttpClient();
+        var model = BuildAnBnPda("aaaaabbbb");
+
+        var response = await PostAutomatonAsync(client, "/AutomatonExecution/ExecuteAll", model);
+        var html = await response.Content.ReadAsStringAsync();
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        html.ShouldContain("REJECTED", Case.Insensitive);
+    }
+
+    [Fact]
+    public async Task Pda_ResultDisplay_EmptyInputEmptyStackOnly_ShowsAccepted()
+    {
+        var client = GetHttpClient();
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.PDA,
+            States = [new() { Id = 1, IsStart = true, IsAccepting = false }],
+            Transitions = [],
+            Input = "",
+            IsCustomAutomaton = true,
+            AcceptanceMode = PDAAcceptanceMode.EmptyStackOnly
+        };
+
+        var response = await PostAutomatonAsync(client, "/AutomatonExecution/ExecuteAll", model);
+        var html = await response.Content.ReadAsStringAsync();
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        html.ShouldContain("ACCEPTED", Case.Insensitive);
+    }
+
+    [Fact]
+    public async Task Pda_ResultDisplay_ComplexRejection_ShowsRejectedBadge()
+    {
+        var client = GetHttpClient();
+        var model = BuildBalancedParenthesesPda("())(");
+
+        var response = await PostAutomatonAsync(client, "/AutomatonExecution/ExecuteAll", model);
+        var html = await response.Content.ReadAsStringAsync();
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        html.ShouldContain("REJECTED", Case.Insensitive);
+
+        // Since execution stops at position 2 (out of 4), the Result badge won't show.
+        // Instead, check for acceptance-status rejected in the "Is Accepted" section
+        var hasRejectedStatus = Regex.IsMatch(html, @"acceptance-status.*rejected", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        hasRejectedStatus.ShouldBeTrue("Should display rejected status");
+    }
+
+    [Fact]
+    public async Task Pda_ResultDisplay_AlternatingPatterns_Accepted()
+    {
+        var client = GetHttpClient();
+        var model = BuildBalancedParenthesesPda("()()()");
+
+        var response = await PostAutomatonAsync(client, "/AutomatonExecution/ExecuteAll", model);
+        var html = await response.Content.ReadAsStringAsync();
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        html.ShouldContain("ACCEPTED", Case.Insensitive);
+    }
+
+    [Fact]
+    public async Task Pda_ResultDisplay_SinglePair_Accepted()
+    {
+        var client = GetHttpClient();
+        var model = BuildAnBnPda("ab");
+
+        var response = await PostAutomatonAsync(client, "/AutomatonExecution/ExecuteAll", model);
+        var html = await response.Content.ReadAsStringAsync();
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        html.ShouldContain("ACCEPTED", Case.Insensitive);
+    }
+
+    [Fact]
+    public async Task Pda_ResultDisplay_OnlyOpenParens_Rejected()
+    {
+        var client = GetHttpClient();
+        var model = BuildBalancedParenthesesPda("(((");
+
+        var response = await PostAutomatonAsync(client, "/AutomatonExecution/ExecuteAll", model);
+        var html = await response.Content.ReadAsStringAsync();
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        html.ShouldContain("REJECTED", Case.Insensitive);
+    }
+
+    [Fact]
+    public async Task Pda_ResultDisplay_OnlyCloseParens_Rejected()
+    {
+        var client = GetHttpClient();
+        var model = BuildBalancedParenthesesPda(")))");
+
+        var response = await PostAutomatonAsync(client, "/AutomatonExecution/ExecuteAll", model);
+        var html = await response.Content.ReadAsStringAsync();
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        html.ShouldContain("REJECTED", Case.Insensitive);
+    }
+
+    #endregion
 }
+

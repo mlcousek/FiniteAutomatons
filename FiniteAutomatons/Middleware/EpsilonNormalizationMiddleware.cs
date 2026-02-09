@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Utilities;
+﻿using FiniteAutomatons.Core.Utilities;
 using Microsoft.Extensions.Primitives;
 using System.Text;
 
@@ -67,10 +67,17 @@ public class EpsilonNormalizationMiddleware(RequestDelegate next)
     private static string NormalizeEpsilon(string? input)
     {
         if (string.IsNullOrEmpty(input)) return input ?? string.Empty;
+
+        if (input == "\\0" || input == @"\0")
+        {
+            return "\0";
+        }
+
         if (input.Contains('\uFFFD'))
         {
             return input.Replace('\uFFFD', AutomatonSymbolHelper.EpsilonInternal);
         }
+
         return input;
     }
 }
