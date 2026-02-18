@@ -1,0 +1,314 @@
+﻿/**
+ * canvas.css
+ * Styles for the automaton canvas visualization
+ * Includes container styles, control buttons, and utility classes
+ */
+
+/* ========================================
+   CANVAS CONTAINER
+   ======================================== */
+
+.graph-content {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 400px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+#automatonCanvasContainer {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background: #f8f9fa;
+}
+
+/* Ensure Cytoscape container fills parent */
+#automatonCanvasContainer > div {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* ========================================
+   CANVAS CONTROLS
+   ======================================== */
+
+.graph-controls {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 100;
+    display: flex;
+    gap: 5px;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 5px;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.graph-controls button {
+    background: transparent;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 8px 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: #495057;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    min-height: 36px;
+}
+
+.graph-controls button:hover {
+    background: #e9ecef;
+    border-color: #adb5bd;
+    color: #212529;
+}
+
+.graph-controls button:active {
+    background: #dee2e6;
+    transform: scale(0.95);
+}
+
+.graph-controls button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.graph-controls button i {
+    font-size: 16px;
+}
+
+/* ========================================
+   CANVAS ERROR MESSAGES
+   ======================================== */
+
+.canvas-error-message {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 1rem 2rem;
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    max-width: 90%;
+    text-align: center;
+    font-size: 14px;
+}
+
+/* ========================================
+   CANVAS LOADING STATE
+   ======================================== */
+
+.canvas-loading {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    z-index: 999;
+}
+
+.canvas-loading-spinner {
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #2a9d8f;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 10px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.canvas-loading-text {
+    color: #495057;
+    font-size: 14px;
+}
+
+/* ========================================
+   CANVAS PLACEHOLDER (NO DATA)
+   ======================================== */
+
+.canvas-placeholder {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    color: #6c757d;
+}
+
+.canvas-placeholder-icon {
+    font-size: 48px;
+    margin-bottom: 10px;
+    opacity: 0.5;
+}
+
+.canvas-placeholder-text {
+    font-size: 16px;
+}
+
+/* ========================================
+   CANVAS TOOLTIP (custom)
+   ======================================== */
+
+.canvas-tooltip {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.85);
+    color: white;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: Arial, sans-serif;
+    pointer-events: none;
+    z-index: 9999;
+    display: none;
+    white-space: pre-wrap;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    max-width: 300px;
+}
+
+/* ========================================
+   LAYOUT SELECTOR (optional)
+   ======================================== */
+
+.layout-selector {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    z-index: 100;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 8px 12px;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.layout-selector label {
+    font-size: 12px;
+    color: #495057;
+    margin-right: 8px;
+}
+
+.layout-selector select {
+    font-size: 12px;
+    padding: 4px 8px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    background: white;
+    cursor: pointer;
+}
+
+/* ========================================
+   CANVAS MINIMAP (future feature)
+   ======================================== */
+
+.canvas-minimap {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    width: 150px;
+    height: 100px;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+    overflow: hidden;
+}
+
+/* ========================================
+   RESPONSIVE DESIGN
+   ======================================== */
+
+@media (max-width: 768px) {
+    .graph-controls {
+        top: 5px;
+        right: 5px;
+        padding: 3px;
+        gap: 3px;
+    }
+
+    .graph-controls button {
+        padding: 6px 8px;
+        min-width: 32px;
+        min-height: 32px;
+        font-size: 12px;
+    }
+
+    .graph-controls button i {
+        font-size: 14px;
+    }
+
+    .layout-selector {
+        bottom: 5px;
+        right: 5px;
+        padding: 6px 10px;
+    }
+}
+
+/* ========================================
+   PRINT STYLES
+   ======================================== */
+
+@media print {
+    .graph-controls,
+    .layout-selector,
+    .canvas-minimap {
+        display: none !important;
+    }
+
+    .graph-content,
+    #automatonCanvasContainer {
+        background: white !important;
+    }
+}
+
+/* ========================================
+   ACCESSIBILITY
+   ======================================== */
+
+/* Focus outline for keyboard navigation */
+.graph-controls button:focus-visible {
+    outline: 2px solid #2a9d8f;
+    outline-offset: 2px;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+    .graph-controls button,
+    .canvas-loading-spinner {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .graph-controls {
+        background: white;
+        border: 2px solid black;
+    }
+
+    .graph-controls button {
+        border: 2px solid black;
+    }
+
+    .canvas-tooltip {
+        background: black;
+        color: white;
+        border: 2px solid white;
+    }
+}

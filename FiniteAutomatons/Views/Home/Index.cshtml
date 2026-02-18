@@ -285,7 +285,23 @@
                 <h2>GRAPH</h2>
             </div>
             <div class="graph-content">
-                <canvas id="automatonCanvas" class="automaton-canvas"></canvas>
+                <!-- Canvas controls -->
+                <div class="graph-controls">
+                    <button id="zoomInBtn" title="Zoom In" type="button">
+                        <i class="fas fa-search-plus"></i>
+                    </button>
+                    <button id="zoomOutBtn" title="Zoom Out" type="button">
+                        <i class="fas fa-search-minus"></i>
+                    </button>
+                    <button id="fitBtn" title="Fit to View" type="button">
+                        <i class="fas fa-compress-arrows-alt"></i>
+                    </button>
+                    <button id="resetLayoutBtn" title="Reset Layout" type="button">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+                <!-- Canvas container (Cytoscape will render here) -->
+                <div id="automatonCanvasContainer"></div>
             </div>
         </div>
     </div>
@@ -1304,7 +1320,15 @@
 </div>
 
 @section Scripts {
-    <script src="~/js/canvas.js" asp-append-version="true"></script>
+    <!-- Cytoscape.js libraries (CDN for reliability) -->
+    <script src="https://unpkg.com/cytoscape@3.23.0/dist/cytoscape.min.js"></script>
+    <script src="https://unpkg.com/dagre@0.8.5/dist/dagre.min.js"></script>
+    <script src="https://unpkg.com/cytoscape-dagre@2.5.0/cytoscape-dagre.js"></script>
+
+    <!-- New Canvas System (ES6 modules) -->
+    <script type="module" src="~/js/home-canvas-integration.mjs" asp-append-version="true"></script>
+
+    <!-- Existing Scripts -->
     <script type="module" src="~/js/inputOverlay.mjs" asp-append-version="true"></script>
     <script type="module" src="~/js/panelHighlighter.mjs" asp-append-version="true"></script>
     <script type="module" src="~/js/home.mjs" asp-append-version="true"></script>
