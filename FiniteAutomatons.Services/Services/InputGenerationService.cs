@@ -180,6 +180,12 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
             return null;
         }
 
+        // PDA: need to simulate execution to check acceptance (considering stack)
+        if (automaton.Type == AutomatonType.PDA)
+        {
+            return GenerateRandomAcceptingStringForPda(automaton, minLength, maxLength, maxAttempts, seed);
+        }
+
         var acceptingStates = automaton.States.Where(s => s.IsAccepting).Select(s => s.Id).ToHashSet();
         if (acceptingStates.Count == 0)
         {
@@ -222,6 +228,72 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
         }
 
         logger.LogWarning("No random accepting string found after {MaxAttempts} attempts", maxAttempts);
+        return null;
+    }
+
+    private string? GenerateRandomAcceptingStringForPda(AutomatonViewModel automaton, int minLength, int maxLength, int maxAttempts, int? seed)
+    {
+        var alphabet = automaton.Alphabet?.Where(c => c != '\0').ToList() ?? [];
+        if (alphabet.Count == 0)
+        {
+            logger.LogWarning("PDA has no alphabet for random generation");
+            return null;
+        }
+
+        var pda = automatonBuilderService.CreatePDA(automaton);
+        var random = seed.HasValue ? new Random(seed.Value) : new Random();
+        string? emptyAcceptingFallback = null;
+
+        // Try empty string first
+        try
+        {
+            if (pda.Execute(string.Empty))
+            {
+                emptyAcceptingFallback = string.Empty;
+                logger.LogInformation("Empty string is accepting for PDA");
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogDebug(ex, "PDA execution failed for empty string");
+        }
+
+        // Try random strings
+        for (int attempt = 0; attempt < maxAttempts; attempt++)
+        {
+            var length = random.Next(minLength, maxLength + 1);
+            var chars = new char[length];
+            for (int i = 0; i < length; i++)
+            {
+                chars[i] = alphabet[random.Next(alphabet.Count)];
+            }
+            var candidate = new string(chars);
+
+            try
+            {
+                if (pda.Execute(candidate))
+                {
+                    if (candidate.Length > 0)
+                    {
+                        logger.LogInformation("Found random accepting PDA string on attempt {Attempt}: '{String}'", attempt + 1, candidate);
+                        return candidate;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogDebug(ex, "PDA execution error for candidate '{Candidate}'", candidate);
+            }
+        }
+
+        // Return empty string as fallback
+        if (emptyAcceptingFallback != null)
+        {
+            logger.LogInformation("Returning empty accepting string for PDA as fallback");
+            return emptyAcceptingFallback;
+        }
+
+        logger.LogWarning("No random accepting PDA string found after {MaxAttempts} attempts", maxAttempts);
         return null;
     }
 
