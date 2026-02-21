@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.Api;
+﻿using FiniteAutomatons.Core.Models.Api;
 using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.ViewModel;
 using Microsoft.AspNetCore.Mvc;
@@ -6,22 +6,14 @@ using System.Text.Json;
 
 namespace FiniteAutomatons.Controllers;
 
-/// <summary>
-/// Stateless API endpoints used by the interactive canvas.
-/// No session / TempData — everything is re-computed from the posted data.
-/// </summary>
 [ApiController]
 [Route("api/canvas")]
 public class CanvasApiController(ILogger<CanvasApiController> logger) : ControllerBase
 {
     private readonly ILogger<CanvasApiController> _logger = logger;
 
-    internal const string SessionKey = "CanvasAutomaton";
+    public const string SessionKey = "CanvasAutomaton";
 
-    /// <summary>
-    /// Accepts the current automaton state from the canvas editor
-    /// and returns derived model info for real-time left-panel updates.
-    /// </summary>
     [HttpPost("sync")]
     public IActionResult Sync([FromBody] CanvasSyncRequest? request)
     {
@@ -40,10 +32,6 @@ public class CanvasApiController(ILogger<CanvasApiController> logger) : Controll
         }
     }
 
-    /// <summary>
-    /// Persists the current canvas automaton state to Session so it survives page reloads.
-    /// Called by PanelSync.js after each debounced edit.
-    /// </summary>
     [HttpPost("save")]
     public IActionResult Save([FromBody] CanvasSyncRequest? request)
     {
@@ -66,9 +54,6 @@ public class CanvasApiController(ILogger<CanvasApiController> logger) : Controll
         }
     }
 
-    /// <summary>
-    /// Clears the canvas automaton from Session (e.g. when a new automaton is loaded from server).
-    /// </summary>
     [HttpPost("clear")]
     public IActionResult Clear()
     {
@@ -117,9 +102,9 @@ public class CanvasApiController(ILogger<CanvasApiController> logger) : Controll
                 return new CanvasSyncTransitionDto
                 {
                     FromStateId = t.FromStateId,
-                    ToStateId   = t.ToStateId,
+                    ToStateId = t.ToStateId,
                     SymbolDisplay = sym == '\0' ? "ε" : sym.ToString(),
-                    IsPDA         = isPDA,
+                    IsPDA = isPDA,
                     StackPopDisplay = isPDA && t.StackPop is not null
                         ? (ParseSymbol(t.StackPop) == '\0' ? "ε" : t.StackPop)
                         : null,
@@ -130,33 +115,30 @@ public class CanvasApiController(ILogger<CanvasApiController> logger) : Controll
 
         return new CanvasSyncResponse
         {
-            Alphabet              = alphabet,
+            Alphabet = alphabet,
             HasEpsilonTransitions = hasEpsilon,
-            IsPDA                 = isPDA,
-            StateCount            = states.Count,
-            TransitionCount       = transitions.Count,
-            States                = states,
-            Transitions           = transitions
+            IsPDA = isPDA,
+            StateCount = states.Count,
+            TransitionCount = transitions.Count,
+            States = states,
+            Transitions = transitions
         };
     }
 
-    /// <summary>
-    /// Convert a CanvasSyncRequest into a full AutomatonViewModel for session persistence.
-    /// </summary>
     private static AutomatonViewModel BuildViewModel(CanvasSyncRequest req)
     {
         var type = req.Type?.ToUpperInvariant() switch
         {
-            "NFA"        => AutomatonType.NFA,
+            "NFA" => AutomatonType.NFA,
             "EPSILONNFA" => AutomatonType.EpsilonNFA,
-            "PDA"        => AutomatonType.PDA,
-            _            => AutomatonType.DFA
+            "PDA" => AutomatonType.PDA,
+            _ => AutomatonType.DFA
         };
 
         var states = req.States.Select(s => new State
         {
-            Id          = s.Id,
-            IsStart     = s.IsStart,
+            Id = s.Id,
+            IsStart = s.IsStart,
             IsAccepting = s.IsAccepting
         }).ToList();
 
@@ -164,25 +146,21 @@ public class CanvasApiController(ILogger<CanvasApiController> logger) : Controll
         var transitions = req.Transitions.Select(t => new Transition
         {
             FromStateId = t.FromStateId,
-            ToStateId   = t.ToStateId,
-            Symbol      = ParseSymbol(t.Symbol),
-            StackPop    = isPDA ? ParseSymbol(t.StackPop) : (char?)null,
-            StackPush   = isPDA ? (t.StackPush ?? "") : null
+            ToStateId = t.ToStateId,
+            Symbol = ParseSymbol(t.Symbol),
+            StackPop = isPDA ? ParseSymbol(t.StackPop) : null,
+            StackPush = isPDA ? (t.StackPush ?? "") : null
         }).ToList();
 
         return new AutomatonViewModel
         {
-            Type            = type,
-            States          = states,
-            Transitions     = transitions,
+            Type = type,
+            States = states,
+            Transitions = transitions,
             IsCustomAutomaton = true
         };
     }
 
-    /// <summary>
-    /// Normalize symbol string to a char.
-    /// Accepts: "a", "\0", "\\0", "ε", "epsilon" → '\0' for epsilon.
-    /// </summary>
     private static char ParseSymbol(string? raw)
     {
         if (string.IsNullOrEmpty(raw)) return '\0';

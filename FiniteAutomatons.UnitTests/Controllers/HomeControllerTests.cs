@@ -1,5 +1,6 @@
-using FiniteAutomatons.Controllers;
+﻿using FiniteAutomatons.Controllers;
 using FiniteAutomatons.Core.Models.ViewModel;
+using FiniteAutomatons.UnitTests.TestHelpers;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
@@ -22,7 +23,8 @@ public class HomeControllerTests
 
         var httpContext = new DefaultHttpContext
         {
-            TraceIdentifier = "test-trace-id"
+            TraceIdentifier = "test-trace-id",
+            Session = new MockSession()
         };
         var tempData = new TempDataDictionary(httpContext, new TestTempDataProvider());
         controller.TempData = tempData;
@@ -42,10 +44,10 @@ public class HomeControllerTests
         result.ShouldNotBeNull();
         var model = result.Model as AutomatonViewModel;
         model.ShouldNotBeNull();
-        
+
         model.States.Count.ShouldBeGreaterThan(0);
         model.States.Count(s => s.IsStart).ShouldBe(1);
-        model.IsCustomAutomaton.ShouldBeFalse(); 
+        model.IsCustomAutomaton.ShouldBeFalse();
         model.Alphabet.ShouldNotBeEmpty();
         model.Transitions.ShouldNotBeNull();
     }
