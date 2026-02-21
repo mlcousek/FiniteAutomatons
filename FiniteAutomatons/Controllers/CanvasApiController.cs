@@ -15,7 +15,7 @@ public class CanvasApiController(ILogger<CanvasApiController> logger) : Controll
     public const string SessionKey = "CanvasAutomaton";
 
     [HttpPost("sync")]
-    public IActionResult Sync([FromBody] CanvasSyncRequest? request, [FromServices] FiniteAutomatons.Services.Interfaces.IAutomatonMinimizationService? minimizationService)
+    public IActionResult Sync([FromBody] CanvasSyncRequest? request, [FromServices] Services.Interfaces.IAutomatonMinimizationService? minimizationService)
     {
         if (request is null)
             return BadRequest("Request body is required.");
@@ -30,7 +30,7 @@ public class CanvasApiController(ILogger<CanvasApiController> logger) : Controll
                 {
                     var vm = BuildViewModel(request);
                     var analysis = minimizationService.AnalyzeAutomaton(vm);
-                    response.MinimizationAnalysis = new Core.Models.Api.CanvasMinimizationDto(
+                    response.MinimizationAnalysis = new CanvasMinimizationDto(
                         analysis.SupportsMinimization,
                         analysis.IsMinimal,
                         analysis.OriginalStateCount,

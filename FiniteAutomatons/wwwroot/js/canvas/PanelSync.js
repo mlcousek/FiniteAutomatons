@@ -21,7 +21,11 @@ export class PanelSync {
         this.getCanvasInstance = options.getCanvasInstance;
 
         this._debounceTimer = null;
-        this._pendingSync = false;
+        // Timer used for the initial sync scheduled in `init()` so we can cancel it in `destroy()`.
+        this._initialTimer = null;
+        // Abort controller for the currently in-flight sync request. If a new sync starts
+        // we abort the previous request to avoid out-of-order responses / race conditions.
+        this._currentAbort = null;
         this._boundSync = this._debouncedSync.bind(this);
 
         // Element cache (populated lazily)
@@ -42,7 +46,7 @@ export class PanelSync {
 
         // Do an initial save shortly after init so the session is populated from
         // the server-rendered canvas even before the user makes any edits.
-        setTimeout(() => this._sync(), 800);
+        this._initialTimer = setTimeout(() => this._sync(), 800);
     }
 
     /**
@@ -50,6 +54,12 @@ export class PanelSync {
      */
     destroy() {
         clearTimeout(this._debounceTimer);
+        clearTimeout(this._initialTimer);
+        // Abort any in-flight sync request
+        if (this._currentAbort) {
+            try { this._currentAbort.abort(); } catch (e) { /* swallow */ }
+            this._currentAbort = null;
+        }
         const events = [
             'canvasStateAdded', 'canvasStateDeleted', 'canvasStateModified',
             'canvasTransitionAdded', 'canvasTransitionDeleted', 'canvasTransitionModified'
@@ -80,11 +90,24 @@ export class PanelSync {
         const request = this._buildRequest(canvas, cy);
         const body = JSON.stringify(request);
 
+        // Cancel any previous in-flight sync to avoid out-of-order responses.
+        if (this._currentAbort) {
+            try { this._currentAbort.abort(); } catch (e) { /* ignore */ }
+            this._currentAbort = null;
+        }
+
+        const controller = new AbortController();
+        this._currentAbort = controller;
+        // Safety timeout to avoid hanging requests
+        const abortAfterMs = 10000;
+        const abortTimer = setTimeout(() => controller.abort(), abortAfterMs);
+
         try {
             const resp = await fetch(this.syncUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body
+                body,
+                signal: controller.signal
             });
 
             if (!resp.ok) {
@@ -96,14 +119,25 @@ export class PanelSync {
             this._updatePanels(data);
 
             // Fire-and-forget: persist canvas state to server session so page reloads restore it
+            // Use a separate fetch so it isn't tied to the main controller.
             fetch('/api/canvas/save', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body
             }).catch(e => console.warn('PanelSync: save failed', e));
 
+            clearTimeout(abortTimer);
+            this._currentAbort = null;
+
         } catch (e) {
-            console.warn('PanelSync: fetch failed', e);
+            if (e.name === 'AbortError') {
+                // Aborts are expected when a newer sync supersedes an older one.
+                console.debug('PanelSync: sync aborted');
+            } else {
+                console.warn('PanelSync: fetch failed', e);
+            }
+            clearTimeout(abortTimer);
+            this._currentAbort = null;
         }
     }
 
@@ -123,7 +157,7 @@ export class PanelSync {
                 id: n.data('stateId'),
                 isStart: n.hasClass('start'),
                 isAccepting: n.hasClass('accepting')
-            })).flat();
+            }));
 
         const transitions = [];
 
@@ -238,7 +272,7 @@ export class PanelSync {
                 return;
             }
 
-            const executionStarted = document.querySelector('input[name="HasExecuted"]')?.value === 'true' || document.querySelector('input[name="Position"]')?.value > '0';
+            const executionStarted = document.querySelector('input[name="HasExecuted"]')?.value === 'true' || Number(document.querySelector('input[name="Position"]')?.value ?? 0) > 0;
 
             if (isMinimal) {
                 btn.textContent = 'Minimalize (Already Minimal)';

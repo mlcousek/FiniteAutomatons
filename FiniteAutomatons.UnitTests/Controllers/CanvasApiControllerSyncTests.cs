@@ -30,7 +30,7 @@ public class CanvasApiControllerSyncTests
     [Fact]
     public void Sync_NullRequest_ReturnsBadRequest()
     {
-        var result = controller.Sync(null);
+        var result = controller.Sync(null, null);
         result.ShouldBeOfType<BadRequestObjectResult>();
     }
 
@@ -38,7 +38,7 @@ public class CanvasApiControllerSyncTests
     public void Sync_EmptyRequest_ReturnsOkWithEmptyData()
     {
         var req = new CanvasSyncRequest { Type = "DFA", States = [], Transitions = [] };
-        var result = controller.Sync(req) as OkObjectResult;
+        var result = controller.Sync(req, null) as OkObjectResult;
         result.ShouldNotBeNull();
         var resp = result.Value as CanvasSyncResponse;
         resp.ShouldNotBeNull();
@@ -371,7 +371,7 @@ public class CanvasApiControllerSyncTests
             states: [new() { Id = 0, IsStart = true }],
             transitions: []);
 
-        var result = controller.Sync(req);
+        var result = controller.Sync(req, null);
         result.ShouldBeOfType<OkObjectResult>();
     }
 
@@ -606,7 +606,7 @@ public class CanvasApiControllerSyncTests
 
     private CanvasSyncResponse GetResponse(CanvasSyncRequest req)
     {
-        var result = controller.Sync(req) as OkObjectResult;
+        var result = controller.Sync(req, null) as OkObjectResult;
         result.ShouldNotBeNull();
         var resp = result.Value as CanvasSyncResponse;
         resp.ShouldNotBeNull();
