@@ -440,6 +440,8 @@ function setupFormSync() {
     window.addEventListener('canvasTransitionAdded', syncCanvas);
     window.addEventListener('canvasTransitionDeleted', syncCanvas);
     window.addEventListener('canvasTransitionModified', syncCanvas);
+    // When undo/redo is applied via ActionHistory, re-sync the form
+    window.addEventListener('canvasHistoryApplied', syncCanvas);
 
     // Initialize PanelSync for real-time left-panel updates
     panelSync = new PanelSync({

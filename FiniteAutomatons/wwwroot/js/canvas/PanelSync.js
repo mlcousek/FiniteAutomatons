@@ -1,4 +1,4 @@
-/**
+﻿/**
  * PanelSync.js
  * Listens to canvas edit events and updates the left-side info panels in real time
  * by calling POST /api/canvas/sync with the current graph state.
@@ -36,6 +36,8 @@ export class PanelSync {
             'canvasStateAdded', 'canvasStateDeleted', 'canvasStateModified',
             'canvasTransitionAdded', 'canvasTransitionDeleted', 'canvasTransitionModified'
         ];
+        // Also listen for undo/redo being applied so we re-sync panels
+        events.push('canvasHistoryApplied');
         events.forEach(evt => window.addEventListener(evt, this._boundSync));
 
         // Do an initial save shortly after init so the session is populated from
@@ -52,6 +54,8 @@ export class PanelSync {
             'canvasStateAdded', 'canvasStateDeleted', 'canvasStateModified',
             'canvasTransitionAdded', 'canvasTransitionDeleted', 'canvasTransitionModified'
         ];
+        // Keep in sync with init list
+        events.push('canvasHistoryApplied');
         events.forEach(evt => window.removeEventListener(evt, this._boundSync));
     }
 

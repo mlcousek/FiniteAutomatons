@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ActionHistory.js
  * Undo/Redo system using the Command pattern.
  *
@@ -69,6 +69,14 @@ export class ActionHistory {
 
         this._redoStack.push(action);
         this.onHistoryChanged({ canUndo: this.canUndo(), canRedo: this.canRedo() });
+        // Notify other parts of the app (e.g., form sync) that history was applied
+        try {
+            if (typeof window !== 'undefined' && typeof CustomEvent === 'function') {
+                window.dispatchEvent(new CustomEvent('canvasHistoryApplied'));
+            }
+        } catch (err) {
+            // ignore
+        }
         return true;
     }
 
@@ -92,6 +100,14 @@ export class ActionHistory {
 
         this._undoStack.push(action);
         this.onHistoryChanged({ canUndo: this.canUndo(), canRedo: this.canRedo() });
+        // Notify other parts of the app (e.g., form sync) that history was applied
+        try {
+            if (typeof window !== 'undefined' && typeof CustomEvent === 'function') {
+                window.dispatchEvent(new CustomEvent('canvasHistoryApplied'));
+            }
+        } catch (err) {
+            // ignore
+        }
         return true;
     }
 
