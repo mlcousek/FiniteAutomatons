@@ -1,4 +1,4 @@
-namespace FiniteAutomatons.Core.Models.Api;
+﻿namespace FiniteAutomatons.Core.Models.Api;
 
 /// <summary>
 /// Response body for POST /api/canvas/sync.
@@ -16,7 +16,12 @@ public class CanvasSyncResponse
 
     public List<CanvasSyncStateDto> States { get; set; } = [];
     public List<CanvasSyncTransitionDto> Transitions { get; set; } = [];
+
+    // Minimization analysis info (optional) — provided for DFA to allow client UI to update minimize button
+    public CanvasMinimizationDto? MinimizationAnalysis { get; set; }
 }
+
+public sealed record CanvasMinimizationDto(bool SupportsMinimization, bool IsMinimal, int OriginalStateCount, int ReachableStateCount, int MinimizedStateCount);
 
 public class CanvasSyncStateDto
 {

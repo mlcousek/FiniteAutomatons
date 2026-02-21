@@ -208,6 +208,53 @@ export class PanelSync {
         this._updateAlphabet(data);
         this._updateStates(data);
         this._updateTransitions(data);
+        // Update minimize button if server provided minimization analysis (JSON uses camelCase)
+        if (data?.minimizationAnalysis) {
+            this._updateMinimizeButton(data.minimizationAnalysis);
+        }
+    }
+
+    /**
+     * Update the minimize UI based on analysis DTO from server
+     * @private
+     */
+    _updateMinimizeButton(analysis) {
+        try {
+            const section = document.querySelector('.minimize-section');
+            if (!section) return;
+            const btn = section.querySelector('.minimize-btn');
+            if (!btn) return;
+
+            // analysis received from server is camelCase (supportsMinimization, isMinimal, minimizedStateCount,...)
+            const supports = !!analysis.supportsMinimization;
+            const isMinimal = !!analysis.isMinimal;
+            const minimizedCount = analysis.minimizedStateCount ?? null;
+            const originalCount = analysis.originalStateCount ?? null;
+
+            // If minimization unsupported, hide or disable the section
+            if (!supports) {
+                btn.textContent = 'Minimalize (Unsupported)';
+                btn.disabled = true;
+                return;
+            }
+
+            const executionStarted = document.querySelector('input[name="HasExecuted"]')?.value === 'true' || document.querySelector('input[name="Position"]')?.value > '0';
+
+            if (isMinimal) {
+                btn.textContent = 'Minimalize (Already Minimal)';
+                btn.disabled = true;
+            } else if (executionStarted) {
+                btn.textContent = 'Minimalize (Disabled - Execution Started)';
+                btn.disabled = true;
+            } else {
+                // Enable button and update text to show target size
+                btn.textContent = `Minimalize (→ ${minimizedCount})`;
+                btn.disabled = false;
+            }
+        } catch (e) {
+            // swallow - non-critical UI update
+            console.warn('PanelSync: failed to update minimize button', e);
+        }
     }
 
     /**
