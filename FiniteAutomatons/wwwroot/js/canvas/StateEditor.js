@@ -35,6 +35,7 @@ export class StateEditor {
         this.clickHandler = null;
         this.keyHandler = null;
         this.contextMenuHandler = null;
+        this.domContextMenuHandler = null;
 
         // Dialog instance
         this._dialog = new TransitionDialog(cy.container());
@@ -94,6 +95,29 @@ export class StateEditor {
             }
         };
         this.cy.on('cxttap', this.contextMenuHandler);
+
+        // Prevent native browser context menu inside the Cytoscape container when editor is enabled.
+        // Use document-level listener in capture phase so we catch the event before other handlers/renderer.
+        const container = this.cy && this.cy.container && this.cy.container();
+        if (container) {
+            this.domContextMenuHandler = (e) => {
+                try {
+                    if (!this.isEnabled) return;
+                    const rect = container.getBoundingClientRect();
+                    const x = e.clientX;
+                    const y = e.clientY;
+                    const inside = x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+                    if (inside) {
+                        // Prevent native menu for anything inside the canvas while editor is enabled
+                        e.preventDefault();
+                        e.stopPropagation();
+                    }
+                } catch (err) {
+                    // swallow - don't break page if boundingClientRect fails
+                }
+            };
+            document.addEventListener('contextmenu', this.domContextMenuHandler, true);
+        }
     }
 
     /**
@@ -114,6 +138,14 @@ export class StateEditor {
         if (this.contextMenuHandler) {
             this.cy.off('cxttap', this.contextMenuHandler);
             this.contextMenuHandler = null;
+        }
+
+        if (this.domContextMenuHandler) {
+            const container = this.cy && this.cy.container && this.cy.container();
+            if (container) {
+                container.removeEventListener('contextmenu', this.domContextMenuHandler);
+            }
+            this.domContextMenuHandler = null;
         }
     }
 
@@ -146,7 +178,14 @@ export class StateEditor {
      * @param {Object} event - Cytoscape context tap event
      */
     async _handleContextMenu(event) {
-        event.preventDefault();
+        // Prevent native browser context menu (use the original DOM event if present)
+        if (event.originalEvent && typeof event.originalEvent.preventDefault === 'function') {
+            event.originalEvent.preventDefault();
+        }
+        // Also call Cytoscape event preventDefault for completeness
+        if (typeof event.preventDefault === 'function') {
+            event.preventDefault();
+        }
         const node = event.target;
 
         this._isShowingDialog = true;
