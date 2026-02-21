@@ -47,7 +47,7 @@
                         <!-- Alphabet Section -->
                         <div class="automaton-detail-section" data-panel-id="alphabet">
                             <h4>Alphabet</h4>
-                            <div class="alphabet-display">
+                            <div class="alphabet-display" id="panel-alphabet">
                                 @if (Model.Alphabet != null && Model.Alphabet.Count > 0)
                                 {
                                     <span class="alphabet-symbols">{ @string.Join(", ", Model.Alphabet.Select(c => c == '\0' ? "ε" : c.ToString())) }</span>
@@ -73,7 +73,7 @@
                         <!-- States Section -->
                         <div class="automaton-detail-section" data-panel-id="states">
                             <h4>States</h4>
-                            <div class="states-display">
+                            <div class="states-display" id="panel-states-list">
                                 @if (Model.States != null && Model.States.Count > 0)
                                 {
                                     <ul class="states-list">
@@ -104,7 +104,7 @@
                         <!-- Transitions Section -->
                         <div class="automaton-detail-section" data-panel-id="transitions">
                             <h4>Transitions</h4>
-                            <div class="transitions-display">
+                            <div class="transitions-display" id="panel-transitions-list">
                                 @if (Model.Transitions != null && Model.Transitions.Count > 0)
                                 {
                                     <ul class="transitions-list">

@@ -8,6 +8,7 @@
 
 import { AutomatonCanvas } from './canvas/AutomatonCanvas.js';
 import { CanvasFormSync } from './canvas/CanvasFormSync.js';
+import { PanelSync } from './canvas/PanelSync.js';
 
 /**
  * Global canvas instance
@@ -18,6 +19,11 @@ let canvas = null;
  * Global form sync instance
  */
 let formSync = null;
+
+/**
+ * Global panel sync instance (real-time left-panel updates)
+ */
+let panelSync = null;
 
 /**
  * Initialize the automaton canvas on page load
@@ -435,7 +441,13 @@ function setupFormSync() {
     window.addEventListener('canvasTransitionDeleted', syncCanvas);
     window.addEventListener('canvasTransitionModified', syncCanvas);
 
-    console.log('CanvasFormSync initialized');
+    // Initialize PanelSync for real-time left-panel updates
+    panelSync = new PanelSync({
+        getCanvasInstance: () => canvas
+    });
+    panelSync.init();
+
+    console.log('CanvasFormSync + PanelSync initialized');
 }
 
 /**
