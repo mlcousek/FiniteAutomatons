@@ -17,6 +17,8 @@ import { LayoutEngine } from './LayoutEngine.js';
 import { CanvasInteractionHandler } from './CanvasInteractionHandler.js';
 import { EditModeManager } from './EditModeManager.js';
 import { StateEditor } from './StateEditor.js';
+import { TransitionEditor } from './TransitionEditor.js';
+import { ActionHistory } from './ActionHistory.js';
 
 /**
  * Main class for automaton canvas visualization
@@ -59,6 +61,8 @@ export class AutomatonCanvas {
         this.interactionHandler = null;
         this.editModeManager = null; // Edit mode manager (Phase 2)
         this.stateEditor = null; // State editor (Phase 2)
+        this.transitionEditor = null; // Transition editor (Phase 2)
+        this.actionHistory = null; // Undo/redo history (Phase 2)
         this.moveEnabled = true; // Controls whether nodes can be moved (separate from edit mode)
         this.isInitialized = false;
 
@@ -112,11 +116,32 @@ export class AutomatonCanvas {
                 }
             });
 
+            // Set up action history for undo/redo (Phase 2)
+            this.actionHistory = new ActionHistory({
+                maxSize: 100,
+                onHistoryChanged: ({ canUndo, canRedo }) => {
+                    const undoBtn = document.getElementById('undoBtn');
+                    const redoBtn = document.getElementById('redoBtn');
+                    if (undoBtn) undoBtn.disabled = !canUndo;
+                    if (redoBtn) redoBtn.disabled = !canRedo;
+                }
+            });
+
             // Set up state editor (Phase 2)
             this.stateEditor = new StateEditor(this.cy, {
                 onStateAdded: (state) => this._onStateAdded(state),
                 onStateDeleted: (state) => this._onStateDeleted(state),
-                onStateModified: (state) => this._onStateModified(state)
+                onStateModified: (state) => this._onStateModified(state),
+                actionHistory: this.actionHistory
+            });
+
+            // Set up transition editor (Phase 2)
+            this.transitionEditor = new TransitionEditor(this.cy, this.container, {
+                automatonType: this.automatonType || 'DFA',
+                onTransitionAdded: (transition) => this._onTransitionAdded(transition),
+                onTransitionDeleted: (transition) => this._onTransitionDeleted(transition),
+                onTransitionModified: (transition) => this._onTransitionModified(transition),
+                actionHistory: this.actionHistory
             });
 
             // Set up event listeners
@@ -176,6 +201,14 @@ export class AutomatonCanvas {
             // IMPORTANT: Reapply edit mode state to new nodes
             // Re-apply dragging state (controls move vs edit dragging policy)
             this._applyDraggingState();
+
+            // Update transition editor's automaton type and clear undo history
+            if (this.transitionEditor) {
+                this.transitionEditor.setAutomatonType(data.type);
+            }
+            if (this.actionHistory) {
+                this.actionHistory.clear();
+            }
 
             // Highlight active states if any
             if (this.activeStateIds.length > 0) {
@@ -418,6 +451,15 @@ export class AutomatonCanvas {
             }
         }
 
+        // Enable/disable transition editor
+        if (this.transitionEditor) {
+            if (isEditMode) {
+                this.transitionEditor.enable();
+            } else {
+                this.transitionEditor.disable();
+            }
+        }
+
         // Update button state (will be implemented in UI integration)
         const event = new CustomEvent('canvasEditModeChanged', {
             detail: { isEditMode }
@@ -496,6 +538,54 @@ export class AutomatonCanvas {
     }
 
     /**
+     * Undo last action
+     * @returns {boolean} True if an action was undone
+     */
+    undo() {
+        return this.actionHistory ? this.actionHistory.undo() : false;
+    }
+
+    /**
+     * Redo last undone action
+     * @returns {boolean} True if an action was redone 
+     */
+    redo() {
+        return this.actionHistory ? this.actionHistory.redo() : false;
+    }
+
+    /**
+     * Get history status (for button enable/disable)
+     * @returns {{ canUndo: boolean, canRedo: boolean }}
+     */
+    getHistoryStatus() {
+        return this.actionHistory ? this.actionHistory.getStatus() : { canUndo: false, canRedo: false };
+    }
+
+    /**
+     * Private: Handle transition added event
+     * @private
+     */
+    _onTransitionAdded(transition) {
+        window.dispatchEvent(new CustomEvent('canvasTransitionAdded', { detail: { transition } }));
+    }
+
+    /**
+     * Private: Handle transition deleted event
+     * @private
+     */
+    _onTransitionDeleted(transition) {
+        window.dispatchEvent(new CustomEvent('canvasTransitionDeleted', { detail: { transition } }));
+    }
+
+    /**
+     * Private: Handle transition modified event
+     * @private
+     */
+    _onTransitionModified(transition) {
+        window.dispatchEvent(new CustomEvent('canvasTransitionModified', { detail: { transition } }));
+    }
+
+    /**
      * Private: Handle state deleted event
      * @private
      * @param {Object} state - Deleted state data
@@ -542,6 +632,16 @@ export class AutomatonCanvas {
         if (this.stateEditor) {
             this.stateEditor.destroy();
             this.stateEditor = null;
+        }
+
+        if (this.transitionEditor) {
+            this.transitionEditor.destroy();
+            this.transitionEditor = null;
+        }
+
+        if (this.actionHistory) {
+            this.actionHistory.clear();
+            this.actionHistory = null;
         }
 
         if (this.cy) {

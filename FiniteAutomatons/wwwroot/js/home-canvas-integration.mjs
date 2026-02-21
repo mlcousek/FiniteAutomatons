@@ -7,11 +7,17 @@
  */
 
 import { AutomatonCanvas } from './canvas/AutomatonCanvas.js';
+import { CanvasFormSync } from './canvas/CanvasFormSync.js';
 
 /**
  * Global canvas instance
  */
 let canvas = null;
+
+/**
+ * Global form sync instance
+ */
+let formSync = null;
 
 /**
  * Initialize the automaton canvas on page load
@@ -45,8 +51,8 @@ export function initAutomatonCanvas() {
         // Set up control buttons
         setupCanvasControls();
 
-        // Observe form changes for real-time updates (disabled in Phase 1)
-        observeFormChanges();
+        // Set up form synchronization (Phase 2)
+        setupFormSync();
 
         // Canvas ready (minimal logging)
     } catch (error) {
@@ -366,26 +372,77 @@ function setupCanvasControls() {
         // Initialize button state
         updateEditModeButton(false);
     }
+
+    // Undo/Redo buttons (Phase 2)
+    const undoBtn = document.getElementById('undoBtn');
+    const redoBtn = document.getElementById('redoBtn');
+
+    if (undoBtn) {
+        undoBtn.addEventListener('click', () => {
+            if (canvas) canvas.undo();
+        });
+    }
+
+    if (redoBtn) {
+        redoBtn.addEventListener('click', () => {
+            if (canvas) canvas.redo();
+        });
+    }
+
+    // Keyboard shortcuts: Ctrl+Z (undo), Ctrl+Y / Ctrl+Shift+Z (redo)
+    document.addEventListener('keydown', (e) => {
+        if (!canvas) return;
+        // Only fire if not typing in an input/textarea
+        const tag = document.activeElement?.tagName;
+        if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
+        if (e.ctrlKey && !e.shiftKey && e.key === 'z') {
+            e.preventDefault();
+            canvas.undo();
+        } else if (e.ctrlKey && (e.key === 'y' || (e.shiftKey && e.key === 'z'))) {
+            e.preventDefault();
+            canvas.redo();
+        }
+    });
 }
 
 /**
- * Observe form changes and update canvas
- * NOTE: Disabled in Phase 1 (read-only mode) to prevent infinite reload loops.
- * Canvas updates happen on page load and after form submissions (page reloads).
- * Will be re-enabled in Phase 2 with proper change detection for interactive editing.
+ * Set up form synchronization — listens to canvas events and rebuilds form inputs
+ */
+function setupFormSync() {
+    if (!canvas) return;
+
+    // Determine automaton type for PDA detection
+    const typeInput = document.querySelector('input[name="Type"]');
+    const automatonType = parseAutomatonType(typeInput?.value || 'DFA');
+
+    formSync = new CanvasFormSync({
+        formId: 'automatonForm',
+        automatonType
+    });
+
+    const syncCanvas = () => {
+        if (canvas && formSync) {
+            formSync.syncAll(canvas.getCytoscapeInstance());
+        }
+    };
+
+    // Listen for all canvas edit events
+    window.addEventListener('canvasStateAdded', syncCanvas);
+    window.addEventListener('canvasStateDeleted', syncCanvas);
+    window.addEventListener('canvasStateModified', syncCanvas);
+    window.addEventListener('canvasTransitionAdded', syncCanvas);
+    window.addEventListener('canvasTransitionDeleted', syncCanvas);
+    window.addEventListener('canvasTransitionModified', syncCanvas);
+
+    console.log('CanvasFormSync initialized');
+}
+
+/**
+ * Observe form changes and update canvas (legacy — replaced by setupFormSync)
  */
 function observeFormChanges() {
-    // DISABLED: MutationObserver was causing infinite reload loops
-    // Phase 1 is read-only, so we only need to load canvas once on page load
-    // Phase 2 will implement proper change detection for interactive editing
-
-    // const automatonForm = document.getElementById('automatonForm');
-    // if (!automatonForm) return;
-
-    // For Phase 1, we rely on page reloads after form submissions
-    // No need for real-time updates since canvas is view-only
-
-    console.log('Canvas change observer disabled (Phase 1 - read-only mode)');
+    console.log('Canvas form sync active (Phase 2 interactive mode)');
 }
 
 /**

@@ -6,6 +6,8 @@
  * @module StateEditor
  */
 
+import { TransitionDialog } from './TransitionDialog.js';
+
 /**
  * Manages state editing operations on the canvas
  */
@@ -25,11 +27,18 @@ export class StateEditor {
         this.onStateAdded = options.onStateAdded || (() => {});
         this.onStateDeleted = options.onStateDeleted || (() => {});
         this.onStateModified = options.onStateModified || (() => {});
+
+        // Action history for undo/redo
+        this.actionHistory = options.actionHistory || null;
         
         // Event handlers
         this.clickHandler = null;
         this.keyHandler = null;
         this.contextMenuHandler = null;
+
+        // Dialog instance
+        this._dialog = new TransitionDialog(cy.container());
+        this._isShowingDialog = false;
         
         // State
         this.isEnabled = false;
@@ -64,7 +73,7 @@ export class StateEditor {
     _setupEventHandlers() {
         // Click empty space to add state
         this.clickHandler = (event) => {
-            if (event.target === this.cy) {
+            if (event.target === this.cy && !this._isShowingDialog) {
                 this._handleCanvasClick(event);
             }
         };
@@ -72,7 +81,7 @@ export class StateEditor {
 
         // Delete key to remove selected state
         this.keyHandler = (e) => {
-            if (e.key === 'Delete' || e.key === 'Backspace') {
+            if ((e.key === 'Delete' || e.key === 'Backspace') && !this._isShowingDialog) {
                 this._handleDeleteKey();
             }
         };
@@ -80,7 +89,7 @@ export class StateEditor {
 
         // Right-click for context menu
         this.contextMenuHandler = (event) => {
-            if (event.target.isNode()) {
+            if (event.target.isNode() && !this._isShowingDialog) {
                 this._handleContextMenu(event);
             }
         };
@@ -132,29 +141,28 @@ export class StateEditor {
     }
 
     /**
-     * Handle right-click on node - show context menu
+     * Handle right-click on node - show custom property dialog
      * @private
      * @param {Object} event - Cytoscape context tap event
      */
-    _handleContextMenu(event) {
+    async _handleContextMenu(event) {
         event.preventDefault();
         const node = event.target;
-        
-        // Show native context menu (simple implementation)
-        // In a production app, you'd use a custom context menu library
-        const isStart = node.hasClass('start');
-        const isAccepting = node.hasClass('accepting');
-        
-        const action = window.confirm(
-            `State: ${node.data('label')}\n\n` +
-            `Current properties:\n` +
-            `- Start: ${isStart ? 'Yes' : 'No'}\n` +
-            `- Accepting: ${isAccepting ? 'Yes' : 'No'}\n\n` +
-            `Click OK to toggle properties, Cancel to close`
-        );
-        
-        if (action) {
-            this.showPropertyDialog(node);
+
+        this._isShowingDialog = true;
+        let action;
+        try {
+            action = await this._dialog.showNodeProperties(node);
+        } finally {
+            this._isShowingDialog = false;
+        }
+
+        if (!action) return;
+
+        if (action === 'start') {
+            this.toggleStartState(node);
+        } else if (action === 'accepting') {
+            this.toggleAcceptingState(node);
         }
     }
 
@@ -180,6 +188,20 @@ export class StateEditor {
             position: { x, y },
             classes: ''
         });
+
+        // Record for undo
+        if (this.actionHistory) {
+            this.actionHistory.recordAction({
+                do: () => {
+                    if (!this.cy.getElementById(nodeId).length) {
+                        this.cy.add({ group: 'nodes', data: { id: nodeId, stateId: newStateId, label: `q${newStateId}`, isStart: false, isAccepting: false }, position: { x, y } });
+                    }
+                },
+                undo: () => {
+                    this.cy.getElementById(nodeId).remove();
+                }
+            });
+        }
 
         // Callback
         this.onStateAdded({
@@ -207,9 +229,31 @@ export class StateEditor {
 
         const stateId = node.data('stateId');
         const label = node.data('label');
+        const position = { ...node.position() };
+        const classes = node.className();
+        const data = { ...node.data() };
+        // Snapshot connected edges for undo
+        const connectedEdges = node.connectedEdges().map(e => ({ data: { ...e.data() }, classes: e.className() }));
 
         // Remove node (this also removes connected edges)
         this.cy.remove(node);
+
+        // Record for undo
+        if (this.actionHistory) {
+            this.actionHistory.recordAction({
+                do: () => { this.cy.getElementById(nodeId).remove(); },
+                undo: () => {
+                    if (!this.cy.getElementById(nodeId).length) {
+                        this.cy.add({ group: 'nodes', data, position, classes });
+                        connectedEdges.forEach(e => {
+                            if (!this.cy.getElementById(e.data.id).length) {
+                                this.cy.add({ group: 'edges', data: e.data, classes: e.classes });
+                            }
+                        });
+                    }
+                }
+            });
+        }
 
         // Callback
         this.onStateDeleted({
@@ -225,12 +269,15 @@ export class StateEditor {
      * @param {Object} node - Cytoscape node
      */
     toggleStartState(node) {
-        const isCurrentlyStart = node.hasClass('start');
+        const wasStart = node.hasClass('start');
+        // Capture previous start node for undo
+        const prevStartNode = wasStart ? null : this.cy.nodes('.start').first();
+        const prevStartId = prevStartNode?.id();
 
-        if (!isCurrentlyStart) {
+        if (!wasStart) {
             // Remove start class from all other nodes (only one start state)
             this.cy.nodes().removeClass('start');
-            node.data('isStart', false);
+            this.cy.nodes().forEach(n => n.data('isStart', false));
             
             // Add start class to this node
             node.addClass('start');
@@ -241,6 +288,24 @@ export class StateEditor {
             node.data('isStart', false);
         }
 
+        // Record for undo
+        if (this.actionHistory) {
+            const nodeId = node.id();
+            this.actionHistory.recordAction({
+                do: () => {
+                    this.cy.nodes().removeClass('start');
+                    this.cy.nodes().forEach(n => n.data('isStart', false));
+                    if (!wasStart) { this.cy.getElementById(nodeId).addClass('start').data('isStart', true); }
+                },
+                undo: () => {
+                    this.cy.nodes().removeClass('start');
+                    this.cy.nodes().forEach(n => n.data('isStart', false));
+                    if (wasStart) { this.cy.getElementById(nodeId).addClass('start').data('isStart', true); }
+                    else if (prevStartId) { this.cy.getElementById(prevStartId).addClass('start').data('isStart', true); }
+                }
+            });
+        }
+
         this._notifyStateModified(node);
     }
 
@@ -249,9 +314,9 @@ export class StateEditor {
      * @param {Object} node - Cytoscape node
      */
     toggleAcceptingState(node) {
-        const isCurrentlyAccepting = node.hasClass('accepting');
+        const wasAccepting = node.hasClass('accepting');
 
-        if (!isCurrentlyAccepting) {
+        if (!wasAccepting) {
             node.addClass('accepting');
             node.data('isAccepting', true);
         } else {
@@ -259,41 +324,33 @@ export class StateEditor {
             node.data('isAccepting', false);
         }
 
+        // Record for undo
+        if (this.actionHistory) {
+            const nodeId = node.id();
+            this.actionHistory.recordAction({
+                do: () => {
+                    const n = this.cy.getElementById(nodeId);
+                    if (!wasAccepting) { n.addClass('accepting').data('isAccepting', true); }
+                    else { n.removeClass('accepting').data('isAccepting', false); }
+                },
+                undo: () => {
+                    const n = this.cy.getElementById(nodeId);
+                    if (wasAccepting) { n.addClass('accepting').data('isAccepting', true); }
+                    else { n.removeClass('accepting').data('isAccepting', false); }
+                }
+            });
+        }
+
         this._notifyStateModified(node);
     }
 
     /**
-     * Show property dialog for a node
+     * Show property dialog for a node (used for programmatic access; right-click uses _handleContextMenu)
      * @param {Object} node - Cytoscape node
+     * @deprecated Use right-click context menu (_handleContextMenu) instead
      */
     showPropertyDialog(node) {
-        const label = node.data('label');
-        const isStart = node.hasClass('start');
-        const isAccepting = node.hasClass('accepting');
-
-        // Simple dialog (in production, use a proper UI component)
-        const options = [
-            `1. ${isStart ? 'Remove' : 'Set as'} Start State`,
-            `2. ${isAccepting ? 'Remove' : 'Set as'} Accepting State`,
-            `0. Cancel`
-        ].join('\n');
-
-        const choice = window.prompt(
-            `Edit properties for ${label}:\n\n${options}\n\nEnter choice:`,
-            '0'
-        );
-
-        switch (choice) {
-            case '1':
-                this.toggleStartState(node);
-                break;
-            case '2':
-                this.toggleAcceptingState(node);
-                break;
-            default:
-                // Cancel
-                break;
-        }
+        this._handleContextMenu({ target: node, preventDefault: () => {} });
     }
 
     /**
@@ -345,6 +402,10 @@ export class StateEditor {
      */
     destroy() {
         this.disable();
+        if (this._dialog) {
+            this._dialog.destroy();
+            this._dialog = null;
+        }
         this.cy = null;
     }
 }
