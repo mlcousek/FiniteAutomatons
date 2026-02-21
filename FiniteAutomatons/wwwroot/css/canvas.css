@@ -85,6 +85,102 @@
 }
 
 /* ========================================
+   EDIT MODE BUTTON (Phase 2)
+   ======================================== */
+
+.graph-controls .control-separator {
+    width: 1px;
+    background: #dee2e6;
+    margin: 0 5px;
+}
+
+.graph-controls .edit-mode-btn {
+    gap: 6px;
+    padding: 8px 14px;
+    min-width: auto;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.graph-controls .edit-mode-btn i {
+    font-size: 14px;
+}
+
+.graph-controls .edit-mode-btn span {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+/* Locked state (default) */
+.graph-controls .edit-mode-btn {
+    background: rgba(108, 117, 125, 0.1);
+    border-color: #6c757d;
+    color: #6c757d;
+}
+
+.graph-controls .edit-mode-btn:hover:not(:disabled) {
+    background: rgba(108, 117, 125, 0.15);
+    border-color: #5a6268;
+    color: #5a6268;
+}
+
+/* Unlocked state (edit mode active) */
+.graph-controls .edit-mode-btn.edit-mode-active {
+    background: rgba(40, 167, 69, 0.15);
+    border-color: #28a745;
+    color: #28a745;
+}
+
+.graph-controls .edit-mode-btn.edit-mode-active:hover {
+    background: rgba(40, 167, 69, 0.25);
+    border-color: #218838;
+    color: #218838;
+}
+
+/* Disabled during simulation */
+.graph-controls .edit-mode-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    background: rgba(108, 117, 125, 0.05);
+}
+
+/* MOVE MODE BUTTON */
+.graph-controls .move-mode-btn {
+    gap: 6px;
+    padding: 8px 14px;
+    min-width: auto;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.graph-controls .move-mode-btn i {
+    font-size: 14px;
+}
+
+.graph-controls .move-mode-btn span {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.graph-controls .move-mode-btn.move-mode-active {
+    background: rgba(23, 162, 184, 0.12);
+    border-color: #17a2b8;
+    color: #17a2b8;
+}
+
+.graph-controls .move-mode-btn.move-mode-active:hover {
+    background: rgba(23, 162, 184, 0.18);
+    border-color: #138496;
+    color: #138496;
+}
+
+.graph-controls .move-mode-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    background: rgba(108, 117, 125, 0.05);
+}
+
+/* ========================================
    CANVAS ERROR MESSAGES
    ======================================== */
 

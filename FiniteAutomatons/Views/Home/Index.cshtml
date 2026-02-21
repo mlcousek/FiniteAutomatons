@@ -299,6 +299,16 @@
                     <button id="resetLayoutBtn" title="Reset Layout" type="button">
                         <i class="fas fa-sync-alt"></i>
                     </button>
+                    <!-- Move & Edit Mode Toggles (Phase 2) -->
+                    <div class="control-separator"></div>
+                    <button id="moveToggleBtn" class="move-mode-btn" title="Toggle Move Mode" type="button">
+                        <i id="moveModeIcon" class="fas fa-arrows-alt"></i>
+                        <span id="moveModeText">Move</span>
+                    </button>
+                    <button id="editModeToggleBtn" class="edit-mode-btn" title="Toggle Edit Mode (Lock/Unlock)" type="button" disabled>
+                        <i id="editModeIcon" class="fas fa-lock"></i>
+                        <span id="editModeText">Locked</span>
+                    </button>
                 </div>
                 <!-- Canvas container (Cytoscape will render here) -->
                 <div id="automatonCanvasContainer"></div>

@@ -8,11 +8,15 @@
  * @requires AutomatonRenderer
  * @requires LayoutEngine
  * @requires CanvasInteractionHandler
+ * @requires EditModeManager
+ * @requires StateEditor
  */
 
 import { AutomatonRenderer } from './AutomatonRenderer.js';
 import { LayoutEngine } from './LayoutEngine.js';
 import { CanvasInteractionHandler } from './CanvasInteractionHandler.js';
+import { EditModeManager } from './EditModeManager.js';
+import { StateEditor } from './StateEditor.js';
 
 /**
  * Main class for automaton canvas visualization
@@ -53,6 +57,9 @@ export class AutomatonCanvas {
         this.currentData = null;
         this.activeStateIds = [];
         this.interactionHandler = null;
+        this.editModeManager = null; // Edit mode manager (Phase 2)
+        this.stateEditor = null; // State editor (Phase 2)
+        this.moveEnabled = true; // Controls whether nodes can be moved (separate from edit mode)
         this.isInitialized = false;
 
         // Bind methods
@@ -96,6 +103,21 @@ export class AutomatonCanvas {
                 this.interactionHandler = new CanvasInteractionHandler(this.cy, this.options);
                 this.interactionHandler.enable();
             }
+
+            // Set up edit mode manager (Phase 2)
+            this.editModeManager = new EditModeManager(this.cy, {
+                enableByDefault: false, // Start in view mode
+                onModeChange: (isEditMode) => {
+                    this._onEditModeChange(isEditMode);
+                }
+            });
+
+            // Set up state editor (Phase 2)
+            this.stateEditor = new StateEditor(this.cy, {
+                onStateAdded: (state) => this._onStateAdded(state),
+                onStateDeleted: (state) => this._onStateDeleted(state),
+                onStateModified: (state) => this._onStateModified(state)
+            });
 
             // Set up event listeners
             this._setupEventListeners();
@@ -151,6 +173,10 @@ export class AutomatonCanvas {
                 stateCount: data.states.length
             });
 
+            // IMPORTANT: Reapply edit mode state to new nodes
+            // Re-apply dragging state (controls move vs edit dragging policy)
+            this._applyDraggingState();
+
             // Highlight active states if any
             if (this.activeStateIds.length > 0) {
                 this.highlight(this.activeStateIds);
@@ -183,17 +209,28 @@ export class AutomatonCanvas {
 
         if (!stateIds || stateIds.length === 0) {
             this.activeStateIds = [];
+            // No active states = simulation not running
+            this.setSimulationState(false);
             return;
         }
 
         this.activeStateIds = stateIds;
+
+        // Simulation is running (disable edit mode)
+        this.setSimulationState(true);
+
+        // IMPORTANT: Ensure all nodes are not draggable during simulation
+        // This is a safety check to prevent dragging during simulation
+        this.cy.nodes().forEach(node => {
+            node.ungrabify();
+        });
 
         // Highlight states
         stateIds.forEach(stateId => {
             const node = this.cy.getElementById(`state-${stateId}`);
             if (node) {
                 node.addClass('active');
-                
+
                 // Also highlight outgoing transitions
                 node.outgoers('edge').addClass('active');
             }
@@ -305,12 +342,206 @@ export class AutomatonCanvas {
     }
 
     /**
+     * ====================
+     * EDIT MODE METHODS (Phase 2)
+     * ====================
+     */
+
+    /**
+     * Enable edit mode - allows interactive editing of the automaton
+     * @returns {boolean} Success status
+     */
+    enableEditMode() {
+        if (!this.editModeManager) {
+            console.warn('EditModeManager not initialized');
+            return false;
+        }
+        return this.editModeManager.enableEditMode();
+    }
+
+    /**
+     * Disable edit mode - makes canvas read-only
+     * @returns {boolean} Success status
+     */
+    disableEditMode() {
+        if (!this.editModeManager) {
+            console.warn('EditModeManager not initialized');
+            return false;
+        }
+        return this.editModeManager.disableEditMode();
+    }
+
+    /**
+     * Toggle edit mode
+     * @returns {boolean} New edit mode state
+     */
+    toggleEditMode() {
+        if (!this.editModeManager) {
+            console.warn('EditModeManager not initialized');
+            return false;
+        }
+        return this.editModeManager.toggleEditMode();
+    }
+
+    /**
+     * Check if edit mode is active
+     * @returns {boolean} True if edit mode is active
+     */
+    isEditModeActive() {
+        return this.editModeManager ? this.editModeManager.isActive() : false;
+    }
+
+    /**
+     * Set simulation state (disables edit mode during simulation)
+     * @param {boolean} isSimulating - Whether simulation is running
+     */
+    setSimulationState(isSimulating) {
+        if (this.editModeManager) {
+            this.editModeManager.setSimulationState(isSimulating);
+        }
+        // Re-apply dragging state to respect simulation lock
+        this._applyDraggingState();
+    }
+
+    /**
+     * Private: Handle edit mode changes
+     * @private
+     * @param {boolean} isEditMode - New edit mode state
+     */
+    _onEditModeChange(isEditMode) {
+        // Enable/disable state editor
+        if (this.stateEditor) {
+            if (isEditMode) {
+                this.stateEditor.enable();
+            } else {
+                this.stateEditor.disable();
+            }
+        }
+
+        // Update button state (will be implemented in UI integration)
+        const event = new CustomEvent('canvasEditModeChanged', {
+            detail: { isEditMode }
+        });
+        window.dispatchEvent(event);
+
+        console.log(`Canvas edit mode: ${isEditMode ? 'ENABLED' : 'DISABLED'}`);
+        // Re-apply dragging state when edit mode changes
+        this._applyDraggingState();
+    }
+
+    /**
+     * Private: Handle state added event
+     * @private
+     * @param {Object} state - Added state data
+     */
+    _onStateAdded(state) {
+        console.log('State added:', state);
+
+        // Dispatch event for form synchronization (Phase 2)
+        const event = new CustomEvent('canvasStateAdded', {
+            detail: { state }
+        });
+        window.dispatchEvent(event);
+    }
+
+    /**
+     * Enable node moving (dragging) separately from edit mode
+     */
+    enableMoving() {
+        this.moveEnabled = true;
+        this._applyDraggingState();
+    }
+
+    /**
+     * Disable node moving (dragging) separately from edit mode
+     */
+    disableMoving() {
+        this.moveEnabled = false;
+        this._applyDraggingState();
+    }
+
+    /**
+     * Toggle moving state
+     * @returns {boolean} New moving state
+     */
+    toggleMoving() {
+        this.moveEnabled = !this.moveEnabled;
+        this._applyDraggingState();
+        return this.moveEnabled;
+    }
+
+    /**
+     * Check whether moving is enabled
+     * @returns {boolean}
+     */
+    isMovingActive() {
+        return !!this.moveEnabled;
+    }
+
+    /**
+     * Private: Apply dragging state to nodes based on move/edit/simulation flags
+     * @private
+     */
+    _applyDraggingState() {
+        if (!this.cy) return;
+
+        // Moving is controlled only by the move toggle. Allow moving during simulation if moveEnabled is true.
+        const shouldAllowDrag = !!this.moveEnabled;
+
+        if (shouldAllowDrag) {
+            this.cy.nodes().forEach(n => n.grabify());
+        } else {
+            this.cy.nodes().forEach(n => n.ungrabify());
+        }
+    }
+
+    /**
+     * Private: Handle state deleted event
+     * @private
+     * @param {Object} state - Deleted state data
+     */
+    _onStateDeleted(state) {
+        console.log('State deleted:', state);
+
+        // Dispatch event for form synchronization (Phase 2)
+        const event = new CustomEvent('canvasStateDeleted', {
+            detail: { state }
+        });
+        window.dispatchEvent(event);
+    }
+
+    /**
+     * Private: Handle state modified event
+     * @private
+     * @param {Object} state - Modified state data
+     */
+    _onStateModified(state) {
+        console.log('State modified:', state);
+
+        // Dispatch event for form synchronization (Phase 2)
+        const event = new CustomEvent('canvasStateModified', {
+            detail: { state }
+        });
+        window.dispatchEvent(event);
+    }
+
+    /**
      * Destroy canvas and clean up resources
      */
     destroy() {
         if (this.interactionHandler) {
             this.interactionHandler.disable();
             this.interactionHandler = null;
+        }
+
+        if (this.editModeManager) {
+            this.editModeManager.destroy();
+            this.editModeManager = null;
+        }
+
+        if (this.stateEditor) {
+            this.stateEditor.destroy();
+            this.stateEditor = null;
         }
 
         if (this.cy) {

@@ -235,6 +235,18 @@ function highlightActiveStates() {
     const activeStateIds = getActiveStateIds();
     if (activeStateIds.length > 0) {
         canvas.highlight(activeStateIds);
+
+        // Disable edit mode button during simulation (moving remains available)
+        const editModeToggleBtn = document.getElementById('editModeToggleBtn');
+        if (editModeToggleBtn) {
+            editModeToggleBtn.disabled = true;
+        }
+    } else {
+        // Re-enable edit mode button when simulation ends
+        const editModeToggleBtn = document.getElementById('editModeToggleBtn');
+        if (editModeToggleBtn) {
+            editModeToggleBtn.disabled = false;
+        }
     }
 }
 
@@ -272,6 +284,87 @@ function setupCanvasControls() {
         resetLayoutBtn.addEventListener('click', () => {
             if (canvas) canvas.relayout();
         });
+    }
+    // Edit & Move mode toggles (Phase 2)
+    const editModeToggleBtn = document.getElementById('editModeToggleBtn');
+    const editModeIcon = document.getElementById('editModeIcon');
+    const editModeText = document.getElementById('editModeText');
+
+    const moveToggleBtn = document.getElementById('moveToggleBtn');
+    const moveModeIcon = document.getElementById('moveModeIcon');
+    const moveModeText = document.getElementById('moveModeText');
+
+    // MOVE toggle: controls node dragging separately from edit mode
+    if (moveToggleBtn) {
+        // Default: moving enabled
+        let moveActive = true;
+        // Ensure canvas moving state matches
+        if (canvas && canvas.enableMoving) canvas.enableMoving();
+        updateMoveButton(moveActive);
+
+        moveToggleBtn.addEventListener('click', () => {
+            if (!canvas) return;
+            moveActive = !moveActive;
+            if (moveActive) {
+                canvas.enableMoving();
+            } else {
+                canvas.disableMoving();
+            }
+            updateMoveButton(moveActive);
+        });
+
+        function updateMoveButton(isMoveMode) {
+            if (isMoveMode) {
+                moveModeIcon.className = 'fas fa-arrows-alt';
+                moveModeText.textContent = 'Move';
+                moveToggleBtn.classList.add('move-mode-active');
+                moveToggleBtn.title = 'Disable Moving';
+            } else {
+                moveModeIcon.className = 'fas fa-arrows-alt';
+                moveModeText.textContent = 'Locked';
+                moveToggleBtn.classList.remove('move-mode-active');
+                moveToggleBtn.title = 'Enable Moving';
+            }
+        }
+    }
+
+    // EDIT toggle: controls add/delete/edit actions
+    if (editModeToggleBtn) {
+        // Enable button (disabled by default in HTML)
+        editModeToggleBtn.disabled = false;
+
+        // Click handler
+        editModeToggleBtn.addEventListener('click', () => {
+            if (!canvas) return;
+
+            const isActive = canvas.toggleEditMode();
+            updateEditModeButton(isActive);
+        });
+
+        // Listen for edit mode changes from canvas
+        window.addEventListener('canvasEditModeChanged', (e) => {
+            updateEditModeButton(e.detail.isEditMode);
+        });
+
+        // Function to update button state
+        function updateEditModeButton(isEditMode) {
+            if (isEditMode) {
+                // Edit mode ON (unlocked)
+                editModeIcon.className = 'fas fa-unlock';
+                editModeText.textContent = 'Unlocked';
+                editModeToggleBtn.classList.add('edit-mode-active');
+                editModeToggleBtn.title = 'Lock Canvas (Disable Editing)';
+            } else {
+                // Edit mode OFF (locked)
+                editModeIcon.className = 'fas fa-lock';
+                editModeText.textContent = 'Locked';
+                editModeToggleBtn.classList.remove('edit-mode-active');
+                editModeToggleBtn.title = 'Unlock Canvas (Enable Editing)';
+            }
+        }
+
+        // Initialize button state
+        updateEditModeButton(false);
     }
 }
 
