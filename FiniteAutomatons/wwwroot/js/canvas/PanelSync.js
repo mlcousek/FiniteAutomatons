@@ -37,6 +37,10 @@ export class PanelSync {
             'canvasTransitionAdded', 'canvasTransitionDeleted', 'canvasTransitionModified'
         ];
         events.forEach(evt => window.addEventListener(evt, this._boundSync));
+
+        // Do an initial save shortly after init so the session is populated from
+        // the server-rendered canvas even before the user makes any edits.
+        setTimeout(() => this._sync(), 800);
     }
 
     /**
@@ -70,32 +74,44 @@ export class PanelSync {
 
         // Build request payload from current Cytoscape graph
         const request = this._buildRequest(canvas, cy);
+        const body = JSON.stringify(request);
 
         try {
             const resp = await fetch(this.syncUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(request)
+                body
             });
 
             if (!resp.ok) {
-                console.warn('PanelSync: API error', resp.status);
+                console.warn('PanelSync: sync API error', resp.status);
                 return;
             }
 
             const data = await resp.json();
             this._updatePanels(data);
+
+            // Fire-and-forget: persist canvas state to server session so page reloads restore it
+            fetch('/api/canvas/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body
+            }).catch(e => console.warn('PanelSync: save failed', e));
+
         } catch (e) {
             console.warn('PanelSync: fetch failed', e);
         }
     }
 
     /**
-     * Serialize the current canvas state to a CanvasSyncRequest object
+     * Serialize the current canvas state to a CanvasSyncRequest object.
+     * Expands multi-symbol edges into individual transition records so the
+     * server receives one entry per symbol (same as CanvasFormSync does for form inputs).
      * @private
      */
     _buildRequest(canvas, cy) {
         const type = canvas.automatonType || 'DFA';
+        const isPDA = (type === 'PDA');
 
         const states = cy.nodes()
             .filter(n => !n.hasClass('dummy'))
@@ -105,24 +121,79 @@ export class PanelSync {
                 isAccepting: n.hasClass('accepting')
             })).flat();
 
-        const transitions = cy.edges().map(e => {
-            const sym = e.data('rawSymbol') ?? e.data('symbol') ?? '';
-            const isPDA = e.data('isPDA') || type === 'PDA';
-            const entry = {
-                fromStateId: e.source().data('stateId'),
-                toStateId: e.target().data('stateId'),
-                symbol: sym === '\0' || sym === 'ε' ? '\\0' : sym
-            };
-            if (isPDA) {
-                const sp = e.data('stackPop');
-                const spu = e.data('stackPush');
-                entry.stackPop = (sp === '\0' || sp === 'ε') ? '\\0' : (sp ?? '\\0');
-                entry.stackPush = spu ?? '';
+        const transitions = [];
+
+        cy.edges().forEach(e => {
+            const fromId = e.source().data('stateId');
+            const toId   = e.target().data('stateId');
+            const edgePDA = e.data('isPDA') || isPDA;
+
+            // Try structured data attributes first (edges added interactively)
+            const rawSymbol = e.data('rawSymbol');
+            const symbol    = e.data('symbol');
+
+            if (rawSymbol !== undefined || (symbol !== undefined && !String(symbol).includes(','))) {
+                // Single-symbol edge with structured data (TransitionEditor-created)
+                const sym = rawSymbol ?? symbol ?? '';
+                const normalized = (sym === '\0' || sym === 'ε' || sym === '\\0') ? '\\0' : sym;
+                const entry = { fromStateId: fromId, toStateId: toId, symbol: normalized };
+                if (edgePDA) {
+                    const sp  = e.data('stackPop');
+                    const spu = e.data('stackPush');
+                    entry.stackPop  = (sp  === '\0' || sp  === 'ε') ? '\\0' : (sp  ?? '\\0');
+                    entry.stackPush = spu ?? '';
+                }
+                transitions.push(entry);
+                return;
             }
-            return entry;
-        }).flat();
+
+            // Fallback: parse the edge label (server-rendered edges or multi-symbol edges)
+            const label = e.data('label') ?? String(symbol ?? '');
+            if (!label) return;
+
+            // Each line of the label is a separate transition record
+            const lines = label.split('\n').map(l => l.trim()).filter(Boolean);
+            for (const line of lines) {
+                if (edgePDA) {
+                    // PDA format: "symbol, pop/push"
+                    const m = line.match(/^(.+?),\s*(.+?)\/(.*)$/);
+                    if (m) {
+                        const sym  = this._normalizeSymbol(m[1].trim());
+                        const pop  = this._normalizeSymbol(m[2].trim());
+                        const push = m[3].trim();
+                        transitions.push({
+                            fromStateId: fromId, toStateId: toId,
+                            symbol: sym, stackPop: pop, stackPush: push
+                        });
+                    } else {
+                        transitions.push({
+                            fromStateId: fromId, toStateId: toId,
+                            symbol: this._normalizeSymbol(line), stackPop: '\\0', stackPush: ''
+                        });
+                    }
+                } else {
+                    // DFA/NFA/ε-NFA: label may be "a, b" (comma-separated symbols on one line)
+                    const syms = line.split(',').map(s => s.trim()).filter(Boolean);
+                    for (const sym of syms) {
+                        transitions.push({
+                            fromStateId: fromId, toStateId: toId,
+                            symbol: this._normalizeSymbol(sym)
+                        });
+                    }
+                }
+            }
+        });
 
         return { type, states, transitions };
+    }
+
+    /**
+     * Normalize a display symbol to the internal wire format.
+     * @private
+     */
+    _normalizeSymbol(sym) {
+        if (!sym || sym === 'ε' || sym === '\\0' || sym === '\0') return '\\0';
+        return sym;
     }
 
     /**

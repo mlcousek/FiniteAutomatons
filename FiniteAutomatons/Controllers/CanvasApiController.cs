@@ -1,5 +1,8 @@
 using FiniteAutomatons.Core.Models.Api;
+using FiniteAutomatons.Core.Models.DoMain;
+using FiniteAutomatons.Core.Models.ViewModel;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
 
 namespace FiniteAutomatons.Controllers;
 
@@ -12,6 +15,8 @@ namespace FiniteAutomatons.Controllers;
 public class CanvasApiController(ILogger<CanvasApiController> logger) : ControllerBase
 {
     private readonly ILogger<CanvasApiController> _logger = logger;
+
+    internal const string SessionKey = "CanvasAutomaton";
 
     /// <summary>
     /// Accepts the current automaton state from the canvas editor
@@ -33,6 +38,42 @@ public class CanvasApiController(ILogger<CanvasApiController> logger) : Controll
             _logger.LogError(ex, "Error in canvas sync");
             return StatusCode(500, "Internal error during sync.");
         }
+    }
+
+    /// <summary>
+    /// Persists the current canvas automaton state to Session so it survives page reloads.
+    /// Called by PanelSync.js after each debounced edit.
+    /// </summary>
+    [HttpPost("save")]
+    public IActionResult Save([FromBody] CanvasSyncRequest? request)
+    {
+        if (request is null)
+            return BadRequest("Request body is required.");
+
+        try
+        {
+            var model = BuildViewModel(request);
+            var json = JsonSerializer.Serialize(model);
+            HttpContext.Session.SetString(SessionKey, json);
+            _logger.LogDebug("Canvas automaton saved to session: Type={Type} States={States}",
+                model.Type, model.States.Count);
+            return Ok(new { saved = true });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error saving canvas automaton to session");
+            return StatusCode(500, "Internal error during save.");
+        }
+    }
+
+    /// <summary>
+    /// Clears the canvas automaton from Session (e.g. when a new automaton is loaded from server).
+    /// </summary>
+    [HttpPost("clear")]
+    public IActionResult Clear()
+    {
+        HttpContext.Session.Remove(SessionKey);
+        return Ok(new { cleared = true });
     }
 
     // ──────────────────────────────────────────────────────────────────
@@ -96,6 +137,45 @@ public class CanvasApiController(ILogger<CanvasApiController> logger) : Controll
             TransitionCount       = transitions.Count,
             States                = states,
             Transitions           = transitions
+        };
+    }
+
+    /// <summary>
+    /// Convert a CanvasSyncRequest into a full AutomatonViewModel for session persistence.
+    /// </summary>
+    private static AutomatonViewModel BuildViewModel(CanvasSyncRequest req)
+    {
+        var type = req.Type?.ToUpperInvariant() switch
+        {
+            "NFA"        => AutomatonType.NFA,
+            "EPSILONNFA" => AutomatonType.EpsilonNFA,
+            "PDA"        => AutomatonType.PDA,
+            _            => AutomatonType.DFA
+        };
+
+        var states = req.States.Select(s => new State
+        {
+            Id          = s.Id,
+            IsStart     = s.IsStart,
+            IsAccepting = s.IsAccepting
+        }).ToList();
+
+        var isPDA = type == AutomatonType.PDA;
+        var transitions = req.Transitions.Select(t => new Transition
+        {
+            FromStateId = t.FromStateId,
+            ToStateId   = t.ToStateId,
+            Symbol      = ParseSymbol(t.Symbol),
+            StackPop    = isPDA ? ParseSymbol(t.StackPop) : (char?)null,
+            StackPush   = isPDA ? (t.StackPush ?? "") : null
+        }).ToList();
+
+        return new AutomatonViewModel
+        {
+            Type            = type,
+            States          = states,
+            Transitions     = transitions,
+            IsCustomAutomaton = true
         };
     }
 

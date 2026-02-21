@@ -169,6 +169,16 @@ public partial class Program
         builder.Services.AddScoped<ISharedAutomatonService, SharedAutomatonService>();
         builder.Services.AddScoped<ISharedAutomatonSharingService, SharedAutomatonSharingService>();
         builder.Services.AddScoped<IInvitationNotificationService, InvitationNotificationService>();
+
+        // Session — used to persist canvas-edited automatons across page reloads
+        builder.Services.AddDistributedMemoryCache();
+        builder.Services.AddSession(options =>
+        {
+            options.IdleTimeout = TimeSpan.FromMinutes(30);
+            options.Cookie.HttpOnly = true;
+            options.Cookie.IsEssential = true;
+            options.Cookie.Name = ".canvasSession";
+        });
     }
 
     private static void RegisterApplicationServices(IServiceCollection services)
@@ -282,6 +292,9 @@ public partial class Program
 
         app.UseHttpsRedirection();
         app.UseRouting();
+
+        // Session must come before authentication and controller routing
+        app.UseSession();
 
         // Normalize incoming epsilon-like values (replacement char) to internal representation
         app.UseMiddleware<EpsilonNormalizationMiddleware>();
