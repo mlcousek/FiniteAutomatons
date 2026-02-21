@@ -299,6 +299,9 @@
                     <button id="resetLayoutBtn" title="Reset Layout" type="button">
                         <i class="fas fa-sync-alt"></i>
                     </button>
+                    <button id="newAutomatonBtn" title="New Automaton" type="button">
+                        <i class="fas fa-plus"></i>
+                    </button>
                     <!-- Move & Edit Mode Toggles (Phase 2) -->
                     <div class="control-separator"></div>
                     <button id="moveToggleBtn" class="move-mode-btn" title="Toggle Move Mode" type="button">
@@ -1336,6 +1339,31 @@
     </div>
 </div>
 
+<!-- New Automaton Modal (Bootstrap) -->
+<div class="modal fade" id="newAutomatonModal" tabindex="-1" aria-labelledby="newAutomatonModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="newAutomatonModalLabel">Create New Automaton</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-3">
+        <p class="text-danger"><strong>Warning:</strong> The current automaton on the canvas will be removed. If you haven't saved it, it will be lost.</p>
+        <p>Select which automaton type you want to create. A new automaton with a single starting state will be created.</p>
+        <div class="d-flex gap-2 mt-3">
+          <button type="button" class="btn btn-outline-primary type-select" data-type="DFA">DFA</button>
+          <button type="button" class="btn btn-outline-primary type-select" data-type="NFA">NFA</button>
+          <button type="button" class="btn btn-outline-primary type-select" data-type="EpsilonNFA">ε-NFA</button>
+          <button type="button" class="btn btn-outline-primary type-select" data-type="PDA">PDA</button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 @section Scripts {
     <!-- Cytoscape.js libraries (CDN for reliability) -->
     <script src="https://unpkg.com/cytoscape@3.23.0/dist/cytoscape.min.js"></script>
@@ -1357,4 +1385,5 @@
     <script src="~/js/alerts.js" asp-append-version="true"></script>
     <script src="~/js/saveAutomatonModal.js" asp-append-version="true"></script>
     <script src="~/js/initialStack.js" asp-append-version="true"></script>
+    <script src="~/js/newAutomatonModal.js" asp-append-version="true"></script>
 }
