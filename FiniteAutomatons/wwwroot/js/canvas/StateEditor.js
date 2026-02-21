@@ -46,6 +46,38 @@ export class StateEditor {
     }
 
     /**
+     * Delete a transition (edge) by id
+     * @param {string} edgeId - Edge id (e.g., "edge-1")
+     */
+    deleteTransition(edgeId) {
+        const edge = this.cy.getElementById(edgeId);
+        if (!edge || !edge.isEdge()) {
+            console.warn('Edge not found:', edgeId);
+            return;
+        }
+
+        const data = { ...edge.data() };
+        const classes = edge.className();
+
+        // Remove edge
+        this.cy.remove(edge);
+
+        // Record undo/redo
+        if (this.actionHistory) {
+            this.actionHistory.recordAction({
+                do: () => { this.cy.getElementById(edgeId).remove(); },
+                undo: () => {
+                    if (!this.cy.getElementById(edgeId).length) {
+                        this.cy.add({ group: 'edges', data, classes });
+                    }
+                }
+            });
+        }
+
+        console.log(`Transition deleted: ${edgeId}`);
+    }
+
+    /**
      * Enable state editing
      */
     enable() {
@@ -141,9 +173,15 @@ export class StateEditor {
         }
 
         if (this.domContextMenuHandler) {
-            const container = this.cy && this.cy.container && this.cy.container();
-            if (container) {
-                container.removeEventListener('contextmenu', this.domContextMenuHandler);
+            // We attached the listener to document in capture phase; remove it the same way.
+            try {
+                document.removeEventListener('contextmenu', this.domContextMenuHandler, true);
+            } catch (err) {
+                // fallback: try removing from container
+                const container = this.cy && this.cy.container && this.cy.container();
+                if (container) {
+                    container.removeEventListener('contextmenu', this.domContextMenuHandler);
+                }
             }
             this.domContextMenuHandler = null;
         }
@@ -165,11 +203,16 @@ export class StateEditor {
      */
     _handleDeleteKey() {
         const selected = this.cy.$(':selected');
-        if (selected.isNode() && selected.length > 0) {
-            selected.forEach(node => {
-                this.deleteState(node.id());
-            });
-        }
+        if (!selected || selected.length === 0) return;
+
+        // Delete nodes and edges. Deleting a node will also remove connected edges
+        selected.forEach(elem => {
+            if (elem.isNode && elem.isNode()) {
+                this.deleteState(elem.id());
+            } else if (elem.isEdge && elem.isEdge()) {
+                this.deleteTransition(elem.id());
+            }
+        });
     }
 
     /**

@@ -112,7 +112,12 @@ export class EditModeManager {
             this._showEditCursor();
         } else {
             this._disableDragging();
-            this._enableSelection(); // Keep selection for tooltips
+            // When not in edit mode we disable selection to keep canvas read-only.
+            // However keep selection enabled when simulation is running.
+            if (this.cy) {
+                this.cy.autounselectify(true);
+            }
+            // Keep selection for tooltips when appropriate
             this._hideEditCursor();
         }
     }
@@ -147,7 +152,10 @@ export class EditModeManager {
      */
     _enableSelection() {
         this.cy.selectionType('single');
-        this.cy.autoungrabify(false);
+        // Allow selection when edit mode is active
+        if (this.cy) {
+            this.cy.autounselectify(false);
+        }
     }
 
     /**

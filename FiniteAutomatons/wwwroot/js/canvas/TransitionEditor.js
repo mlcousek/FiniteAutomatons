@@ -1,4 +1,4 @@
-/**
+﻿/**
  * TransitionEditor.js
  * Handles interactive transition (edge) creation, deletion, and editing on the automaton canvas.
  *
@@ -187,7 +187,7 @@ export class TransitionEditor {
         node.addClass('source-selected');
 
         // Show hint
-        this._showHint(`Click target state to complete transition from <strong>${node.data('label')}</strong>, or press Esc to cancel`);
+        this._showHint(`Click target state to complete transition from <strong>${node.data('label')}</strong>, press Esc to cancel or press Del/Backspace for delete`);
     }
 
     /**
