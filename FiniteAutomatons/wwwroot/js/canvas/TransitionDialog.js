@@ -1,4 +1,4 @@
-/**
+﻿/**
  * TransitionDialog.js
  * Custom HTML modal dialog for entering transition symbols and stack operations.
  * Replaces native window.prompt/confirm for a professional UX.
@@ -169,8 +169,8 @@ export class TransitionDialog {
                         </label>
                         <div class="cd-input-row">
                             <input type="text" id="cdSymbol" class="cd-input" 
-                                   maxlength="5" placeholder="${allowEpsilon ? 'a, b, ε ...' : 'a, b ...'}"
-                                   value="${this._escHtml(initialValues.symbol || '')}" autocomplete="off" />
+                                   maxlength="1" placeholder="${allowEpsilon ? 'a or ε' : 'a'}"
+                                   value="${this._escHtml((initialValues.symbol || '').charAt(0))}" autocomplete="off" />
                             ${allowEpsilon ? '<button class="cd-epsilon-btn" id="cdEpsilonBtn" type="button" title="Insert epsilon (ε)">ε</button>' : ''}
                         </div>
                     </div>
@@ -182,8 +182,8 @@ export class TransitionDialog {
                         </label>
                         <div class="cd-input-row">
                             <input type="text" id="cdStackPop" class="cd-input" 
-                                   maxlength="5" placeholder="ε (pop nothing)"
-                                   value="${this._escHtml(initialValues.stackPop || '')}" autocomplete="off" />
+                                   maxlength="1" placeholder="ε (pop nothing)"
+                                   value="${this._escHtml((initialValues.stackPop || '').charAt(0))}" autocomplete="off" />
                             <button class="cd-epsilon-btn" id="cdEpsilonPopBtn" type="button" title="Insert epsilon (ε)">ε</button>
                         </div>
                     </div>
@@ -221,15 +221,22 @@ export class TransitionDialog {
             });
 
             const confirm = () => {
-                const rawSymbol = symbolInput.value.trim();
+                let rawSymbol = symbolInput.value.trim();
                 if (!rawSymbol) { symbolInput.classList.add('cd-input-error'); symbolInput.focus(); return; }
+
+                // Enforce single-character symbol (except epsilon)
+                if (rawSymbol.length > 1 && rawSymbol !== 'ε') {
+                    rawSymbol = rawSymbol.charAt(0);
+                }
 
                 const result = { symbol: this._parseSymbol(rawSymbol) };
                 if (isPDA) {
-                    result.stackPop = this._parseSymbol(stackPopInput?.value.trim() || '');
+                    let rawPop = stackPopInput?.value.trim() || '';
+                    if (rawPop.length > 1 && rawPop !== 'ε') rawPop = rawPop.charAt(0);
+                    result.stackPop = this._parseSymbol(rawPop);
                     result.stackPush = stackPushInput?.value.trim() || '';
                     result.rawSymbol = rawSymbol;
-                    result.rawStackPop = stackPopInput?.value.trim() || '';
+                    result.rawStackPop = rawPop;
                 } else {
                     result.rawSymbol = rawSymbol;
                 }
