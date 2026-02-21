@@ -22,9 +22,6 @@ export class EditModeManager {
         this.isSimulating = false;
         this.onModeChange = options.onModeChange || (() => {});
         
-        // Store original grabbable state
-        this.originalGrabbableState = new Map();
-        
         // Initialize mode
         this._applyMode();
     }
@@ -106,12 +103,11 @@ export class EditModeManager {
      * @private
      */
     _applyMode() {
+      
         if (this.isEditMode && !this.isSimulating) {
-            this._enableDragging();
             this._enableSelection();
             this._showEditCursor();
         } else {
-            this._disableDragging();
             // When not in edit mode we disable selection to keep canvas read-only.
             // However keep selection enabled when simulation is running.
             if (this.cy) {
@@ -127,13 +123,7 @@ export class EditModeManager {
      * @private
      */
     _enableDragging() {
-        this.cy.nodes().forEach(node => {
-            // Store original state
-            if (!this.originalGrabbableState.has(node.id())) {
-                this.originalGrabbableState.set(node.id(), node.grabbable());
-            }
-            node.grabify();
-        });
+        
     }
 
     /**
@@ -141,9 +131,7 @@ export class EditModeManager {
      * @private
      */
     _disableDragging() {
-        this.cy.nodes().forEach(node => {
-            node.ungrabify();
-        });
+        
     }
 
     /**

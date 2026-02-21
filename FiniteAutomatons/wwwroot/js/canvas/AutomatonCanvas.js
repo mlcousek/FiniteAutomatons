@@ -96,7 +96,11 @@ export class AutomatonCanvas {
                 maxZoom: this.options.maxZoom,
                 boxSelectionEnabled: false,
                 autounselectify: this.options.readOnly,
-                autoungrabify: this.options.readOnly,
+                // Do not set autoungrabify here; control grabbing per-node via
+                // EditModeManager and AutomatonCanvas._applyDraggingState. Setting
+                // autoungrabify globally here prevents later calls to node.grabify()
+                // from taking effect.
+                autoungrabify: false,
                 userZoomingEnabled: this.options.enablePanZoom,
                 userPanningEnabled: this.options.enablePanZoom,
                 pixelRatio: 'auto'
