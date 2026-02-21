@@ -418,7 +418,7 @@
     bottom: 10px;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(23, 162, 184, 0.92);
+    background: rgba(23, 162, 184, 0.3);
     color: white;
     padding: 7px 16px;
     border-radius: 20px;
