@@ -258,11 +258,11 @@ export class AutomatonRenderer {
             {
                 selector: 'node.active',
                 style: {
-                    'background-color': overrides.activeStateColor || '#2a9d8f',
+                    'background-color': overrides.activeStateColor || '#b0b0b0',
                     'border-width': 4,
-                    'border-color': overrides.activeStateBorderColor || '#2a9d8f',
+                    'border-color': overrides.activeStateBorderColor || '#b0b0b0',
                     'color': '#ffffff',
-                    'box-shadow': '0 0 20px rgba(42, 157, 143, 0.6)'
+                    'box-shadow': '0 0 20px rgba(176, 176, 176, 0.6)'
                 }
             },
             // Start state (entry point)
