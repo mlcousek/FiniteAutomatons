@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.Database;
+﻿using FiniteAutomatons.Core.Models.Database;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Core.Utilities;
 using FiniteAutomatons.Data;
@@ -55,6 +55,16 @@ public class SharedAutomatonController(
             {
                 automatons = await sharedAutomatonService.ListForUserAsync(user.Id);
             }
+
+            // Fetch creator emails for the automatons to display friendly names
+            var creatorIds = automatons.Select(a => a.CreatedByUserId).Where(id => !string.IsNullOrWhiteSpace(id)).Distinct();
+            var creatorEmails = new Dictionary<string, string>();
+            foreach (var cid in creatorIds)
+            {
+                var identityUser = await userManager.FindByIdAsync(cid);
+                creatorEmails[cid] = identityUser?.Email ?? cid;
+            }
+            ViewData["CreatorEmails"] = creatorEmails;
 
             // Load pending invitations if notifications are enabled
             var notificationsEnabled = await invitationNotificationService.HasInvitationNotificationsEnabledAsync(user.Id);

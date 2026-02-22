@@ -6,6 +6,7 @@
     var selectedGroup = ViewData["SelectedGroupId"] as int?;
     var userRole = ViewData["UserRole"] as SharedGroupRole?;
     var pendingInvitations = ViewData["PendingInvitations"] as List<SharedAutomatonGroupInvitation>;
+    var creatorEmails = ViewData["CreatorEmails"] as Dictionary<string, string> ?? new Dictionary<string, string>();
 }
 
 <div class="container mt-3">
@@ -172,7 +173,7 @@
                                 <p class="mb-1 text-muted">@item.Description</p>
                             }
                             <small class="text-muted">
-                                <i class="fas fa-user"></i> Created by: <strong>@item.CreatedByUserId</strong>
+                                <i class="fas fa-user"></i> Created by: <strong>@(creatorEmails.ContainsKey(item.CreatedByUserId) ? creatorEmails[item.CreatedByUserId] : item.CreatedByUserId)</strong>
                                 • <i class="fas fa-clock"></i> @item.CreatedAt.ToLocalTime().ToString("g")
                                 @if (item.ModifiedAt.HasValue)
                                 {

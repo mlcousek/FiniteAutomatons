@@ -12,11 +12,13 @@ namespace FiniteAutomatons.Controllers;
 [Authorize]
 public class SavedAutomatonController(
     ISavedAutomatonService savedAutomatonService,
+    ISharedAutomatonService sharedAutomatonService,
     IAutomatonTempDataService tempDataService,
     IAutomatonFileService fileService,
     UserManager<ApplicationUser> userManager) : Controller
 {
     private readonly ISavedAutomatonService savedAutomatonService = savedAutomatonService;
+    private readonly ISharedAutomatonService sharedAutomatonService = sharedAutomatonService;
     private readonly IAutomatonTempDataService tempDataService = tempDataService;
     private readonly IAutomatonFileService fileService = fileService;
     private readonly UserManager<ApplicationUser> userManager = userManager;
@@ -26,9 +28,14 @@ public class SavedAutomatonController(
     {
         var user = await userManager.GetUserAsync(User);
         if (user == null) return Challenge();
+
         var groups = await savedAutomatonService.ListGroupsForUserAsync(user.Id);
+        var sharedGroups = await sharedAutomatonService.ListGroupsForUserAsync(user.Id);
+
         var list = await savedAutomatonService.ListForUserAsync(user.Id, groupId);
+
         ViewData["Groups"] = groups;
+        ViewData["SharedGroups"] = sharedGroups;
         ViewData["SelectedGroupId"] = groupId;
         return View("SavedAutomatons", list);
     }
@@ -195,6 +202,74 @@ public class SavedAutomatonController(
         }
     }
 
+    [HttpPost]
+    public async Task<IActionResult> ShareToGroup(int id, int groupId)
+    {
+        var user = await userManager.GetUserAsync(User);
+        if (user == null) return Challenge();
+
+        var entity = await savedAutomatonService.GetAsync(id, user.Id);
+        if (entity == null) return NotFound();
+
+        try
+        {
+            var payload = JsonSerializer.Deserialize<AutomatonPayloadDto>(entity.ContentJson);
+            if (payload == null) return NotFound();
+
+            var model = new AutomatonViewModel
+            {
+                Type = payload.Type,
+                States = payload.States ?? [],
+                Transitions = payload.Transitions ?? [],
+                IsCustomAutomaton = true,
+                SourceRegex = entity.SourceRegex
+            };
+
+            // Determine if there's execution state to share
+            bool saveState = false;
+            if (!string.IsNullOrWhiteSpace(entity.ExecutionStateJson))
+            {
+                try
+                {
+                    var exec = JsonSerializer.Deserialize<SavedExecutionStateDto>(entity.ExecutionStateJson);
+                    if (exec != null)
+                    {
+                        model.Input = exec.Input ?? string.Empty;
+                        if (entity.SaveMode == AutomatonSaveMode.WithState)
+                        {
+                            saveState = true;
+                            model.Position = exec.Position;
+                            model.CurrentStateId = exec.CurrentStateId;
+                            model.CurrentStates = exec.CurrentStates != null ? [.. exec.CurrentStates] : null;
+                            model.IsAccepted = exec.IsAccepted;
+                            model.StateHistorySerialized = exec.StateHistorySerialized ?? string.Empty;
+                            model.StackSerialized = exec.StackSerialized;
+                        }
+                    }
+                }
+                catch { }
+            }
+
+            await sharedAutomatonService.SaveAsync(user.Id, groupId, entity.Name, entity.Description, model, saveState);
+
+            TempData["CreateGroupResult"] = "Automaton shared successfully!";
+            TempData["CreateGroupSuccess"] = "1";
+            return RedirectToAction("Index", "SharedAutomaton", new { groupId });
+        }
+        catch (UnauthorizedAccessException)
+        {
+            TempData["CreateGroupResult"] = "You don't have permission to share to this group.";
+            TempData["CreateGroupSuccess"] = "0";
+            return RedirectToAction("Index");
+        }
+        catch (Exception ex)
+        {
+            TempData["CreateGroupResult"] = "Failed to share automaton: " + ex.Message;
+            TempData["CreateGroupSuccess"] = "0";
+            return RedirectToAction("Index");
+        }
+    }
+
     [HttpGet]
     public async Task<IActionResult> Groups()
     {
@@ -297,9 +372,6 @@ public class SavedAutomatonController(
         var importedCount = 0;
         var failedCount = 0;
 
-        // Use a fixed timestamp for all imports to preserve order
-        var baseTimestamp = DateTime.UtcNow;
-
         foreach (var auto in importData.Automatons)
         {
             try
@@ -341,9 +413,6 @@ public class SavedAutomatonController(
                     saveExecutionState,
                     groupId);
 
-                // Adjust CreatedAt to preserve import order
-                // Note: This requires direct database access or a new service method
-                // For now, we'll add a small delay to ensure order
                 await Task.Delay(10);
 
                 importedCount++;
@@ -371,5 +440,3 @@ public class SavedAutomatonController(
         return RedirectToAction("Index", new { groupId });
     }
 }
-
-

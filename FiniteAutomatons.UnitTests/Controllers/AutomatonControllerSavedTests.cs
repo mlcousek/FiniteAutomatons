@@ -1,4 +1,4 @@
-using FiniteAutomatons.Controllers;
+﻿using FiniteAutomatons.Controllers;
 using FiniteAutomatons.Core.Models.Database;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Interfaces;
@@ -195,6 +195,8 @@ public class AutomatonControllerSavedTests
             return Task.FromResult(isMember);
         }
 
+        public Task<SharedGroupRole?> GetUserRoleInGroupAsync(int groupId, string userId) => throw new NotImplementedException();
+
         public Task<SavedAutomatonGroup?> GetGroupAsync(int groupId)
         {
             return Task.FromResult(Groups.FirstOrDefault(g => g.Id == groupId));
@@ -272,6 +274,29 @@ public class AutomatonControllerSavedTests
         }
     }
 
+    private class MockSharedAutomatonService : ISharedAutomatonService
+    {
+        public Task<SharedAutomaton> SaveAsync(string userId, int groupId, string name, string? description, AutomatonViewModel model, bool saveExecutionState = false) => throw new NotImplementedException();
+        public Task<SharedAutomaton?> GetAsync(int id, string userId) => throw new NotImplementedException();
+        public Task<List<SharedAutomaton>> ListForGroupAsync(int groupId, string userId) => throw new NotImplementedException();
+        public Task<List<SharedAutomaton>> ListForUserAsync(string userId) => throw new NotImplementedException();
+        public Task DeleteAsync(int id, string userId) => throw new NotImplementedException();
+        public Task<SharedAutomaton> UpdateAsync(int id, string userId, string? name, string? description, AutomatonViewModel? model) => throw new NotImplementedException();
+        public Task<SharedAutomatonGroup> CreateGroupAsync(string userId, string name, string? description) => throw new NotImplementedException();
+        public Task<SharedAutomatonGroup?> GetGroupAsync(int groupId, string userId) => throw new NotImplementedException();
+        public Task<List<SharedAutomatonGroup>> ListGroupsForUserAsync(string userId) => Task.FromResult(new List<SharedAutomatonGroup>());
+        public Task DeleteGroupAsync(int groupId, string userId) => throw new NotImplementedException();
+        public Task UpdateGroupAsync(int groupId, string userId, string? name, string? description) => throw new NotImplementedException();
+        public Task<List<SharedAutomatonGroupMember>> ListGroupMembersAsync(int groupId, string userId) => throw new NotImplementedException();
+        public Task RemoveMemberAsync(int groupId, string userId, string memberUserId) => throw new NotImplementedException();
+        public Task UpdateMemberRoleAsync(int groupId, string userId, string memberUserId, SharedGroupRole newRole) => throw new NotImplementedException();
+        public Task<bool> CanUserViewGroupAsync(int groupId, string userId) => throw new NotImplementedException();
+        public Task<bool> CanUserAddToGroupAsync(int groupId, string userId) => throw new NotImplementedException();
+        public Task<bool> CanUserEditInGroupAsync(int groupId, string userId) => throw new NotImplementedException();
+        public Task<bool> CanUserManageMembersAsync(int groupId, string userId) => throw new NotImplementedException();
+        public Task<SharedGroupRole?> GetUserRoleInGroupAsync(int groupId, string userId) => throw new NotImplementedException();
+    }
+
     private static SavedAutomatonController BuildController(MockSavedAutomatonService svc, ApplicationUser user)
     {
         var logger = new NullLogger<AutomatonCreationController>();
@@ -284,8 +309,9 @@ public class AutomatonControllerSavedTests
         var fileSvc = new MockAutomatonFileService();
 
         var userManager = new TestUserManager(user);
+        var sharedSvc = new MockSharedAutomatonService();
 
-        var controller = new SavedAutomatonController(svc, tempDataSvc, fileSvc, userManager);
+        var controller = new SavedAutomatonController(svc, sharedSvc, tempDataSvc, fileSvc, userManager);
 
         var httpContext = new DefaultHttpContext();
         controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
@@ -945,7 +971,7 @@ public class AutomatonControllerSavedTests
 
     #region Helper Methods
 
-    private static IFormFile CreateMockFormFile(string fileName, string content)
+    private static FormFile CreateMockFormFile(string fileName, string content)
     {
         var bytes = System.Text.Encoding.UTF8.GetBytes(content);
         var stream = new MemoryStream(bytes);
