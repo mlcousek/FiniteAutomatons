@@ -1,4 +1,4 @@
-using FiniteAutomatons.Controllers;
+﻿using FiniteAutomatons.Controllers;
 using FiniteAutomatons.Core.Models.Database;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Data;
@@ -191,8 +191,8 @@ public class SharedAutomatonControllerTests : IDisposable
         var group = await CreateTestGroup(TestUserId, SharedGroupRole.Owner);
         await SaveTestAutomaton(group.Id, "Test Automaton");
 
-        // Act
-        var result = await controller.Index(group.Id);
+        // Act: open the specific group (new controller flow)
+        var result = await controller.Group(group.Id);
 
         // Assert
         var viewResult = result.ShouldBeOfType<ViewResult>();
@@ -207,12 +207,50 @@ public class SharedAutomatonControllerTests : IDisposable
         // Act
         var result = await controller.CreateGroup("My Group", "Test Description");
 
-        // Assert
+        // Assert: new flow redirects to Group view for the created group
         var redirectResult = result.ShouldBeOfType<RedirectToActionResult>();
-        redirectResult.ActionName.ShouldBe(nameof(controller.Index));
+        redirectResult.ActionName.ShouldBe(nameof(controller.Group));
 
         controller.TempData["CreateGroupResult"].ShouldNotBeNull();
         controller.TempData["CreateGroupSuccess"].ShouldBe("1");
+    }
+
+    [Fact]
+    public async Task Index_ReturnsViewWithGroups()
+    {
+        // Arrange
+        var g1 = await CreateTestGroup(TestUserId, SharedGroupRole.Owner);
+        var g2 = await CreateTestGroup(TestUserId, SharedGroupRole.Admin);
+
+        // Act
+        var result = await controller.Index();
+
+        // Assert
+        var viewResult = result.ShouldBeOfType<ViewResult>();
+        var model = viewResult.Model.ShouldBeOfType<List<SharedAutomatonGroup>>();
+        model.Count.ShouldBeGreaterThanOrEqualTo(2);
+        model.Any(g => g.Id == g1.Id).ShouldBeTrue();
+        model.Any(g => g.Id == g2.Id).ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task LeaveGroup_RemovesCurrentUser()
+    {
+        // Arrange
+        var group = await CreateTestGroup(TestUserId, SharedGroupRole.Contributor);
+        // Ensure membership exists
+        var member = await context.SharedAutomatonGroupMembers.FirstOrDefaultAsync(m => m.GroupId == group.Id && m.UserId == TestUserId);
+        member.ShouldNotBeNull();
+
+        // Act
+        var result = await controller.LeaveGroup(group.Id);
+
+        // Assert
+        var redirect = result.ShouldBeOfType<RedirectToActionResult>();
+        redirect.ActionName.ShouldBe(nameof(controller.Index));
+
+        var stillMember = await context.SharedAutomatonGroupMembers.FirstOrDefaultAsync(m => m.GroupId == group.Id && m.UserId == TestUserId);
+        stillMember.ShouldBeNull();
     }
 
     [Fact]
@@ -349,7 +387,7 @@ public class SharedAutomatonControllerTests : IDisposable
         };
 
         // Act
-        var result = await unauthController.Index(null);
+        var result = await unauthController.Index();
 
         // Assert
         result.ShouldBeOfType<ChallengeResult>();

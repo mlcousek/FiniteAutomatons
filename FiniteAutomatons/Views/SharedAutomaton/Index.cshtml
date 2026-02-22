@@ -1,12 +1,11 @@
 ﻿@using FiniteAutomatons.Core.Models.Database
-@model List<SharedAutomaton>
+@model List<SharedAutomatonGroup>
 @{
-    ViewData["Title"] = "Shared Automatons";
-    var groups = ViewData["Groups"] as List<SharedAutomatonGroup> ?? [];
-    var selectedGroup = ViewData["SelectedGroupId"] as int?;
-    var userRole = ViewData["UserRole"] as SharedGroupRole?;
+    ViewData["Title"] = "Shared Groups";
+    var groups = Model ?? new List<SharedAutomatonGroup>();
     var pendingInvitations = ViewData["PendingInvitations"] as List<SharedAutomatonGroupInvitation>;
-    var creatorEmails = ViewData["CreatorEmails"] as Dictionary<string, string> ?? new Dictionary<string, string>();
+    var groupRoles = ViewData["GroupRoles"] as Dictionary<int, SharedGroupRole?> ?? new Dictionary<int, SharedGroupRole?>();
+    var ownerEmails = ViewData["OwnerEmails"] as Dictionary<string, string> ?? new Dictionary<string, string>();
 }
 
 <div class="container mt-3">
@@ -89,138 +88,70 @@
 
     <div class="row mb-3">
         <div class="col-md-8">
-            <form method="get" asp-action="Index" asp-controller="SharedAutomaton" class="d-flex gap-2 align-items-center">
-                <label class="mb-0"><i class="fas fa-filter"></i> Filter by group:</label>
-                <select name="groupId" class="form-select" style="width:auto;" onchange="this.form.submit()">
-                    <option value="">All Groups</option>
-                    @foreach (var g in groups)
-                    {
-                        <option value="@g.Id" selected="@(selectedGroup.HasValue && selectedGroup.Value == g.Id)">
-                            @g.Name
-                        </option>
-                    }
-                </select>
-                @if (selectedGroup.HasValue && userRole.HasValue)
-                {
-                    <span class="badge bg-primary ms-2">
-                        Your Role: @userRole.Value
-                    </span>
-                }
-            </form>
+            <h4 class="mb-0">Your Groups</h4>
         </div>
         <div class="col-md-4 text-end">
             <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#createGroupModal">
                 <i class="fas fa-plus"></i> Create Group
             </button>
-            @if (selectedGroup.HasValue && userRole >= SharedGroupRole.Admin)
-            {
-                <a asp-action="ManageMembers" asp-controller="SharedAutomaton" asp-route-groupId="@selectedGroup.Value" class="btn btn-sm btn-primary ms-1">
-                    <i class="fas fa-users-cog"></i> Manage Members
-                </a>
-            }
-            @if (selectedGroup.HasValue && userRole == SharedGroupRole.Owner)
-            {
-                <form asp-action="DeleteGroup" asp-controller="SharedAutomaton" method="post" class="d-inline ms-1" onsubmit="return confirm('Delete this group? All automatons will become unassigned.');">
-                    @Html.AntiForgeryToken()
-                    <input type="hidden" name="id" value="@selectedGroup.Value" />
-                    <button type="submit" class="btn btn-sm btn-outline-danger">
-                        <i class="fas fa-trash"></i> Delete Group
-                    </button>
-                </form>
-            }
         </div>
     </div>
 
-    @if (Model == null || Model.Count == 0)
+    @if (groups == null || groups.Count == 0)
     {
         <div class="alert alert-info">
-            <i class="fas fa-info-circle"></i> 
-            @if (selectedGroup.HasValue)
-            {
-                <text>This group has no automatons yet. @(userRole >= SharedGroupRole.Contributor ? "You can add automatons from the editor." : "")</text>
-            }
-            else
-            {
-                <text>You haven't joined any shared groups yet. Create a group or ask someone to invite you!</text>
-            }
+            <i class="fas fa-info-circle"></i>
+            You are not a member of any groups. Create a new group or ask someone to invite you.
         </div>
     }
     else
     {
         <div class="list-group">
-            @foreach (var item in Model)
+            @foreach (var g in groups)
             {
+                var roleNullable = groupRoles.ContainsKey(g.Id) ? groupRoles[g.Id] : null;
+                var role = roleNullable ?? SharedGroupRole.Viewer;
                 <div class="list-group-item">
                     <div class="d-flex justify-content-between align-items-start">
                         <div class="flex-grow-1">
-                            <h5 class="mb-1">
-                                @item.Name
-                                @if (item.SaveMode == AutomatonSaveMode.WithState)
-                                {
-                                    <span class="badge bg-success ms-2" title="Saved with execution state">
-                                        <i class="fas fa-save"></i> State
-                                    </span>
-                                }
-                                else if (item.SaveMode == AutomatonSaveMode.WithInput)
-                                {
-                                    <span class="badge bg-info ms-2" title="Saved with input">
-                                        <i class="fas fa-keyboard"></i> Input
-                                    </span>
-                                }
-                            </h5>
-                            @if (!string.IsNullOrWhiteSpace(item.Description))
+                            <h5 class="mb-1">@g.Name</h5>
+                            @if (!string.IsNullOrWhiteSpace(g.Description))
                             {
-                                <p class="mb-1 text-muted">@item.Description</p>
+                                <p class="mb-1 text-muted">@g.Description</p>
                             }
                             <small class="text-muted">
-                                <i class="fas fa-user"></i> Created by: <strong>@(creatorEmails.ContainsKey(item.CreatedByUserId) ? creatorEmails[item.CreatedByUserId] : item.CreatedByUserId)</strong>
-                                • <i class="fas fa-clock"></i> @item.CreatedAt.ToLocalTime().ToString("g")
-                                @if (item.ModifiedAt.HasValue)
-                                {
-                                    <text>• <i class="fas fa-edit"></i> Modified: @item.ModifiedAt.Value.ToLocalTime().ToString("g")</text>
-                                }
-                                @if (item.Assignments != null && item.Assignments.Count > 0)
-                                {
-                                    <text>• <i class="fas fa-folder"></i> Groups: @string.Join(", ", item.Assignments.Select(a => a.Group?.Name ?? a.GroupId.ToString()))</text>
-                                }
+                                <i class="fas fa-user"></i> Owner: <strong>@(ownerEmails.ContainsKey(g.UserId) ? ownerEmails[g.UserId] : g.UserId)</strong>
+                                • <i class="fas fa-clock"></i> @g.CreatedAt.ToLocalTime().ToString("g")
                             </small>
                         </div>
 
                         <div class="text-end ms-3">
-                            @{
-                                var hasInput = item.SaveMode >= AutomatonSaveMode.WithInput;
-                                var hasState = item.SaveMode == AutomatonSaveMode.WithState;
-                                var canEdit = userRole >= SharedGroupRole.Editor || item.CreatedByUserId == User.Identity?.Name;
-                            }
-
-                            @* Always show Load (structure only) *@
-                            <a asp-controller="SharedAutomaton" asp-action="Load" asp-route-id="@item.Id" asp-route-mode="structure" class="btn btn-sm btn-primary mb-1">
-                                <i class="fas fa-upload"></i> Load
+                            <a asp-action="Group" asp-route-id="@g.Id" class="btn btn-sm btn-primary mb-1">
+                                <i class="fas fa-folder-open"></i> Open Group
                             </a>
-                            
-                            @* Show "Load with Input" if input was saved *@
-                            @if (hasInput)
+                            @if (role >= SharedGroupRole.Admin)
                             {
-                                <a asp-controller="SharedAutomaton" asp-action="Load" asp-route-id="@item.Id" asp-route-mode="input" class="btn btn-sm btn-info mb-1">
-                                    <i class="fas fa-keyboard"></i> Load with Input
+                                <a asp-action="ManageMembers" asp-route-groupId="@g.Id" class="btn btn-sm btn-secondary mb-1 ms-1">
+                                    <i class="fas fa-users-cog"></i> Manage Members
                                 </a>
                             }
-                            
-                            @* Show "Load as State" if execution state was saved *@
-                            @if (hasState)
+                            @if (role == SharedGroupRole.Owner)
                             {
-                                <a asp-controller="SharedAutomaton" asp-action="Load" asp-route-id="@item.Id" asp-route-mode="state" class="btn btn-sm btn-outline-primary mb-1">
-                                    <i class="fas fa-play-circle"></i> Load as State
-                                </a>
-                            }
-
-                            @if (canEdit)
-                            {
-                                <form asp-action="Delete" asp-controller="SharedAutomaton" method="post" class="d-inline">
+                                <form asp-action="DeleteGroup" asp-controller="SharedAutomaton" method="post" class="d-inline ms-1" onsubmit="return confirm('Delete this group? All automatons will become unassigned.');">
                                     @Html.AntiForgeryToken()
-                                    <input type="hidden" name="id" value="@item.Id" />
-                                    <button type="submit" class="btn btn-sm btn-danger mb-1" onclick="return confirm('Delete this shared automaton?');">
-                                        <i class="fas fa-trash"></i> Delete
+                                    <input type="hidden" name="id" value="@g.Id" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger mb-1">
+                                        <i class="fas fa-trash"></i> Delete Group
+                                    </button>
+                                </form>
+                            }
+                            else
+                            {
+                                <form asp-action="LeaveGroup" asp-controller="SharedAutomaton" method="post" class="d-inline ms-1" onsubmit="return confirm('Leave this group?');">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="groupId" value="@g.Id" />
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary mb-1">
+                                        <i class="fas fa-sign-out-alt"></i> Leave Group
                                     </button>
                                 </form>
                             }

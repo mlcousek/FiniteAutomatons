@@ -32,39 +32,34 @@ public class SharedAutomatonController(
     #region View Actions
 
     [HttpGet]
-    public async Task<IActionResult> Index(int? groupId)
+    public async Task<IActionResult> Index()
     {
         var user = await userManager.GetUserAsync(User);
         if (user == null) return Challenge();
 
         try
         {
-            List<SharedAutomaton> automatons;
+            // List groups the user is a member of
             List<SharedAutomatonGroup> groups = await sharedAutomatonService.ListGroupsForUserAsync(user.Id);
 
-            if (groupId.HasValue)
+            // Build map of group roles for the current user
+            var groupRoles = new Dictionary<int, SharedGroupRole?>();
+            foreach (var g in groups)
             {
-                automatons = await sharedAutomatonService.ListForGroupAsync(groupId.Value, user.Id);
-                ViewData["SelectedGroupId"] = groupId.Value;
+                var role = await sharedAutomatonService.GetUserRoleInGroupAsync(g.Id, user.Id);
+                groupRoles[g.Id] = role ?? SharedGroupRole.Viewer;
+            }
+            ViewData["GroupRoles"] = groupRoles;
 
-                // Get user role in this group
-                var role = await sharedAutomatonService.GetUserRoleInGroupAsync(groupId.Value, user.Id);
-                ViewData["UserRole"] = role;
-            }
-            else
+            // Fetch group owner emails for display
+            var ownerIds = groups.Select(g => g.UserId).Where(id => !string.IsNullOrWhiteSpace(id)).Distinct();
+            var ownerEmails = new Dictionary<string, string>();
+            foreach (var oid in ownerIds)
             {
-                automatons = await sharedAutomatonService.ListForUserAsync(user.Id);
+                var identityUser = await userManager.FindByIdAsync(oid);
+                ownerEmails[oid] = identityUser?.Email ?? oid;
             }
-
-            // Fetch creator emails for the automatons to display friendly names
-            var creatorIds = automatons.Select(a => a.CreatedByUserId).Where(id => !string.IsNullOrWhiteSpace(id)).Distinct();
-            var creatorEmails = new Dictionary<string, string>();
-            foreach (var cid in creatorIds)
-            {
-                var identityUser = await userManager.FindByIdAsync(cid);
-                creatorEmails[cid] = identityUser?.Email ?? cid;
-            }
-            ViewData["CreatorEmails"] = creatorEmails;
+            ViewData["OwnerEmails"] = ownerEmails;
 
             // Load pending invitations if notifications are enabled
             var notificationsEnabled = await invitationNotificationService.HasInvitationNotificationsEnabledAsync(user.Id);
@@ -75,12 +70,95 @@ public class SharedAutomatonController(
                 ViewData["PendingInvitations"] = pendingInvitations;
             }
 
-            ViewData["Groups"] = groups;
-            return View(automatons);
+            return View(groups);
         }
         catch (UnauthorizedAccessException ex)
         {
             logger.LogWarning(ex, "User {UserId} attempted unauthorized access", user.Id);
+            TempData["Error"] = "You do not have permission to access this resource.";
+            return RedirectToAction(nameof(Index));
+        }
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> LeaveGroup(int groupId)
+    {
+        var user = await userManager.GetUserAsync(User);
+        if (user == null) return Challenge();
+        try
+        {
+            // Allow a user to remove themselves from a group regardless of member-management permissions
+            var membership = await context.SharedAutomatonGroupMembers
+                .FirstOrDefaultAsync(m => m.GroupId == groupId && m.UserId == user.Id);
+
+            if (membership == null)
+            {
+                TempData["CreateGroupResult"] = "You are not a member of this group.";
+                TempData["CreateGroupSuccess"] = "0";
+                return RedirectToAction(nameof(Index));
+            }
+
+            // Owners cannot leave the group; they must delete or transfer ownership first
+            if (membership.Role == SharedGroupRole.Owner)
+            {
+                TempData["CreateGroupResult"] = "Group owners cannot leave the group. Transfer ownership or delete the group.";
+                TempData["CreateGroupSuccess"] = "0";
+                return RedirectToAction(nameof(Index));
+            }
+
+            context.SharedAutomatonGroupMembers.Remove(membership);
+            await context.SaveChangesAsync();
+
+            TempData["CreateGroupResult"] = "You have left the group.";
+            TempData["CreateGroupSuccess"] = "1";
+            return RedirectToAction(nameof(Index));
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error leaving group {GroupId}", groupId);
+            TempData["CreateGroupResult"] = "Failed to leave group.";
+            TempData["CreateGroupSuccess"] = "0";
+            return RedirectToAction(nameof(Index));
+        }
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Group(int id)
+    {
+        var user = await userManager.GetUserAsync(User);
+        if (user == null) return Challenge();
+
+        try
+        {
+            var group = await sharedAutomatonService.GetGroupAsync(id, user.Id);
+            if (group == null) return NotFound();
+
+            var automatons = await sharedAutomatonService.ListForGroupAsync(id, user.Id);
+
+            // Get user role in this group
+            var role = await sharedAutomatonService.GetUserRoleInGroupAsync(id, user.Id);
+            ViewData["UserRole"] = role;
+            ViewData["SelectedGroupId"] = id;
+
+            // Fetch creator emails for the automatons to display friendly names
+            var creatorIds = automatons.Select(a => a.CreatedByUserId).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct();
+            var creatorEmails = new Dictionary<string, string>();
+            foreach (var cid in creatorIds)
+            {
+                var identityUser = await userManager.FindByIdAsync(cid);
+                creatorEmails[cid] = identityUser?.Email ?? cid;
+            }
+            ViewData["CreatorEmails"] = creatorEmails;
+
+            // also pass group info to view
+            ViewBag.Group = group;
+
+            return View("Group", automatons);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            logger.LogWarning(ex, "User {UserId} attempted unauthorized access to group {GroupId}", user.Id, id);
             TempData["Error"] = "You do not have permission to access this group.";
             return RedirectToAction(nameof(Index));
         }
@@ -176,7 +254,7 @@ public class SharedAutomatonController(
             var group = await sharedAutomatonService.CreateGroupAsync(user.Id, name, description);
             TempData["CreateGroupResult"] = $"Shared group '{group.Name}' created successfully!";
             TempData["CreateGroupSuccess"] = "1";
-            return RedirectToAction(nameof(Index), new { groupId = group.Id });
+            return RedirectToAction(nameof(Group), new { id = group.Id });
         }
         catch (Exception ex)
         {
@@ -206,14 +284,14 @@ public class SharedAutomatonController(
             logger.LogWarning(ex, "User {UserId} unauthorized to delete group {GroupId}", user.Id, id);
             TempData["CreateGroupResult"] = "Only the group owner can delete the group.";
             TempData["CreateGroupSuccess"] = "0";
-            return RedirectToAction(nameof(Index), new { groupId = id });
+            return RedirectToAction(nameof(Index));
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Error deleting group {GroupId}", id);
             TempData["CreateGroupResult"] = "Failed to delete group.";
             TempData["CreateGroupSuccess"] = "0";
-            return RedirectToAction(nameof(Index), new { groupId = id });
+            return RedirectToAction(nameof(Index));
         }
     }
 
