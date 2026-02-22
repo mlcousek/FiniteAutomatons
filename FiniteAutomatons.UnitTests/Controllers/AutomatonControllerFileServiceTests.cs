@@ -1,4 +1,4 @@
-using FiniteAutomatons.Controllers;
+﻿using FiniteAutomatons.Controllers;
 using FiniteAutomatons.Core.Models.Database;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Interfaces;
@@ -87,11 +87,42 @@ public class AutomatonControllerFileServiceTests
         var user = new ApplicationUser { Id = "test-user", UserName = "test@example.com" };
         var userManager = new TestUserManager(user);
 
-        var controller = new ImportExportController(fileSvc, savedAutomatonSvc, userManager)
+        var sharedSvc = new FakeSharedAutomatonService();
+        var controller = new ImportExportController(fileSvc, savedAutomatonSvc, sharedSvc, userManager)
         {
             TempData = new TempDataDictionary(new DefaultHttpContext(), new TestTempDataProvider())
         };
 
         return controller;
+    }
+
+    private sealed class FakeSharedAutomatonService : ISharedAutomatonService
+    {
+        public Task<SharedAutomaton> SaveAsync(string userId, int groupId, string name, string? description, AutomatonViewModel model, bool saveExecutionState = false)
+            => Task.FromException<SharedAutomaton>(new NotSupportedException());
+
+        public Task<SharedAutomaton?> GetAsync(int id, string userId) => Task.FromResult<SharedAutomaton?>(null);
+        public Task<List<SharedAutomaton>> ListForGroupAsync(int groupId, string userId) => Task.FromResult(new List<SharedAutomaton>());
+        public Task<List<SharedAutomaton>> ListForUserAsync(string userId) => Task.FromResult(new List<SharedAutomaton>());
+        public Task DeleteAsync(int id, string userId) => Task.CompletedTask;
+        public Task<SharedAutomaton> UpdateAsync(int id, string userId, string? name, string? description, AutomatonViewModel? model)
+            => Task.FromException<SharedAutomaton>(new NotSupportedException());
+
+        public Task<SharedAutomatonGroup> CreateGroupAsync(string userId, string name, string? description)
+            => Task.FromException<SharedAutomatonGroup>(new NotSupportedException());
+        public Task<SharedAutomatonGroup?> GetGroupAsync(int groupId, string userId) => Task.FromResult<SharedAutomatonGroup?>(null);
+        public Task<List<SharedAutomatonGroup>> ListGroupsForUserAsync(string userId) => Task.FromResult(new List<SharedAutomatonGroup>());
+        public Task DeleteGroupAsync(int groupId, string userId) => Task.CompletedTask;
+        public Task UpdateGroupAsync(int groupId, string userId, string? name, string? description) => Task.CompletedTask;
+
+        public Task<List<SharedAutomatonGroupMember>> ListGroupMembersAsync(int groupId, string userId) => Task.FromResult(new List<SharedAutomatonGroupMember>());
+        public Task RemoveMemberAsync(int groupId, string userId, string memberUserId) => Task.CompletedTask;
+        public Task UpdateMemberRoleAsync(int groupId, string userId, string memberUserId, SharedGroupRole newRole) => Task.CompletedTask;
+
+        public Task<bool> CanUserViewGroupAsync(int groupId, string userId) => Task.FromResult(false);
+        public Task<bool> CanUserAddToGroupAsync(int groupId, string userId) => Task.FromResult(false);
+        public Task<bool> CanUserEditInGroupAsync(int groupId, string userId) => Task.FromResult(false);
+        public Task<bool> CanUserManageMembersAsync(int groupId, string userId) => Task.FromResult(false);
+        public Task<SharedGroupRole?> GetUserRoleInGroupAsync(int groupId, string userId) => Task.FromResult<SharedGroupRole?>(null);
     }
 }

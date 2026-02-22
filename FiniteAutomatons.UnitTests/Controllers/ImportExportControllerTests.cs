@@ -1,5 +1,6 @@
-using FiniteAutomatons.Controllers;
+﻿using FiniteAutomatons.Controllers;
 using FiniteAutomatons.Core.Models.Database;
+using FiniteAutomatons.Core.Models.DTOs;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Interfaces;
 using Microsoft.AspNetCore.Http;
@@ -30,23 +31,18 @@ public class ImportExportControllerTests
         public void Dispose() { }
     }
 
-    private sealed class TestUserManager : UserManager<ApplicationUser>
+    private sealed class TestUserManager(ApplicationUser user) : UserManager<ApplicationUser>(
+        new TestUserStore(),
+        new OptionsWrapper<IdentityOptions>(new IdentityOptions()),
+        new PasswordHasher<ApplicationUser>(),
+        [],
+        [],
+        new UpperInvariantLookupNormalizer(),
+        new IdentityErrorDescriber(),
+        null!,
+        new Logger<UserManager<ApplicationUser>>(new LoggerFactory()))
     {
-        private readonly ApplicationUser user;
-
-        public TestUserManager(ApplicationUser user) : base(
-            new TestUserStore(),
-            new OptionsWrapper<IdentityOptions>(new IdentityOptions()),
-            new PasswordHasher<ApplicationUser>(),
-            Array.Empty<IUserValidator<ApplicationUser>>(),
-            Array.Empty<IPasswordValidator<ApplicationUser>>(),
-            new UpperInvariantLookupNormalizer(),
-            new IdentityErrorDescriber(),
-            null!,
-            new Logger<UserManager<ApplicationUser>>(new LoggerFactory()))
-        {
-            this.user = user;
-        }
+        private readonly ApplicationUser user = user;
 
         public override Task<ApplicationUser?> GetUserAsync(ClaimsPrincipal principal)
         {
@@ -97,13 +93,63 @@ public class ImportExportControllerTests
     private static ImportExportController BuildController(MockSavedAutomatonService savedSvc, IAutomatonFileService fileSvc, ApplicationUser user)
     {
         var userManager = new TestUserManager(user);
-        var controller = new ImportExportController(fileSvc, savedSvc, userManager);
+        // Use a fake shared service for controller construction to match production constructor
+        var sharedSvc = new FakeSharedAutomatonService();
+        var controller = new ImportExportController(fileSvc, savedSvc, sharedSvc, userManager);
 
         var httpContext = new DefaultHttpContext();
         controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
         httpContext.User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, user.Id)]));
 
         return controller;
+    }
+
+    private static ImportExportController BuildControllerWithShared(MockSavedAutomatonService savedSvc, IAutomatonFileService fileSvc, ISharedAutomatonService sharedSvc, ApplicationUser user)
+    {
+        var userManager = new TestUserManager(user);
+        var controller = new ImportExportController(fileSvc, savedSvc, sharedSvc, userManager);
+
+        var httpContext = new DefaultHttpContext();
+        controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
+        httpContext.User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, user.Id)]));
+
+        return controller;
+    }
+
+    private sealed class FakeSharedAutomatonService : ISharedAutomatonService
+    {
+        public readonly List<SharedAutomaton> Saved = new();
+        public readonly List<(string userId, int groupId, string name)> Created = new();
+
+        public Task<SharedAutomaton> SaveAsync(string userId, int groupId, string name, string? description, AutomatonViewModel model, bool saveExecutionState = false)
+        {
+            var a = new SharedAutomaton { Id = Saved.Count + 1, CreatedByUserId = userId, Name = name, Description = description, ContentJson = JsonSerializer.Serialize(new { }), CreatedAt = DateTime.UtcNow };
+            Saved.Add(a);
+            Created.Add((userId, groupId, name));
+            return Task.FromResult(a);
+        }
+
+        public Task<SharedAutomaton?> GetAsync(int id, string userId) => Task.FromResult(Saved.FirstOrDefault(s => s.Id == id));
+        public Task<List<SharedAutomaton>> ListForGroupAsync(int groupId, string userId) => Task.FromResult(Saved.ToList());
+        public Task<List<SharedAutomaton>> ListForUserAsync(string userId) => Task.FromResult(new List<SharedAutomaton>());
+        public Task DeleteAsync(int id, string userId) { var item = Saved.FirstOrDefault(s => s.Id == id); if (item != null) Saved.Remove(item); return Task.CompletedTask; }
+        public Task<SharedAutomaton> UpdateAsync(int id, string userId, string? name, string? description, AutomatonViewModel? model) => Task.FromException<SharedAutomaton>(new NotSupportedException());
+
+        public Task<SharedAutomatonGroup> CreateGroupAsync(string userId, string name, string? description) => Task.FromException<SharedAutomatonGroup>(new NotSupportedException());
+        public Task<SharedAutomatonGroup?> GetGroupAsync(int groupId, string userId)
+            => Task.FromResult<SharedAutomatonGroup?>(new SharedAutomatonGroup { Id = groupId, Name = "TestGroup", Description = "desc", UserId = userId });
+        public Task<List<SharedAutomatonGroup>> ListGroupsForUserAsync(string userId) => Task.FromResult(new List<SharedAutomatonGroup>());
+        public Task DeleteGroupAsync(int groupId, string userId) => Task.CompletedTask;
+        public Task UpdateGroupAsync(int groupId, string userId, string? name, string? description) => Task.CompletedTask;
+
+        public Task<List<SharedAutomatonGroupMember>> ListGroupMembersAsync(int groupId, string userId) => Task.FromResult(new List<SharedAutomatonGroupMember>());
+        public Task RemoveMemberAsync(int groupId, string userId, string memberUserId) => Task.CompletedTask;
+        public Task UpdateMemberRoleAsync(int groupId, string userId, string memberUserId, SharedGroupRole newRole) => Task.CompletedTask;
+        public Task<bool> CanUserViewGroupAsync(int groupId, string userId) => Task.FromResult(true);
+        public Task<bool> CanUserAddToGroupAsync(int groupId, string userId) => Task.FromResult(true);
+        public Task<bool> CanUserEditInGroupAsync(int groupId, string userId) => Task.FromResult(true);
+        public Task<bool> CanUserManageMembersAsync(int groupId, string userId) => Task.FromResult(true);
+        public Task<SharedGroupRole?> GetUserRoleInGroupAsync(int groupId, string userId) => Task.FromResult<SharedGroupRole?>(SharedGroupRole.Owner);
     }
 
     #region ExportSaved - Structure Mode Tests
@@ -192,6 +238,96 @@ public class ImportExportControllerTests
         result.ShouldNotBeNull();
         result.ContentType.ShouldBe("text/plain");
         result.FileDownloadName.ShouldBe("TextExport.txt");
+    }
+
+    #endregion
+
+    #region ExportGroup / ImportGroup Controller Tests
+
+    [Fact]
+    public async Task ExportGroup_Controller_ReturnsGroupJsonFile()
+    {
+        var savedSvc = new MockSavedAutomatonService();
+        var fileSvc = new MockAutomatonFileService();
+        var user = new ApplicationUser { Id = "group-user-1" };
+
+        var sharedSvc = new FakeSharedAutomatonService();
+        // seed one automaton
+        sharedSvc.Saved.Add(new SharedAutomaton
+        {
+            Id = 1,
+            Name = "GAuto",
+            Description = "desc",
+            ContentJson = JsonSerializer.Serialize(new { Type = AutomatonType.DFA, States = Array.Empty<object>(), Transitions = Array.Empty<object>() }),
+            SaveMode = AutomatonSaveMode.Structure,
+            CreatedByUserId = user.Id,
+            CreatedAt = DateTime.UtcNow
+        });
+
+        var controller = BuildControllerWithShared(savedSvc, fileSvc, sharedSvc, user);
+
+        var result = await controller.ExportGroup(1, "json");
+
+        var fileResult = result.ShouldBeOfType<FileContentResult>();
+        fileResult.ContentType.ShouldBe("application/json");
+        fileResult.FileDownloadName.ShouldNotBeNull();
+
+        var content = System.Text.Encoding.UTF8.GetString(fileResult.FileContents);
+        var dto = JsonSerializer.Deserialize<GroupExportDto>(content);
+        dto.ShouldNotBeNull();
+        dto!.GroupName.ShouldBe("TestGroup"); // FakeSharedAutomatonService returns TestGroup
+        dto.Automatons.Count.ShouldBe(1);
+        dto.Automatons[0].Name.ShouldBe("GAuto");
+    }
+
+    [Fact]
+    public async Task ImportGroup_Controller_ValidFile_ImportsAutomatons()
+    {
+        var savedSvc = new MockSavedAutomatonService();
+        var fileSvc = new MockAutomatonFileService();
+        var user = new ApplicationUser { Id = "group-user-2" };
+
+        var sharedSvc = new FakeSharedAutomatonService();
+
+        var dto = new GroupExportDto
+        {
+            GroupName = "ImportGroup",
+            GroupDescription = "desc",
+            ExportedAt = DateTime.UtcNow,
+            Automatons =
+            [
+                new AutomatonExportItemDto
+                {
+                    Name = "Imported1",
+                    Description = "d1",
+                    HasExecutionState = false,
+                    Content = new AutomatonPayloadDto { Type = AutomatonType.DFA, States = new List<Core.Models.DoMain.State>(), Transitions = new List<Core.Models.DoMain.Transition>() }
+                },
+                new AutomatonExportItemDto
+                {
+                    Name = "Imported2",
+                    Description = "d2",
+                    HasExecutionState = false,
+                    Content = new AutomatonPayloadDto { Type = AutomatonType.NFA, States = new List<Core.Models.DoMain.State>(), Transitions = new List<Core.Models.DoMain.Transition>() }
+                }
+            ]
+        };
+
+        var json = JsonSerializer.Serialize(dto);
+        var bytes = System.Text.Encoding.UTF8.GetBytes(json);
+        using var ms = new System.IO.MemoryStream(bytes);
+        var formFile = new FormFile(ms, 0, bytes.Length, "upload", "group.json") { Headers = new HeaderDictionary(), ContentType = "application/json" };
+
+        var controller = BuildControllerWithShared(savedSvc, fileSvc, sharedSvc, user);
+
+        var result = await controller.ImportGroup(formFile, 1);
+
+        var redirect = result.ShouldBeOfType<RedirectToActionResult>();
+        redirect.ActionName.ShouldBe("Group");
+        // two automatons created
+        sharedSvc.Created.Count.ShouldBe(2);
+        sharedSvc.Created[0].name.ShouldBe("Imported1");
+        sharedSvc.Created[1].name.ShouldBe("Imported2");
     }
 
     #endregion
@@ -301,7 +437,7 @@ public class ImportExportControllerTests
         var payload = new
         {
             Type = AutomatonType.NFA,
-            States = new[] { 
+            States = new[] {
                 new { Id = 1, IsStart = true, IsAccepting = false },
                 new { Id = 2, IsStart = false, IsAccepting = true }
             },

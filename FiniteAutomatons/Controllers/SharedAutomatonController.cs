@@ -151,6 +151,9 @@ public class SharedAutomatonController(
             }
             ViewData["CreatorEmails"] = creatorEmails;
 
+            // expose current user id for view logic
+            ViewData["CurrentUserId"] = user.Id;
+
             // also pass group info to view
             ViewBag.Group = group;
 

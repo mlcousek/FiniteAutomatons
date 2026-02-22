@@ -6,6 +6,7 @@
     var group = ViewBag.Group as SharedAutomatonGroup;
     var creatorEmails = ViewData["CreatorEmails"] as Dictionary<string, string> ?? new Dictionary<string, string>();
     var userRole = ViewData["UserRole"] as SharedGroupRole?;
+    var currentUserId = ViewData["CurrentUserId"] as string ?? User.Identity?.Name;
 }
 
 <div class="container mt-3">
@@ -29,6 +30,23 @@
             <a asp-action="ManageMembers" asp-route-groupId="@group.Id" class="btn btn-sm btn-primary">
                 <i class="fas fa-users-cog"></i> Manage Members
             </a>
+        }
+        @* Export / Import group *@
+        @if (group != null)
+        {
+            <a asp-controller="ImportExport" asp-action="ExportGroup" asp-route-groupId="@group.Id" class="btn btn-sm btn-outline-secondary ms-2">
+                <i class="fas fa-file-export"></i> Export Group
+            </a>
+
+            @if (userRole.HasValue && userRole.Value >= SharedGroupRole.Contributor)
+            {
+                <form asp-controller="ImportExport" asp-action="ImportGroup" method="post" enctype="multipart/form-data" class="d-inline ms-2">
+                    @Html.AntiForgeryToken()
+                    <input type="file" name="upload" accept="application/json" required style="display:inline-block;vertical-align:middle;" />
+                    <input type="hidden" name="groupId" value="@group.Id" />
+                    <button type="submit" class="btn btn-sm btn-outline-success">Import Group</button>
+                </form>
+            }
         }
     </div>
 
@@ -69,6 +87,24 @@
                                 <a asp-controller="SharedAutomaton" asp-action="Load" asp-route-id="@item.Id" asp-route-mode="state" class="btn btn-sm btn-outline-primary mb-1">
                                     <i class="fas fa-play-circle"></i> Load as State
                                 </a>
+                            }
+
+                            @* Export options - available to all group members *@
+                            <a asp-controller="ImportExport" asp-action="ExportShared" asp-route-id="@item.Id" asp-route-format="json" asp-route-mode="structure" class="btn btn-sm btn-outline-secondary mb-1 ms-1">
+                                <i class="fas fa-file-export"></i> Export
+                            </a>
+
+                            @* Delete - allowed if owner or role >= Editor *@
+                            @{ var canDelete = (userRole.HasValue && userRole.Value >= SharedGroupRole.Editor) || item.CreatedByUserId == currentUserId; }
+                            @if (canDelete)
+                            {
+                                <form asp-action="Delete" asp-controller="SharedAutomaton" method="post" class="d-inline ms-1">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="id" value="@item.Id" />
+                                    <button type="submit" class="btn btn-sm btn-danger mb-1" onclick="return confirm('Delete this shared automaton?');">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
+                                </form>
                             }
                         </div>
                     </div>
