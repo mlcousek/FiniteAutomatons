@@ -240,9 +240,26 @@ export class AutomatonCanvas {
     highlight(stateIds) {
         if (!this.cy) return;
 
-        // Remove previous highlights
+        // Remove previous highlights and any branch-specific classes/styles
         this.cy.nodes().removeClass('active');
         this.cy.edges().removeClass('active');
+        // Clear branch classes and inline styles for a reasonable palette size
+        const PALETTE_SIZE = 16;
+        for (let i = 0; i < PALETTE_SIZE; i++) {
+            this.cy.nodes().removeClass(`active-branch-${i}`);
+            this.cy.edges().removeClass(`active-branch-${i}`);
+        }
+        // Also clear any inline styles previously set on nodes/edges (background/line colors)
+        this.cy.nodes().forEach(n => {
+            n.style('background-color', '');
+            n.style('border-color', '');
+            n.style('color', '');
+        });
+        this.cy.edges().forEach(e => {
+            e.style('line-color', '');
+            e.style('target-arrow-color', '');
+            e.style('width', '');
+        });
 
         if (!stateIds || stateIds.length === 0) {
             this.activeStateIds = [];
@@ -263,12 +280,55 @@ export class AutomatonCanvas {
         });
 
         // Highlight states
-        stateIds.forEach(stateId => {
-            const node = this.cy.getElementById(`state-${stateId}`);
-            if (node) {
-                node.addClass('active');
+        // If this is an NFA-like automaton with multiple active states, give each active
+        // state a distinct branch color so nondeterministic paths are visually distinct.
+        const isNondet = (this.automatonType === 'NFA' || this.automatonType === 'EpsilonNFA') && stateIds.length > 1;
 
-                // Also highlight outgoing transitions
+        // Palette (mirrors AutomatonRenderer.js selectors for first N entries)
+        const palette = [
+            '#e63946', '#2a9d8f', '#f4a261', '#6a4c93', '#1d3557', '#ffb703',
+            '#8ac926', '#1982c4', '#ff6b6b', '#4cc9f0', '#f72585', '#7209b7',
+            '#3a0ca3', '#4361ee', '#2ec4b6', '#ffd166'
+        ];
+
+        stateIds.forEach((stateId, idx) => {
+            const node = this.cy.getElementById(`state-${stateId}`);
+            if (!node) return;
+
+            if (isNondet) {
+                const branchIndex = idx; // keep index so different sets map consistently within this highlight call
+                const paletteIndex = branchIndex % palette.length;
+
+                if (branchIndex < palette.length) {
+                    // Use predefined stylesheet classes for the first palette.length branches
+                    const cls = `active-branch-${paletteIndex}`;
+                    node.addClass('active');
+                    node.addClass(cls);
+
+                    node.outgoers('edge').forEach(e => {
+                        e.addClass('active');
+                        e.addClass(cls);
+                    });
+                } else {
+                    // For branches beyond the stylesheet-defined palette, compute color dynamically
+                    const hue = (branchIndex * 47) % 360; // spread hues
+                    const color = `hsl(${hue} 70% 50%)`;
+                    const borderColor = `hsl(${hue} 60% 40%)`;
+
+                    node.addClass('active');
+                    node.style('background-color', color);
+                    node.style('border-color', borderColor);
+                    node.style('color', '#ffffff');
+
+                    node.outgoers('edge').forEach(e => {
+                        e.addClass('active');
+                        e.style('line-color', color);
+                        e.style('target-arrow-color', color);
+                        e.style('width', 4);
+                    });
+                }
+            } else {
+                node.addClass('active');
                 node.outgoers('edge').addClass('active');
             }
         });

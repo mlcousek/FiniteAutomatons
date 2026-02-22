@@ -339,6 +339,136 @@ export class AutomatonRenderer {
                     'z-index': 999
                 }
             },
+            // Branch-specific active styles (NFA nondeterministic paths)
+            // Extended palette: active-branch-0 .. active-branch-15 (16 colors)
+            {
+                selector: 'edge.active-branch-0',
+                style: { 'line-color': '#e63946', 'target-arrow-color': '#e63946', 'width': 4 }
+            },
+            {
+                selector: 'edge.active-branch-1',
+                style: { 'line-color': '#2a9d8f', 'target-arrow-color': '#2a9d8f', 'width': 4 }
+            },
+            {
+                selector: 'edge.active-branch-2',
+                style: { 'line-color': '#f4a261', 'target-arrow-color': '#f4a261', 'width': 4 }
+            },
+            {
+                selector: 'edge.active-branch-3',
+                style: { 'line-color': '#6a4c93', 'target-arrow-color': '#6a4c93', 'width': 4 }
+            },
+            {
+                selector: 'edge.active-branch-4',
+                style: { 'line-color': '#1d3557', 'target-arrow-color': '#1d3557', 'width': 4 }
+            },
+            {
+                selector: 'edge.active-branch-5',
+                style: { 'line-color': '#ffb703', 'target-arrow-color': '#ffb703', 'width': 4 }
+            },
+            {
+                selector: 'edge.active-branch-6',
+                style: { 'line-color': '#8ac926', 'target-arrow-color': '#8ac926', 'width': 4 }
+            },
+            {
+                selector: 'edge.active-branch-7',
+                style: { 'line-color': '#1982c4', 'target-arrow-color': '#1982c4', 'width': 4 }
+            },
+            {
+                selector: 'edge.active-branch-8',
+                style: { 'line-color': '#ff6b6b', 'target-arrow-color': '#ff6b6b', 'width': 4 }
+            },
+            {
+                selector: 'edge.active-branch-9',
+                style: { 'line-color': '#4cc9f0', 'target-arrow-color': '#4cc9f0', 'width': 4 }
+            },
+            {
+                selector: 'edge.active-branch-10',
+                style: { 'line-color': '#f72585', 'target-arrow-color': '#f72585', 'width': 4 }
+            },
+            {
+                selector: 'edge.active-branch-11',
+                style: { 'line-color': '#7209b7', 'target-arrow-color': '#7209b7', 'width': 4 }
+            },
+            {
+                selector: 'edge.active-branch-12',
+                style: { 'line-color': '#3a0ca3', 'target-arrow-color': '#3a0ca3', 'width': 4 }
+            },
+            {
+                selector: 'edge.active-branch-13',
+                style: { 'line-color': '#4361ee', 'target-arrow-color': '#4361ee', 'width': 4 }
+            },
+            {
+                selector: 'edge.active-branch-14',
+                style: { 'line-color': '#2ec4b6', 'target-arrow-color': '#2ec4b6', 'width': 4 }
+            },
+            {
+                selector: 'edge.active-branch-15',
+                style: { 'line-color': '#ffd166', 'target-arrow-color': '#ffd166', 'width': 4 }
+            },
+            {
+                selector: 'node.active-branch-0',
+                style: { 'background-color': '#e63946', 'border-color': '#b02a35', 'color': '#ffffff' }
+            },
+            {
+                selector: 'node.active-branch-1',
+                style: { 'background-color': '#2a9d8f', 'border-color': '#1f7a6e', 'color': '#ffffff' }
+            },
+            {
+                selector: 'node.active-branch-2',
+                style: { 'background-color': '#f4a261', 'border-color': '#c67c4a', 'color': '#000000' }
+            },
+            {
+                selector: 'node.active-branch-3',
+                style: { 'background-color': '#6a4c93', 'border-color': '#51366e', 'color': '#ffffff' }
+            },
+            {
+                selector: 'node.active-branch-4',
+                style: { 'background-color': '#1d3557', 'border-color': '#16283f', 'color': '#ffffff' }
+            },
+            {
+                selector: 'node.active-branch-5',
+                style: { 'background-color': '#ffb703', 'border-color': '#cc9303', 'color': '#000000' }
+            },
+            {
+                selector: 'node.active-branch-6',
+                style: { 'background-color': '#8ac926', 'border-color': '#6fa61f', 'color': '#000000' }
+            },
+            {
+                selector: 'node.active-branch-7',
+                style: { 'background-color': '#1982c4', 'border-color': '#136489', 'color': '#ffffff' }
+            },
+            {
+                selector: 'node.active-branch-8',
+                style: { 'background-color': '#ff6b6b', 'border-color': '#d35454', 'color': '#ffffff' }
+            },
+            {
+                selector: 'node.active-branch-9',
+                style: { 'background-color': '#4cc9f0', 'border-color': '#3aa6bf', 'color': '#000000' }
+            },
+            {
+                selector: 'node.active-branch-10',
+                style: { 'background-color': '#f72585', 'border-color': '#c21a69', 'color': '#ffffff' }
+            },
+            {
+                selector: 'node.active-branch-11',
+                style: { 'background-color': '#7209b7', 'border-color': '#560686', 'color': '#ffffff' }
+            },
+            {
+                selector: 'node.active-branch-12',
+                style: { 'background-color': '#3a0ca3', 'border-color': '#2c086f', 'color': '#ffffff' }
+            },
+            {
+                selector: 'node.active-branch-13',
+                style: { 'background-color': '#4361ee', 'border-color': '#3348b8', 'color': '#ffffff' }
+            },
+            {
+                selector: 'node.active-branch-14',
+                style: { 'background-color': '#2ec4b6', 'border-color': '#27a79e', 'color': '#000000' }
+            },
+            {
+                selector: 'node.active-branch-15',
+                style: { 'background-color': '#ffd166', 'border-color': '#d9b154', 'color': '#000000' }
+            },
             // Self-loop edges
             {
                 selector: 'edge.self-loop',
