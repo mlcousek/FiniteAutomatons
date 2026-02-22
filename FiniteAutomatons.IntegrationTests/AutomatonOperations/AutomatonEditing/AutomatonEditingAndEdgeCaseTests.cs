@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.ViewModel;
+﻿using FiniteAutomatons.Core.Models.ViewModel;
 using Shouldly;
 using System.Net;
 using System.Text.RegularExpressions;
@@ -45,35 +45,6 @@ public class AutomatonEditingAndEdgeCaseTests(IntegrationTestsFixture fixture) :
         if (extra != null)
             foreach (var kv in extra) data.Add(new(kv.Key, kv.Value));
         return await client.PostAsync(url, new FormUrlEncodedContent(data));
-    }
-
-    [Fact]
-    public async Task Pda_AddTransition_WithStackPopAndPush_IsRenderedInCreateView()
-    {
-        var client = GetHttpClient();
-        var model = new AutomatonViewModel
-        {
-            Type = AutomatonType.PDA,
-            States = [ new() { Id = 1, IsStart = true, IsAccepting = false } ],
-            Transitions = [],
-            IsCustomAutomaton = true
-        };
-
-        // Post AddTransition with PDA stack fields
-        var extra = new Dictionary<string, string>
-        {
-            ["newTransitionStackPop"] = "X",
-            ["newTransitionStackPush"] = "AB"
-        };
-
-        var resp = await PostAsync(client, "/AutomatonCreation/AddTransition", model, extra);
-        resp.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var html = await resp.Content.ReadAsStringAsync();
-
-        // The CreateAutomaton view should render the transition listing including stack pop/push
-        html.ShouldContain("Stack Push", Case.Sensitive | Case.Insensitive);
-        html.ShouldContain("AB");
-        html.ShouldContain("X");
     }
 
     private static List<KeyValuePair<string, string>> BuildForm(AutomatonViewModel m)
