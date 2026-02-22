@@ -299,10 +299,15 @@
                     <button id="resetLayoutBtn" title="Reset Layout" type="button">
                         <i class="fas fa-sync-alt"></i>
                     </button>
+                    <div class="control-separator"></div>
+                    <button id="openSaveModalBtnTop" title="Save Automaton" type="button" class="control-btn"
+                            @(User?.Identity?.IsAuthenticated ?? false ? "" : "disabled")
+                            onclick="document.getElementById('openSaveModalBtn')?.click();">
+                        <i class="fas fa-save"></i>
+                    </button>
                     <button id="newAutomatonBtn" title="New Automaton" type="button">
                         <i class="fas fa-plus"></i>
                     </button>
-                    <!-- Move & Edit Mode Toggles (Phase 2) -->
                     <div class="control-separator"></div>
                     <button id="moveToggleBtn" class="move-mode-btn" title="Toggle Move Mode" type="button">
                         <i id="moveModeIcon" class="fas fa-arrows-alt"></i>
@@ -583,6 +588,19 @@
                                 Minimalize (→ @analysis.MinimizedStateCount)
                             </button>
                     }
+                </div>
+            </div>
+            }
+            else
+            {
+            <div class="control-section minimize-section">
+                <div class="section-header-custom">
+                    <h2>MINIMALIZE</h2>
+                </div>
+                <div class="control-content-right">
+                        <button type="button" class="control-btn minimize-btn" disabled title="Unsupported automaton type">
+                        Minimalize (Disabled - Unsupported automaton type)
+                    </button>
                 </div>
             </div>
             }
@@ -1161,8 +1179,8 @@
         </div>
         @if (User?.Identity?.IsAuthenticated ?? false)
         {
-            <div class="control-section">
-                <div class="section-header-custom">
+           @*  <div class="control-section"> *@
+                @* <div class="section-header-custom">
                     <h2 style="margin:0;">SAVE</h2>
                 </div>
                 <div class="control-content-left" style="text-align:center; margin-bottom:0.5rem;">
@@ -1170,11 +1188,13 @@
                         <i class="fas fa-save"></i>
                         <span>Save Automaton</span>
                     </button>
-                </div>
+                </div> *@
 
                 <!-- Save Modal -->
+                <!-- Hidden opener kept for compatibility with the canvas save button -->
+                <button id="openSaveModalBtn" type="button" style="display:none;" aria-hidden="true"></button>
                 <div id="saveAutomatonModal" class="modal modern-modal" style="display:none;">
-                    <div class="modal-content modern-modal-content">
+                    <div class="modal-content modern-modal-content" style="padding:1rem;">
                         <div class="modal-header">
                             <div class="modal-header-content">
                                 <i class="fas fa-save modal-icon"></i>
@@ -1295,20 +1315,9 @@
                         </div>
                     </div>
                 </div>
-            </div>
+            @* </div> *@
         }
-        else
-        {
-            <div class="control-section">
-                <div class="section-header-custom">
-                    <h2>Save</h2>
-                </div>
-                <div class="control-content-left" style="text-align:center; margin-bottom:0.5rem;">
-                    <a class="control-btn" asp-area="Identity" asp-page="/Account/Login">Log in to save automatons</a>
-                </div>
-            </div>
-        }
-        <div class="control-section">
+       @*  <div class="control-section">
             <div class="section-header-custom">
                 <h2>PLACEHOLDER</h2>
             </div>
@@ -1324,13 +1333,18 @@
                 <h2>PLACEHOLDER</h2>
             </div>
         </div>
+        <div class="control-section">
+            <div class="section-header-custom">
+                <h2>PLACEHOLDER</h2>
+            </div>
+        </div> *@
     </div>
 </div>
 
 <!-- New Automaton Modal (Bootstrap) -->
 <div class="modal fade" id="newAutomatonModal" tabindex="-1" aria-labelledby="newAutomatonModalLabel" aria-hidden="true">
   <div class="modal-dialog">
-    <div class="modal-content">
+    <div class="modal-content" style="padding:1rem;">
       <div class="modal-header">
         <h5 class="modal-title" id="newAutomatonModalLabel">Create New Automaton</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -1372,6 +1386,6 @@
     <script src="~/js/regexModal.js" asp-append-version="true"></script>
     <script src="~/js/alerts.js" asp-append-version="true"></script>
     <script src="~/js/saveAutomatonModal.js" asp-append-version="true"></script>
-    <script src="~/js/initialStack.js" asp-append-version="true"></script>
+    <script type="module" src="~/js/initialStack.js" asp-append-version="true"></script>
     <script src="~/js/newAutomatonModal.js" asp-append-version="true"></script>
 }
