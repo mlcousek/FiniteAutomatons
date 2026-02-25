@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.Database;
+﻿using FiniteAutomatons.Core.Models.Database;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -43,9 +43,46 @@ public class UserPreferencesController(UserManager<ApplicationUser> userManager)
 
         return BadRequest(result.Errors);
     }
+
+    [HttpGet("canvas-wheel")]
+    public async Task<IActionResult> GetCanvasWheelPreference()
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null)
+        {
+            return Unauthorized();
+        }
+
+        return Ok(new { enabled = user.CanvasWheelZoomEnabled });
+    }
+
+    [HttpPost("canvas-wheel")]
+    public async Task<IActionResult> SaveCanvasWheelPreference([FromBody] CanvasWheelRequest request)
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null)
+        {
+            return Unauthorized();
+        }
+
+        user.CanvasWheelZoomEnabled = request.Enabled;
+        var result = await _userManager.UpdateAsync(user);
+
+        if (result.Succeeded)
+        {
+            return Ok();
+        }
+
+        return BadRequest(result.Errors);
+    }
 }
 
 public class PanelOrderRequest
 {
     public string Preferences { get; set; } = string.Empty;
+}
+
+public class CanvasWheelRequest
+{
+    public bool Enabled { get; set; }
 }

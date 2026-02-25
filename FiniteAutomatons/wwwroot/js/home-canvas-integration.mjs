@@ -328,22 +328,56 @@ function setupCanvasControls() {
     const wheelLockBtn = document.getElementById('wheelLockBtn');
     const wheelLockIcon = document.getElementById('wheelLockIcon');
     if (wheelLockBtn) {
-        // Initialize state from canvas if available
-        let wheelEnabled = true;
-        if (canvas && typeof canvas.isWheelZoomEnabled === 'function') {
-            wheelEnabled = canvas.isWheelZoomEnabled();
-        }
-        updateWheelButton(wheelEnabled);
+        // Preference key in localStorage
+        const LOCAL_KEY = 'fa-wheel-zoom-enabled';
 
-        wheelLockBtn.addEventListener('click', () => {
+        // Initialize from localStorage (default false)
+        let wheelEnabled = false;
+        try {
+            const ls = localStorage.getItem(LOCAL_KEY);
+            if (ls !== null) wheelEnabled = ls === 'true';
+        } catch (_) { }
+
+        // If user is authenticated, attempt to load server-side preference which overrides localStorage
+        (async function loadServerPrefIfAuth(){
+            try {
+                if (window.__isAuthenticated) {
+                    const resp = await fetch('/api/preferences/canvas-wheel', { credentials: 'same-origin' });
+                    if (resp.ok) {
+                        const json = await resp.json();
+                        if (typeof json.enabled === 'boolean') {
+                            wheelEnabled = json.enabled;
+                            try { localStorage.setItem(LOCAL_KEY, String(wheelEnabled)); } catch (_) { }
+                        }
+                    }
+                }
+            } catch (e) {
+                // ignore network errors
+            } finally {
+                applyWheelState(wheelEnabled);
+            }
+        })();
+
+        // Attach click handler
+        wheelLockBtn.addEventListener('click', async () => {
             if (!canvas) return;
             wheelEnabled = !wheelEnabled;
-            if (wheelEnabled) {
-                canvas.enableWheelZoom();
-            } else {
-                canvas.disableWheelZoom();
-            }
-            updateWheelButton(wheelEnabled);
+            applyWheelState(wheelEnabled);
+
+            // Persist locally
+            try { localStorage.setItem(LOCAL_KEY, String(wheelEnabled)); } catch (_) { }
+
+            // Persist server-side for authenticated users
+            try {
+                if (window.__isAuthenticated) {
+                    await fetch('/api/preferences/canvas-wheel', {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ enabled: wheelEnabled })
+                    });
+                }
+            } catch (_) { /* ignore */ }
         });
     }
 
@@ -358,6 +392,12 @@ function setupCanvasControls() {
             wheelLockBtn.classList.add('wheel-locked');
             if (wheelLockIcon) wheelLockIcon.className = 'fas fa-mouse fa-slash';
         }
+    }
+
+    function applyWheelState(enabled) {
+        if (!canvas) return;
+        if (enabled) canvas.enableWheelZoom(); else canvas.disableWheelZoom();
+        updateWheelButton(enabled);
     }
 
     // Reset layout button — clears the position cache, then re-runs the layout algorithm

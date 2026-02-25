@@ -566,6 +566,10 @@
 @await Html.PartialAsync("Partials/_NewAutomatonModal", Model)
 
 @section Scripts {
+    <script>
+        // Expose authentication state to client scripts
+        window.__isAuthenticated = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(User?.Identity?.IsAuthenticated ?? false));
+    </script>
     <!-- Emit saved layout JSON from a loaded automaton so the canvas can restore node positions -->
     @if (ViewData["LayoutJson"] is string savedLayout)
     {
