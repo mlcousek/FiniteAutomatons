@@ -324,6 +324,42 @@ function setupCanvasControls() {
         });
     }
 
+    // Wheel lock toggle (enable/disable zooming by mouse wheel)
+    const wheelLockBtn = document.getElementById('wheelLockBtn');
+    const wheelLockIcon = document.getElementById('wheelLockIcon');
+    if (wheelLockBtn) {
+        // Initialize state from canvas if available
+        let wheelEnabled = true;
+        if (canvas && typeof canvas.isWheelZoomEnabled === 'function') {
+            wheelEnabled = canvas.isWheelZoomEnabled();
+        }
+        updateWheelButton(wheelEnabled);
+
+        wheelLockBtn.addEventListener('click', () => {
+            if (!canvas) return;
+            wheelEnabled = !wheelEnabled;
+            if (wheelEnabled) {
+                canvas.enableWheelZoom();
+            } else {
+                canvas.disableWheelZoom();
+            }
+            updateWheelButton(wheelEnabled);
+        });
+    }
+
+    function updateWheelButton(enabled) {
+        if (!wheelLockBtn) return;
+        if (enabled) {
+            wheelLockBtn.title = 'Mouse wheel zoom: ON (click to disable)';
+            wheelLockBtn.classList.remove('wheel-locked');
+            if (wheelLockIcon) wheelLockIcon.className = 'fas fa-mouse';
+        } else {
+            wheelLockBtn.title = 'Mouse wheel zoom: OFF (click to enable)';
+            wheelLockBtn.classList.add('wheel-locked');
+            if (wheelLockIcon) wheelLockIcon.className = 'fas fa-mouse fa-slash';
+        }
+    }
+
     // Reset layout button — clears the position cache, then re-runs the layout algorithm
     const resetLayoutBtn = document.getElementById('resetLayoutBtn');
     if (resetLayoutBtn) {

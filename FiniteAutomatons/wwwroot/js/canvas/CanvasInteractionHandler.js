@@ -22,7 +22,7 @@ export class CanvasInteractionHandler {
             enableBoxSelection: options.enableBoxSelection ?? false,
             enableTooltips: options.enableTooltips ?? true,
             panOnDrag: options.panOnDrag ?? true,
-            zoomOnWheel: options.zoomOnWheel ?? true,
+            zoomOnWheel: options.zoomOnWheel ?? false,
             doubleClickZoom: options.doubleClickZoom ?? true,
             ...options
         };
@@ -195,12 +195,24 @@ export class CanvasInteractionHandler {
      * @private
      */
     _handleWheel(evt) {
-        evt.preventDefault();
-
+        // Ignore wheel events that occur outside the canvas container bounds.
+        // In some layouts an invisible overlay or adjacent element can cause
+        // wheel events to be dispatched to ancestor elements; ensure the
+        // pointer is actually over the canvas before acting.
         const container = this.cy.container();
         const rect = container.getBoundingClientRect();
-        const mouseX = evt.clientX - rect.left;
-        const mouseY = evt.clientY - rect.top;
+
+        // If clientX/Y are not present (rare), fall back to handling the event.
+        if (typeof evt.clientX === 'number' && typeof evt.clientY === 'number') {
+            if (evt.clientX < rect.left || evt.clientX > rect.right || evt.clientY < rect.top || evt.clientY > rect.bottom) {
+                return; // ignore wheel outside container
+            }
+        }
+
+        evt.preventDefault();
+
+        const mouseX = (evt.clientX - rect.left) || (container.clientWidth / 2);
+        const mouseY = (evt.clientY - rect.top) || (container.clientHeight / 2);
 
         const zoom = this.cy.zoom();
         const deltaZoom = evt.deltaY > 0 ? 0.9 : 1.1;

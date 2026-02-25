@@ -46,6 +46,8 @@ export class AutomatonCanvas {
         this.options = {
             readOnly: options.readOnly ?? true,
             enablePanZoom: options.enablePanZoom ?? true,
+            // By default do not enable wheel-to-zoom; allow panning via drag.
+            zoomOnWheel: options.zoomOnWheel ?? false,
             layoutName: options.layoutName ?? 'dagre',
             styleOverrides: options.styleOverrides ?? {},
             minZoom: options.minZoom ?? 0.3,
@@ -107,7 +109,9 @@ export class AutomatonCanvas {
                 // autoungrabify globally here prevents later calls to node.grabify()
                 // from taking effect.
                 autoungrabify: false,
-                userZoomingEnabled: this.options.enablePanZoom,
+                // Only enable Cytoscape's built-in user zooming when both
+                // pan/zoom is allowed and wheel zoom is explicitly enabled.
+                userZoomingEnabled: !!(this.options.enablePanZoom && this.options.zoomOnWheel),
                 userPanningEnabled: this.options.enablePanZoom,
                 pixelRatio: 'auto'
             });
@@ -645,6 +649,56 @@ export class AutomatonCanvas {
      */
     isMovingActive() {
         return !!this.moveEnabled;
+    }
+
+    /**
+     * Enable wheel-to-zoom behavior (mouse wheel zooming)
+     */
+    enableWheelZoom() {
+        if (this.interactionHandler) {
+            // Enable both the custom wheel listener and Cytoscape's user zooming
+            this.interactionHandler.updateOptions({ zoomOnWheel: true, enableZoom: true });
+            try {
+                if (this.cy && typeof this.cy.userZoomingEnabled === 'function') {
+                    this.cy.userZoomingEnabled(true);
+                }
+            } catch (_) { }
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Disable wheel-to-zoom behavior (mouse wheel zooming)
+     */
+    disableWheelZoom() {
+        if (this.interactionHandler) {
+            // Disable both the custom wheel listener and Cytoscape's user zooming
+            this.interactionHandler.updateOptions({ zoomOnWheel: false, enableZoom: false });
+            try {
+                if (this.cy && typeof this.cy.userZoomingEnabled === 'function') {
+                    this.cy.userZoomingEnabled(false);
+                }
+            } catch (_) { }
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Check whether wheel-to-zoom is enabled
+     * @returns {boolean}
+     */
+    isWheelZoomEnabled() {
+        if (!this.interactionHandler) return false;
+        const handlerFlag = !!(this.interactionHandler.options && this.interactionHandler.options.zoomOnWheel);
+        let cyFlag = true;
+        try {
+            if (this.cy && typeof this.cy.userZoomingEnabled === 'function') {
+                cyFlag = !!this.cy.userZoomingEnabled();
+            }
+        } catch (_) { /* ignore */ }
+        return handlerFlag && cyFlag;
     }
 
     /**
