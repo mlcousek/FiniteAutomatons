@@ -11,4 +11,9 @@ public class ApplicationUser : IdentityUser
     /// Whether the user wants to receive invitation notifications on login
     /// </summary>
     public bool EnableInvitationNotifications { get; set; } = true;
+
+    /// <summary>
+    /// JSON serialized dictionary of panel layouts and ordering preferences
+    /// </summary>
+    public string? PanelOrderPreferences { get; set; }
 }

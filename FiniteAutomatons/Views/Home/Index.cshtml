@@ -939,13 +939,16 @@
                         <div class="modal-header-content">
                             <i class="fas fa-random modal-icon"></i>
                             <h3 class="modal-title">Generate Automaton</h3>
+                            <button id="generateModalLockBtn" class="panel-lock-btn" title="Lock / unlock sections" aria-pressed="false" type="button" style="margin-left: 0.5rem;">
+                                <i class="fas fa-lock-open"></i>
+                            </button>
                         </div>
                         <button class="modal-close modern-close" id="generateModalClose" type="button">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
                     
-                    <div class="modal-body">
+                    <div class="modal-body" id="generateModalSectionsContainer">
                         <!-- Quick Preset Generation -->
                         <div class="input-section-card" data-section-id="preset">
                             <div class="section-card-header">

@@ -81,6 +81,7 @@
         container.addEventListener('dragend', function(e) {
             if (dragEl) dragEl.classList.remove('dragging');
             dragEl = null;
+            savePanelOrder();
         });
 
         container.addEventListener('dragover', function(e) {
@@ -109,6 +110,58 @@
             }
         }, null)?.element || null;
     }
+
+    function savePanelOrder() {
+        if (!container) return;
+        const order = Array.from(container.querySelectorAll('.input-section-card'))
+                           .map(el => el.getAttribute('data-section-id'))
+                           .filter(Boolean);
+        
+        try {
+            const allPrefs = JSON.parse(localStorage.getItem('panelOrderPrefs') || '{}');
+            allPrefs.generateInput = order;
+            localStorage.setItem('panelOrderPrefs', JSON.stringify(allPrefs));
+        } catch(e) {}
+
+        fetch('/api/preferences/panel-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                preferences: localStorage.getItem('panelOrderPrefs') || '{}'
+            })
+        }).catch(() => {});
+    }
+
+    async function restorePanelOrder() {
+        if (!container) return;
+        let prefsJSON = localStorage.getItem('panelOrderPrefs');
+        try {
+            const res = await fetch('/api/preferences/panel-order');
+            if (res.ok) {
+                const data = await res.json();
+                if (data.preferences) {
+                    prefsJSON = data.preferences;
+                    localStorage.setItem('panelOrderPrefs', prefsJSON);
+                }
+            }
+        } catch(e) {}
+
+        if (prefsJSON) {
+            try {
+                const prefs = JSON.parse(prefsJSON);
+                const order = prefs.generateInput;
+                if (Array.isArray(order) && order.length > 0) {
+                    const sections = Array.from(container.querySelectorAll('.input-section-card'));
+                    order.forEach(id => {
+                        const el = sections.find(s => s.getAttribute('data-section-id') === id);
+                        if (el) container.appendChild(el);
+                    });
+                }
+            } catch(e) {}
+        }
+    }
+    
+    restorePanelOrder();
 
     // Lock button handler
     if (lockBtn) {

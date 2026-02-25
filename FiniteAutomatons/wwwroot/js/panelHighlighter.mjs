@@ -39,6 +39,7 @@ export function initPanelDragAndLock(containerId){
     container.addEventListener('dragend', function(e){
         if (dragEl) dragEl.classList.remove('dragging');
         dragEl = null;
+        savePanelOrder();
     });
 
     container.addEventListener('dragover', function(e){
@@ -61,6 +62,60 @@ export function initPanelDragAndLock(containerId){
             } else return closest;
         }, null)?.element || null;
     }
+
+    function savePanelOrder() {
+        const order = Array.from(container.querySelectorAll('.automaton-detail-section'))
+                           .map(el => el.getAttribute('data-panel-id'))
+                           .filter(Boolean);
+        
+        // Save to localStorage (guest fallback + immediate sync)
+        try {
+            const allPrefs = JSON.parse(localStorage.getItem('panelOrderPrefs') || '{}');
+            allPrefs.automatonSidebar = order;
+            localStorage.setItem('panelOrderPrefs', JSON.stringify(allPrefs));
+        } catch(e) {}
+
+        // Save to API (logged-in users)
+        fetch('/api/preferences/panel-order', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                preferences: localStorage.getItem('panelOrderPrefs') || '{}'
+            })
+        }).catch(() => {}); // silent fail for guests
+    }
+
+    // Restore order on load
+    async function restorePanelOrder() {
+        let prefsJSON = localStorage.getItem('panelOrderPrefs');
+        try {
+            const res = await fetch('/api/preferences/panel-order');
+            if (res.ok) {
+                const data = await res.json();
+                if (data.preferences) {
+                    prefsJSON = data.preferences;
+                    localStorage.setItem('panelOrderPrefs', prefsJSON);
+                }
+            }
+        } catch(e) {}
+
+        if (prefsJSON) {
+            try {
+                const prefs = JSON.parse(prefsJSON);
+                const order = prefs.automatonSidebar;
+                if (Array.isArray(order) && order.length > 0) {
+                    const sections = Array.from(container.querySelectorAll('.automaton-detail-section'));
+                    order.forEach(id => {
+                        const el = sections.find(s => s.getAttribute('data-panel-id') === id);
+                        if (el) container.appendChild(el);
+                    });
+                }
+            } catch(e) {}
+        }
+    }
+    
+    // Kick off restore silently
+    restorePanelOrder();
 
     // toggle lock via external control
     function setLocked(v){ lockState = !!v; updateLockedClass(); try{ localStorage.setItem('panelsLocked', lockState ? 'true' : 'false'); }catch(e){} }
