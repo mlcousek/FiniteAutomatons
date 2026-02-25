@@ -69,5 +69,47 @@
         } else {
             saveStateField.value = 'false';
         }
+
+        // Capture current Cytoscape node positions and write them to the hidden layoutJson field,
+        // and capture a PNG thumbnail and write it to the thumbnailBase64 field.
+        try {
+            const layoutJsonField = document.getElementById('saveLayoutJsonField');
+            const thumbnailField = document.getElementById('saveThumbnailField');
+
+            if (typeof window.getCanvasInstance === 'function') {
+                const canvasInstance = window.getCanvasInstance();
+                const cy = canvasInstance?.getCytoscapeInstance?.();
+
+                if (cy) {
+                    // --- Layout positions ---
+                    if (layoutJsonField) {
+                        const positions = {};
+                        cy.nodes().forEach(node => {
+                            if (!node.hasClass('dummy')) {
+                                const pos = node.position();
+                                positions[node.id()] = { x: Math.round(pos.x), y: Math.round(pos.y) };
+                            }
+                        });
+                        if (Object.keys(positions).length > 0) {
+                            layoutJsonField.value = JSON.stringify(positions);
+                        }
+                    }
+
+                    // --- PNG thumbnail (white background) ---
+                    if (thumbnailField) {
+                        try {
+                            const dataUrl = cy.png({ output: 'base64uri', scale: 1.5, full: true, maxWidth: 800, maxHeight: 600, bg: '#ffffff' });
+                            const base64 = dataUrl.startsWith('data:') ? dataUrl.split(',')[1] : dataUrl;
+                            if (base64) thumbnailField.value = base64;
+                        } catch (imgErr) {
+                            console.warn('Could not capture thumbnail:', imgErr);
+                        }
+                    }
+                }
+            }
+        } catch (err) {
+            // Never block the save on capture failures
+            console.warn('Could not capture canvas state for save:', err);
+        }
     });
 })();

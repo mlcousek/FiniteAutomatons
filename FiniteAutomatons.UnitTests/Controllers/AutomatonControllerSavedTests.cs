@@ -63,7 +63,7 @@ public class AutomatonControllerSavedTests
         public int NextMemberId = 1;
         public int NextAssignmentId = 1;
 
-        public Task<SavedAutomaton> SaveAsync(string userId, string name, string? description, AutomatonViewModel model, bool saveExecutionState = false, int? groupId = null)
+        public Task<SavedAutomaton> SaveAsync(string userId, string name, string? description, AutomatonViewModel model, bool saveExecutionState = false, int? groupId = null, string? layoutJson = null, string? thumbnailBase64 = null)
         {
             var contentDto = new
             {
@@ -276,7 +276,7 @@ public class AutomatonControllerSavedTests
 
     private class MockSharedAutomatonService : ISharedAutomatonService
     {
-        public Task<SharedAutomaton> SaveAsync(string userId, int groupId, string name, string? description, AutomatonViewModel model, bool saveExecutionState = false) => throw new NotImplementedException();
+        public Task<SharedAutomaton> SaveAsync(string userId, int groupId, string name, string? description, AutomatonViewModel model, bool saveExecutionState = false, string? layoutJson = null, string? thumbnailBase64 = null) => throw new NotImplementedException();
         public Task<SharedAutomaton?> GetAsync(int id, string userId) => throw new NotImplementedException();
         public Task<List<SharedAutomaton>> ListForGroupAsync(int groupId, string userId) => throw new NotImplementedException();
         public Task<List<SharedAutomaton>> ListForUserAsync(string userId) => throw new NotImplementedException();

@@ -19,6 +19,7 @@ import { EditModeManager } from './EditModeManager.js';
 import { StateEditor } from './StateEditor.js';
 import { TransitionEditor } from './TransitionEditor.js';
 import { ActionHistory } from './ActionHistory.js';
+import { CanvasLayoutCache } from './CanvasLayoutCache.js';
 
 /**
  * Main class for automaton canvas visualization
@@ -66,8 +67,13 @@ export class AutomatonCanvas {
         this.moveEnabled = true; // Controls whether nodes can be moved (separate from edit mode)
         this.isInitialized = false;
 
+        // Layout cache
+        this._layoutFingerprint = null; // fingerprint for the currently-loaded automaton
+        this._savePositionsDebounceTimer = null; // debounce timer for position saves
+
         // Bind methods
         this._handleResize = this._handleResize.bind(this);
+        this._onNodeFreed = this._onNodeFreed.bind(this);
     }
 
     /**
@@ -151,6 +157,9 @@ export class AutomatonCanvas {
             // Set up event listeners
             this._setupEventListeners();
 
+            // Listen for node drag-end → persist positions to cache
+            this.cy.on('free', 'node', this._onNodeFreed);
+
             // Add resize observer
             window.addEventListener('resize', this._handleResize);
 
@@ -189,18 +198,40 @@ export class AutomatonCanvas {
             this.automatonType = data.type;
             this.activeStateIds = data.activeStates || [];
 
+            // Update layout fingerprint
+            if (data.states && data.states.length > 0) {
+                const stateIds = data.states.map(s => s.id);
+                this._layoutFingerprint = CanvasLayoutCache.buildFingerprint(data.type, stateIds);
+            } else {
+                this._layoutFingerprint = null;
+            }
+
             // Clear existing elements
             this.cy.elements().remove();
 
             // Render automaton based on type
             AutomatonRenderer.render(this.cy, data);
 
-            // Apply layout
-            const layoutName = data.layoutName || this.options.layoutName;
-            LayoutEngine.applyLayout(this.cy, layoutName, {
-                automatonType: this.automatonType,
-                stateCount: data.states.length
-            });
+            // Apply layout — use saved positions from cache if available, otherwise run algorithm
+            const cachedPositions = this._layoutFingerprint
+                ? CanvasLayoutCache.load(this._layoutFingerprint)
+                : null;
+
+            if (cachedPositions && Object.keys(cachedPositions).length > 0) {
+                // Restore cached node positions (use preset layout so Cytoscape respects them)
+                LayoutEngine.applyLayout(this.cy, 'preset', {
+                    automatonType: this.automatonType,
+                    stateCount: data.states.length
+                });
+                CanvasLayoutCache.applyPositions(this.cy, cachedPositions);
+            } else {
+                // No cache hit — run the configured layout algorithm
+                const layoutName = data.layoutName || this.options.layoutName;
+                LayoutEngine.applyLayout(this.cy, layoutName, {
+                    automatonType: this.automatonType,
+                    stateCount: data.states.length
+                });
+            }
 
             // IMPORTANT: Reapply edit mode state to new nodes
             // Re-apply dragging state (controls move vs edit dragging policy)
@@ -393,10 +424,15 @@ export class AutomatonCanvas {
 
     /**
      * Re-apply layout
+     * Clears the position cache for the current automaton so the algorithmic
+     * layout is used on the next load (i.e. the user explicitly asked to reset).
      * @param {string} [layoutName] - Layout algorithm to use
      */
     relayout(layoutName) {
         if (!this.cy || !this.currentData) return;
+
+        // Drop cached positions so subsequent reloads also use the fresh layout
+        this.clearLayoutCache();
 
         const layout = layoutName || this.options.layoutName;
         LayoutEngine.applyLayout(this.cy, layout, {
@@ -405,6 +441,33 @@ export class AutomatonCanvas {
         });
 
         this._fitToViewport();
+    }
+
+    /**
+     * Set the layout fingerprint used for the cache key.
+     * Typically called by the integration layer when a specific automaton is known.
+     * @param {string|null} fingerprint
+     */
+    setLayoutFingerprint(fingerprint) {
+        this._layoutFingerprint = fingerprint;
+    }
+
+    /**
+     * Clear the position cache for the currently loaded automaton.
+     */
+    clearLayoutCache() {
+        if (this._layoutFingerprint) {
+            CanvasLayoutCache.clear(this._layoutFingerprint);
+        }
+    }
+
+    /**
+     * Expose the underlying Cytoscape instance for external use
+     * (e.g. for non-module scripts that need to read node positions).
+     * @returns {Object|null} Cytoscape instance or null
+     */
+    getCytoscapeInstance() {
+        return this.cy || null;
     }
 
     /**
@@ -708,7 +771,13 @@ export class AutomatonCanvas {
             this.actionHistory = null;
         }
 
+        if (this._savePositionsDebounceTimer) {
+            clearTimeout(this._savePositionsDebounceTimer);
+            this._savePositionsDebounceTimer = null;
+        }
+
         if (this.cy) {
+            this.cy.off('free', 'node', this._onNodeFreed);
             this.cy.destroy();
             this.cy = null;
         }
@@ -753,6 +822,25 @@ export class AutomatonCanvas {
                 edge.data('tooltip', symbol);
             }
         });
+    }
+
+    /**
+     * Private: Handler called every time a node is released after dragging.
+     * Debounces position saves to localStorage to avoid thundering-write issues.
+     * @private
+     */
+    _onNodeFreed() {
+        if (!this._layoutFingerprint || !this.cy) return;
+
+        // Debounce: only write after user stops dragging for 600 ms
+        if (this._savePositionsDebounceTimer) {
+            clearTimeout(this._savePositionsDebounceTimer);
+        }
+        this._savePositionsDebounceTimer = setTimeout(() => {
+            if (this.cy && this._layoutFingerprint) {
+                CanvasLayoutCache.save(this._layoutFingerprint, this.cy);
+            }
+        }, 600);
     }
 
     /**

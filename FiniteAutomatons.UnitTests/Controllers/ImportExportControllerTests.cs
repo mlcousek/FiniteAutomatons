@@ -60,7 +60,7 @@ public class ImportExportControllerTests
         }
 
         // Other methods not needed for these tests
-        public Task<SavedAutomaton> SaveAsync(string userId, string name, string? description, AutomatonViewModel model, bool saveExecutionState = false, int? groupId = null)
+        public Task<SavedAutomaton> SaveAsync(string userId, string name, string? description, AutomatonViewModel model, bool saveExecutionState = false, int? groupId = null, string? layoutJson = null, string? thumbnailBase64 = null)
             => throw new NotImplementedException();
         public Task<List<SavedAutomaton>> ListForUserAsync(string userId, int? groupId = null)
             => throw new NotImplementedException();
@@ -121,7 +121,7 @@ public class ImportExportControllerTests
         public readonly List<SharedAutomaton> Saved = new();
         public readonly List<(string userId, int groupId, string name)> Created = new();
 
-        public Task<SharedAutomaton> SaveAsync(string userId, int groupId, string name, string? description, AutomatonViewModel model, bool saveExecutionState = false)
+        public Task<SharedAutomaton> SaveAsync(string userId, int groupId, string name, string? description, AutomatonViewModel model, bool saveExecutionState = false, string? layoutJson = null, string? thumbnailBase64 = null)
         {
             var a = new SharedAutomaton { Id = Saved.Count + 1, CreatedByUserId = userId, Name = name, Description = description, ContentJson = JsonSerializer.Serialize(new { }), CreatedAt = DateTime.UtcNow };
             Saved.Add(a);

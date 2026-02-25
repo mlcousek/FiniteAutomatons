@@ -40,7 +40,7 @@ public class ImportExportController : Controller
     // Minimal no-op implementation used for tests that don't exercise shared group features.
     private sealed class NoopSharedAutomatonService : ISharedAutomatonService
     {
-        public Task<SharedAutomaton> SaveAsync(string userId, int groupId, string name, string? description, AutomatonViewModel model, bool saveExecutionState = false) =>
+        public Task<SharedAutomaton> SaveAsync(string userId, int groupId, string name, string? description, AutomatonViewModel model, bool saveExecutionState = false, string? layoutJson = null, string? thumbnailBase64 = null) =>
             Task.FromException<SharedAutomaton>(new NotSupportedException("Noop service"));
         public Task<SharedAutomaton?> GetAsync(int id, string userId) => Task.FromResult<SharedAutomaton?>(null);
         public Task<List<SharedAutomaton>> ListForGroupAsync(int groupId, string userId) => Task.FromResult(new List<SharedAutomaton>());

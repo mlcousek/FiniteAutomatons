@@ -129,7 +129,7 @@ public class SavedAutomatonController(
     }
 
     [HttpPost]
-    public async Task<IActionResult> Save([FromForm] AutomatonViewModel model, string name, string? description, bool saveState = false)
+    public async Task<IActionResult> Save([FromForm] AutomatonViewModel model, string name, string? description, bool saveState = false, string? layoutJson = null, string? thumbnailBase64 = null)
     {
         var user = await userManager.GetUserAsync(User);
         if (user == null) return Challenge();
@@ -139,7 +139,7 @@ public class SavedAutomatonController(
             return View("CreateAutomaton", model);
         }
 
-        _ = await savedAutomatonService.SaveAsync(user.Id, name.Trim(), string.IsNullOrWhiteSpace(description) ? null : description.Trim(), model, saveState);
+        _ = await savedAutomatonService.SaveAsync(user.Id, name.Trim(), string.IsNullOrWhiteSpace(description) ? null : description.Trim(), model, saveState, layoutJson: layoutJson, thumbnailBase64: thumbnailBase64);
         TempData["ConversionMessage"] = "Automaton saved successfully.";
         return RedirectToAction("Index");
     }
@@ -194,6 +194,12 @@ public class SavedAutomatonController(
             }
 
             tempDataService.StoreCustomAutomaton(TempData, model);
+
+            if (!string.IsNullOrWhiteSpace(entity.LayoutJson))
+            {
+                TempData["LayoutJson"] = entity.LayoutJson;
+            }
+
             return RedirectToAction("Index", "Home");
         }
         catch
@@ -250,7 +256,7 @@ public class SavedAutomatonController(
                 catch { }
             }
 
-            await sharedAutomatonService.SaveAsync(user.Id, groupId, entity.Name, entity.Description, model, saveState);
+            await sharedAutomatonService.SaveAsync(user.Id, groupId, entity.Name, entity.Description, model, saveState, layoutJson: entity.LayoutJson, thumbnailBase64: entity.ThumbnailBase64);
 
             TempData["CreateGroupResult"] = "Automaton shared successfully!";
             TempData["CreateGroupSuccess"] = "1";

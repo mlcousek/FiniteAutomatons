@@ -12,7 +12,7 @@ public class SavedAutomatonService(ILogger<SavedAutomatonService> logger, Applic
     private readonly ILogger<SavedAutomatonService> logger = logger;
     private readonly ApplicationDbContext db = db;
 
-    public async Task<SavedAutomaton> SaveAsync(string userId, string name, string? description, AutomatonViewModel model, bool saveExecutionState = false, int? groupId = null)
+    public async Task<SavedAutomaton> SaveAsync(string userId, string name, string? description, AutomatonViewModel model, bool saveExecutionState = false, int? groupId = null, string? layoutJson = null, string? thumbnailBase64 = null)
     {
         ArgumentNullException.ThrowIfNull(userId);
         ArgumentNullException.ThrowIfNull(name);
@@ -94,6 +94,8 @@ public class SavedAutomatonService(ILogger<SavedAutomatonService> logger, Applic
             ContentJson = payload,
             SaveMode = saveMode,
             ExecutionStateJson = execJson,
+            LayoutJson = string.IsNullOrWhiteSpace(layoutJson) ? null : layoutJson,
+            ThumbnailBase64 = string.IsNullOrWhiteSpace(thumbnailBase64) ? null : thumbnailBase64,
             SourceRegex = model.SourceRegex,
             CreatedAt = DateTime.UtcNow,
         };

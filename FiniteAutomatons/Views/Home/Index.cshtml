@@ -492,12 +492,22 @@
                     <h2>INPUT</h2>
                 </div>
                 <div class="control-content-left">
-                    <input type="text" class="input-field" name="Input" id="inputField"
-                       placeholder="Enter input string..."
-                       value="@(Model != null ? Model.Input : "")"
-                       @(Model != null && Model.HasExecuted ? "readonly" : "") 
-                       style="padding: 0.75rem 7rem;"
-                       maxlength="100" />
+                    <div style="position:relative; display:flex; align-items:stretch;">
+                        <input type="text" class="input-field" name="Input" id="inputField"
+                           placeholder="Enter input string..."
+                           value="@(Model != null ? Model.Input : "")"
+                           @(Model != null && Model.HasExecuted ? "readonly" : "") 
+                           style="flex:1; padding: 0.75rem 1rem; border-radius: 6px 0 0 6px; border-right: none;"
+                           maxlength="100" />
+                        <button id="generateInputModalBtn" type="button"
+                                class="control-btn"
+                                style="border-radius: 0 6px 6px 0; padding: 0 1rem; white-space: nowrap; display: @(hasExecuted ? "none" : "flex"); align-items: center; gap: 0.4rem;"
+                                @(Model == null ? "disabled" : "")
+                                title="Generate test input for the automaton"
+                                data-generate-input-btn="true">
+                            <i class="fas fa-keyboard"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
             
@@ -704,23 +714,8 @@
             }
         </div>
     </form>
-    <div class="control-sections">
-        <div class="control-section input-section">
-            <div class="section-header-custom">
-                <h2 style="margin:0;">GENERATE INPUT</h2>
-            </div>
-            <div class="control-content-left" style="text-align:center; margin-bottom:0.5rem;">
-                <button id="generateInputModalBtn" class="control-btn" type="button" 
-                        style="min-width: 300px;"
-                        @(Model == null || hasExecuted ? "disabled" : "")
-                        title="@(hasExecuted ? "Reset execution to generate new input" : "Generate test input for the automaton")">
-                    <i class="fas fa-keyboard"></i>
-                    <span>Generate Test Input</span>
-                </button>
-            </div>
-
-            <!-- Input Generation Modal -->
-            <div id="generateInputModal" class="modal modern-modal" style="display:none;">
+    <!-- Input Generation Modal (triggered from the INPUT field's inline button) -->
+    <div id="generateInputModal" class="modal modern-modal" style="display:none;">
                 <div class="modal-content modern-modal-content">
                     <div class="modal-header">
                         <div class="modal-header-content">
@@ -1274,6 +1269,10 @@
                                 @{ RenderAutomatonHiddenFieldsForSave(); }
 
                                 <input type="hidden" name="saveState" id="saveStateField" value="false" />
+                                <!-- Layout positions from Cytoscape canvas (populated by JS before submit) -->
+                                <input type="hidden" name="layoutJson" id="saveLayoutJsonField" value="" />
+                                <!-- Canvas PNG thumbnail (populated by JS before submit) -->
+                                <input type="hidden" name="thumbnailBase64" id="saveThumbnailField" value="" />
                                 <div style="display:flex;gap:0.5rem;justify-content:flex-end;margin-top:0.5rem;">
                                     <button type="button" class="modern-btn" id="saveModalCancel">Cancel</button>
                                     <button type="submit" class="modern-btn btn-success">Save</button>
@@ -1334,6 +1333,12 @@
 </div>
 
 @section Scripts {
+    <!-- Emit saved layout JSON from a loaded automaton so the canvas can restore node positions -->
+    @if (ViewData["LayoutJson"] is string savedLayout)
+    {
+        <script>window.__savedLayoutJson = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(savedLayout));</script>
+    }
+
     <!-- Cytoscape.js libraries (CDN for reliability) -->
     <script src="https://unpkg.com/cytoscape@3.23.0/dist/cytoscape.min.js"></script>
     <script src="https://unpkg.com/dagre@0.8.5/dist/dagre.min.js"></script>

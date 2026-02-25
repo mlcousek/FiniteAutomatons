@@ -9,7 +9,7 @@ namespace FiniteAutomatons.Services.Interfaces;
 public interface ISharedAutomatonService
 {
     // Basic CRUD operations
-    Task<SharedAutomaton> SaveAsync(string userId, int groupId, string name, string? description, AutomatonViewModel model, bool saveExecutionState = false);
+    Task<SharedAutomaton> SaveAsync(string userId, int groupId, string name, string? description, AutomatonViewModel model, bool saveExecutionState = false, string? layoutJson = null, string? thumbnailBase64 = null);
     Task<SharedAutomaton?> GetAsync(int id, string userId);
     Task<List<SharedAutomaton>> ListForGroupAsync(int groupId, string userId);
     Task<List<SharedAutomaton>> ListForUserAsync(string userId);

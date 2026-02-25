@@ -9,6 +9,7 @@
 import { AutomatonCanvas } from './canvas/AutomatonCanvas.js';
 import { CanvasFormSync } from './canvas/CanvasFormSync.js';
 import { PanelSync } from './canvas/PanelSync.js';
+import { CanvasLayoutCache } from './canvas/CanvasLayoutCache.js';
 
 /**
  * Global canvas instance
@@ -43,10 +44,43 @@ export function initAutomatonCanvas() {
         // Initialize
         canvas.init();
 
+        // Expose canvas to non-module scripts (e.g. saveAutomatonModal.js)
+        window.getCanvasInstance = () => canvas;
+
         // Load automaton data from form
         const automatonData = parseAutomatonFromForm();
         if (automatonData && automatonData.states && automatonData.states.length > 0) {
             canvas.loadAutomaton(automatonData);
+
+            // If the server passed saved DB layout positions, seed them into the
+            // localStorage cache AND apply them directly. This overrides whatever
+            // the cache had, ensuring a just-loaded automaton uses its DB positions.
+            if (window.__savedLayoutJson) {
+                try {
+                    const positions = typeof window.__savedLayoutJson === 'string'
+                        ? JSON.parse(window.__savedLayoutJson)
+                        : window.__savedLayoutJson;
+
+                    if (positions && typeof positions === 'object') {
+                        CanvasLayoutCache.applyPositions(canvas.cy, positions);
+
+                        // Re-seed cache so page reloads also use these positions
+                        if (canvas._layoutFingerprint) {
+                            const entry = { savedAt: Date.now(), positions };
+                            try {
+                                localStorage.setItem(
+                                    'fa-canvas-layout:' + canvas._layoutFingerprint,
+                                    JSON.stringify(entry)
+                                );
+                            } catch (_) { /* quota exceeded — ignore */ }
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Could not restore DB layout positions:', e);
+                } finally {
+                    delete window.__savedLayoutJson;
+                }
+            }
 
             // Highlight active states if execution started
             highlightActiveStates();
@@ -290,11 +324,36 @@ function setupCanvasControls() {
         });
     }
 
-    // Reset layout button
+    // Reset layout button — clears the position cache, then re-runs the layout algorithm
     const resetLayoutBtn = document.getElementById('resetLayoutBtn');
     if (resetLayoutBtn) {
         resetLayoutBtn.addEventListener('click', () => {
-            if (canvas) canvas.relayout();
+            if (canvas) canvas.relayout(); // relayout() already calls clearLayoutCache() internally
+        });
+    }
+
+    // Buttons that replace the current automaton with a completely new one —
+    // clear the layout cache so stale positions don’t bleed into the new graph.
+    const newAutomatonBtn = document.getElementById('newAutomatonBtn');
+    if (newAutomatonBtn) {
+        newAutomatonBtn.addEventListener('click', () => {
+            if (canvas) canvas.clearLayoutCache();
+        });
+    }
+
+    const generateModalBtnEl = document.getElementById('generateModalBtn');
+    if (generateModalBtnEl) {
+        generateModalBtnEl.addEventListener('click', () => {
+            // Cache cleared when the new automaton is actually loaded (fingerprint will change).
+            // No explicit clear needed here.
+        });
+    }
+
+    // Import replaces the automaton entirely — clear cache proactively
+    const importUpload = document.getElementById('importUploadInput');
+    if (importUpload) {
+        importUpload.addEventListener('change', () => {
+            if (canvas) CanvasLayoutCache.clearAll(); // imported automaton IDs may differ
         });
     }
     // Edit & Move mode toggles (Phase 2)

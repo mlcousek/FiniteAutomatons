@@ -18,7 +18,7 @@ public class SharedAutomatonService(
 
     #region CRUD Operations
 
-    public async Task<SharedAutomaton> SaveAsync(string userId, int groupId, string name, string? description, AutomatonViewModel model, bool saveExecutionState = false)
+    public async Task<SharedAutomaton> SaveAsync(string userId, int groupId, string name, string? description, AutomatonViewModel model, bool saveExecutionState = false, string? layoutJson = null, string? thumbnailBase64 = null)
     {
         ArgumentNullException.ThrowIfNull(userId);
         ArgumentNullException.ThrowIfNull(name);
@@ -44,6 +44,8 @@ public class SharedAutomatonService(
             Description = description?.Trim(),
             ContentJson = JsonSerializer.Serialize(payload),
             SaveMode = AutomatonSaveMode.Structure,
+            LayoutJson = string.IsNullOrWhiteSpace(layoutJson) ? null : layoutJson,
+            ThumbnailBase64 = string.IsNullOrWhiteSpace(thumbnailBase64) ? null : thumbnailBase64,
             SourceRegex = model.SourceRegex,
             CreatedAt = DateTime.UtcNow
         };

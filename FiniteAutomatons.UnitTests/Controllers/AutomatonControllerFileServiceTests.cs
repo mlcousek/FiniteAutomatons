@@ -52,7 +52,7 @@ public class AutomatonControllerFileServiceTests
 
     private class MockSavedAutomatonService : ISavedAutomatonService
     {
-        public Task<SavedAutomaton> SaveAsync(string userId, string name, string? description, AutomatonViewModel model, bool saveExecutionState = false, int? groupId = null) => throw new NotImplementedException();
+        public Task<SavedAutomaton> SaveAsync(string userId, string name, string? description, AutomatonViewModel model, bool saveExecutionState = false, int? groupId = null, string? layoutJson = null, string? thumbnailBase64 = null) => throw new NotImplementedException();
         public Task<List<SavedAutomaton>> ListForUserAsync(string userId, int? groupId = null) => throw new NotImplementedException();
         public Task<SavedAutomaton?> GetAsync(int id, string userId) => throw new NotImplementedException();
         public Task DeleteAsync(int id, string userId) => throw new NotImplementedException();
@@ -98,7 +98,7 @@ public class AutomatonControllerFileServiceTests
 
     private sealed class FakeSharedAutomatonService : ISharedAutomatonService
     {
-        public Task<SharedAutomaton> SaveAsync(string userId, int groupId, string name, string? description, AutomatonViewModel model, bool saveExecutionState = false)
+        public Task<SharedAutomaton> SaveAsync(string userId, int groupId, string name, string? description, AutomatonViewModel model, bool saveExecutionState = false, string? layoutJson = null, string? thumbnailBase64 = null)
             => Task.FromException<SharedAutomaton>(new NotSupportedException());
 
         public Task<SharedAutomaton?> GetAsync(int id, string userId) => Task.FromResult<SharedAutomaton?>(null);

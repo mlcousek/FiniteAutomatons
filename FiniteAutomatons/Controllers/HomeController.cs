@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.ViewModel;
+﻿using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
@@ -19,8 +19,6 @@ public class HomeController(ILogger<HomeController> logger, IAutomatonTempDataSe
 
         AutomatonViewModel model;
 
-        // Priority 1: TempData (set by server-side actions: convert, minimize, generate input…)
-        //             TempData wins over session because it carries the result of a deliberate server action.
         var (hasCustomAutomaton, customModel) = tempDataService.TryGetCustomAutomaton(TempData);
         if (hasCustomAutomaton && customModel != null)
         {
@@ -42,6 +40,12 @@ public class HomeController(ILogger<HomeController> logger, IAutomatonTempDataSe
 
         var analysis = minimizationService.AnalyzeAutomaton(model);
         ViewData["MinimizationAnalysis"] = analysis;
+
+
+        if (TempData.TryGetValue("LayoutJson", out var layoutJson) && layoutJson is string layoutJsonStr && !string.IsNullOrWhiteSpace(layoutJsonStr))
+        {
+            ViewData["LayoutJson"] = layoutJsonStr;
+        }
 
         return View(model);
     }

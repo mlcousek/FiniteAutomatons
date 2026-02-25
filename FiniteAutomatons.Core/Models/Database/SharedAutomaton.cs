@@ -32,6 +32,12 @@ public class SharedAutomaton
     /// </summary>
     public string? ExecutionStateJson { get; set; }
     
+    /// <summary>JSON map of nodeId → {x, y} positions saved from the Cytoscape canvas.</summary>
+    public string? LayoutJson { get; set; }
+    
+    /// <summary>Base-64 encoded PNG snapshot of the automaton canvas at save time.</summary>
+    public string? ThumbnailBase64 { get; set; }
+    
     /// <summary>
     /// The source regular expression if this automaton was created from a regex.
     /// </summary>

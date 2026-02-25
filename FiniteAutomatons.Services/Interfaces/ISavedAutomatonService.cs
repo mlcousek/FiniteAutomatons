@@ -5,7 +5,7 @@ namespace FiniteAutomatons.Services.Interfaces;
 
 public interface ISavedAutomatonService
 {
-    Task<SavedAutomaton> SaveAsync(string userId, string name, string? description, AutomatonViewModel model, bool saveExecutionState = false, int? groupId = null);
+    Task<SavedAutomaton> SaveAsync(string userId, string name, string? description, AutomatonViewModel model, bool saveExecutionState = false, int? groupId = null, string? layoutJson = null, string? thumbnailBase64 = null);
     Task<List<SavedAutomaton>> ListForUserAsync(string userId, int? groupId = null);
     Task<SavedAutomaton?> GetAsync(int id, string userId);
     Task DeleteAsync(int id, string userId);

@@ -60,7 +60,18 @@
             @foreach (var item in automatons)
             {
                 <div class="list-group-item">
-                    <div class="d-flex justify-content-between align-items-start">
+                    <div class="d-flex justify-content-between align-items-start gap-3">
+                        @* Thumbnail *@
+                        @if (!string.IsNullOrWhiteSpace(item.ThumbnailBase64))
+                        {
+                            <div class="flex-shrink-0" style="width:120px;">
+                                <img src="data:image/png;base64,@item.ThumbnailBase64"
+                                     alt="Preview of @item.Name"
+                                     class="img-fluid rounded thumb-preview"
+                                     style="max-height:80px;object-fit:contain;background:#fff;border:1.5px solid #000;cursor:pointer;"
+                                     title="Click to enlarge" />
+                            </div>
+                        }
                         <div class="flex-grow-1">
                             <h5 class="mb-1">@item.Name</h5>
                             @if (!string.IsNullOrWhiteSpace(item.Description))
@@ -113,3 +124,37 @@
         </div>
     }
 </div>
+
+<!-- Thumbnail Lightbox -->
+<div id="thumbLightbox" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;cursor:zoom-out;">
+    <img id="thumbLightboxImg" src="" alt="" style="max-width:90vw;max-height:90vh;border:2px solid #000;border-radius:4px;background:#fff;box-shadow:0 8px 40px rgba(0,0,0,0.5);" />
+</div>
+
+<script>
+    (function(){
+        var lightbox = document.getElementById('thumbLightbox');
+        var lightboxImg = document.getElementById('thumbLightboxImg');
+        if (!lightbox || !lightboxImg) return;
+
+        document.addEventListener('click', function(e) {
+            var thumb = e.target.closest('.thumb-preview');
+            if (thumb) {
+                lightboxImg.src = thumb.src;
+                lightboxImg.alt = thumb.alt;
+                lightbox.style.display = 'flex';
+                return;
+            }
+            if (lightbox.style.display === 'flex') {
+                lightbox.style.display = 'none';
+                lightboxImg.src = '';
+            }
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && lightbox.style.display === 'flex') {
+                lightbox.style.display = 'none';
+                lightboxImg.src = '';
+            }
+        });
+    })();
+</script>
