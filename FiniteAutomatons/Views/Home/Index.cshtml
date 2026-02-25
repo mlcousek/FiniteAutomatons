@@ -44,20 +44,8 @@
                 <div class="input-area" id="panelContainer">
                     @if (Model != null)
                     {
-                        <!-- Alphabet Section -->
-                        <div class="automaton-detail-section" data-panel-id="alphabet">
-                            <h4>Alphabet</h4>
-                            <div class="alphabet-display" id="panel-alphabet">
-                                @if (Model.Alphabet != null && Model.Alphabet.Count > 0)
-                                {
-                                    <span class="alphabet-symbols">{ @string.Join(", ", Model.Alphabet.Select(c => c == '\0' ? "ε" : c.ToString())) }</span>
-                                }
-                                else
-                                {
-                                    <span class="placeholder-text">No symbols defined</span>
-                                }
-                            </div>
-                        </div>
+                        @* Alphabet panel moved to partial *@
+                        @await Html.PartialAsync("Partials/_Alphabet", Model)
 
                         <!-- Source Regex Section (if created from regex) -->
                         @if (!string.IsNullOrWhiteSpace(Model.SourceRegex))
@@ -70,206 +58,17 @@
                             </div>
                         }
 
-                        <!-- States Section -->
-                        <div class="automaton-detail-section" data-panel-id="states">
-                            <h4>States</h4>
-                            <div class="states-display" id="panel-states-list">
-                                @if (Model.States != null && Model.States.Count > 0)
-                                {
-                                    <ul class="states-list">
-                                        @foreach (var state in Model.States.OrderBy(s => s.Id))
-                                        {
-                                            var isActive = (Model.CurrentStates != null && Model.CurrentStates.Contains(state.Id)) || (Model.CurrentStateId == state.Id);
-                                            <li class="state-item @(isActive ? "state-active" : "")" data-state-id="@state.Id">
-                                                <span class="state-id">q@(state.Id)</span>
-                                                @if (state.IsStart)
-                                                {
-                                                    <span class="state-badge badge-start">Start</span>
-                                                }
-                                                @if (state.IsAccepting)
-                                                {
-                                                    <span class="state-badge badge-accepting">Accepting</span>
-                                                }
-                                            </li>
-                                        }
-                                    </ul>
-                                }
-                                else
-                                {
-                                    <span class="placeholder-text">No states defined</span>
-                                }
-                            </div>
-                        </div>
+                        @* States panel moved to partial *@
+                        @await Html.PartialAsync("Partials/_States", Model)
 
-                        <!-- Transitions Section -->
-                        <div class="automaton-detail-section" data-panel-id="transitions">
-                            <h4>Transitions</h4>
-                            <div class="transitions-display" id="panel-transitions-list">
-                                @if (Model.Transitions != null && Model.Transitions.Count > 0)
-                                {
-                                    <ul class="transitions-list">
-                                        @foreach (var transition in Model.Transitions.OrderBy(t => t.FromStateId).ThenBy(t => t.Symbol).ThenBy(t => t.ToStateId))
-                                        {
-                                            <li class="transition-item" data-from="@transition.FromStateId" data-to="@transition.ToStateId" data-symbol="@(transition.Symbol == '\0' ? "" : transition.Symbol.ToString())">
-                                                @if (Model.Type == AutomatonType.PDA)
-                                                {
-                                                    <span class="transition-text">
-                                                        q@(transition.FromStateId) -- @(transition.Symbol == '\0' ? 'ε' : transition.Symbol.ToString()) \
-                                                        / @(transition.StackPop.HasValue ? (transition.StackPop.Value == '\0' ? 'ε' : transition.StackPop.Value.ToString()) : "-")
-                                                        -> @(string.IsNullOrEmpty(transition.StackPush) ? "-" : transition.StackPush) -> q@(transition.ToStateId)
-                                                    </span>
-                                                }
-                                                else
-                                                {
-                                                    <span class="transition-text">q@(transition.FromStateId) -- @(transition.Symbol == '\0' ? 'ε' : transition.Symbol.ToString()) -> q@(transition.ToStateId)</span>
-                                                }
-                                            </li>
-                                        }
-                                    </ul>
-                                }
-                                else
-                                {
-                                    <span class="placeholder-text">No transitions defined</span>
-                                }
-                            </div>
-                        </div>
+                        @* Transitions panel moved to partial *@
+                        @await Html.PartialAsync("Partials/_Transitions", Model)
 
-                        <!-- Minimization Mapping Section (raw report only) -->
-                        @if (!string.IsNullOrEmpty(Model.MinimizationReport))
-                        {
-                            <div class="automaton-detail-section minimization-section" data-panel-id="minimization">
-                                <h4>Minimization Mapping</h4>
-                                <div class="minimization-content">
-                                    <pre class="minimization-report">@Model.MinimizationReport</pre>
-                                </div>
-                            </div>
-                        }
+                        @* Minimization mapping moved to partial *@
+                        @await Html.PartialAsync("Partials/_MinimizationReport", Model)
 
-                        <!-- Execution State Section (Debug Info) -->
-                        @if (Model.HasExecuted || Model.Position > 0 || Model.CurrentStateId.HasValue || (Model.CurrentStates != null && Model.CurrentStates.Count > 0))
-                        {
-                            <div class="automaton-detail-section execution-state-section" data-panel-id="execution">
-                                <h4>Execution State</h4>
-                                <div class="execution-state-display">
-                                    <div class="execution-state-item">
-                                        <span class="execution-label">Current Position:</span>
-                                        <span class="execution-value">@Model.Position / @(Model.Input?.Length ?? 0)</span>
-                                    </div>
-
-                                    @if (Model.Type == AutomatonType.DFA || Model.Type == AutomatonType.PDA)
-                                    {
-                                        <div class="execution-state-item">
-                                            <span class="execution-label">Current State:</span>
-                                            <span class="execution-value">
-                                                @if (Model.CurrentStateId.HasValue)
-                                                {
-                                                    <span class="state-highlight">@($"q{Model.CurrentStateId}")</span>
-                                                }
-                                                else
-                                                {
-                                                    <span class="placeholder-text">-</span>
-                                                }
-                                            </span>
-                                        </div>
-                                    }
-                                    else
-                                    {
-                                        <div class="execution-state-item">
-                                            <span class="execution-label">Current States:</span>
-                                            <span class="execution-value">
-                                                @if (Model.CurrentStates != null && Model.CurrentStates.Count > 0)
-                                                {
-                                                    <span class="state-highlight">{ @string.Join(", ", Model.CurrentStates.OrderBy(s => s).Select(s => "q" + s)) }</span>
-                                                }
-                                                else
-                                                {
-                                                    <span class="placeholder-text">-</span>
-                                                }
-                                            </span>
-                                        </div>
-                                    }
-
-                                    <div class="execution-state-item">
-                                        <span class="execution-label">Next Symbol:</span>
-                                        <span class="execution-value">
-                                            @if (!string.IsNullOrEmpty(Model.Input) && Model.Position < Model.Input.Length)
-                                            {
-                                                <span class="symbol-highlight">'@Model.Input[Model.Position]'</span>
-                                            }
-                                            else
-                                            {
-                                                <span class="placeholder-text">End of input</span>
-                                            }
-                                        </span>
-                                    </div>
-
-                                    @* Show Result when input is fully read *@
-                                    @if (Model.Position >= (Model.Input?.Length ?? 0) && Model.IsAccepted.HasValue)
-                                    {
-                                        <div class="execution-state-item result-highlight">
-                                            <span class="execution-label">Result:</span>
-                                            <span class="execution-value">
-                                                @if (Model.IsAccepted.Value)
-                                                {
-                                                    <span class="result-badge result-accepted">✓ ACCEPTED</span>
-                                                }
-                                                else
-                                                {
-                                                    <span class="result-badge result-rejected">✗ REJECTED</span>
-                                                }
-                                            </span>
-                                        </div>
-                                    }
-
-                                    <div class="execution-state-item">
-                                        <span class="execution-label">Is Accepted:</span>
-                                        <span class="execution-value">
-                                            @if (Model.IsAccepted.HasValue)
-                                            {
-                                                if (Model.IsAccepted.Value)
-                                                {
-                                                    <span class="acceptance-status accepted">✓ Accepted</span>
-                                                }
-                                                else
-                                                {
-                                                    <span class="acceptance-status rejected">✗ Rejected</span>
-                                                }
-                                            }
-                                            else
-                                            {
-                                                <span class="acceptance-status pending">⧗ Pending</span>
-                                            }
-                                        </span>
-                                    </div>
-
-                                    @if (Model.Type == AutomatonType.PDA && !string.IsNullOrEmpty(Model.StackSerialized))
-                                    {
-                                        <div class="execution-state-item">
-                                            <span class="execution-label">Stack:</span>
-                                            <span class="execution-value stack-value">
-                                                @try
-                                                {
-                                                    var stack = System.Text.Json.JsonSerializer.Deserialize<List<char>>(Model.StackSerialized);
-                                                    if (stack != null && stack.Count > 0)
-                                                    {
-                                                        <span class="stack-highlight">[ @string.Join(", ", stack.Select(c => c == '\0' ? "ε" : c.ToString())) ]</span>
-                                                        <span class="stack-hint">(top first)</span>
-                                                    }
-                                                    else
-                                                    {
-                                                        <span class="placeholder-text">Empty</span>
-                                                    }
-                                                }
-                                                catch
-                                                {
-                                                    <span class="placeholder-text">-</span>
-                                                }
-                                            </span>
-                                        </div>
-                                    }
-                                </div>
-                            </div>
-                        }
+                        @* Execution state moved to partial *@
+                        @await Html.PartialAsync("Partials/_ExecutionState", Model)
                     }
                     else
                     {

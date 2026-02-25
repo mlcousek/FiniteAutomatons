@@ -1,0 +1,32 @@
+﻿@model AutomatonViewModel
+<div class="automaton-detail-section" data-panel-id="transitions">
+    <h4>Transitions</h4>
+    <div class="transitions-display" id="panel-transitions-list">
+        @if (Model.Transitions != null && Model.Transitions.Count > 0)
+        {
+            <ul class="transitions-list">
+                @foreach (var transition in Model.Transitions.OrderBy(t => t.FromStateId).ThenBy(t => t.Symbol).ThenBy(t => t.ToStateId))
+                {
+                    <li class="transition-item" data-from="@transition.FromStateId" data-to="@transition.ToStateId" data-symbol="@(transition.Symbol == '\0' ? "" : transition.Symbol.ToString())">
+                        @if (Model.Type == AutomatonType.PDA)
+                        {
+                            <span class="transition-text">
+                                q@(transition.FromStateId) -- @(transition.Symbol == '\0' ? 'ε' : transition.Symbol.ToString()) \
+                                / @(transition.StackPop.HasValue ? (transition.StackPop.Value == '\0' ? 'ε' : transition.StackPop.Value.ToString()) : "-")
+                                -> @(string.IsNullOrEmpty(transition.StackPush) ? "-" : transition.StackPush) -> q@(transition.ToStateId)
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="transition-text">q@(transition.FromStateId) -- @(transition.Symbol == '\0' ? 'ε' : transition.Symbol.ToString()) -> q@(transition.ToStateId)</span>
+                        }
+                    </li>
+                }
+            </ul>
+        }
+        else
+        {
+            <span class="placeholder-text">No transitions defined</span>
+        }
+    </div>
+</div>

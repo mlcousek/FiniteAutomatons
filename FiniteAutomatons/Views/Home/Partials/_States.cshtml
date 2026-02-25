@@ -1,0 +1,30 @@
+﻿@model AutomatonViewModel
+<div class="automaton-detail-section" data-panel-id="states">
+    <h4>States</h4>
+    <div class="states-display" id="panel-states-list">
+        @if (Model.States != null && Model.States.Count > 0)
+        {
+            <ul class="states-list">
+                @foreach (var state in Model.States.OrderBy(s => s.Id))
+                {
+                    var isActive = (Model.CurrentStates != null && Model.CurrentStates.Contains(state.Id)) || (Model.CurrentStateId == state.Id);
+                    <li class="state-item @(isActive ? "state-active" : "")" data-state-id="@state.Id">
+                        <span class="state-id">q@(state.Id)</span>
+                        @if (state.IsStart)
+                        {
+                            <span class="state-badge badge-start">Start</span>
+                        }
+                        @if (state.IsAccepting)
+                        {
+                            <span class="state-badge badge-accepting">Accepting</span>
+                        }
+                    </li>
+                }
+            </ul>
+        }
+        else
+        {
+            <span class="placeholder-text">No states defined</span>
+        }
+    </div>
+</div>

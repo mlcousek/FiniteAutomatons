@@ -1,0 +1,14 @@
+﻿@model AutomatonViewModel
+<div class="automaton-detail-section" data-panel-id="alphabet">
+    <h4>Alphabet</h4>
+    <div class="alphabet-display" id="panel-alphabet">
+        @if (Model.Alphabet != null && Model.Alphabet.Count > 0)
+        {
+            <span class="alphabet-symbols">{ @string.Join(", ", Model.Alphabet.Select(c => c == '\0' ? "ε" : c.ToString())) }</span>
+        }
+        else
+        {
+            <span class="placeholder-text">No symbols defined</span>
+        }
+    </div>
+</div>

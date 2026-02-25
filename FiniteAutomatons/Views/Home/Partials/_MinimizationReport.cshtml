@@ -1,0 +1,10 @@
+﻿@model AutomatonViewModel
+@if (!string.IsNullOrEmpty(Model?.MinimizationReport))
+{
+    <div class="automaton-detail-section minimization-section" data-panel-id="minimization">
+        <h4>Minimization Mapping</h4>
+        <div class="minimization-content">
+            <pre class="minimization-report">@Model.MinimizationReport</pre>
+        </div>
+    </div>
+}
