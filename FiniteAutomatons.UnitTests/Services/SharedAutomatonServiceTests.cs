@@ -41,9 +41,11 @@ public class SharedAutomatonServiceTests : IDisposable
         // Arrange
         var group = await CreateGroupWithMember(User1Id, SharedGroupRole.Contributor);
         var model = CreateSampleAutomatonViewModel();
+        var layout = "[{\"id\":\"0\",\"position\":{\"x\":50,\"y\":50}}]";
+        var thumb = "data:image/png;base64,shared";
 
         // Act
-        var result = await service.SaveAsync(User1Id, group.Id, "Test Automaton", "Description", model);
+        var result = await service.SaveAsync(User1Id, group.Id, "Test Automaton", "Description", model, layoutJson: layout, thumbnailBase64: thumb);
 
         // Assert
         result.ShouldNotBeNull();
@@ -51,6 +53,8 @@ public class SharedAutomatonServiceTests : IDisposable
         result.Description.ShouldBe("Description");
         result.CreatedByUserId.ShouldBe(User1Id);
         result.SaveMode.ShouldBe(AutomatonSaveMode.Structure);
+        result.LayoutJson.ShouldBe(layout);
+        result.ThumbnailBase64.ShouldBe(thumb);
         
         var assignments = await context.SharedAutomatonGroupAssignments.Where(a => a.AutomatonId == result.Id).ToListAsync();
         assignments.Count.ShouldBe(1);

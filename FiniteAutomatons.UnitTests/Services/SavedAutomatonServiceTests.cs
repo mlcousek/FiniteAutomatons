@@ -46,6 +46,28 @@ public class SavedAutomatonServiceTests
     }
 
     [Fact]
+    public async Task SaveAsync_SavesLayoutAndThumbnail()
+    {
+        using var db = CreateInMemoryDb("save_layout_thumb");
+        var svc = new SavedAutomatonService(new NullLogger<SavedAutomatonService>(), db);
+
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.DFA,
+            States = [new() { Id = 1, IsStart = true, IsAccepting = false }],
+            Transitions = []
+        };
+
+        var layout = "[{\"id\":\"1\",\"position\":{\"x\":10,\"y\":20}}]";
+        var thumb = "data:image/png;base64,iVBORw0KGgo";
+
+        var res = await svc.SaveAsync("user-thumb", "MyAut", "desc", model, layoutJson: layout, thumbnailBase64: thumb);
+
+        res.LayoutJson.ShouldBe(layout);
+        res.ThumbnailBase64.ShouldBe(thumb);
+    }
+
+    [Fact]
     public async Task SaveAsync_SavesExecutionState_WhenRequested()
     {
         using var db = CreateInMemoryDb("save_with_state");

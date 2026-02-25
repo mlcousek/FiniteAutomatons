@@ -110,7 +110,9 @@ public class AutomatonControllerSavedTests
                 ContentJson = System.Text.Json.JsonSerializer.Serialize(contentDto),
                 SaveMode = saveMode,
                 ExecutionStateJson = execDto != null ? System.Text.Json.JsonSerializer.Serialize(execDto) : null,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                LayoutJson = layoutJson,
+                ThumbnailBase64 = thumbnailBase64
             };
             Items.Add(entity);
 
@@ -402,6 +404,27 @@ public class AutomatonControllerSavedTests
         list.Count.ShouldBe(1);
         list[0].Name.ShouldBe("name1");
         list[0].SaveMode.ShouldBe(AutomatonSaveMode.WithState);
+    }
+
+    [Fact]
+    public async Task SaveAutomaton_Post_Valid_PassesLayoutAndThumbnail()
+    {
+        var svc = new MockSavedAutomatonService();
+        var user = new ApplicationUser { Id = "u5-thumb" };
+        var c = BuildController(svc, user);
+
+        var model = new AutomatonViewModel { Type = AutomatonType.DFA };
+        var layout = "[{}]";
+        var thumb = "data:image/png;base64,...";
+
+        var result = await c.Save(model, "name-thumb", "desc", saveState: false, layoutJson: layout, thumbnailBase64: thumb) as RedirectToActionResult;
+        result.ShouldNotBeNull();
+        result.ActionName.ShouldBe("Index");
+
+        var list = await svc.ListForUserAsync(user.Id);
+        list.Count.ShouldBe(1);
+        list[0].LayoutJson.ShouldBe(layout);
+        list[0].ThumbnailBase64.ShouldBe(thumb);
     }
 
     [Fact]

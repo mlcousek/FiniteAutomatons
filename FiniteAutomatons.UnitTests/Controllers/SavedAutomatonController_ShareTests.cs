@@ -76,7 +76,15 @@ public class SavedAutomatonController_ShareTests
         public List<SharedAutomaton> SavedItems = [];
         public Task<SharedAutomaton> SaveAsync(string userId, int groupId, string name, string? description, AutomatonViewModel model, bool saveExecutionState = false, string? layoutJson = null, string? thumbnailBase64 = null)
         {
-            var item = new SharedAutomaton { CreatedByUserId = userId, Name = name, Description = description, ContentJson = "{}" };
+            var item = new SharedAutomaton
+            {
+                CreatedByUserId = userId,
+                Name = name,
+                Description = description,
+                ContentJson = "{}",
+                LayoutJson = string.IsNullOrWhiteSpace(layoutJson) ? null : layoutJson,
+                ThumbnailBase64 = string.IsNullOrWhiteSpace(thumbnailBase64) ? null : thumbnailBase64
+            };
             SavedItems.Add(item);
             return Task.FromResult(item);
         }
@@ -199,5 +207,37 @@ public class SavedAutomatonController_ShareTests
 
         // Assert
         result.ShouldBeOfType<NotFoundResult>();
+    }
+
+    [Fact]
+    public async Task ShareToGroup_PreservesLayoutAndThumbnail()
+    {
+        // Arrange
+        var user = new ApplicationUser { Id = "u1" };
+        var savedSvc = new MockSavedAutomatonService();
+        var sharedSvc = new MockSharedAutomatonService();
+        var controller = BuildController(savedSvc, sharedSvc, user);
+
+        var payload = new { Type = AutomatonType.DFA };
+        var entity = new SavedAutomaton
+        {
+            Id = 200,
+            UserId = user.Id,
+            Name = "Thumbed",
+            ContentJson = JsonSerializer.Serialize(payload),
+            SaveMode = AutomatonSaveMode.Structure,
+            LayoutJson = "{\"0\":{\"x\":10,\"y\":20}}",
+            ThumbnailBase64 = "iVBORw0KGgoAAAANSUhEUg..."
+        };
+        savedSvc.Items.Add(entity);
+
+        // Act
+        var result = await controller.ShareToGroup(200, 300) as RedirectToActionResult;
+
+        // Assert
+        result.ShouldNotBeNull();
+        sharedSvc.SavedItems.Count.ShouldBe(1);
+        sharedSvc.SavedItems[0].LayoutJson.ShouldBe(entity.LayoutJson);
+        sharedSvc.SavedItems[0].ThumbnailBase64.ShouldBe(entity.ThumbnailBase64);
     }
 }

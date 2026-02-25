@@ -35,6 +35,22 @@ public class HomeControllerTests
     }
 
     [Fact]
+    public void Index_WhenTempDataContainsLayoutJson_PopulatesViewData()
+    {
+        // Arrange
+        var layoutJson = "{\"0\":{\"x\":10,\"y\":20}}";
+        controller.TempData["LayoutJson"] = layoutJson;
+
+        // Act
+        var result = controller.Index() as ViewResult;
+
+        // Assert
+        result.ShouldNotBeNull();
+        result.ViewData.ContainsKey("LayoutJson").ShouldBeTrue();
+        result.ViewData["LayoutJson"].ShouldBe(layoutJson);
+    }
+
+    [Fact]
     public void Index_WithoutCustomAutomaton_ReturnsRandomlyGeneratedAutomaton()
     {
         // Act
