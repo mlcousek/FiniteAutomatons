@@ -1,0 +1,61 @@
+﻿@model AutomatonViewModel
+@* Shared hidden fields for automaton-related forms. Render this partial where forms need the full automaton payload. *@
+@if (Model != null)
+{
+    <input type="hidden" name="Type" value="@Model.Type" />
+    <input type="hidden" name="Input" value="@Model.Input" />
+    <input type="hidden" name="HasExecuted" value="@Model.HasExecuted.ToString().ToLowerInvariant()" />
+    <input type="hidden" name="Position" value="@Model.Position" />
+    <input type="hidden" name="CurrentStateId" value="@(Model.CurrentStateId.HasValue ? Model.CurrentStateId.ToString() : "")" />
+    <input type="hidden" name="IsAccepted" value="@(Model.IsAccepted.HasValue ? Model.IsAccepted.Value.ToString().ToLowerInvariant() : "")" />
+    <input type="hidden" name="StateHistorySerialized" value="@Model.StateHistorySerialized" />
+    <input type="hidden" name="StackSerialized" value="@Model.StackSerialized" />
+    <input type="hidden" name="IsCustomAutomaton" value="@Model.IsCustomAutomaton.ToString().ToLowerInvariant()" />
+
+    @* States *@
+    @if (Model.States != null)
+    {
+        for (int i = 0; i < Model.States.Count; i++)
+        {
+            <input type="hidden" name="States.Index" value="@i" />
+            <input type="hidden" name="States[@i].Id" value="@Model.States[i].Id" />
+            <input type="hidden" name="States[@i].IsStart" value="@Model.States[i].IsStart.ToString().ToLowerInvariant()" />
+            <input type="hidden" name="States[@i].IsAccepting" value="@Model.States[i].IsAccepting.ToString().ToLowerInvariant()" />
+        }
+    }
+
+    @* Transitions *@
+    @if (Model.Transitions != null)
+    {
+        for (int i = 0; i < Model.Transitions.Count; i++)
+        {
+            <input type="hidden" name="Transitions.Index" value="@i" />
+            <input type="hidden" name="Transitions[@i].FromStateId" value="@Model.Transitions[i].FromStateId" />
+            <input type="hidden" name="Transitions[@i].ToStateId" value="@Model.Transitions[i].ToStateId" />
+            <input type="hidden" name="Transitions[@i].Symbol" value="@(Model.Transitions[i].Symbol == '\0' ? "\\0" : Model.Transitions[i].Symbol.ToString())" />
+            @if (Model.Type == AutomatonType.PDA)
+            {
+                if (Model.Transitions[i].StackPop.HasValue)
+                {
+                    var pop = Model.Transitions[i].StackPop!.Value;
+                    var stackPopValue = pop == '\0' ? "\\0" : pop.ToString();
+                    <input type="hidden" name="Transitions[@i].StackPop" value="@stackPopValue" />
+                }
+                if (!string.IsNullOrEmpty(Model.Transitions[i].StackPush))
+                {
+                    <input type="hidden" name="Transitions[@i].StackPush" value="@Model.Transitions[i].StackPush" />
+                }
+            }
+        }
+    }
+
+    @* CurrentStates (if used by executing NFA) *@
+    @if (Model.CurrentStates != null)
+    {
+        for (int i = 0; i < Model.CurrentStates.Count; i++)
+        {
+            <input type="hidden" name="CurrentStates.Index" value="@i" />
+            <input type="hidden" name="CurrentStates[@i]" value="@Model.CurrentStates.ElementAt(i)" />
+        }
+    }
+}
