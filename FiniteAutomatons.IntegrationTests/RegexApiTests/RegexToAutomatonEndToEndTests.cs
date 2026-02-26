@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.ViewModel;
+﻿using FiniteAutomatons.Core.Models.ViewModel;
 using Shouldly;
 using System.Net;
 using System.Text;
@@ -82,7 +82,18 @@ public class RegexToAutomatonEndToEndTests(IntegrationTestsFixture fixture) : In
         // Post to ExecuteAll endpoint
         var form = ToFormContent(model);
         var executeResp = await client.PostAsync("/AutomatonExecution/ExecuteAll", form);
-        executeResp.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var execBody = await executeResp.Content.ReadAsStringAsync();
+        if (executeResp.StatusCode != HttpStatusCode.OK)
+        {
+            try
+            {
+                var path = Path.Combine(Path.GetTempPath(), $"execFail_{Guid.NewGuid()}.html");
+                await File.WriteAllTextAsync(path, execBody);
+                Console.WriteLine($"Wrote failed ExecuteAll response to: {path}");
+            }
+            catch { }
+            throw new Exception($"ExecuteAll failed with status {executeResp.StatusCode}. Response written to temp file if possible.");
+        }
         var html = await executeResp.Content.ReadAsStringAsync();
 
         if (shouldAccept)

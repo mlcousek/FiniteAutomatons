@@ -1,4 +1,4 @@
-using FiniteAutomatons.Controllers;
+﻿using FiniteAutomatons.Controllers;
 using FiniteAutomatons.Core.Models.Database;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -130,6 +130,64 @@ public class UserPreferencesControllerTests
         };
 
         var result = await controller.SavePanelOrderPreferences(request);
+
+        result.ShouldBeOfType<UnauthorizedResult>();
+    }
+
+    [Fact]
+    public async Task GetCanvasWheelPreference_ReturnsEnabledValue()
+    {
+        var user = new ApplicationUser { Id = "u4", UserName = "test", CanvasWheelZoomEnabled = true };
+        var controller = new UserPreferencesController(new TestUserManager(user));
+
+        var httpContext = new DefaultHttpContext();
+        httpContext.User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, user.Id)]));
+        controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
+
+        var result = await controller.GetCanvasWheelPreference();
+
+        var okResult = result.ShouldBeOfType<OkObjectResult>();
+        var value = okResult.Value;
+        bool returnedEnabled = (bool)(value?.GetType()?.GetProperty("enabled")?.GetValue(value, null) ?? false);
+        returnedEnabled.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task SaveCanvasWheelPreference_UpdatesUserAndReturnsOk()
+    {
+        var user = new ApplicationUser { Id = "u5", UserName = "test", CanvasWheelZoomEnabled = false };
+        var controller = new UserPreferencesController(new TestUserManager(user));
+
+        var httpContext = new DefaultHttpContext();
+        httpContext.User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, user.Id)]));
+        controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
+
+        var request = new CanvasWheelRequest
+        {
+            Enabled = true
+        };
+
+        var result = await controller.SaveCanvasWheelPreference(request);
+
+        result.ShouldBeOfType<OkResult>();
+
+        user.CanvasWheelZoomEnabled.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task SaveCanvasWheelPreference_UserNotFound_ReturnsUnauthorized()
+    {
+        var controller = new UserPreferencesController(new TestUserManager(null));
+
+        var httpContext = new DefaultHttpContext();
+        controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
+
+        var request = new CanvasWheelRequest
+        {
+            Enabled = true
+        };
+
+        var result = await controller.SaveCanvasWheelPreference(request);
 
         result.ShouldBeOfType<UnauthorizedResult>();
     }

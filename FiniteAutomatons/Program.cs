@@ -327,7 +327,9 @@ public partial class Program
                     var payload = new
                     {
                         States = enfa.States.Select(s => new { s.Id, s.IsStart, s.IsAccepting }),
-                        Transitions = enfa.Transitions.Select(t => new { t.FromStateId, t.ToStateId, Symbol = t.Symbol == '\0' ? "ε" : t.Symbol.ToString() })
+                        // Use "\\0" as the epsilon marker in test payloads so clients that
+                        // parse form fields using "\\0" will map correctly to internal '\0' char.
+                        Transitions = enfa.Transitions.Select(t => new { t.FromStateId, t.ToStateId, Symbol = t.Symbol == '\0' ? "\\0" : t.Symbol.ToString() })
                     };
                     return Results.Json(payload);
                 }

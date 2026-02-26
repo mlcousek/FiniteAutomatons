@@ -45,7 +45,7 @@
                     @if (Model != null)
                     {
                         @* Alphabet panel moved to partial *@
-                        @await Html.PartialAsync("Partials/_Alphabet", Model)
+                        @await Html.PartialAsync("~/Views/Home/Partials/_Alphabet.cshtml", Model)
 
                         <!-- Source Regex Section (if created from regex) -->
                         @if (!string.IsNullOrWhiteSpace(Model.SourceRegex))
@@ -59,16 +59,16 @@
                         }
 
                         @* States panel moved to partial *@
-                        @await Html.PartialAsync("Partials/_States", Model)
+                        @await Html.PartialAsync("~/Views/Home/Partials/_States.cshtml", Model)
 
                         @* Transitions panel moved to partial *@
-                        @await Html.PartialAsync("Partials/_Transitions", Model)
+                        @await Html.PartialAsync("~/Views/Home/Partials/_Transitions.cshtml", Model)
 
                         @* Minimization mapping moved to partial *@
-                        @await Html.PartialAsync("Partials/_MinimizationReport", Model)
+                        @await Html.PartialAsync("~/Views/Home/Partials/_MinimizationReport.cshtml", Model)
 
                         @* Execution state moved to partial *@
-                        @await Html.PartialAsync("Partials/_ExecutionState", Model)
+                        @await Html.PartialAsync("~/Views/Home/Partials/_ExecutionState.cshtml", Model)
                     }
                     else
                     {
@@ -517,10 +517,10 @@
         </div>
     </form>
     @* Input generation modal moved to partial *@
-    @await Html.PartialAsync("Partials/_GenerateInputModal", Model)
+    @await Html.PartialAsync("~/Views/Home/Partials/_GenerateInputModal.cshtml", Model)
         </div>
             @* Generate automaton modal moved to partial *@
-            @await Html.PartialAsync("Partials/_GenerateModal", Model)
+            @await Html.PartialAsync("~/Views/Home/Partials/_GenerateModal.cshtml", Model)
         @if (User?.Identity?.IsAuthenticated ?? false)
         {
            @*  <div class="control-section"> *@
@@ -535,7 +535,7 @@
                 </div> *@
 
                 @* Save modal moved to partial *@
-                @await Html.PartialAsync("Partials/_SaveAutomatonModal", Model)
+                @await Html.PartialAsync("~/Views/Home/Partials/_SaveAutomatonModal.cshtml", Model)
             @* </div> *@
         }
        @*  <div class="control-section">
@@ -563,7 +563,7 @@
 </div>
  *@
 @* New automaton modal moved to partial *@
-@await Html.PartialAsync("Partials/_NewAutomatonModal", Model)
+@await Html.PartialAsync("~/Views/Home/Partials/_NewAutomatonModal.cshtml", Model)
 
 @section Scripts {
     <script>
