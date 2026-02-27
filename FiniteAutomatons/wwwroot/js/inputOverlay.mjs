@@ -24,11 +24,26 @@ export function init() {
     function getHasExecuted(){ const el = document.querySelector('input[name="HasExecuted"]'); return el ? parseBool(el.value) : false; }
 
     if (input) {
+        function getButtonWidth() {
+            const btn = document.querySelector('[data-generate-input-btn]') || document.getElementById('generateInputModalBtn');
+            if (!btn) return 0;
+            try {
+                const r = btn.getBoundingClientRect();
+                if (r.width && r.width > 0) return r.width;
+            } catch (e) { }
+            const cs = getComputedStyle(btn);
+            return parseFloat(cs.width) || parseFloat(cs.minWidth) || 70;
+        }
+
         function updatePadding() {
             const hasExecuted = getHasExecuted();
             if (hasExecuted) {
-                // when execution started keep the larger right padding to make room for overlay controls
-                input.style.padding = input.value.length > 0 ? '0.75rem 5rem' : '0.75rem 1.25rem';
+                // when execution started keep the larger right padding and include button width
+                const rootFont = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+                const baseRightRem = input.value.length > 0 ? 5 : 1.25; // matches previous behavior
+                const baseRightPx = baseRightRem * rootFont;
+                const btnWidth = getButtonWidth();
+                input.style.padding = `0.75rem ${Math.round(baseRightPx + btnWidth + 20)}px`;
             } else {
                 // when not executing remove inline padding so server-rendered or stylesheet rules take precedence
                 input.style.padding = '';

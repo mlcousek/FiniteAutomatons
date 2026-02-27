@@ -234,58 +234,58 @@
     <!-- Bottom Control Sections -->
     <form asp-controller="Automaton" method="post" id="automatonForm">
         @if (Model != null)
-        {
-            <input type="hidden" asp-for="Type" />
-            <input type="hidden" asp-for="HasExecuted" />
-            <input type="hidden" asp-for="Position" />
-            <input type="hidden" asp-for="CurrentStateId" />
-            <input type="hidden" asp-for="IsAccepted" />
-            <input type="hidden" asp-for="StateHistorySerialized" />
-            <input type="hidden" asp-for="StackSerialized" />
-            <input type="hidden" asp-for="IsCustomAutomaton" />
-            <input type="hidden" name="targetType" id="targetTypeField" />
-            @if (Model.States != null)
             {
-                @for (int i = 0; i < Model.States.Count; i++)
+                <input type="hidden" asp-for="Type" />
+                <input type="hidden" asp-for="HasExecuted" />
+                <input type="hidden" asp-for="Position" />
+                <input type="hidden" asp-for="CurrentStateId" />
+                <input type="hidden" asp-for="IsAccepted" />
+                <input type="hidden" asp-for="StateHistorySerialized" />
+                <input type="hidden" asp-for="StackSerialized" />
+                <input type="hidden" asp-for="IsCustomAutomaton" />
+                <input type="hidden" name="targetType" id="targetTypeField" />
+                @if (Model.States != null)
                 {
-                    <input type="hidden" name="States.Index" value="@i" />
-                    <input type="hidden" name="States[@i].Id" value="@Model.States[i].Id" />
-                    <input type="hidden" name="States[@i].IsStart" value="@Model.States[i].IsStart.ToString().ToLowerInvariant()" />
-                    <input type="hidden" name="States[@i].IsAccepting" value="@Model.States[i].IsAccepting.ToString().ToLowerInvariant()" />
-                }
-            }
-            @if (Model.Transitions != null)
-            {
-                @for (int i = 0; i < Model.Transitions.Count; i++)
-                {
-                    <input type="hidden" name="Transitions.Index" value="@i" />
-                    <input type="hidden" name="Transitions[@i].FromStateId" value="@Model.Transitions[i].FromStateId" />
-                    <input type="hidden" name="Transitions[@i].ToStateId" value="@Model.Transitions[i].ToStateId" />
-                    <input type="hidden" name="Transitions[@i].Symbol" value="@(Model.Transitions[i].Symbol == '\0' ? "\\0" : Model.Transitions[i].Symbol.ToString())" />
-                    @if (Model.Type == AutomatonType.PDA)
+                    @for (int i = 0; i < Model.States.Count; i++)
                     {
-                        if (Model.Transitions[i].StackPop.HasValue)
+                        <input type="hidden" name="States.Index" value="@i" />
+                        <input type="hidden" name="States[@i].Id" value="@Model.States[i].Id" />
+                        <input type="hidden" name="States[@i].IsStart" value="@Model.States[i].IsStart.ToString().ToLowerInvariant()" />
+                        <input type="hidden" name="States[@i].IsAccepting" value="@Model.States[i].IsAccepting.ToString().ToLowerInvariant()" />
+                    }
+                }
+                @if (Model.Transitions != null)
+                {
+                    @for (int i = 0; i < Model.Transitions.Count; i++)
+                    {
+                        <input type="hidden" name="Transitions.Index" value="@i" />
+                        <input type="hidden" name="Transitions[@i].FromStateId" value="@Model.Transitions[i].FromStateId" />
+                        <input type="hidden" name="Transitions[@i].ToStateId" value="@Model.Transitions[i].ToStateId" />
+                        <input type="hidden" name="Transitions[@i].Symbol" value="@(Model.Transitions[i].Symbol == '\0' ? "\\0" : Model.Transitions[i].Symbol.ToString())" />
+                        @if (Model.Type == AutomatonType.PDA)
                         {
-                            var pop = Model.Transitions[i].StackPop!.Value;
-                            var stackPopValue = pop == '\0' ? "\\0" : pop.ToString();
-                            <input type="hidden" name="Transitions[@i].StackPop" value="@stackPopValue" />
-                        }
-                        if (!string.IsNullOrEmpty(Model.Transitions[i].StackPush))
-                        {
-                            <input type="hidden" name="Transitions[@i].StackPush" value="@Model.Transitions[i].StackPush" />
+                            if (Model.Transitions[i].StackPop.HasValue)
+                            {
+                                var pop = Model.Transitions[i].StackPop!.Value;
+                                var stackPopValue = pop == '\0' ? "\\0" : pop.ToString();
+                                <input type="hidden" name="Transitions[@i].StackPop" value="@stackPopValue" />
+                            }
+                            if (!string.IsNullOrEmpty(Model.Transitions[i].StackPush))
+                            {
+                                <input type="hidden" name="Transitions[@i].StackPush" value="@Model.Transitions[i].StackPush" />
+                            }
                         }
                     }
                 }
-            }
-            @if (Model.CurrentStates != null)
-            {
-                @for (int i = 0; i < Model.CurrentStates.Count; i++)
+                @if (Model.CurrentStates != null)
                 {
-                    <input type="hidden" name="CurrentStates.Index" value="@i" />
-                    <input type="hidden" name="CurrentStates[@i]" value="@Model.CurrentStates.ElementAt(i)" />
+                    @for (int i = 0; i < Model.CurrentStates.Count; i++)
+                    {
+                        <input type="hidden" name="CurrentStates.Index" value="@i" />
+                        <input type="hidden" name="CurrentStates[@i]" value="@Model.CurrentStates.ElementAt(i)" />
+                    }
                 }
             }
-        }
 
         <div class="control-sections">
             <div class="bottom-left-controls">
@@ -300,7 +300,7 @@
                                placeholder="Enter input string..."
                                value="@(Model != null ? Model.Input : "")"
                                @(Model != null && Model.HasExecuted ? "readonly" : "") 
-                               style="flex:1; @(hasExecuted ? "padding: 0.75rem 1rem;" : "") border-radius: 6px 0 0 6px; border-right: none;"
+                               style="flex:1; @(hasExecuted ? "padding: 0.75rem 1rem;" : "") @(hasExecuted ? "border-radius: 6px 6px 6px 6px;" : "6px 0 0 6px;") @(!hasExecuted ? "border-right: none;" : "")
                                maxlength="100" />
                             <button id="generateInputModalBtn" type="button"
                                     class="control-btn"
