@@ -379,11 +379,23 @@ gap: 1rem;
 /* Bottom Control Sections */
 .control-sections {
   display: grid;
-  grid-template-columns: 0.9fr 2fr 1.5fr 0.75fr;
+  grid-template-columns: 1fr 5fr;
   gap: 2rem;
   max-width: 1600px;
   margin: 0 auto;
   width: 100%;
+}
+
+.bottom-left-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.bottom-right-controls {
+  display: grid;
+  grid-template-columns: 2fr 1.5fr 0.75fr;
+  gap: 2rem;
 }
 
 .control-section {
@@ -581,8 +593,16 @@ gap: 1rem;
   }
 
   .control-sections {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
     gap: 1.5rem;
+  }
+
+  .bottom-right-controls {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .simulate-section {
+    grid-column: span 2;
   }
 
   .simulate-section {
@@ -608,8 +628,12 @@ font-size: 1.2rem;
     grid-template-columns: 1fr;
   }
 
+  .bottom-right-controls {
+    grid-template-columns: 1fr;
+  }
+
   .simulate-section {
-  grid-column: span 1;
+    grid-column: span 1;
   }
 
   .simulate-buttons {

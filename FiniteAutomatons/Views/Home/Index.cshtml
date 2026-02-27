@@ -288,232 +288,236 @@
         }
 
         <div class="control-sections">
-            <!-- Input Section -->
-            <div class="control-section input-section">
-                <div class="section-header-custom">
-                    <h2>INPUT</h2>
-                </div>
-                <div class="control-content-left">
-                    <div style="position:relative; display:flex; align-items:stretch;">
-                        <input type="text" class="input-field" name="Input" id="inputField"
-                           placeholder="Enter input string..."
-                           value="@(Model != null ? Model.Input : "")"
-                           @(Model != null && Model.HasExecuted ? "readonly" : "") 
-                           style="flex:1; padding: 0.75rem 1rem; border-radius: 6px 0 0 6px; border-right: none;"
-                           maxlength="100" />
-                        <button id="generateInputModalBtn" type="button"
-                                class="control-btn"
-                                style="border-radius: 0 6px 6px 0; padding: 0 1rem; white-space: nowrap; display: @(hasExecuted ? "none" : "flex"); align-items: center; gap: 0.4rem;"
-                                @(Model == null ? "disabled" : "")
-                                title="Generate test input for the automaton"
-                                data-generate-input-btn="true">
-                            <i class="fas fa-keyboard"></i>
-                        </button>
+            <div class="bottom-left-controls">
+                <!-- Input Section -->
+                <div class="control-section input-section">
+                    <div class="section-header-custom">
+                        <h2>INPUT</h2>
+                    </div>
+                    <div class="control-content-left">
+                        <div style="position:relative; display:flex; align-items:stretch;">
+                            <input type="text" class="input-field" name="Input" id="inputField"
+                               placeholder="Enter input string..."
+                               value="@(Model != null ? Model.Input : "")"
+                               @(Model != null && Model.HasExecuted ? "readonly" : "") 
+                               style="flex:1; padding: 0.75rem 1rem; border-radius: 6px 0 0 6px; border-right: none;"
+                               maxlength="100" />
+                            <button id="generateInputModalBtn" type="button"
+                                    class="control-btn"
+                                    style="border-radius: 0 6px 6px 0; padding: 0 1rem; white-space: nowrap; display: @(hasExecuted ? "none" : "flex"); align-items: center; gap: 0.4rem;"
+                                    @(Model == null ? "disabled" : "")
+                                    title="Generate test input for the automaton"
+                                    data-generate-input-btn="true">
+                                <i class="fas fa-keyboard"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
-            </div>
-            
-            @if (Model?.Type == AutomatonType.PDA)
-            {
-            <!-- Initial Stack Section (PDA only) -->
-            <div class="control-section input-section">
-                <div class="section-header-custom">
-                    <h2>INITIAL STACK</h2>
-                </div>
-                <div class="control-content-left">
-                    @{
-                        string stackDisplay = "";
-                        if (!string.IsNullOrEmpty(Model.InitialStackSerialized))
-                        {
-                            try
-                            {
-                                var stackList = System.Text.Json.JsonSerializer.Deserialize<List<char>>(Model.InitialStackSerialized);
-                                if (stackList != null && stackList.Count > 0)
-                                {
-                                    stackDisplay = string.Join(",", stackList);
-                                }
-                            }
-                            catch { /* ignore */ }
-                        }
-                    }
-                    <input type="text" class="input-field" id="initialStackDisplayField"
-                       placeholder="Enter stack symbols (bottom-first, e.g., #,X,Y)..."
-                       value="@stackDisplay"
-                       @(Model.HasExecuted ? "readonly" : "")
-                       style="padding: 0.75rem 3rem;"
-                       maxlength="100"
-                       title="Comma-separated stack symbols, bottom-first (e.g., #,X,Y means # at bottom, Y at top)"
-                       oninput="updateInitialStackSerialized()" />
-                    <input type="hidden" name="InitialStackSerialized" id="initialStackSerialized" value="@Model.InitialStackSerialized" />
-                </div>
-            </div>
-            
-            <!-- Acceptance Mode Section (PDA only) -->
-            <div class="control-section">
-                <div class="section-header-custom">
-                    <h2>ACCEPTANCE MODE</h2>
-                </div>
-                <div class="control-content type-buttons" style="display:flex; flex-wrap:wrap; gap:0.5rem; justify-content:center;">
-                    <select name="AcceptanceMode" id="acceptanceModeSelect" class="modern-input" style="min-width:250px; padding:0.5rem;" @(Model.HasExecuted ? "disabled" : "")>
-                        <option value="0" selected="@(Model.AcceptanceMode == PDAAcceptanceMode.FinalStateAndEmptyStack)">Final State + Empty Stack</option>
-                        <option value="1" selected="@(Model.AcceptanceMode == PDAAcceptanceMode.FinalStateOnly)">Final State Only</option>
-                        <option value="2" selected="@(Model.AcceptanceMode == PDAAcceptanceMode.EmptyStackOnly)">Empty Stack Only</option>
-                    </select>
-                </div>
-            </div>
-            }
-
-            <!-- Simulate Section -->
-            <div class="control-section simulate-section">
-                <div class="section-header-custom">
-                    <h2>SIMULATE</h2>
-                </div>
-                <div class="control-content simulate-buttons">
-                    @* Start / Reset *@
-                    @if (!hasExecuted)
-                    {
-                        <button type="submit" class="control-btn simulate-btn"
-                                asp-controller="AutomatonExecution" asp-action="Start"
-                                title="Start" data-sim-primary="start">
-                            <i class="fas fa-play-circle"></i>
-                            <span>Start</span>
-                        </button>
-                    }
-                    @if (hasExecuted)
-                    {
-                        <button type="submit" class="control-btn simulate-btn"
-                                asp-controller="AutomatonExecution" asp-action="Reset"
-                                title="Reset" data-sim-primary="reset">
-                            <i class="fas fa-undo"></i>
-                            <span>Reset</span>
-                        </button>
-                    }
-
-                    @* BackToStart *@
-                    @if (disableAllUntilStart || atStartPos)
-                    {
-                        <button type="submit" class="control-btn simulate-btn" asp-controller="AutomatonExecution" asp-action="BackToStart" title="Back to start" data-sim-action="backToStart" disabled>
-                            <i class="fas fa-undo"></i>
-                            <span>To start</span>
-                        </button>
-                    }
-                    else
-                    {
-                        <button type="submit" class="control-btn simulate-btn" asp-controller="AutomatonExecution" asp-action="BackToStart" title="Back to start" data-sim-action="backToStart">
-                            <i class="fas fa-undo"></i>
-                            <span>To start</span>
-                        </button>
-                    }
-
-                    @* StepBackward *@
-                    @if (disableAllUntilStart || atStartPos)
-                    {
-                        <button type="submit" class="control-btn simulate-btn" asp-controller="AutomatonExecution" asp-action="StepBackward" title="Step back" data-sim-action="stepBackward" disabled>
-                            <i class="fas fa-step-backward"></i>
-                            <span>Back</span>
-                        </button>
-                    }
-                    else
-                    {
-                        <button type="submit" class="control-btn simulate-btn" asp-controller="AutomatonExecution" asp-action="StepBackward" title="Step back" data-sim-action="stepBackward">
-                            <i class="fas fa-step-backward"></i>
-                            <span>Back</span>
-                        </button>
-                    }
-
-                    @* StepForward *@
-                    @if (disableAllUntilStart || atEndPos)
-                    {
-                        <button type="submit" class="control-btn simulate-btn" asp-controller="AutomatonExecution" asp-action="StepForward" title="Read next" data-sim-action="stepForward" disabled>
-                            <i class="fas fa-step-forward"></i>
-                            <span>Next</span>
-                        </button>
-                    }
-                    else
-                    {
-                        <button type="submit" class="control-btn simulate-btn" asp-controller="AutomatonExecution" asp-action="StepForward" title="Read next" data-sim-action="stepForward">
-                            <i class="fas fa-step-forward"></i>
-                            <span>Next</span>
-                        </button>
-                    }
-
-                    @* ExecuteAll *@
-                    @if (disableAllUntilStart || atEndPos)
-                    {
-                        <button type="submit" class="control-btn simulate-btn" asp-controller="AutomatonExecution" asp-action="ExecuteAll" title="Read all" data-sim-action="executeAll" disabled>
-                            <i class="fas fa-forward"></i>
-                            <span>Read all</span>
-                        </button>
-                    }
-                    else
-                    {
-                        <button type="submit" class="control-btn simulate-btn" asp-controller="AutomatonExecution" asp-action="ExecuteAll" title="Read all" data-sim-action="executeAll">
-                            <i class="fas fa-forward"></i>
-                            <span>Read all</span>
-                        </button>
-                    }
-                </div>
-            </div>
-
-            <!-- Automaton Type Section -->
-            <div class="control-section type-section">
-                <div class="section-header-custom">
-                    <h2>AUTOMATON TYPE</h2>
-                </div>
-                <div class="control-content type-buttons">
-                    <button type="button" class="control-btn type-btn @(Model != null && Model.Type == AutomatonType.DFA ? "active" : "")" data-type="DFA">DFA</button>
-                    <button type="button" class="control-btn type-btn @(Model != null && Model.Type == AutomatonType.NFA ? "active" : "")" data-type="NFA">NFA</button>
-                    <button type="button" class="control-btn type-btn @(Model != null && Model.Type == AutomatonType.EpsilonNFA ? "active" : "")" data-type="EpsilonNFA">ε-NFA</button>
-                    <button type="button" class="control-btn type-btn @(Model != null && Model.Type == AutomatonType.PDA ? "active" : "")" data-type="PDA">PDA</button>
-                </div>
-            </div>
-            @if (Model?.Type == AutomatonType.DFA && analysis != null && analysis.SupportsMinimization)
-            {
-            <!-- Minimalize Section TODO MAKE VISIBLE BUT DISABLED --> 
-            <div class="control-section minimize-section">
-                <div class="section-header-custom">
-                    <h2>MINIMALIZE</h2>
-                </div>
-                <div class="control-content-right">
+                
+                @if (Model?.Type == AutomatonType.PDA)
+                {
+                <!-- Initial Stack Section (PDA only) -->
+                <div class="control-section input-section">
+                    <div class="section-header-custom">
+                        <h2>INITIAL STACK</h2>
+                    </div>
+                    <div class="control-content-left">
                         @{
-                            // Ensure this is evaluated as Razor code so the local variable is available to subsequent Razor logic.
-                        var executionStarted = Model.HasExecuted || Model.Position > 0;
+                            string stackDisplay = "";
+                            if (!string.IsNullOrEmpty(Model.InitialStackSerialized))
+                            {
+                                try
+                                {
+                                    var stackList = System.Text.Json.JsonSerializer.Deserialize<List<char>>(Model.InitialStackSerialized);
+                                    if (stackList != null && stackList.Count > 0)
+                                    {
+                                        stackDisplay = string.Join(",", stackList);
+                                    }
+                                }
+                                catch { /* ignore */ }
+                            }
                         }
-                        @if (analysis.IsMinimal)
+                        <input type="text" class="input-field" id="initialStackDisplayField"
+                           placeholder="Enter stack symbols (bottom-first, e.g., #,X,Y)..."
+                           value="@stackDisplay"
+                           @(Model.HasExecuted ? "readonly" : "")
+                           style="padding: 0.75rem 3rem;"
+                           maxlength="100"
+                           title="Comma-separated stack symbols, bottom-first (e.g., #,X,Y means # at bottom, Y at top)"
+                           oninput="updateInitialStackSerialized()" />
+                        <input type="hidden" name="InitialStackSerialized" id="initialStackSerialized" value="@Model.InitialStackSerialized" />
+                    </div>
+                </div>
+                
+                <!-- Acceptance Mode Section (PDA only) -->
+                <div class="control-section">
+                    <div class="section-header-custom">
+                        <h2>ACCEPTANCE MODE</h2>
+                    </div>
+                    <div class="control-content type-buttons" style="display:flex; flex-wrap:wrap; gap:0.5rem; justify-content:center;">
+                        <select name="AcceptanceMode" id="acceptanceModeSelect" class="modern-input" style="min-width:250px; padding:0.5rem;" @(Model.HasExecuted ? "disabled" : "")>
+                            <option value="0" selected="@(Model.AcceptanceMode == PDAAcceptanceMode.FinalStateAndEmptyStack)">Final State + Empty Stack</option>
+                            <option value="1" selected="@(Model.AcceptanceMode == PDAAcceptanceMode.FinalStateOnly)">Final State Only</option>
+                            <option value="2" selected="@(Model.AcceptanceMode == PDAAcceptanceMode.EmptyStackOnly)">Empty Stack Only</option>
+                        </select>
+                    </div>
+                </div>
+                }
+            </div>
+
+            <div class="bottom-right-controls">
+                <!-- Simulate Section -->
+                <div class="control-section simulate-section">
+                    <div class="section-header-custom">
+                        <h2>SIMULATE</h2>
+                    </div>
+                    <div class="control-content simulate-buttons">
+                        @* Start / Reset *@
+                        @if (!hasExecuted)
                         {
-                            <button type="button" class="control-btn minimize-btn" disabled title="Already minimal">
-                                Minimalize (Already Minimal)
+                            <button type="submit" class="control-btn simulate-btn"
+                                    asp-controller="AutomatonExecution" asp-action="Start"
+                                    title="Start" data-sim-primary="start">
+                                <i class="fas fa-play-circle"></i>
+                                <span>Start</span>
                             </button>
                         }
-                        else if (executionStarted)
+                        @if (hasExecuted)
                         {
-                            <button type="button" class="control-btn minimize-btn" disabled title="Execution started">
-                                Minimalize (Disabled - Execution Started)
+                            <button type="submit" class="control-btn simulate-btn"
+                                    asp-controller="AutomatonExecution" asp-action="Reset"
+                                    title="Reset" data-sim-primary="reset">
+                                <i class="fas fa-undo"></i>
+                                <span>Reset</span>
+                            </button>
+                        }
+
+                        @* BackToStart *@
+                        @if (disableAllUntilStart || atStartPos)
+                        {
+                            <button type="submit" class="control-btn simulate-btn" asp-controller="AutomatonExecution" asp-action="BackToStart" title="Back to start" data-sim-action="backToStart" disabled>
+                                <i class="fas fa-undo"></i>
+                                <span>To start</span>
                             </button>
                         }
                         else
                         {
-                            <button type="submit" class="control-btn minimize-btn"
-                                    asp-controller="AutomatonExecution" asp-action="Minimalize" title="Minimalize DFA">
-                                Minimalize (→ @analysis.MinimizedStateCount)
+                            <button type="submit" class="control-btn simulate-btn" asp-controller="AutomatonExecution" asp-action="BackToStart" title="Back to start" data-sim-action="backToStart">
+                                <i class="fas fa-undo"></i>
+                                <span>To start</span>
                             </button>
-                    }
+                        }
+
+                        @* StepBackward *@
+                        @if (disableAllUntilStart || atStartPos)
+                        {
+                            <button type="submit" class="control-btn simulate-btn" asp-controller="AutomatonExecution" asp-action="StepBackward" title="Step back" data-sim-action="stepBackward" disabled>
+                                <i class="fas fa-step-backward"></i>
+                                <span>Back</span>
+                            </button>
+                        }
+                        else
+                        {
+                            <button type="submit" class="control-btn simulate-btn" asp-controller="AutomatonExecution" asp-action="StepBackward" title="Step back" data-sim-action="stepBackward">
+                                <i class="fas fa-step-backward"></i>
+                                <span>Back</span>
+                            </button>
+                        }
+
+                        @* StepForward *@
+                        @if (disableAllUntilStart || atEndPos)
+                        {
+                            <button type="submit" class="control-btn simulate-btn" asp-controller="AutomatonExecution" asp-action="StepForward" title="Read next" data-sim-action="stepForward" disabled>
+                                <i class="fas fa-step-forward"></i>
+                                <span>Next</span>
+                            </button>
+                        }
+                        else
+                        {
+                            <button type="submit" class="control-btn simulate-btn" asp-controller="AutomatonExecution" asp-action="StepForward" title="Read next" data-sim-action="stepForward">
+                                <i class="fas fa-step-forward"></i>
+                                <span>Next</span>
+                            </button>
+                        }
+
+                        @* ExecuteAll *@
+                        @if (disableAllUntilStart || atEndPos)
+                        {
+                            <button type="submit" class="control-btn simulate-btn" asp-controller="AutomatonExecution" asp-action="ExecuteAll" title="Read all" data-sim-action="executeAll" disabled>
+                                <i class="fas fa-forward"></i>
+                                <span>Read all</span>
+                            </button>
+                        }
+                        else
+                        {
+                            <button type="submit" class="control-btn simulate-btn" asp-controller="AutomatonExecution" asp-action="ExecuteAll" title="Read all" data-sim-action="executeAll">
+                                <i class="fas fa-forward"></i>
+                                <span>Read all</span>
+                            </button>
+                        }
+                    </div>
                 </div>
+
+                <!-- Automaton Type Section -->
+                <div class="control-section type-section">
+                    <div class="section-header-custom">
+                        <h2>AUTOMATON TYPE</h2>
+                    </div>
+                    <div class="control-content type-buttons">
+                        <button type="button" class="control-btn type-btn @(Model != null && Model.Type == AutomatonType.DFA ? "active" : "")" data-type="DFA">DFA</button>
+                        <button type="button" class="control-btn type-btn @(Model != null && Model.Type == AutomatonType.NFA ? "active" : "")" data-type="NFA">NFA</button>
+                        <button type="button" class="control-btn type-btn @(Model != null && Model.Type == AutomatonType.EpsilonNFA ? "active" : "")" data-type="EpsilonNFA">ε-NFA</button>
+                        <button type="button" class="control-btn type-btn @(Model != null && Model.Type == AutomatonType.PDA ? "active" : "")" data-type="PDA">PDA</button>
+                    </div>
+                </div>
+                @if (Model?.Type == AutomatonType.DFA && analysis != null && analysis.SupportsMinimization)
+                {
+                <!-- Minimalize Section TODO MAKE VISIBLE BUT DISABLED --> 
+                <div class="control-section minimize-section">
+                    <div class="section-header-custom">
+                        <h2>MINIMALIZE</h2>
+                    </div>
+                    <div class="control-content-right">
+                            @{
+                                // Ensure this is evaluated as Razor code so the local variable is available to subsequent Razor logic.
+                            var executionStarted = Model.HasExecuted || Model.Position > 0;
+                            }
+                            @if (analysis.IsMinimal)
+                            {
+                                <button type="button" class="control-btn minimize-btn" disabled title="Already minimal">
+                                    Minimalize (Already Minimal)
+                                </button>
+                            }
+                            else if (executionStarted)
+                            {
+                                <button type="button" class="control-btn minimize-btn" disabled title="Execution started">
+                                    Minimalize (Disabled - Execution Started)
+                                </button>
+                            }
+                            else
+                            {
+                                <button type="submit" class="control-btn minimize-btn"
+                                        asp-controller="AutomatonExecution" asp-action="Minimalize" title="Minimalize DFA">
+                                    Minimalize (→ @analysis.MinimizedStateCount)
+                                </button>
+                        }
+                    </div>
+                </div>
+                }
+                else
+                {
+                <div class="control-section minimize-section">
+                    <div class="section-header-custom">
+                        <h2>MINIMALIZE</h2>
+                    </div>
+                    <div class="control-content-right">
+                            <button type="button" class="control-btn minimize-btn" disabled title="Unsupported automaton type">
+                            Minimalize (Disabled - Unsupported automaton type)
+                        </button>
+                    </div>
+                </div>
+                }
             </div>
-            }
-            else
-            {
-            <div class="control-section minimize-section">
-                <div class="section-header-custom">
-                    <h2>MINIMALIZE</h2>
-                </div>
-                <div class="control-content-right">
-                        <button type="button" class="control-btn minimize-btn" disabled title="Unsupported automaton type">
-                        Minimalize (Disabled - Unsupported automaton type)
-                    </button>
-                </div>
-            </div>
-            }
         </div>
     </form>
     @* Input generation modal moved to partial *@
