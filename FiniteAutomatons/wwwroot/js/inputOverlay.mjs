@@ -102,7 +102,8 @@ function createOverlay() {
         const style = document.createElement('style');
         style.id = 'inputOverlayStyles';
         style.textContent = `
-            .input-overlay-wrapper { position: relative; display: inline-block; width: 100%; margin-bottom: 18px; }
+            /* keep wrapper full-width and vertically center the input to match simulate buttons */
+            .input-overlay-wrapper { position: relative; display: flex; align-items: center; width: 100%; margin-bottom: 0; }
             #inputOverlay { overflow: hidden; }
             #inputOverlayInner { display: inline-block; }
             .input-overlay-char { opacity: 0.75; color: #000; display: inline; padding: 0 1px; transition: opacity .15s; }

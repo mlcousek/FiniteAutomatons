@@ -52,16 +52,18 @@
     background: transparent;
     border: 1px solid #dee2e6;
     border-radius: 4px;
-    padding: 8px 12px;
+    /* reduce overall height to ~2/3 of previous values */
+    padding: 6px 9px;
     cursor: pointer;
     transition: all 0.2s ease;
     color: #495057;
-    font-size: 14px;
+    font-size: 13px;
     display: flex;
     align-items: center;
     justify-content: center;
     min-width: 36px;
-    min-height: 36px;
+    min-height: 24px;
+    height: auto;
 }
 
 .graph-controls button:hover {
@@ -81,7 +83,7 @@
 }
 
 .graph-controls button i {
-    font-size: 16px;
+    font-size: 12px;
 }
 
 /* ========================================
@@ -96,7 +98,8 @@
 
 .graph-controls .edit-mode-btn {
     gap: 6px;
-    padding: 8px 14px;
+    /* keep edit/move buttons aligned with reduced overall height */
+    padding: 6px 9px;
     min-width: auto;
     font-weight: 500;
     transition: all 0.3s ease;
@@ -147,7 +150,7 @@
 /* MOVE MODE BUTTON */
 .graph-controls .move-mode-btn {
     gap: 6px;
-    padding: 8px 14px;
+    padding: 6px 9px;
     min-width: auto;
     font-weight: 500;
     transition: all 0.3s ease;
