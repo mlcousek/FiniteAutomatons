@@ -41,15 +41,45 @@
   document.addEventListener('DOMContentLoaded', function(){
     const newBtn = document.getElementById('newAutomatonBtn');
     const modalEl = document.getElementById('newAutomatonModal');
+    const closeBtn = document.getElementById('newAutomatonModalClose');
+
     if (!newBtn || !modalEl) return;
-    const bsModal = new bootstrap.Modal(modalEl, { backdrop: 'static' });
-    newBtn.addEventListener('click', function(){ bsModal.show(); });
+
+    const openModal = () => {
+        modalEl.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        modalEl.offsetHeight; // trigger reflow
+        modalEl.classList.add('modal-open');
+    };
+
+    const closeModal = () => {
+        modalEl.classList.remove('modal-open');
+        setTimeout(() => {
+            modalEl.style.display = 'none';
+            document.body.style.overflow = '';
+        }, 200);
+    };
+
+    newBtn.addEventListener('click', openModal);
+
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeModal);
+    }
+
+    // Close on backdrop click
+    window.addEventListener('click', (e) => { 
+        if (e.target === modalEl) closeModal(); 
+    });
+    
+    // Close on Escape key
+    window.addEventListener('keydown', (e) => { 
+        if (e.key === 'Escape' && modalEl.style.display === 'flex') closeModal(); 
+    });
 
     modalEl.querySelectorAll('.type-select').forEach(btn => {
       btn.addEventListener('click', function(){
         const t = btn.dataset.type;
-        // Proceed without additional browser confirm; modal already shows a warning
-        bsModal.hide();
+        closeModal();
         submitNewAutomaton(t);
       });
     });

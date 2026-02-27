@@ -1,24 +1,48 @@
 ﻿@model AutomatonViewModel
-<div class="modal fade" id="newAutomatonModal" tabindex="-1" aria-labelledby="newAutomatonModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content" style="padding:1rem;">
-      <div class="modal-header">
-        <h5 class="modal-title" id="newAutomatonModalLabel">Create New Automaton</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body p-3">
-        <p class="text-danger"><strong>Warning:</strong> The current automaton on the canvas will be removed. If you haven't saved it, it will be lost.</p>
-        <p>Select which automaton type you want to create. A new automaton with a single starting state will be created.</p>
-        <div class="d-flex gap-2 mt-3">
-          <button type="button" class="btn btn-outline-primary type-select" data-type="DFA">DFA</button>
-          <button type="button" class="btn btn-outline-primary type-select" data-type="NFA">NFA</button>
-          <button type="button" class="btn btn-outline-primary type-select" data-type="EpsilonNFA">ε-NFA</button>
-          <button type="button" class="btn btn-outline-primary type-select" data-type="PDA">PDA</button>
+<div id="newAutomatonModal" class="modal modern-modal" style="display:none;">
+    <div class="modal-content modern-modal-content">
+        <div class="modal-header">
+            <div class="modal-header-content">
+                <i class="fas fa-plus-circle modal-icon"></i>
+                <h3 class="modal-title">Create New Automaton</h3>
+            </div>
+            <button class="modal-close modern-close" id="newAutomatonModalClose" type="button">
+                <i class="fas fa-times"></i>
+            </button>
         </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-      </div>
+
+        <div class="modal-body">
+            <div class="input-section-card">
+                <div class="section-card-header">
+                    <i class="fas fa-exclamation-triangle text-danger"></i>
+                    <h4 class="text-danger">Warning</h4>
+                </div>
+                <div class="section-card-body" style="padding: 1rem;">
+                    <p>The current automaton on the canvas will be removed. If you haven't saved it, it will be lost.</p>
+                    <p>Select which automaton type you want to create. A new automaton with a single starting state will be created.</p>
+                </div>
+            </div>
+
+            <div class="input-section-card">
+                <div class="section-card-header">
+                    <i class="fas fa-sitemap"></i>
+                    <h4>Select Automaton Type</h4>
+                </div>
+                <div class="button-grid-2" style="padding: 1rem;">
+                    <button type="button" class="modern-btn btn-outline type-select" data-type="DFA">
+                        DFA
+                    </button>
+                    <button type="button" class="modern-btn btn-outline type-select" data-type="NFA">
+                        NFA
+                    </button>
+                    <button type="button" class="modern-btn btn-outline type-select" data-type="EpsilonNFA">
+                        ε-NFA
+                    </button>
+                    <button type="button" class="modern-btn btn-outline type-select" data-type="PDA">
+                        PDA
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
 </div>
