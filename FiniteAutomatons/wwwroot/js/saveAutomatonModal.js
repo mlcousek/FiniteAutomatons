@@ -1,4 +1,6 @@
-// Handles opening the save modal and setting save options
+// Handles opening the save modal, dynamically showing/hiding save options based on
+// live input state, syncing live input into the hidden form field, and properly
+// setting saveMode before form submission.
 (function(){
     const openBtn = document.getElementById('openSaveModalBtn');
     const modal = document.getElementById('saveAutomatonModal');
@@ -7,7 +9,57 @@
     const form = document.getElementById('saveAutomatonForm');
     if (!openBtn || !modal) return;
 
+    // ─── Option rows ───────────────────────────────────────────────────────────
+    const structureRow   = document.getElementById('saveOptionStructureRow');
+    const inputRow       = document.getElementById('saveOptionInputRow');
+    const stateRow       = document.getElementById('saveOptionStateRow');
+    const structureHint  = document.getElementById('saveStructureOnlyHint');
+
+    // Server-rendered flag: was execution ever started (model.HasExecuted)?
+    const serverHasExecutedEl = document.getElementById('serverHasExecuted');
+    const serverHasExecuted   = serverHasExecutedEl?.value === 'true';
+
+    // The live input text box on the main page
+    function getLiveInput() {
+        const el = document.getElementById('inputField');
+        return el ? el.value.trim() : '';
+    }
+
+    // ─── Update visibility of save option rows ────────────────────────────────
+    function updateSaveOptions() {
+        const liveInput = getLiveInput();
+        // Also check the hidden field in case input was loaded from server
+        const hiddenInputEl = document.getElementById('saveInputField');
+        const serverInput = hiddenInputEl ? hiddenInputEl.value.trim() : '';
+        const hasInput = liveInput.length > 0 || serverInput.length > 0;
+
+        // Show/hide rows
+        if (inputRow)  inputRow.style.display  = hasInput ? ''       : 'none';
+        if (stateRow)  stateRow.style.display   = serverHasExecuted ? '' : 'none';
+        if (structureHint) structureHint.style.display = (!hasInput && !serverHasExecuted) ? '' : 'none';
+
+        // If the currently checked radio is now hidden, fall back to "structure"
+        const checkedRadio = form ? form.querySelector('input[name="saveMode"]:checked') : null;
+        if (checkedRadio) {
+            const row = checkedRadio.closest('[id^="saveOption"]');
+            if (row && row.style.display === 'none') {
+                const structureRadio = document.getElementById('saveModeStructure');
+                if (structureRadio) structureRadio.checked = true;
+            }
+        }
+    }
+
+    // ─── Open / close ─────────────────────────────────────────────────────────
     const openModal = () => {
+        // Sync live input into hidden field before showing options
+        const liveInput = getLiveInput();
+        const hiddenInputEl = document.getElementById('saveInputField');
+        if (hiddenInputEl && liveInput.length > 0) {
+            hiddenInputEl.value = liveInput;
+        }
+
+        updateSaveOptions();
+
         modal.style.display = 'flex';
         document.body.style.overflow = 'hidden';
         // force reflow for CSS animation
@@ -57,31 +109,57 @@
         }
     });
 
-    // set saveState hidden field based on selected option before submit
+    // ─── Capture starting-state thumbnail ─────────────────────────────────────
+    // Temporarily removes Cytoscape active/current-state classes from nodes,
+    // captures a PNG, then restores the classes.
+    function captureStartStateThumbnail(cy) {
+        // Collect nodes that currently have active-state styling
+        const activeNodes = cy.nodes('.active-state, .current-state, .active-node, .current-node');
+        activeNodes.removeClass('active-state current-state active-node current-node');
+        let dataUrl = null;
+        try {
+            dataUrl = cy.png({ output: 'base64uri', scale: 1.5, full: true, maxWidth: 800, maxHeight: 600, bg: '#ffffff' });
+        } finally {
+            // Always restore
+            activeNodes.forEach(n => {
+                // Re-add whichever classes it originally had (we removed all, so restore all)
+                n.addClass('active-state current-state');
+            });
+        }
+        return dataUrl;
+    }
+
+    // ─── Before submit: set saveState + capture canvas ────────────────────────
     form?.addEventListener('submit', function(e){
-        // Prefer checked radio (when options shown), fallback to any input named saveMode (hidden input)
-        let modeEl = form.querySelector('input[name="saveMode"]:checked');
-        if (!modeEl) modeEl = form.querySelector('input[name="saveMode"]');
-        const mode = modeEl?.value;
-        const saveStateField = document.getElementById('saveStateField');
-        if (mode === 'state' || mode === 'input') {
-            saveStateField.value = 'true';
-        } else {
-            saveStateField.value = 'false';
+        // Sync live input value one more time
+        const liveInput = getLiveInput();
+        const hiddenInputEl = document.getElementById('saveInputField');
+        if (hiddenInputEl && liveInput.length > 0) {
+            hiddenInputEl.value = liveInput;
         }
 
-        // Capture current Cytoscape node positions and write them to the hidden layoutJson field,
-        // and capture a PNG thumbnail and write it to the thumbnailBase64 field.
+        // Determine selected save mode
+        let modeEl = form.querySelector('input[name="saveMode"]:checked');
+        if (!modeEl) modeEl = form.querySelector('input[name="saveMode"]');
+        const mode = modeEl?.value ?? 'structure';
+
+        // saveState hidden field for backward-compat path (only true for full state)
+        const saveStateField = document.getElementById('saveStateField');
+        if (saveStateField) {
+            saveStateField.value = (mode === 'state') ? 'true' : 'false';
+        }
+
+        // Capture canvas layout + thumbnail
         try {
             const layoutJsonField = document.getElementById('saveLayoutJsonField');
-            const thumbnailField = document.getElementById('saveThumbnailField');
+            const thumbnailField  = document.getElementById('saveThumbnailField');
 
             if (typeof window.getCanvasInstance === 'function') {
                 const canvasInstance = window.getCanvasInstance();
                 const cy = canvasInstance?.getCytoscapeInstance?.();
 
                 if (cy) {
-                    // --- Layout positions ---
+                    // --- Layout positions (always) ---
                     if (layoutJsonField) {
                         const positions = {};
                         cy.nodes().forEach(node => {
@@ -95,12 +173,21 @@
                         }
                     }
 
-                    // --- PNG thumbnail (white background) ---
+                    // --- Thumbnail: for "input only", show automaton in start state ---
                     if (thumbnailField) {
                         try {
-                            const dataUrl = cy.png({ output: 'base64uri', scale: 1.5, full: true, maxWidth: 800, maxHeight: 600, bg: '#ffffff' });
-                            const base64 = dataUrl.startsWith('data:') ? dataUrl.split(',')[1] : dataUrl;
-                            if (base64) thumbnailField.value = base64;
+                            let dataUrl;
+                            if (mode === 'input') {
+                                // Capture with visual reset to start state
+                                dataUrl = captureStartStateThumbnail(cy);
+                            } else {
+                                // Capture current visual state
+                                dataUrl = cy.png({ output: 'base64uri', scale: 1.5, full: true, maxWidth: 800, maxHeight: 600, bg: '#ffffff' });
+                            }
+                            if (dataUrl) {
+                                const base64 = dataUrl.startsWith('data:') ? dataUrl.split(',')[1] : dataUrl;
+                                if (base64) thumbnailField.value = base64;
+                            }
                         } catch (imgErr) {
                             console.warn('Could not capture thumbnail:', imgErr);
                         }

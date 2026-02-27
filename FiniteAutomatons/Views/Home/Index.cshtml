@@ -299,8 +299,8 @@
                             <input type="text" class="input-field" name="Input" id="inputField"
                                placeholder="Enter input string..."
                                value="@(Model != null ? Model.Input : "")"
-                               @(Model != null && Model.HasExecuted ? "readonly" : "") 
-                               style="flex:1; @(hasExecuted ? "padding: 0.75rem 1rem;" : "") @(hasExecuted ? "border-radius: 6px 6px 6px 6px;" : "6px 0 0 6px;") @(!hasExecuted ? "border-right: none;" : "")
+                               @(Model != null && Model.HasExecuted ? "readonly" : "")
+                               style="flex:1; @(hasExecuted ? "padding: 0.75rem 1rem; border-radius: 6px;" : "padding: 0.75rem 1rem; border-radius: 6px 0 0 6px; border-right: none;")"
                                maxlength="100" />
                             <button id="generateInputModalBtn" type="button"
                                     class="control-btn"

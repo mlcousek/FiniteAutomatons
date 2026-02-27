@@ -366,6 +366,7 @@ public class SharedAutomatonController(
                             model.IsAccepted = exec.IsAccepted;
                             model.StateHistorySerialized = exec.StateHistorySerialized ?? string.Empty;
                             model.StackSerialized = exec.StackSerialized;
+                            model.HasExecuted = true;
                         }
                     }
                 }

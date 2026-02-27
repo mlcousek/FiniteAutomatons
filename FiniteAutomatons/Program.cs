@@ -110,7 +110,18 @@ public partial class Program
         builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connectionString));
         builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
-        builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
+        builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
+        {
+            // Keep existing requirement for confirmed account
+            options.SignIn.RequireConfirmedAccount = true;
+
+            // Password policy: require uppercase, lowercase and digit only (no special characters required)
+            options.Password.RequireUppercase = true;
+            options.Password.RequireLowercase = true;
+            options.Password.RequireDigit = true;
+            options.Password.RequireNonAlphanumeric = false;
+            // Keep other defaults (e.g. RequiredLength) unless you want to change them here
+        })
             .AddEntityFrameworkStores<ApplicationDbContext>();
 
         // MVC and filters

@@ -129,7 +129,7 @@ public class SavedAutomatonController(
     }
 
     [HttpPost]
-    public async Task<IActionResult> Save([FromForm] AutomatonViewModel model, string name, string? description, bool saveState = false, string? layoutJson = null, string? thumbnailBase64 = null)
+    public async Task<IActionResult> Save([FromForm] AutomatonViewModel model, string name, string? description, bool saveState = false, string? saveMode = null, string? layoutJson = null, string? thumbnailBase64 = null)
     {
         var user = await userManager.GetUserAsync(User);
         if (user == null) return Challenge();
@@ -139,7 +139,45 @@ public class SavedAutomatonController(
             return View("CreateAutomaton", model);
         }
 
-        _ = await savedAutomatonService.SaveAsync(user.Id, name.Trim(), string.IsNullOrWhiteSpace(description) ? null : description.Trim(), model, saveState, layoutJson: layoutJson, thumbnailBase64: thumbnailBase64);
+        // Determine whether to persist execution state based on saveMode string (preferred)
+        // or fall back to saveState bool for backward compatibility.
+        bool saveExecutionState;
+        if (!string.IsNullOrWhiteSpace(saveMode))
+        {
+            saveExecutionState = string.Equals(saveMode, "state", StringComparison.OrdinalIgnoreCase);
+
+            if (string.Equals(saveMode, "input", StringComparison.OrdinalIgnoreCase))
+            {
+                // Saving input only – strip all execution-state fields so they are never stored
+                // even if the browser form posted them (e.g. mid-execution save).
+                model.Position = 0;
+                model.CurrentStateId = null;
+                model.CurrentStates = null;
+                model.IsAccepted = null;
+                model.StateHistorySerialized = string.Empty;
+                model.StackSerialized = null;
+                model.HasExecuted = false;
+            }
+            else if (string.Equals(saveMode, "structure", StringComparison.OrdinalIgnoreCase))
+            {
+                // Structure only – strip input and all execution state
+                model.Input = string.Empty;
+                model.Position = 0;
+                model.CurrentStateId = null;
+                model.CurrentStates = null;
+                model.IsAccepted = null;
+                model.StateHistorySerialized = string.Empty;
+                model.StackSerialized = null;
+                model.HasExecuted = false;
+            }
+        }
+        else
+        {
+            // Backward-compatible path (no saveMode sent)
+            saveExecutionState = saveState;
+        }
+
+        _ = await savedAutomatonService.SaveAsync(user.Id, name.Trim(), string.IsNullOrWhiteSpace(description) ? null : description.Trim(), model, saveExecutionState, layoutJson: layoutJson, thumbnailBase64: thumbnailBase64);
         TempData["ConversionMessage"] = "Automaton saved successfully.";
         return RedirectToAction("Index");
     }
@@ -187,6 +225,7 @@ public class SavedAutomatonController(
                             model.IsAccepted = exec.IsAccepted;
                             model.StateHistorySerialized = exec.StateHistorySerialized ?? string.Empty;
                             model.StackSerialized = exec.StackSerialized;
+                            model.HasExecuted = true;
                         }
                     }
                 }

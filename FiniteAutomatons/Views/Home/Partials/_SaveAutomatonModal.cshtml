@@ -23,42 +23,28 @@
                     <input type="text" name="description" class="modern-input" maxlength="500" />
                 </div>
 
-                @{ 
-                    // Determine available save options based on execution/input state
+                @{
+                    // Whether execution has ever been started (server-rendered initial flag for JS)
                     var executionStarted = Model?.HasExecuted ?? false;
-                    var hasInput = !string.IsNullOrEmpty(Model?.Input);
                 }
-                <div class="form-group">
+                <div class="form-group" id="saveOptionsGroup">
                     <label class="form-label">Save Options</label>
 
-                    @if (!executionStarted && !hasInput)
-                    {
-                        // No input and execution not started - only structure makes sense
-                        <input type="hidden" name="saveMode" value="structure" />
-                        <div class="form-hint">Only automaton structure will be saved (no input/execution state present).</div>
-                    }
-                    else if (!executionStarted && hasInput)
-                    {
-                        <div>
-                            <label><input type="radio" name="saveMode" value="structure" checked /> Automaton only</label>
-                        </div>
-                        <div>
-                            <label><input type="radio" name="saveMode" value="input" /> Include input</label>
-                        </div>
-                    }
-                    else
-                    {
-                        <div>
-                            <label><input type="radio" name="saveMode" value="structure" checked /> Automaton only</label>
-                        </div>
-                        <div>
-                            <label><input type="radio" name="saveMode" value="input" /> Include input</label>
-                        </div>
-                        <div>
-                            <label><input type="radio" name="saveMode" value="state" /> Include execution state</label>
-                        </div>
-                    }
+                    <!-- Always render all three options; JS controls visibility -->
+                    <div id="saveOptionStructureRow">
+                        <label><input type="radio" name="saveMode" value="structure" id="saveModeStructure" checked /> Automaton only</label>
+                    </div>
+                    <div id="saveOptionInputRow" style="display:none;">
+                        <label><input type="radio" name="saveMode" value="input" id="saveModeInput" /> Include input</label>
+                    </div>
+                    <div id="saveOptionStateRow" style="display:none;">
+                        <label><input type="radio" name="saveMode" value="state" id="saveModeState" /> Include execution state</label>
+                    </div>
+                    <!-- Hint shown when only structure is possible (no input, no state) -->
+                    <div id="saveStructureOnlyHint" class="form-hint" style="display:none;">Only automaton structure will be saved (no input/execution state present).</div>
                 </div>
+                <!-- JS uses this data attribute as the initial server-side HasExecuted value -->
+                <input type="hidden" id="serverHasExecuted" value="@executionStarted.ToString().ToLowerInvariant()" />
 
                 @{ 
                     // render hidden automaton fields (duplicate of export helper)

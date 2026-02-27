@@ -38,11 +38,26 @@ public class SavedAutomatonController_SaveForwardingTests
     {
         public string? LastLayoutJson;
         public string? LastThumbnailBase64;
+        public bool LastSaveExecutionState;
+        public AutomatonViewModel? LastModel;
 
         public Task<SavedAutomaton> SaveAsync(string userId, string name, string? description, AutomatonViewModel model, bool saveExecutionState = false, int? groupId = null, string? layoutJson = null, string? thumbnailBase64 = null)
         {
             LastLayoutJson = layoutJson;
             LastThumbnailBase64 = thumbnailBase64;
+            LastSaveExecutionState = saveExecutionState;
+            // Deep-copy the relevant fields so assertions see the sanitized values
+            LastModel = new AutomatonViewModel
+            {
+                Input = model.Input,
+                HasExecuted = model.HasExecuted,
+                Position = model.Position,
+                CurrentStateId = model.CurrentStateId,
+                CurrentStates = model.CurrentStates,
+                IsAccepted = model.IsAccepted,
+                StateHistorySerialized = model.StateHistorySerialized,
+                StackSerialized = model.StackSerialized,
+            };
             var e = new SavedAutomaton { Id = 1, UserId = userId, Name = name, ContentJson = "{}", SaveMode = AutomatonSaveMode.Structure, LayoutJson = layoutJson, ThumbnailBase64 = thumbnailBase64 };
             return Task.FromResult(e);
         }
@@ -118,5 +133,119 @@ public class SavedAutomatonController_SaveForwardingTests
         result.ShouldNotBeNull();
         savedSvc.LastLayoutJson.ShouldBe(layout);
         savedSvc.LastThumbnailBase64.ShouldBe(thumb);
+    }
+
+    // ─── Helper to create a fully wired-up controller ────────────────────────
+    private static (SavedAutomatonController controller, RecordingSavedAutomatonService savedSvc) BuildController()
+    {
+        var user = new ApplicationUser { Id = "u-save" };
+        var savedSvc = new RecordingSavedAutomatonService();
+        var sharedSvc = new SimpleSharedAutomatonService();
+        var tempDataSvc = new MockAutomatonTempDataService();
+        var fileSvc = new MockAutomatonFileService();
+        var userManager = new TestUserManager(user);
+
+        var controller = new SavedAutomatonController(savedSvc, sharedSvc, tempDataSvc, fileSvc, userManager);
+        var httpContext = new DefaultHttpContext();
+        controller.ControllerContext = new Microsoft.AspNetCore.Mvc.ControllerContext { HttpContext = httpContext };
+        controller.TempData = new TempDataDictionary(httpContext, new TestTempDataProvider());
+        httpContext.User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, user.Id) }));
+
+        return (controller, savedSvc);
+    }
+
+    [Fact]
+    public async Task Save_SaveMode_Input_ClearsExecutionStateFields()
+    {
+        // Arrange – model with both input AND execution state set (simulates mid-execution save)
+        var (controller, savedSvc) = BuildController();
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.DFA,
+            Input = "abc",
+            HasExecuted = true,
+            Position = 2,
+            CurrentStateId = 5,
+            IsAccepted = false,
+            StateHistorySerialized = "some-history",
+            StackSerialized = "stack"
+        };
+
+        // Act – user chooses "input only"
+        await controller.Save(model, "TestInput", null, saveMode: "input");
+
+        // Assert – saveExecutionState must be false
+        savedSvc.LastSaveExecutionState.ShouldBe(false);
+
+        // Assert – execution-state fields must be zeroed out on the model passed to the service
+        var saved = savedSvc.LastModel;
+        saved.ShouldNotBeNull();
+        saved!.Input.ShouldBe("abc");          // input must still be present
+        saved.HasExecuted.ShouldBe(false);     // reset
+        saved.Position.ShouldBe(0);
+        saved.CurrentStateId.ShouldBeNull();
+        saved.IsAccepted.ShouldBeNull();
+        saved.StateHistorySerialized.ShouldBe(string.Empty);
+        saved.StackSerialized.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Save_SaveMode_State_PreservesExecutionState()
+    {
+        // Arrange
+        var (controller, savedSvc) = BuildController();
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.DFA,
+            Input = "abc",
+            HasExecuted = true,
+            Position = 2,
+            CurrentStateId = 5,
+            IsAccepted = false,
+            StateHistorySerialized = "some-history"
+        };
+
+        // Act – user chooses "include execution state"
+        await controller.Save(model, "TestState", null, saveMode: "state");
+
+        // Assert – saveExecutionState must be true; state fields preserved
+        savedSvc.LastSaveExecutionState.ShouldBe(true);
+        var saved = savedSvc.LastModel;
+        saved.ShouldNotBeNull();
+        saved!.Input.ShouldBe("abc");
+        saved.Position.ShouldBe(2);
+        saved.CurrentStateId.ShouldBe(5);
+        saved.StateHistorySerialized.ShouldBe("some-history");
+    }
+
+    [Fact]
+    public async Task Save_SaveMode_Structure_ClearsInputAndState()
+    {
+        // Arrange
+        var (controller, savedSvc) = BuildController();
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.DFA,
+            Input = "abc",
+            HasExecuted = true,
+            Position = 2,
+            CurrentStateId = 5,
+            IsAccepted = true,
+            StateHistorySerialized = "history"
+        };
+
+        // Act – user chooses "automaton only"
+        await controller.Save(model, "TestStructure", null, saveMode: "structure");
+
+        // Assert – saveExecutionState false; input and state stripped
+        savedSvc.LastSaveExecutionState.ShouldBe(false);
+        var saved = savedSvc.LastModel;
+        saved.ShouldNotBeNull();
+        saved!.Input.ShouldBe(string.Empty);
+        saved.HasExecuted.ShouldBe(false);
+        saved.Position.ShouldBe(0);
+        saved.CurrentStateId.ShouldBeNull();
+        saved.IsAccepted.ShouldBeNull();
+        saved.StateHistorySerialized.ShouldBe(string.Empty);
     }
 }
