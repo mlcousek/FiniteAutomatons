@@ -17,14 +17,28 @@ export function init() {
         createOverlay();
     }
 
-    // Dynamic padding for inputField
+    // Dynamic padding for inputField - only apply padding when execution has started
     const input = document.getElementById('inputField');
+    // helper to parse boolean-like hidden inputs
+    function parseBool(val){ if (val === undefined || val === null) return false; return String(val).toLowerCase() === 'true'; }
+    function getHasExecuted(){ const el = document.querySelector('input[name="HasExecuted"]'); return el ? parseBool(el.value) : false; }
+
     if (input) {
         function updatePadding() {
-            input.style.padding = input.value.length > 0 ? '0.75rem 5rem' : '0.75rem 1.25rem';
+            const hasExecuted = getHasExecuted();
+            if (hasExecuted) {
+                // when execution started keep the larger right padding to make room for overlay controls
+                input.style.padding = input.value.length > 0 ? '0.75rem 5rem' : '0.75rem 1.25rem';
+            } else {
+                // when not executing remove inline padding so server-rendered or stylesheet rules take precedence
+                input.style.padding = '';
+            }
         }
+
         input.addEventListener('input', updatePadding);
+        // Also update when execution state changes — polling is cheap and reliable across postbacks
         updatePadding();
+        setInterval(updatePadding, 400);
     }
 }
 
@@ -115,6 +129,14 @@ function createOverlay() {
     }
 
     attachInputHandlers();
+}
+
+// Auto-init when module is loaded so the scrollbar/overlay is available
+// even if no other script explicitly calls `init()`.
+try {
+    init();
+} catch (e) {
+    // ignore in environments where automatic init is undesirable
 }
 
 export function show() { 

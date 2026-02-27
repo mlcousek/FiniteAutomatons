@@ -300,7 +300,7 @@
                                placeholder="Enter input string..."
                                value="@(Model != null ? Model.Input : "")"
                                @(Model != null && Model.HasExecuted ? "readonly" : "") 
-                               style="flex:1; padding: 0.75rem 1rem; border-radius: 6px 0 0 6px; border-right: none;"
+                               style="flex:1; @(hasExecuted ? "padding: 0.75rem 1rem;" : "") border-radius: 6px 0 0 6px; border-right: none;"
                                maxlength="100" />
                             <button id="generateInputModalBtn" type="button"
                                     class="control-btn"
