@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.Database;
+﻿using FiniteAutomatons.Core.Models.Database;
 using FiniteAutomatons.Core.Models.DTOs;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Services;
@@ -1046,13 +1046,13 @@ public class AutomatonFileServiceGroupTests
         exported!.Automatons.Count.ShouldBe(10);
 
         // Verify structure automatons
-        foreach (var auto in exported.Automatons.Where(a => a.Name!.Contains("0") || a.Name!.Contains("3") || a.Name!.Contains("6") || a.Name!.Contains("9")))
+        foreach (var auto in exported.Automatons.Where(a => a.Name!.Contains('0') || a.Name!.Contains('3') || a.Name!.Contains('6') || a.Name!.Contains('9')))
         {
             auto.ExecutionState.ShouldBeNull();
         }
 
         // Verify input automatons
-        foreach (var auto in exported.Automatons.Where(a => a.Name!.Contains("1") || a.Name!.Contains("4") || a.Name!.Contains("7")))
+        foreach (var auto in exported.Automatons.Where(a => a.Name!.Contains('1') || a.Name!.Contains('4') || a.Name!.Contains('7')))
         {
             auto.ExecutionState.ShouldNotBeNull();
             auto.ExecutionState!.Position.ShouldBe(0);
@@ -1060,7 +1060,7 @@ public class AutomatonFileServiceGroupTests
         }
 
         // Verify state automatons  
-        foreach (var auto in exported.Automatons.Where(a => a.Name!.Contains("2") || a.Name!.Contains("5") || a.Name!.Contains("8")))
+        foreach (var auto in exported.Automatons.Where(a => a.Name!.Contains('2') || a.Name!.Contains('5') || a.Name!.Contains('8')))
         {
             auto.HasExecutionState.ShouldBeTrue();
             auto.ExecutionState.ShouldNotBeNull();
@@ -1070,4 +1070,3 @@ public class AutomatonFileServiceGroupTests
 
     #endregion
 }
-

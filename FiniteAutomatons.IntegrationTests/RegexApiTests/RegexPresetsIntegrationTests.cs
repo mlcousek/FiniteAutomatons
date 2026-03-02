@@ -6,10 +6,6 @@ using System.Text.Json;
 
 namespace FiniteAutomatons.IntegrationTests.RegexApiTests;
 
-/// <summary>
-/// End-to-end integration tests validating that regex presets work correctly
-/// through the entire application stack (API ? Service ? Automaton ? Execution).
-/// </summary>
 [Collection("Integration Tests")]
 public class RegexPresetsIntegrationTests(IntegrationTestsFixture fixture) : IntegrationTestsBase(fixture)
 {

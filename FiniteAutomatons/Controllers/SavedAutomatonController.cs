@@ -139,8 +139,6 @@ public class SavedAutomatonController(
             return View("CreateAutomaton", model);
         }
 
-        // Determine whether to persist execution state based on saveMode string (preferred)
-        // or fall back to saveState bool for backward compatibility.
         bool saveExecutionState;
         if (!string.IsNullOrWhiteSpace(saveMode))
         {
@@ -148,8 +146,6 @@ public class SavedAutomatonController(
 
             if (string.Equals(saveMode, "input", StringComparison.OrdinalIgnoreCase))
             {
-                // Saving input only – strip all execution-state fields so they are never stored
-                // even if the browser form posted them (e.g. mid-execution save).
                 model.Position = 0;
                 model.CurrentStateId = null;
                 model.CurrentStates = null;

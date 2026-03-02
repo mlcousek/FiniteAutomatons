@@ -1,5 +1,4 @@
-using FiniteAutomatons.Core.Models.DoMain;
-using FiniteAutomatons.Core.Models.ViewModel;
+﻿using FiniteAutomatons.Core.Models.ViewModel;
 using Shouldly;
 
 namespace FiniteAutomatons.UnitTests.ViewModels;
@@ -28,7 +27,7 @@ public class ButtonStateLogicTests
                                  (model.Type == AutomatonType.DFA && model.CurrentStateId != null) ||
                                  (model.Type != AutomatonType.DFA && model.CurrentStates != null && model.CurrentStates.Count != 0);
         bool isAtEnd = hasInput && model.Position >= model.Input.Length;
-        
+
         bool isInputValid = true;
         if (hasInput && model.Alphabet != null && model.Alphabet.Any())
         {
@@ -39,13 +38,13 @@ public class ButtonStateLogicTests
         bool canExecuteAll = hasInput && isInputValid && !isAtEnd && model.Result != false;
         bool canStepBackward = !isAtFirstPosition && isInputValid;
         bool canBackToStart = hasExecutionStarted && isInputValid;
-        bool canReset = hasExecutionStarted; 
+        bool canReset = hasExecutionStarted;
 
         canStepForward.ShouldBeFalse();
         canExecuteAll.ShouldBeFalse();
         canStepBackward.ShouldBeFalse();
         canBackToStart.ShouldBeFalse();
-        canReset.ShouldBeFalse(); 
+        canReset.ShouldBeFalse();
     }
 
     [Fact]
@@ -71,9 +70,9 @@ public class ButtonStateLogicTests
         bool isAtFirstPosition = model.Position == 0;
         bool hasExecutionStarted = model.Position > 0 || model.Result != null ||
                                  (model.Type == AutomatonType.DFA && model.CurrentStateId != null) ||
-                                 (model.Type != AutomatonType.DFA && model.CurrentStates != null && model.CurrentStates.Any());
+                                 (model.Type != AutomatonType.DFA && model.CurrentStates != null && model.CurrentStates.Count != 0);
         bool isAtEnd = hasInput && model.Position >= model.Input.Length;
-        
+
         bool isInputValid = true;
         if (hasInput && model.Alphabet.Any())
         {
@@ -117,9 +116,9 @@ public class ButtonStateLogicTests
         bool isAtFirstPosition = model.Position == 0;
         bool hasExecutionStarted = model.Position > 0 || model.Result != null ||
                                  (model.Type == AutomatonType.DFA && model.CurrentStateId != null) ||
-                                 (model.Type != AutomatonType.DFA && model.CurrentStates != null && model.CurrentStates.Any());
+                                 (model.Type != AutomatonType.DFA && model.CurrentStates != null && model.CurrentStates.Count != 0);
         bool isAtEnd = hasInput && model.Position >= model.Input.Length;
-        
+
         bool isInputValid = true;
         if (hasInput && model.Alphabet.Any())
         {
@@ -164,9 +163,9 @@ public class ButtonStateLogicTests
         bool isAtFirstPosition = model.Position == 0;
         bool hasExecutionStarted = model.Position > 0 || model.Result != null ||
                                  (model.Type == AutomatonType.DFA && model.CurrentStateId != null) ||
-                                 (model.Type != AutomatonType.DFA && model.CurrentStates != null && model.CurrentStates.Any());
+                                 (model.Type != AutomatonType.DFA && model.CurrentStates != null && model.CurrentStates.Count != 0);
         bool isAtEnd = hasInput && model.Position >= model.Input.Length;
-        
+
         bool isInputValid = true;
         if (hasInput && model.Alphabet.Any())
         {
@@ -211,9 +210,9 @@ public class ButtonStateLogicTests
         bool isAtFirstPosition = model.Position == 0;
         bool hasExecutionStarted = model.Position > 0 || model.Result != null ||
                                  (model.Type == AutomatonType.DFA && model.CurrentStateId != null) ||
-                                 (model.Type != AutomatonType.DFA && model.CurrentStates != null && model.CurrentStates.Any());
+                                 (model.Type != AutomatonType.DFA && model.CurrentStates != null && model.CurrentStates.Count != 0);
         bool isAtEnd = hasInput && model.Position >= model.Input.Length;
-        
+
         bool isInputValid = true;
         if (hasInput && model.Alphabet.Any())
         {
@@ -258,9 +257,9 @@ public class ButtonStateLogicTests
         bool isAtFirstPosition = model.Position == 0;
         bool hasExecutionStarted = model.Position > 0 || model.Result != null ||
                                  (model.Type == AutomatonType.DFA && model.CurrentStateId != null) ||
-                                 (model.Type != AutomatonType.DFA && model.CurrentStates != null && model.CurrentStates.Any());
+                                 (model.Type != AutomatonType.DFA && model.CurrentStates != null && model.CurrentStates.Count != 0);
         bool isAtEnd = hasInput && model.Position >= model.Input.Length;
-        
+
         bool isInputValid = true;
         if (hasInput && model.Alphabet.Any())
         {

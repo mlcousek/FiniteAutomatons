@@ -1,4 +1,4 @@
-using FiniteAutomatons.Observability;
+﻿using FiniteAutomatons.Observability;
 using Shouldly;
 using System.Diagnostics;
 

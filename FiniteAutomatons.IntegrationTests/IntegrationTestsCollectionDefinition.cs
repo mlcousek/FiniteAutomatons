@@ -1,4 +1,4 @@
-namespace FiniteAutomatons.IntegrationTests;
+﻿namespace FiniteAutomatons.IntegrationTests;
 
 [CollectionDefinition(CollectionName, DisableParallelization = false)]
 public class IntegrationTestCollectionDefinition : ICollectionFixture<IntegrationTestsFixture>

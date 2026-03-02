@@ -33,7 +33,6 @@ public class RegexController : Controller
     // GET: Regex to Automaton UI (development/testing helper)
     public IActionResult RegexToAutomaton()
     {
-        // Note: the backend endpoint used by this UI is available only in Development environment
         return View();
     }
 
@@ -53,8 +52,8 @@ public class RegexController : Controller
             var model = new AutomatonViewModel
             {
                 Type = AutomatonType.EpsilonNFA,
-                States = enfa.States.Select(s => new State { Id = s.Id, IsStart = s.IsStart, IsAccepting = s.IsAccepting }).ToList(),
-                Transitions = enfa.Transitions.Select(t => new Transition { FromStateId = t.FromStateId, ToStateId = t.ToStateId, Symbol = t.Symbol }).ToList(),
+                States = [.. enfa.States.Select(s => new State { Id = s.Id, IsStart = s.IsStart, IsAccepting = s.IsAccepting })],
+                Transitions = [.. enfa.Transitions.Select(t => new Transition { FromStateId = t.FromStateId, ToStateId = t.ToStateId, Symbol = t.Symbol })],
                 IsCustomAutomaton = true,
                 Input = string.Empty,
                 SourceRegex = regex.Trim()

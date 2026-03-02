@@ -1,4 +1,4 @@
-using FiniteAutomatons.Observability;
+﻿using FiniteAutomatons.Observability;
 using Shouldly;
 using System.Text.Json;
 
@@ -65,16 +65,13 @@ public class ObservabilityTests
         calls.Count(c => c.eventType == "MethodError").ShouldBe(1);
     }
 
-    private sealed class TestAudit : IAuditService
+    private sealed class TestAudit(List<(string eventType, string message)> calls) : IAuditService
     {
-        private readonly List<(string eventType, string message)> _calls;
-        public TestAudit(List<(string eventType, string message)> calls)
-        {
-            _calls = calls;
-        }
+        private readonly List<(string eventType, string message)> calls = calls;
+
         public Task AuditAsync(string eventType, string message, IDictionary<string, string?>? data = null)
         {
-            _calls.Add((eventType, message));
+            calls.Add((eventType, message));
             return Task.CompletedTask;
         }
     }

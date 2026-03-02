@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.ViewModel;
+﻿using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Services;
 using Shouldly;
 
@@ -213,7 +213,7 @@ public class AutomatonGeneratorServiceTests
 
         // Ensure determinism: no two transitions share the same (FromStateId, Symbol, StackPop)
         var duplicates = result.Transitions
-            .GroupBy(x => (x.FromStateId, x.Symbol, Pop: x.StackPop.HasValue ? x.StackPop.Value : (char?)null))
+            .GroupBy(x => (x.FromStateId, x.Symbol, Pop: x.StackPop ?? null))
             .Where(g => g.Count() > 1)
             .ToList();
 

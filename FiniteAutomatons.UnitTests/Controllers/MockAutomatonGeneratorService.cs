@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.DoMain;
+﻿using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Interfaces;
@@ -49,11 +49,7 @@ public class MockAutomatonGeneratorService : IAutomatonGeneratorService
     public AutomatonViewModel GenerateRealisticAutomaton(
         AutomatonType type,
         int stateCount,
-        int? seed = null,
-        int minAlphabetSize = 3,
-        int maxAlphabetSize = 6,
-        double minAcceptingRatio = 0.2,
-        double maxAcceptingRatio = 0.5)
+        int? seed = null)
     {
         return GenerateRandomAutomaton(type, stateCount, transitionCount: Math.Max(stateCount, 3), alphabetSize: 3, acceptingStateRatio: 0.4, seed: seed);
     }

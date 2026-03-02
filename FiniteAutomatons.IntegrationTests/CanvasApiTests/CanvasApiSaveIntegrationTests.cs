@@ -11,10 +11,6 @@ public class CanvasApiSaveIntegrationTests(IntegrationTestsFixture fixture) : In
 {
     private readonly JsonSerializerOptions json = new(JsonSerializerDefaults.Web);
 
-    // ────────────────────────────────────────────────────────────── //
-    // /api/canvas/save — status codes
-    // ────────────────────────────────────────────────────────────── //
-
     [Fact]
     public async Task Save_ValidRequest_Returns200()
     {
@@ -40,10 +36,6 @@ public class CanvasApiSaveIntegrationTests(IntegrationTestsFixture fixture) : In
         var body = await resp.Content.ReadAsStringAsync();
         body.ShouldContain("saved");
     }
-
-    // ────────────────────────────────────────────────────────────── //
-    // /api/canvas/save → GET / — session persistence
-    // ────────────────────────────────────────────────────────────── //
 
     [Fact]
     public async Task Save_ThenGet_HomePageContainsCustomAutomaton()
@@ -114,10 +106,6 @@ public class CanvasApiSaveIntegrationTests(IntegrationTestsFixture fixture) : In
         resp.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
-    // ────────────────────────────────────────────────────────────── //
-    // /api/canvas/clear — status codes
-    // ────────────────────────────────────────────────────────────── //
-
     [Fact]
     public async Task Clear_Returns200()
     {
@@ -143,10 +131,6 @@ public class CanvasApiSaveIntegrationTests(IntegrationTestsFixture fixture) : In
         resp.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
-    // ────────────────────────────────────────────────────────────── //
-    // /api/canvas/save → /api/canvas/clear → GET /
-    // ────────────────────────────────────────────────────────────── //
-
     [Fact]
     public async Task SaveThenClear_ThenGet_ReturnsDefaultAutomaton()
     {
@@ -162,10 +146,6 @@ public class CanvasApiSaveIntegrationTests(IntegrationTestsFixture fixture) : In
         var homeResp = await client.GetAsync("/");
         homeResp.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
-
-    // ────────────────────────────────────────────────────────────── //
-    // Multiple saves — last one wins
-    // ────────────────────────────────────────────────────────────── //
 
     [Fact]
     public async Task Save_CalledTwice_SecondSaveOverwrites()
@@ -184,10 +164,6 @@ public class CanvasApiSaveIntegrationTests(IntegrationTestsFixture fixture) : In
         resp2.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
-    // ────────────────────────────────────────────────────────────── //
-    // Content-Type header
-    // ────────────────────────────────────────────────────────────── //
-
     [Fact]
     public async Task Save_Response_ContentTypeIsJson()
     {
@@ -203,10 +179,6 @@ public class CanvasApiSaveIntegrationTests(IntegrationTestsFixture fixture) : In
         var resp = await client.PostAsync("/api/canvas/clear", null);
         resp.Content.Headers.ContentType?.MediaType.ShouldBe("application/json");
     }
-
-    // ────────────────────────────────────────────────────────────── //
-    // Sync → Save → Sync again (same client, session preserved)
-    // ────────────────────────────────────────────────────────────── //
 
     [Fact]
     public async Task SyncSaveSync_AllReturn200()
@@ -224,9 +196,7 @@ public class CanvasApiSaveIntegrationTests(IntegrationTestsFixture fixture) : In
         r3.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
-    // ────────────────────────────────────────────────────────────── //
     // Helpers
-    // ────────────────────────────────────────────────────────────── //
 
     private (HttpClient client, System.Net.CookieContainer cookies) GetClientWithSession()
     {

@@ -60,15 +60,6 @@ public class HomeController(ILogger<HomeController> logger, IAutomatonTempDataSe
     {
         return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
     }
-
-    // ──────────────────────────────────────────────────────────────────
-    // Private helpers
-    // ──────────────────────────────────────────────────────────────────
-
-    /// <summary>
-    /// Try to deserialize an AutomatonViewModel from the canvas Session key.
-    /// Does NOT remove the key — canvas edits persist until a new automaton is loaded.
-    /// </summary>
     private bool TryGetSessionAutomaton(out AutomatonViewModel? model)
     {
         model = null;

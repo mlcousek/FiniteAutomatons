@@ -1,4 +1,4 @@
-using FiniteAutomatons.Controllers;
+﻿using FiniteAutomatons.Controllers;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Core.Utilities;
 using FiniteAutomatons.Services.Interfaces;
@@ -185,7 +185,7 @@ public class AutomatonExecutionServiceTests
         model.IsAccepted!.Value.ShouldBeTrue();
     }
 
-    private AutomatonCreationController BuildControllerWithRealValidation()
+    private static AutomatonCreationController BuildControllerWithRealValidation()
     {
         var controller = new AutomatonCreationController(NullLogger<AutomatonCreationController>.Instance, new MockAutomatonTempDataService(), new AutomatonValidationService(NullLogger<AutomatonValidationService>.Instance), new AutomatonEditingService(new AutomatonValidationService(NullLogger<AutomatonValidationService>.Instance), NullLogger<AutomatonEditingService>.Instance), new MockAutomatonMinimizationService())
         {

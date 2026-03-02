@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.DoMain;
+﻿using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Services;
@@ -54,7 +54,7 @@ public class AutomatonBuilderAndDFASupplementalTests
             new State { Id = 2, IsStart = false, IsAccepting = true }
         ]);
         model.Transitions.Add(new Transition { FromStateId = 1, ToStateId = 2, Symbol = 'a' });
-        model.Transitions.Add(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'a' }); 
+        model.Transitions.Add(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'a' });
 
         var svc = new AutomatonBuilderService(new NullLogger<AutomatonBuilderService>());
         var automaton = svc.CreateAutomatonFromModel(model) as NFA;
@@ -114,12 +114,12 @@ public class AutomatonBuilderAndDFASupplementalTests
             .Build();
 
         var exec = dfa.StartExecution("a");
-        dfa.StepForward(exec); 
-        exec.StateHistory.Clear(); 
+        dfa.StepForward(exec);
+        exec.StateHistory.Clear();
 
         dfa.StepBackward(exec);
         exec.Position.ShouldBe(0);
-        exec.CurrentStateId.ShouldBe(1); 
+        exec.CurrentStateId.ShouldBe(1);
         exec.IsAccepted.ShouldBeNull();
     }
 

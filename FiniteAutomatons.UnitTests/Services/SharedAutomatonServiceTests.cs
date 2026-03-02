@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.Database;
+﻿using FiniteAutomatons.Core.Models.Database;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Data;
 using FiniteAutomatons.Services.Services;
@@ -55,7 +55,7 @@ public class SharedAutomatonServiceTests : IDisposable
         result.SaveMode.ShouldBe(AutomatonSaveMode.Structure);
         result.LayoutJson.ShouldBe(layout);
         result.ThumbnailBase64.ShouldBe(thumb);
-        
+
         var assignments = await context.SharedAutomatonGroupAssignments.Where(a => a.AutomatonId == result.Id).ToListAsync();
         assignments.Count.ShouldBe(1);
         assignments[0].GroupId.ShouldBe(group.Id);
@@ -215,7 +215,7 @@ public class SharedAutomatonServiceTests : IDisposable
         var members = await context.SharedAutomatonGroupMembers
             .Where(m => m.GroupId == group.Id)
             .ToListAsync();
-        
+
         members.Count.ShouldBe(1);
         members[0].UserId.ShouldBe(User1Id);
         members[0].Role.ShouldBe(SharedGroupRole.Owner);
@@ -358,7 +358,7 @@ public class SharedAutomatonServiceTests : IDisposable
         var members = await context.SharedAutomatonGroupMembers
             .Where(m => m.GroupId == group.Id)
             .ToListAsync();
-        
+
         members.Count.ShouldBe(2);
         members.ShouldNotContain(m => m.UserId == User3Id);
     }
@@ -388,7 +388,7 @@ public class SharedAutomatonServiceTests : IDisposable
         // Assert
         var member = await context.SharedAutomatonGroupMembers
             .FirstOrDefaultAsync(m => m.GroupId == group.Id && m.UserId == User2Id);
-        
+
         member.ShouldNotBeNull();
         member.Role.ShouldBe(SharedGroupRole.Editor);
     }

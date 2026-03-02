@@ -10,11 +10,7 @@ namespace FiniteAutomatons.IntegrationTests.CanvasApiTests;
 [Collection("Integration Tests")]
 public class CanvasApiSyncIntegrationTests(IntegrationTestsFixture fixture) : IntegrationTestsBase(fixture)
 {
-    private readonly JsonSerializerOptions _json = new(JsonSerializerDefaults.Web);
-
-    // ────────────────────────────────────────────────────────────── //
-    // Status codes
-    // ────────────────────────────────────────────────────────────── //
+    private readonly JsonSerializerOptions json = new(JsonSerializerDefaults.Web);
 
     [Fact]
     public async Task Sync_ValidRequest_Returns200()
@@ -51,10 +47,6 @@ public class CanvasApiSyncIntegrationTests(IntegrationTestsFixture fixture) : In
         body.States.ShouldBeEmpty();
         body.Transitions.ShouldBeEmpty();
     }
-
-    // ────────────────────────────────────────────────────────────── //
-    // Alphabet derivation
-    // ────────────────────────────────────────────────────────────── //
 
     [Fact]
     public async Task Sync_DFA_SingleTransition_AlphabetHasOneSymbol()
@@ -124,10 +116,6 @@ public class CanvasApiSyncIntegrationTests(IntegrationTestsFixture fixture) : In
         body.Alphabet.ShouldBe(body.Alphabet.OrderBy(x => x).ToList());
     }
 
-    // ────────────────────────────────────────────────────────────── //
-    // State counts
-    // ────────────────────────────────────────────────────────────── //
-
     [Fact]
     public async Task Sync_States_CountMatchesInput()
     {
@@ -181,10 +169,6 @@ public class CanvasApiSyncIntegrationTests(IntegrationTestsFixture fixture) : In
         var body = await ReadResponse(await PostSync(req));
         body.States[0].Label.ShouldBe("q7");
     }
-
-    // ────────────────────────────────────────────────────────────── //
-    // Transition DTOs
-    // ────────────────────────────────────────────────────────────── //
 
     [Fact]
     public async Task Sync_Transitions_CountMatchesInput()
@@ -249,10 +233,6 @@ public class CanvasApiSyncIntegrationTests(IntegrationTestsFixture fixture) : In
         body.Transitions[0].ToStateId.ShouldBe(0);
     }
 
-    // ────────────────────────────────────────────────────────────── //
-    // Type flags
-    // ────────────────────────────────────────────────────────────── //
-
     [Theory]
     [InlineData("DFA", false)]
     [InlineData("NFA", false)]
@@ -264,10 +244,6 @@ public class CanvasApiSyncIntegrationTests(IntegrationTestsFixture fixture) : In
         var body = await ReadResponse(await PostSync(req));
         body.IsPDA.ShouldBe(expectedIsPDA);
     }
-
-    // ────────────────────────────────────────────────────────────── //
-    // PDA
-    // ────────────────────────────────────────────────────────────── //
 
     [Fact]
     public async Task Sync_PDA_StackPopDisplayed()
@@ -303,10 +279,6 @@ public class CanvasApiSyncIntegrationTests(IntegrationTestsFixture fixture) : In
         body.Transitions[0].StackPopDisplay.ShouldBeNull();
     }
 
-    // ────────────────────────────────────────────────────────────── //
-    // Large automaton
-    // ────────────────────────────────────────────────────────────── //
-
     [Fact]
     public async Task Sync_LargeAutomaton_AllDataReturned()
     {
@@ -323,10 +295,6 @@ public class CanvasApiSyncIntegrationTests(IntegrationTestsFixture fixture) : In
         body.TransitionCount.ShouldBe(14);
     }
 
-    // ────────────────────────────────────────────────────────────── //
-    // Content-Type
-    // ────────────────────────────────────────────────────────────── //
-
     [Fact]
     public async Task Sync_Response_ContentTypeIsJson()
     {
@@ -334,20 +302,18 @@ public class CanvasApiSyncIntegrationTests(IntegrationTestsFixture fixture) : In
         resp.Content.Headers.ContentType?.MediaType.ShouldBe("application/json");
     }
 
-    // ────────────────────────────────────────────────────────────── //
     // Helpers
-    // ────────────────────────────────────────────────────────────── //
 
     private async Task<HttpResponseMessage> PostSync(CanvasSyncRequest req)
     {
         var client = GetHttpClient();
-        return await client.PostAsJsonAsync("/api/canvas/sync", req, _json);
+        return await client.PostAsJsonAsync("/api/canvas/sync", req, json);
     }
 
     private async Task<CanvasSyncResponse> ReadResponse(HttpResponseMessage resp)
     {
         var json = await resp.Content.ReadAsStringAsync();
-        return JsonSerializer.Deserialize<CanvasSyncResponse>(json, _json)!;
+        return JsonSerializer.Deserialize<CanvasSyncResponse>(json, this.json)!;
     }
 
     private static CanvasSyncRequest SimpleDfa() => Req("DFA",

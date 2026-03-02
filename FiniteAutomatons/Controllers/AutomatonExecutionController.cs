@@ -19,11 +19,6 @@ public class AutomatonExecutionController(IAutomatonTempDataService tempDataServ
         ModelState.Clear(); // ensure updated values rendered
         StoreMinimizationAnalysis(updated);
 
-        // If TempData is available (real HTTP request / integration tests),
-        // persist to TempData and redirect to Home/Index so the view is rendered
-        // in its normal location. If TempData is not available (unit tests that
-        // call controller methods directly), return the Home view result so
-        // unit tests that assert the ViewResult model continue to work.
         if (TempData == null)
         {
             return View("../Home/Index", updated);

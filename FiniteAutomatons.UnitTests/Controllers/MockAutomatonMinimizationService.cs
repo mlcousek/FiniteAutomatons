@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.ViewModel;
+﻿using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Interfaces;
 
 namespace FiniteAutomatons.UnitTests.Controllers;
@@ -12,7 +12,6 @@ public class MockAutomatonMinimizationService : IAutomatonMinimizationService
 
     public MinimizationAnalysis AnalyzeAutomaton(AutomatonViewModel model)
     {
-        // Simple deterministic mock: mark DFA with >1 states as not minimal if any duplicate accepting flags
         var supports = model.Type == AutomatonType.DFA;
         if (!supports) return new MinimizationAnalysis(false, false, model.States.Count, model.States.Count, model.States.Count);
         bool duplicateAccepting = model.States.Count(s => s.IsAccepting) > 1;

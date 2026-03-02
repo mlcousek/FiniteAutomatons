@@ -1,4 +1,4 @@
-using FiniteAutomatons.Controllers;
+﻿using FiniteAutomatons.Controllers;
 using FiniteAutomatons.Core.Models.Database;
 using FiniteAutomatons.Core.Models.DTOs;
 using FiniteAutomatons.Core.Models.ViewModel;
@@ -17,30 +17,25 @@ using System.Text.Json;
 
 namespace FiniteAutomatons.UnitTests.Controllers;
 
-/// <summary>
-/// Tests that SharedAutomatonController.Load correctly sets HasExecuted=true when
-/// loading with mode=state, enabling full navigation (Next, Back, To start, Read all).
-/// </summary>
 public class SharedAutomatonController_LoadStateTests : IDisposable
 {
     private const string TestUserId = "user-shared-load-state";
-    private const string TestUser2Id = "user-shared-load-state-2";
 
-    private readonly ApplicationDbContext _context;
-    private readonly SharedAutomatonController _controller;
-    private readonly CapturingTempDataService _tempSvc;
-    private readonly ISharedAutomatonService _sharedService;
+    private readonly ApplicationDbContext context;
+    private readonly SharedAutomatonController controller;
+    private readonly CapturingTempDataService tempSvc;
+    private readonly ISharedAutomatonService sharedService;
 
     #region Test Infrastructure
 
     private sealed class TestTempDataProvider : ITempDataProvider
     {
-        private readonly Dictionary<string, object?> _data = [];
-        public IDictionary<string, object?> LoadTempData(HttpContext context) => _data;
+        private readonly Dictionary<string, object?> data = [];
+        public IDictionary<string, object?> LoadTempData(HttpContext context) => data;
         public void SaveTempData(HttpContext context, IDictionary<string, object?> values)
         {
-            _data.Clear();
-            foreach (var kv in values) _data[kv.Key] = kv.Value;
+            data.Clear();
+            foreach (var kv in values) data[kv.Key] = kv.Value;
         }
     }
 
@@ -109,39 +104,41 @@ public class SharedAutomatonController_LoadStateTests : IDisposable
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
 
-        _context = new ApplicationDbContext(options);
+        context = new ApplicationDbContext(options);
 
         var testUser = new ApplicationUser { Id = TestUserId, UserName = TestUserId, Email = TestUserId };
         var userManager = new TestUserManager(testUser);
 
-        _sharedService = new SharedAutomatonService(_context, NullLogger<SharedAutomatonService>.Instance);
+        sharedService = new SharedAutomatonService(context, NullLogger<SharedAutomatonService>.Instance);
         var sharingService = new SharedAutomatonSharingService(
-            _context,
-            _sharedService,
+            context,
+            sharedService,
             userManager,
             NullLogger<SharedAutomatonSharingService>.Instance);
 
-        _tempSvc = new CapturingTempDataService();
+        tempSvc = new CapturingTempDataService();
 
-        _controller = new SharedAutomatonController(
-            _sharedService,
+        controller = new SharedAutomatonController(
+            sharedService,
             sharingService,
-            _tempSvc,
+            tempSvc,
             userManager,
-            _context,
+            context,
             new MockInvitationNotificationService(),
             NullLogger<SharedAutomatonController>.Instance);
 
-        var httpContext = new DefaultHttpContext();
-        httpContext.User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, TestUserId)]));
-        _controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
-        _controller.TempData = new TempDataDictionary(httpContext, new TestTempDataProvider());
+        var httpContext = new DefaultHttpContext
+        {
+            User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, TestUserId)]))
+        };
+        controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
+        controller.TempData = new TempDataDictionary(httpContext, new TestTempDataProvider());
     }
 
     public void Dispose()
     {
-        _context.Database.EnsureDeleted();
-        _context.Dispose();
+        context.Database.EnsureDeleted();
+        context.Dispose();
         GC.SuppressFinalize(this);
     }
 
@@ -157,10 +154,10 @@ public class SharedAutomatonController_LoadStateTests : IDisposable
             Name = $"Group_{Guid.NewGuid():N}",
             CreatedAt = DateTime.UtcNow
         };
-        _context.SharedAutomatonGroups.Add(group);
-        await _context.SaveChangesAsync();
+        context.SharedAutomatonGroups.Add(group);
+        await context.SaveChangesAsync();
 
-        _context.SharedAutomatonGroupMembers.Add(new SharedAutomatonGroupMember
+        context.SharedAutomatonGroupMembers.Add(new SharedAutomatonGroupMember
         {
             GroupId = group.Id,
             UserId = TestUserId,
@@ -188,15 +185,15 @@ public class SharedAutomatonController_LoadStateTests : IDisposable
             ExecutionStateJson = execState != null ? JsonSerializer.Serialize(execState) : null,
             CreatedAt = DateTime.UtcNow
         };
-        _context.SharedAutomatons.Add(automaton);
-        await _context.SaveChangesAsync();
+        context.SharedAutomatons.Add(automaton);
+        await context.SaveChangesAsync();
 
-        _context.SharedAutomatonGroupAssignments.Add(new SharedAutomatonGroupAssignment
+        context.SharedAutomatonGroupAssignments.Add(new SharedAutomatonGroupAssignment
         {
             AutomatonId = automaton.Id,
             GroupId = group.Id
         });
-        await _context.SaveChangesAsync();
+        await context.SaveChangesAsync();
 
         return (group, automaton);
     }
@@ -218,7 +215,7 @@ public class SharedAutomatonController_LoadStateTests : IDisposable
         var (_, automaton) = await CreateGroupAndAutomaton(execState, AutomatonSaveMode.WithState);
 
         // Act
-        var result = await _controller.Load(automaton.Id, mode: "state");
+        var result = await controller.Load(automaton.Id, mode: "state");
 
         // Assert: redirects home
         var redirect = result.ShouldBeOfType<RedirectToActionResult>();
@@ -226,7 +223,7 @@ public class SharedAutomatonController_LoadStateTests : IDisposable
         redirect.ControllerName.ShouldBe("Home");
 
         // Assert: execution state fully restored including HasExecuted flag
-        var model = _tempSvc.LastStoredModel;
+        var model = tempSvc.LastStoredModel;
         model.ShouldNotBeNull();
         model.HasExecuted.ShouldBeTrue();
         model.Input.ShouldBe("ab");
@@ -251,10 +248,10 @@ public class SharedAutomatonController_LoadStateTests : IDisposable
         var (_, automaton) = await CreateGroupAndAutomaton(execState, AutomatonSaveMode.WithState);
 
         // Act
-        await _controller.Load(automaton.Id, mode: "state");
+        await controller.Load(automaton.Id, mode: "state");
 
         // Assert: history preserved (enables Back navigation)
-        var model = _tempSvc.LastStoredModel;
+        var model = tempSvc.LastStoredModel;
         model.ShouldNotBeNull();
         model.HasExecuted.ShouldBeTrue();
         model.Position.ShouldBe(3);
@@ -276,10 +273,10 @@ public class SharedAutomatonController_LoadStateTests : IDisposable
         var (_, automaton) = await CreateGroupAndAutomaton(execState, AutomatonSaveMode.WithState);
 
         // Act
-        await _controller.Load(automaton.Id, mode: "input");
+        await controller.Load(automaton.Id, mode: "input");
 
         // Assert: input loaded but no execution state restored
-        var model = _tempSvc.LastStoredModel;
+        var model = tempSvc.LastStoredModel;
         model.ShouldNotBeNull();
         model.Input.ShouldBe("hello");
         model.HasExecuted.ShouldBeFalse();
@@ -295,10 +292,10 @@ public class SharedAutomatonController_LoadStateTests : IDisposable
         var (_, automaton) = await CreateGroupAndAutomaton(execState, AutomatonSaveMode.WithState);
 
         // Act
-        await _controller.Load(automaton.Id, mode: "structure");
+        await controller.Load(automaton.Id, mode: "structure");
 
         // Assert: no state or input loaded
-        var model = _tempSvc.LastStoredModel;
+        var model = tempSvc.LastStoredModel;
         model.ShouldNotBeNull();
         model.HasExecuted.ShouldBeFalse();
         model.Input.ShouldBeNullOrEmpty();
@@ -312,10 +309,10 @@ public class SharedAutomatonController_LoadStateTests : IDisposable
         var (_, automaton) = await CreateGroupAndAutomaton(execState: null, AutomatonSaveMode.WithState);
 
         // Act
-        await _controller.Load(automaton.Id, mode: "state");
+        await controller.Load(automaton.Id, mode: "state");
 
         // Assert: nothing to restore, so HasExecuted remains false
-        var model = _tempSvc.LastStoredModel;
+        var model = tempSvc.LastStoredModel;
         model.ShouldNotBeNull();
         model.HasExecuted.ShouldBeFalse();
     }
@@ -328,10 +325,10 @@ public class SharedAutomatonController_LoadStateTests : IDisposable
         var (_, automaton) = await CreateGroupAndAutomaton(execState, AutomatonSaveMode.Structure);
 
         // Act
-        await _controller.Load(automaton.Id, mode: "state");
+        await controller.Load(automaton.Id, mode: "state");
 
         // Assert: SaveMode=Structure overrides the mode param — state is NOT loaded
-        var model = _tempSvc.LastStoredModel;
+        var model = tempSvc.LastStoredModel;
         model.ShouldNotBeNull();
         model.HasExecuted.ShouldBeFalse();
         model.Position.ShouldBe(0);

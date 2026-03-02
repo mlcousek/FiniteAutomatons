@@ -6,8 +6,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;
 using System.Security.Claims;
-using System.Threading.Tasks;
-using Xunit;
 
 namespace FiniteAutomatons.UnitTests.Controllers;
 
@@ -28,27 +26,21 @@ public class UserPreferencesControllerTests
         public Task<IdentityResult> UpdateAsync(ApplicationUser user, CancellationToken cancellationToken) => Task.FromResult(IdentityResult.Success);
     }
 
-    private class TestUserManager : UserManager<ApplicationUser>
+    private class TestUserManager(ApplicationUser? user) : UserManager<ApplicationUser>(new FakeUserStore(),
+              Microsoft.Extensions.Options.Options.Create(new IdentityOptions()),
+              new PasswordHasher<ApplicationUser>(),
+              [],
+              [],
+              new UpperInvariantLookupNormalizer(),
+              new IdentityErrorDescriber(),
+              services: null!,
+              logger: new NullLogger<UserManager<ApplicationUser>>())
     {
-        private readonly ApplicationUser? _userToReturn;
-
-        public TestUserManager(ApplicationUser? user)
-            : base(new FakeUserStore(),
-                  Microsoft.Extensions.Options.Options.Create(new IdentityOptions()),
-                  new PasswordHasher<ApplicationUser>(),
-                  Array.Empty<IUserValidator<ApplicationUser>>(),
-                  Array.Empty<IPasswordValidator<ApplicationUser>>(),
-                  new UpperInvariantLookupNormalizer(),
-                  new IdentityErrorDescriber(),
-                  services: null!,
-                  logger: new NullLogger<UserManager<ApplicationUser>>())
-        {
-            _userToReturn = user;
-        }
+        private readonly ApplicationUser? userToReturn = user;
 
         public override Task<ApplicationUser?> GetUserAsync(ClaimsPrincipal principal)
         {
-            return Task.FromResult(_userToReturn);
+            return Task.FromResult(userToReturn);
         }
 
         public override Task<IdentityResult> UpdateAsync(ApplicationUser user)
@@ -64,8 +56,10 @@ public class UserPreferencesControllerTests
         var user = new ApplicationUser { Id = "u1", UserName = "test", PanelOrderPreferences = prefs };
         var controller = new UserPreferencesController(new TestUserManager(user));
 
-        var httpContext = new DefaultHttpContext();
-        httpContext.User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, user.Id)]));
+        var httpContext = new DefaultHttpContext
+        {
+            User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, user.Id)]))
+        };
         controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
 
         var result = await controller.GetPanelOrderPreferences();
@@ -82,8 +76,10 @@ public class UserPreferencesControllerTests
         var user = new ApplicationUser { Id = "u2", UserName = "test" }; // Null preferences
         var controller = new UserPreferencesController(new TestUserManager(user));
 
-        var httpContext = new DefaultHttpContext();
-        httpContext.User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, user.Id)]));
+        var httpContext = new DefaultHttpContext
+        {
+            User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, user.Id)]))
+        };
         controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
 
         var result = await controller.GetPanelOrderPreferences();
@@ -100,8 +96,10 @@ public class UserPreferencesControllerTests
         var user = new ApplicationUser { Id = "u3", UserName = "test", PanelOrderPreferences = null };
         var controller = new UserPreferencesController(new TestUserManager(user));
 
-        var httpContext = new DefaultHttpContext();
-        httpContext.User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, user.Id)]));
+        var httpContext = new DefaultHttpContext
+        {
+            User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, user.Id)]))
+        };
         controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
 
         var request = new PanelOrderRequest
@@ -140,8 +138,10 @@ public class UserPreferencesControllerTests
         var user = new ApplicationUser { Id = "u4", UserName = "test", CanvasWheelZoomEnabled = true };
         var controller = new UserPreferencesController(new TestUserManager(user));
 
-        var httpContext = new DefaultHttpContext();
-        httpContext.User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, user.Id)]));
+        var httpContext = new DefaultHttpContext
+        {
+            User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, user.Id)]))
+        };
         controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
 
         var result = await controller.GetCanvasWheelPreference();
@@ -158,8 +158,10 @@ public class UserPreferencesControllerTests
         var user = new ApplicationUser { Id = "u5", UserName = "test", CanvasWheelZoomEnabled = false };
         var controller = new UserPreferencesController(new TestUserManager(user));
 
-        var httpContext = new DefaultHttpContext();
-        httpContext.User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, user.Id)]));
+        var httpContext = new DefaultHttpContext
+        {
+            User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, user.Id)]))
+        };
         controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
 
         var request = new CanvasWheelRequest

@@ -1,5 +1,4 @@
-using FiniteAutomatons.Core.Models.ViewModel;
-using FiniteAutomatons.IntegrationTests.AutomatonOperations.AutomatonGeneration;
+﻿using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Observability;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;

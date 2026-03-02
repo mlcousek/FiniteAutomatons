@@ -67,7 +67,7 @@ public class AutomatonControllerSavedTests
         {
             var contentDto = new
             {
-                Type = model.Type,
+                model.Type,
                 States = model.States ?? [],
                 Transitions = model.Transitions ?? []
             };
@@ -75,15 +75,15 @@ public class AutomatonControllerSavedTests
             var execDto = saveExecutionState ? new
             {
                 Input = model.Input ?? string.Empty,
-                Position = model.Position,
-                CurrentStateId = model.CurrentStateId,
-                CurrentStates = model.CurrentStates?.ToArray() ?? Array.Empty<int>(),
-                IsAccepted = model.IsAccepted,
-                StateHistorySerialized = model.StateHistorySerialized,
-                StackSerialized = model.StackSerialized
+                model.Position,
+                model.CurrentStateId,
+                CurrentStates = model.CurrentStates?.ToArray() ?? [],
+                model.IsAccepted,
+                model.StateHistorySerialized,
+                model.StackSerialized
             } : (!string.IsNullOrEmpty(model.Input) ? new
             {
-                Input = model.Input,
+                model.Input,
                 Position = 0,
                 CurrentStateId = (int?)null,
                 CurrentStates = Array.Empty<int>(),
@@ -301,13 +301,13 @@ public class AutomatonControllerSavedTests
 
     private static SavedAutomatonController BuildController(MockSavedAutomatonService svc, ApplicationUser user)
     {
-        var logger = new NullLogger<AutomatonCreationController>();
-        var mockGenerator = new MockAutomatonGeneratorService();
+        _ = new NullLogger<AutomatonCreationController>();
+        _ = new MockAutomatonGeneratorService();
         var tempDataSvc = new MockAutomatonTempDataService();
-        var validationSvc = new MockAutomatonValidationService();
-        var conversionSvc = new MockAutomatonConversionService();
-        var execSvc = new MockAutomatonExecutionService();
-        var editingSvc = new AutomatonEditingService(new MockAutomatonValidationService(), new NullLogger<AutomatonEditingService>());
+        _ = new MockAutomatonValidationService();
+        _ = new MockAutomatonConversionService();
+        _ = new MockAutomatonExecutionService();
+        _ = new AutomatonEditingService(new MockAutomatonValidationService(), new NullLogger<AutomatonEditingService>());
         var fileSvc = new MockAutomatonFileService();
 
         var userManager = new TestUserManager(user);

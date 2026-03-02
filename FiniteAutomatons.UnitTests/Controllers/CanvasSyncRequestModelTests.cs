@@ -5,8 +5,6 @@ namespace FiniteAutomatons.UnitTests.Controllers;
 
 public class CanvasSyncRequestModelTests
 {
-    // ── CanvasSyncRequest defaults ────────────────────────────────────
-
     [Fact]
     public void CanvasSyncRequest_DefaultType_IsDFA()
     {
@@ -33,8 +31,6 @@ public class CanvasSyncRequestModelTests
     [InlineData("PDA")]
     public void CanvasSyncRequest_KnownTypes_CanBeSet(string type)
         => new CanvasSyncRequest { Type = type }.Type.ShouldBe(type);
-
-    // ── CanvasSyncState ───────────────────────────────────────────────
 
     [Fact]
     public void CanvasSyncState_DefaultIsStart_False()
@@ -66,8 +62,6 @@ public class CanvasSyncRequestModelTests
         var s = new CanvasSyncState { IsStart = true };
         s.IsAccepting.ShouldBeFalse();
     }
-
-    // ── CanvasSyncTransition ──────────────────────────────────────────
 
     [Fact]
     public void CanvasSyncTransition_DefaultSymbol_Empty()
@@ -108,8 +102,6 @@ public class CanvasSyncRequestModelTests
         t.FromStateId.ShouldBe(t.ToStateId);
     }
 
-    // ── CanvasSyncResponse defaults ───────────────────────────────────
-
     [Fact]
     public void CanvasSyncResponse_DefaultAlphabet_NotNull()
         => new CanvasSyncResponse().Alphabet.ShouldNotBeNull();
@@ -142,8 +134,6 @@ public class CanvasSyncRequestModelTests
         r.TransitionCount.ShouldBe(0);
     }
 
-    // ── CanvasSyncStateDto ────────────────────────────────────────────
-
     [Fact]
     public void CanvasSyncStateDto_Label_DerivedFromId()
         => new CanvasSyncStateDto { Id = 5 }.Label.ShouldBe("q5");
@@ -167,8 +157,6 @@ public class CanvasSyncRequestModelTests
         dto.IsStart.ShouldBeTrue();
         dto.IsAccepting.ShouldBeTrue();
     }
-
-    // ── CanvasSyncTransitionDto ───────────────────────────────────────
 
     [Fact]
     public void CanvasSyncTransitionDto_DefaultStackPop_Null()

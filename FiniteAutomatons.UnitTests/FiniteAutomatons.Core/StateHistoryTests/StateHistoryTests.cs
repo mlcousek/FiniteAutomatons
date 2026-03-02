@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.DoMain;
+﻿using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using Shouldly;
 
@@ -121,7 +121,7 @@ public class StateHistoryTests
         state.StateHistory.Count.ShouldBe(0);
     }
 
-    [Fact]  
+    [Fact]
     public void EpsilonNFA_StateHistory_WithEpsilonTransitions_ShouldMaintainCorrectOrder()
     {
         // Arrange: EpsilonNFA with epsilon transitions
@@ -215,7 +215,7 @@ public class StateHistoryTests
         var dfaState = dfa.StartExecution("a");
         dfa.StepForward(dfaState);
         dfaState.StateHistory.Count.ShouldBe(1);
-        
+
         dfa.BackToStart(dfaState);
         dfaState.StateHistory.Count.ShouldBe(0);
 
@@ -229,7 +229,7 @@ public class StateHistoryTests
         var nfaState = nfa.StartExecution("a");
         nfa.StepForward(nfaState);
         nfaState.StateHistory.Count.ShouldBe(1);
-        
+
         nfa.BackToStart(nfaState);
         nfaState.StateHistory.Count.ShouldBe(0);
 
@@ -243,7 +243,7 @@ public class StateHistoryTests
         var enfaState = enfa.StartExecution("a");
         enfa.StepForward(enfaState);
         enfaState.StateHistory.Count.ShouldBe(1);
-        
+
         enfa.BackToStart(enfaState);
         enfaState.StateHistory.Count.ShouldBe(0);
     }

@@ -1,5 +1,4 @@
-using FiniteAutomatons.Core.Models.DoMain;
-using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
+﻿using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.ViewModel;
 using Shouldly;
 using System.Net;
@@ -7,10 +6,6 @@ using System.Text.RegularExpressions;
 
 namespace FiniteAutomatons.IntegrationTests.AutomationExecution;
 
-/// <summary>
-/// Comprehensive integration tests for PDA execution covering all acceptance modes,
-/// stack operations, epsilon transitions, and edge cases.
-/// </summary>
 [Collection("Integration Tests")]
 public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : IntegrationTestsBase(fixture)
 {
@@ -50,24 +45,6 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
         Input = input,
         IsCustomAutomaton = true,
         AcceptanceMode = acceptanceMode ?? PDAAcceptanceMode.FinalStateAndEmptyStack
-    };
-
-    private static AutomatonViewModel BuildPdaWithCustomStack(string input, Stack<char> initialStack) => new()
-    {
-        Type = AutomatonType.PDA,
-        States =
-        [
-            new() { Id = 1, IsStart = true, IsAccepting = false },
-            new() { Id = 2, IsStart = false, IsAccepting = true }
-        ],
-        Transitions =
-        [
-            new() { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = 'X', StackPush = null },
-            new() { FromStateId = 1, ToStateId = 2, Symbol = '\0', StackPop = '\0', StackPush = null }
-        ],
-        Input = input,
-        IsCustomAutomaton = true,
-        StackSerialized = SerializeStack(initialStack)
     };
 
     private static string SerializeStack(Stack<char> stack)
@@ -163,9 +140,9 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
     {
         var client = GetHttpClient();
         var model = BuildBalancedParenthesesPda("()");
-        
+
         var response = await PostAsync(client, "/AutomatonExecution/Start", model);
-        
+
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await response.Content.ReadAsStringAsync();
         ExtractPosition(html).ShouldBe(0);
@@ -177,16 +154,16 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
     {
         var client = GetHttpClient();
         var model = BuildBalancedParenthesesPda("()");
-        
+
         var startResponse = await PostAsync(client, "/AutomatonExecution/Start", model);
         var startHtml = await startResponse.Content.ReadAsStringAsync();
-        
+
         model.HasExecuted = true;
         model.CurrentStateId = ExtractCurrentStateId(startHtml);
-        
+
         var stepResponse = await PostAsync(client, "/AutomatonExecution/StepForward", model);
         stepResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
-        
+
         var stepHtml = await stepResponse.Content.ReadAsStringAsync();
         ExtractPosition(stepHtml).ShouldBe(1);
         ExtractCurrentStateId(stepHtml).ShouldBe(1);
@@ -197,9 +174,9 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
     {
         var client = GetHttpClient();
         var model = BuildBalancedParenthesesPda("(())");
-        
+
         var response = await PostAsync(client, "/AutomatonExecution/ExecuteAll", model);
-        
+
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await response.Content.ReadAsStringAsync();
         ExtractPosition(html).ShouldBe(4);
@@ -212,9 +189,9 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
     {
         var client = GetHttpClient();
         var model = BuildBalancedParenthesesPda("(()");
-        
+
         var response = await PostAsync(client, "/AutomatonExecution/ExecuteAll", model);
-        
+
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await response.Content.ReadAsStringAsync();
         ExtractIsAccepted(html).ShouldBe(false);
@@ -226,18 +203,18 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
     {
         var client = GetHttpClient();
         var model = BuildBalancedParenthesesPda("()");
-        
+
         var execResponse = await PostAsync(client, "/AutomatonExecution/ExecuteAll", model);
         var execHtml = await execResponse.Content.ReadAsStringAsync();
         ExtractPosition(execHtml).ShouldBe(2);
-        
+
         model.HasExecuted = true;
         model.Position = 2;
         model.CurrentStateId = ExtractCurrentStateId(execHtml);
-        
+
         var backResponse = await PostAsync(client, "/AutomatonExecution/BackToStart", model);
         backResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
-        
+
         var backHtml = await backResponse.Content.ReadAsStringAsync();
         ExtractPosition(backHtml).ShouldBe(0);
     }
@@ -247,14 +224,13 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
     {
         var client = GetHttpClient();
         var model = BuildBalancedParenthesesPda("()");
-        
-        var execResponse = await PostAsync(client, "/AutomatonExecution/ExecuteAll", model);
+        _ = await PostAsync(client, "/AutomatonExecution/ExecuteAll", model);
         model.HasExecuted = true;
         model.Position = 2;
-        
+
         var resetResponse = await PostAsync(client, "/AutomatonExecution/Reset", model);
         resetResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
-        
+
         var resetHtml = await resetResponse.Content.ReadAsStringAsync();
         var inputMatch = Regex.Match(resetHtml, "id=\"inputField\"[^>]*value=\"([^\"]*)\"");
         inputMatch.Success.ShouldBeTrue();
@@ -270,9 +246,9 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
     {
         var client = GetHttpClient();
         var model = BuildAnBnPda("aabb");
-        
+
         var response = await PostAsync(client, "/AutomatonExecution/Start", model);
-        
+
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await response.Content.ReadAsStringAsync();
         ExtractPosition(html).ShouldBe(0);
@@ -284,9 +260,9 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
     {
         var client = GetHttpClient();
         var model = BuildAnBnPda("aaabbb");
-        
+
         var response = await PostAsync(client, "/AutomatonExecution/ExecuteAll", model);
-        
+
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await response.Content.ReadAsStringAsync();
         ExtractIsAccepted(html).ShouldBe(true);
@@ -298,9 +274,9 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
     {
         var client = GetHttpClient();
         var model = BuildAnBnPda("aaabb");
-        
+
         var response = await PostAsync(client, "/AutomatonExecution/ExecuteAll", model);
-        
+
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await response.Content.ReadAsStringAsync();
         ExtractIsAccepted(html).ShouldBe(false);
@@ -312,9 +288,9 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
     {
         var client = GetHttpClient();
         var model = BuildAnBnPda("");
-        
+
         var response = await PostAsync(client, "/AutomatonExecution/ExecuteAll", model);
-        
+
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await response.Content.ReadAsStringAsync();
         ExtractIsAccepted(html).ShouldBe(true);
@@ -344,9 +320,9 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
             IsCustomAutomaton = true,
             AcceptanceMode = PDAAcceptanceMode.FinalStateOnly
         };
-        
+
         var response = await PostAsync(client, "/AutomatonExecution/ExecuteAll", model);
-        
+
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await response.Content.ReadAsStringAsync();
         ExtractIsAccepted(html).ShouldBe(true);
@@ -369,9 +345,9 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
             IsCustomAutomaton = true,
             AcceptanceMode = PDAAcceptanceMode.FinalStateOnly
         };
-        
+
         var response = await PostAsync(client, "/AutomatonExecution/ExecuteAll", model);
-        
+
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await response.Content.ReadAsStringAsync();
         ExtractIsAccepted(html).ShouldBe(false);
@@ -402,9 +378,9 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
             IsCustomAutomaton = true,
             AcceptanceMode = PDAAcceptanceMode.EmptyStackOnly
         };
-        
+
         var response = await PostAsync(client, "/AutomatonExecution/ExecuteAll", model);
-        
+
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await response.Content.ReadAsStringAsync();
         ExtractIsAccepted(html).ShouldBe(true);
@@ -430,9 +406,9 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
             IsCustomAutomaton = true,
             AcceptanceMode = PDAAcceptanceMode.EmptyStackOnly
         };
-        
+
         var response = await PostAsync(client, "/AutomatonExecution/ExecuteAll", model);
-        
+
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await response.Content.ReadAsStringAsync();
         ExtractIsAccepted(html).ShouldBe(false);
@@ -448,9 +424,9 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
     {
         var client = GetHttpClient();
         var model = BuildBalancedParenthesesPda("()", PDAAcceptanceMode.FinalStateAndEmptyStack);
-        
+
         var response = await PostAsync(client, "/AutomatonExecution/ExecuteAll", model);
-        
+
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await response.Content.ReadAsStringAsync();
         ExtractIsAccepted(html).ShouldBe(true);
@@ -475,9 +451,9 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
             IsCustomAutomaton = true,
             AcceptanceMode = PDAAcceptanceMode.FinalStateAndEmptyStack
         };
-        
+
         var response = await PostAsync(client, "/AutomatonExecution/ExecuteAll", model);
-        
+
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await response.Content.ReadAsStringAsync();
         ExtractIsAccepted(html).ShouldBe(false);
@@ -503,9 +479,9 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
             IsCustomAutomaton = true,
             AcceptanceMode = PDAAcceptanceMode.FinalStateAndEmptyStack
         };
-        
+
         var response = await PostAsync(client, "/AutomatonExecution/ExecuteAll", model);
-        
+
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await response.Content.ReadAsStringAsync();
         ExtractIsAccepted(html).ShouldBe(false);
@@ -537,9 +513,9 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
             Input = "abc",
             IsCustomAutomaton = true
         };
-        
+
         var response = await PostAsync(client, "/AutomatonExecution/ExecuteAll", model);
-        
+
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await response.Content.ReadAsStringAsync();
         ExtractIsAccepted(html).ShouldBe(true);
@@ -563,9 +539,9 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
             Input = "a",
             IsCustomAutomaton = true
         };
-        
+
         var response = await PostAsync(client, "/AutomatonExecution/ExecuteAll", model);
-        
+
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await response.Content.ReadAsStringAsync();
         ExtractIsAccepted(html).ShouldBe(false);
@@ -594,9 +570,9 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
             Input = "",
             IsCustomAutomaton = true
         };
-        
+
         var response = await PostAsync(client, "/AutomatonExecution/ExecuteAll", model);
-        
+
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await response.Content.ReadAsStringAsync();
         ExtractIsAccepted(html).ShouldBe(true);
@@ -623,9 +599,9 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
             Input = "ab",
             IsCustomAutomaton = true
         };
-        
+
         var response = await PostAsync(client, "/AutomatonExecution/ExecuteAll", model);
-        
+
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await response.Content.ReadAsStringAsync();
         ExtractIsAccepted(html).ShouldBe(true);
@@ -650,9 +626,9 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
             Input = "",
             IsCustomAutomaton = true
         };
-        
+
         var response = await PostAsync(client, "/AutomatonExecution/ExecuteAll", model);
-        
+
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await response.Content.ReadAsStringAsync();
         ExtractIsAccepted(html).ShouldBe(true);
@@ -673,9 +649,9 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
             Input = "",
             IsCustomAutomaton = true
         };
-        
+
         var response = await PostAsync(client, "/AutomatonExecution/ExecuteAll", model);
-        
+
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await response.Content.ReadAsStringAsync();
         ExtractIsAccepted(html).ShouldBe(false);
@@ -687,9 +663,9 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
         var client = GetHttpClient();
         var longInput = string.Concat(Enumerable.Repeat("()", 50));
         var model = BuildBalancedParenthesesPda(longInput);
-        
+
         var response = await PostAsync(client, "/AutomatonExecution/ExecuteAll", model);
-        
+
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await response.Content.ReadAsStringAsync();
         ExtractIsAccepted(html).ShouldBe(true);
@@ -702,9 +678,9 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
         var openParens = string.Concat(Enumerable.Repeat("(", 30));
         var closeParens = string.Concat(Enumerable.Repeat(")", 30));
         var model = BuildBalancedParenthesesPda(openParens + closeParens);
-        
+
         var response = await PostAsync(client, "/AutomatonExecution/ExecuteAll", model);
-        
+
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await response.Content.ReadAsStringAsync();
         ExtractIsAccepted(html).ShouldBe(true);

@@ -1,10 +1,7 @@
+﻿using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Services;
-using FiniteAutomatons.Core.Models.ViewModel;
-using FiniteAutomatons.Core.Models.DoMain;
 using Microsoft.Extensions.Logging;
 using Shouldly;
-using Xunit;
-using System;
 
 namespace FiniteAutomatons.UnitTests.Services;
 
@@ -31,8 +28,8 @@ public class AutomatonExecutionServiceUnitTests
         var model = new AutomatonViewModel
         {
             Type = AutomatonType.DFA,
-            States = [ new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true } ],
-            Transitions = [ new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' } ],
+            States = [new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = true }],
+            Transitions = [new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' }],
             Input = "a",
             Position = 0,
             CurrentStateId = 1
@@ -48,8 +45,8 @@ public class AutomatonExecutionServiceUnitTests
         var model = new AutomatonViewModel
         {
             Type = AutomatonType.DFA,
-            States = [ new() { Id = 1, IsStart = true, IsAccepting = true } ],
-            Transitions = [ new() { FromStateId = 1, ToStateId = 1, Symbol = 'a' } ],
+            States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
+            Transitions = [new() { FromStateId = 1, ToStateId = 1, Symbol = 'a' }],
             Input = "aaa"
         };
 

@@ -1,7 +1,6 @@
-using FiniteAutomatons.Core.Models.ViewModel;
+﻿using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Interfaces;
 using FiniteAutomatons.Services.Services;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Text.Json;
@@ -31,8 +30,11 @@ public class AutomatonCreationController(
     [HttpPost]
     public IActionResult CreateAutomaton(AutomatonViewModel model)
     {
-        logger.LogInformation("CreateAutomaton POST Type={Type} States={States} Transitions={Transitions}",
-            model.Type, model.States?.Count ?? 0, model.Transitions?.Count ?? 0);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("CreateAutomaton POST Type={Type} States={States} Transitions={Transitions}",
+                model.Type, model.States?.Count ?? 0, model.Transitions?.Count ?? 0);
+        }
 
         var (isValid, errors) = validationService.ValidateAutomaton(model);
         if (!isValid)

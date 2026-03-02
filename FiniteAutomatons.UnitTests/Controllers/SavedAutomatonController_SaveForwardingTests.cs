@@ -28,10 +28,10 @@ public class SavedAutomatonController_SaveForwardingTests
         public Task<IdentityResult> UpdateAsync(ApplicationUser user, CancellationToken cancellationToken) => Task.FromResult(IdentityResult.Success);
     }
 
-    private class TestUserManager(ApplicationUser? user) : UserManager<ApplicationUser>(new FakeUserStore(), Microsoft.Extensions.Options.Options.Create(new IdentityOptions()), new PasswordHasher<ApplicationUser>(), Array.Empty<IUserValidator<ApplicationUser>>(), Array.Empty<IPasswordValidator<ApplicationUser>>(), new UpperInvariantLookupNormalizer(), new IdentityErrorDescriber(), services: null!, logger: new NullLogger<UserManager<ApplicationUser>>())
+    private class TestUserManager(ApplicationUser? user) : UserManager<ApplicationUser>(new FakeUserStore(), Microsoft.Extensions.Options.Options.Create(new IdentityOptions()), new PasswordHasher<ApplicationUser>(), [], [], new UpperInvariantLookupNormalizer(), new IdentityErrorDescriber(), services: null!, logger: new NullLogger<UserManager<ApplicationUser>>())
     {
-        private readonly ApplicationUser? _user = user;
-        public override Task<ApplicationUser?> GetUserAsync(ClaimsPrincipal principal) => Task.FromResult(_user);
+        private readonly ApplicationUser? user = user;
+        public override Task<ApplicationUser?> GetUserAsync(ClaimsPrincipal principal) => Task.FromResult(user);
     }
 
     private class RecordingSavedAutomatonService : ISavedAutomatonService
@@ -46,7 +46,6 @@ public class SavedAutomatonController_SaveForwardingTests
             LastLayoutJson = layoutJson;
             LastThumbnailBase64 = thumbnailBase64;
             LastSaveExecutionState = saveExecutionState;
-            // Deep-copy the relevant fields so assertions see the sanitized values
             LastModel = new AutomatonViewModel
             {
                 Input = model.Input,
@@ -74,10 +73,10 @@ public class SavedAutomatonController_SaveForwardingTests
         public Task<bool> CanUserSaveToGroupAsync(int groupId, string userId) => Task.FromResult(true);
         public Task<SavedAutomatonGroup?> GetGroupAsync(int groupId) => Task.FromResult<SavedAutomatonGroup?>(null);
         public Task SetGroupSharingPolicyAsync(int groupId, bool membersCanShare) => Task.CompletedTask;
-        public Task<List<SavedAutomaton>> ListByGroupAsync(int groupId) => Task.FromResult(new List<SavedAutomaton>());
-        public Task<SavedAutomatonGroup?> GetGroupAsync(int id, string userId) => Task.FromResult<SavedAutomatonGroup?>(null);
+        public static Task<List<SavedAutomaton>> ListByGroupAsync() => Task.FromResult(new List<SavedAutomaton>());
+        public static Task<SavedAutomatonGroup?> GetGroupAsync() => Task.FromResult<SavedAutomatonGroup?>(null);
         public Task DeleteGroupAsync(int id, string userId) => Task.CompletedTask;
-        public Task<SavedAutomatonGroupMember?> GetGroupMemberAsync(int groupId, string userId) => Task.FromResult<SavedAutomatonGroupMember?>(null);
+        public static Task<SavedAutomatonGroupMember?> GetGroupMemberAsync() => Task.FromResult<SavedAutomatonGroupMember?>(null);
         public Task AssignAutomatonToGroupAsync(int automatonId, string userId, int? groupId) => Task.CompletedTask;
         public Task RemoveAutomatonFromGroupAsync(int automatonId, string userId, int groupId) => Task.CompletedTask;
     }
@@ -122,7 +121,7 @@ public class SavedAutomatonController_SaveForwardingTests
         var httpContext = new DefaultHttpContext();
         controller.ControllerContext = new Microsoft.AspNetCore.Mvc.ControllerContext { HttpContext = httpContext };
         controller.TempData = new TempDataDictionary(httpContext, new TestTempDataProvider());
-        httpContext.User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, user.Id) }));
+        httpContext.User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, user.Id)]));
 
         var model = new AutomatonViewModel { Type = AutomatonType.DFA };
         var layout = "[{\"id\":\"0\",\"position\":{\"x\":1,\"y\":2}}]";
@@ -149,7 +148,7 @@ public class SavedAutomatonController_SaveForwardingTests
         var httpContext = new DefaultHttpContext();
         controller.ControllerContext = new Microsoft.AspNetCore.Mvc.ControllerContext { HttpContext = httpContext };
         controller.TempData = new TempDataDictionary(httpContext, new TestTempDataProvider());
-        httpContext.User = new ClaimsPrincipal(new ClaimsIdentity(new[] { new Claim(ClaimTypes.NameIdentifier, user.Id) }));
+        httpContext.User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, user.Id)]));
 
         return (controller, savedSvc);
     }

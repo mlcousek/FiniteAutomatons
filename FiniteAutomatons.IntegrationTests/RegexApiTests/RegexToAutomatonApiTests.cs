@@ -1,8 +1,7 @@
+﻿using Microsoft.Extensions.DependencyInjection;
+using Shouldly;
 using System.Net;
 using System.Text;
-using FiniteAutomatons.Core.Models.DoMain;
-using Shouldly;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace FiniteAutomatons.IntegrationTests.RegexApiTests;
 

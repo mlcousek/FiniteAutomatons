@@ -1,20 +1,13 @@
-#pragma warning disable CS8602 // Test assertions verify non-null
-
-using FiniteAutomatons.Services.Interfaces;
-using FiniteAutomatons.Services.Services;
+﻿using FiniteAutomatons.Services.Services;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;
 
 namespace FiniteAutomatons.UnitTests.Services;
 
-/// <summary>
-/// Advanced tests validating the internal structure and properties of automatons
-/// generated from regex presets, ensuring Thompson's construction correctness.
-/// </summary>
 public class RegexPresetAutomatonStructureTests
 {
-    private readonly IRegexPresetService presetService;
-    private readonly IRegexToAutomatonService regexService;
+    private readonly RegexPresetService presetService;
+    private readonly RegexToAutomatonService regexService;
 
     public RegexPresetAutomatonStructureTests()
     {

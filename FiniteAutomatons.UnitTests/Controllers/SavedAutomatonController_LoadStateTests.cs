@@ -1,4 +1,4 @@
-using FiniteAutomatons.Controllers;
+﻿using FiniteAutomatons.Controllers;
 using FiniteAutomatons.Core.Models.Database;
 using FiniteAutomatons.Core.Models.DTOs;
 using FiniteAutomatons.Core.Models.ViewModel;
@@ -14,10 +14,6 @@ using System.Text.Json;
 
 namespace FiniteAutomatons.UnitTests.Controllers;
 
-/// <summary>
-/// Tests that SavedAutomatonController.Load correctly sets HasExecuted=true when
-/// loading with mode=state, allowing full navigation (Next, Back, To start, Read all).
-/// </summary>
 public class SavedAutomatonController_LoadStateTests
 {
     private const string TestUserId = "user-load-state";
@@ -26,12 +22,12 @@ public class SavedAutomatonController_LoadStateTests
 
     private sealed class TestTempDataProvider : ITempDataProvider
     {
-        private readonly Dictionary<string, object?> _data = [];
-        public IDictionary<string, object?> LoadTempData(HttpContext context) => _data;
+        private readonly Dictionary<string, object?> data = [];
+        public IDictionary<string, object?> LoadTempData(HttpContext context) => data;
         public void SaveTempData(HttpContext context, IDictionary<string, object?> values)
         {
-            _data.Clear();
-            foreach (var kv in values) _data[kv.Key] = kv.Value;
+            data.Clear();
+            foreach (var kv in values) data[kv.Key] = kv.Value;
         }
     }
 
@@ -61,13 +57,10 @@ public class SavedAutomatonController_LoadStateTests
         services: null!,
         logger: new NullLogger<UserManager<ApplicationUser>>())
     {
-        private readonly ApplicationUser? _user = user;
-        public override Task<ApplicationUser?> GetUserAsync(ClaimsPrincipal principal) => Task.FromResult(_user);
+        private readonly ApplicationUser? user = user;
+        public override Task<ApplicationUser?> GetUserAsync(ClaimsPrincipal principal) => Task.FromResult(user);
     }
 
-    /// <summary>
-    /// A capturing temp data service that stores the last model so tests can inspect it.
-    /// </summary>
     private class CapturingTempDataService : IAutomatonTempDataService
     {
         public AutomatonViewModel? LastStoredModel { get; private set; }
@@ -103,10 +96,10 @@ public class SavedAutomatonController_LoadStateTests
         public Task<bool> CanUserSaveToGroupAsync(int groupId, string userId) => Task.FromResult(true);
         public Task<SavedAutomatonGroup?> GetGroupAsync(int groupId) => Task.FromResult<SavedAutomatonGroup?>(null);
         public Task SetGroupSharingPolicyAsync(int groupId, bool membersCanShare) => Task.CompletedTask;
-        public Task<List<SavedAutomaton>> ListByGroupAsync(int groupId) => Task.FromResult(new List<SavedAutomaton>());
-        public Task<SavedAutomatonGroup?> GetGroupAsync(int id, string userId) => Task.FromResult<SavedAutomatonGroup?>(null);
+        public static Task<List<SavedAutomaton>> ListByGroupAsync() => Task.FromResult(new List<SavedAutomaton>());
+        public static Task<SavedAutomatonGroup?> GetGroupAsync() => Task.FromResult<SavedAutomatonGroup?>(null);
         public Task DeleteGroupAsync(int id, string userId) => Task.CompletedTask;
-        public Task<SavedAutomatonGroupMember?> GetGroupMemberAsync(int groupId, string userId) => Task.FromResult<SavedAutomatonGroupMember?>(null);
+        public static Task<SavedAutomatonGroupMember?> GetGroupMemberAsync() => Task.FromResult<SavedAutomatonGroupMember?>(null);
         public Task AssignAutomatonToGroupAsync(int automatonId, string userId, int? groupId) => Task.CompletedTask;
         public Task RemoveAutomatonFromGroupAsync(int automatonId, string userId, int groupId) => Task.CompletedTask;
     }
@@ -166,8 +159,10 @@ public class SavedAutomatonController_LoadStateTests
 
         var controller = new SavedAutomatonController(savedSvc, sharedSvc, tempSvc, fileSvc, userManager);
 
-        var httpContext = new DefaultHttpContext();
-        httpContext.User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, TestUserId)]));
+        var httpContext = new DefaultHttpContext
+        {
+            User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, TestUserId)]))
+        };
         controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
         controller.TempData = new TempDataDictionary(httpContext, new TestTempDataProvider());
 

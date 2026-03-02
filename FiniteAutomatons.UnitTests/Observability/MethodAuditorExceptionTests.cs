@@ -1,8 +1,5 @@
-using System;
-using System.Threading.Tasks;
-using FiniteAutomatons.Observability;
+﻿using FiniteAutomatons.Observability;
 using Shouldly;
-using Xunit;
 
 namespace FiniteAutomatons.UnitTests.Observability;
 

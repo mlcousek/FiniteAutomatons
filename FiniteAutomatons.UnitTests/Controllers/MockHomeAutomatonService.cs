@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.ViewModel;
+﻿using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Interfaces;
 
 namespace FiniteAutomatons.UnitTests.Controllers;
@@ -10,12 +10,12 @@ public class MockHomeAutomatonService : IHomeAutomatonService
         return new AutomatonViewModel
         {
             Type = AutomatonType.DFA,
-            States = 
+            States =
             [
                 new() { Id = 1, IsStart = true, IsAccepting = false },
                 new() { Id = 2, IsStart = false, IsAccepting = true }
             ],
-            Transitions = 
+            Transitions =
             [
                 new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' },
                 new() { FromStateId = 2, ToStateId = 2, Symbol = 'a' }
@@ -29,12 +29,12 @@ public class MockHomeAutomatonService : IHomeAutomatonService
         return new AutomatonViewModel
         {
             Type = AutomatonType.DFA,
-            States = 
+            States =
             [
                 new() { Id = 1, IsStart = true, IsAccepting = false },
                 new() { Id = 2, IsStart = false, IsAccepting = true }
             ],
-            Transitions = 
+            Transitions =
             [
                 new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' }
             ],

@@ -1,9 +1,9 @@
+﻿using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Observability;
 using FiniteAutomatons.Services.Observability;
 using FiniteAutomatons.Services.Services;
-using FiniteAutomatons.Core.Models.ViewModel;
-using Shouldly;
 using Microsoft.Extensions.Logging;
+using Shouldly;
 
 namespace FiniteAutomatons.UnitTests.Observability;
 
@@ -11,7 +11,7 @@ internal class NullLogger<T> : ILogger<T>
 {
     public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
     public bool IsEnabled(LogLevel logLevel) => false;
-    public void Log<TState>(LogLevel logLevel, Microsoft.Extensions.Logging.EventId eventId, TState state, System.Exception? exception, System.Func<TState, System.Exception?, string> formatter) { }
+    public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, System.Exception?, string> formatter) { }
 }
 
 internal class StubBuilderService : AutomatonBuilderService

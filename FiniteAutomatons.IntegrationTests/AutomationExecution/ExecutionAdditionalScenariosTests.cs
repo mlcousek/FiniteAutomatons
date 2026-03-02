@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.ViewModel;
+﻿using FiniteAutomatons.Core.Models.ViewModel;
 using Shouldly;
 using System.Net;
 using System.Text.RegularExpressions;
@@ -90,7 +90,7 @@ public class ExecutionAdditionalScenariosTests(IntegrationTestsFixture fixture) 
     }
 
     private static int ExtractPosition(string html) => Regex.Match(html, "name=\"Position\"[^>]*value=\"(\\d+)\"", RegexOptions.IgnoreCase) is var m && m.Success ? int.Parse(m.Groups[1].Value) : 0;
-    private static bool? ExtractIsAccepted(string html) => Regex.Match(html, "name=\"IsAccepted\"[^>]*value=\"(true|false)\"", RegexOptions.IgnoreCase) is var m && m.Success ? bool.Parse(m.Groups[1].Value) : (bool?)null;
+    private static bool? ExtractIsAccepted(string html) => Regex.Match(html, "name=\"IsAccepted\"[^>]*value=\"(true|false)\"", RegexOptions.IgnoreCase) is var m && m.Success ? bool.Parse(m.Groups[1].Value) : null;
 
     // ------------ Tests ------------
 
@@ -156,8 +156,8 @@ public class ExecutionAdditionalScenariosTests(IntegrationTestsFixture fixture) 
         var startModel = new AutomatonViewModel
         {
             Type = model.Type,
-            States = model.States.Select(s => new Core.Models.DoMain.State { Id = s.Id, IsStart = s.IsStart, IsAccepting = s.IsAccepting }).ToList(),
-            Transitions = model.Transitions.Select(t => new Core.Models.DoMain.Transition { FromStateId = t.FromStateId, ToStateId = t.ToStateId, Symbol = t.Symbol }).ToList(),
+            States = [.. model.States.Select(s => new Core.Models.DoMain.State { Id = s.Id, IsStart = s.IsStart, IsAccepting = s.IsAccepting })],
+            Transitions = [.. model.Transitions.Select(t => new Core.Models.DoMain.Transition { FromStateId = t.FromStateId, ToStateId = t.ToStateId, Symbol = t.Symbol })],
             Input = model.Input,
             IsCustomAutomaton = true,
             HasExecuted = true,
@@ -169,8 +169,8 @@ public class ExecutionAdditionalScenariosTests(IntegrationTestsFixture fixture) 
         var step1Model = new AutomatonViewModel
         {
             Type = model.Type,
-            States = model.States.Select(s => new Core.Models.DoMain.State { Id = s.Id, IsStart = s.IsStart, IsAccepting = s.IsAccepting }).ToList(),
-            Transitions = model.Transitions.Select(t => new Core.Models.DoMain.Transition { FromStateId = t.FromStateId, ToStateId = t.ToStateId, Symbol = t.Symbol }).ToList(),
+            States = [.. model.States.Select(s => new Core.Models.DoMain.State { Id = s.Id, IsStart = s.IsStart, IsAccepting = s.IsAccepting })],
+            Transitions = [.. model.Transitions.Select(t => new Core.Models.DoMain.Transition { FromStateId = t.FromStateId, ToStateId = t.ToStateId, Symbol = t.Symbol })],
             Input = model.Input,
             IsCustomAutomaton = true,
             HasExecuted = true,

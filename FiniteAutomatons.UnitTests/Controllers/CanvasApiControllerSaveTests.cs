@@ -23,8 +23,6 @@ public class CanvasApiControllerSaveTests
         controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
     }
 
-    // ── Null / bad input ──────────────────────────────────────────────
-
     [Fact]
     public void Save_NullRequest_ReturnsBadRequest()
         => controller.Save(null).ShouldBeOfType<BadRequestObjectResult>();
@@ -35,8 +33,6 @@ public class CanvasApiControllerSaveTests
         controller.Save(null);
         session.Keys.ShouldNotContain(CanvasApiController.SessionKey);
     }
-
-    // ── Happy path ────────────────────────────────────────────────────
 
     [Fact]
     public void Save_ValidRequest_ReturnsOk()
@@ -65,8 +61,6 @@ public class CanvasApiControllerSaveTests
         ReadModel().IsCustomAutomaton.ShouldBeTrue();
     }
 
-    // ── Type mapping ──────────────────────────────────────────────────
-
     [Theory]
     [InlineData("DFA", AutomatonType.DFA)]
     [InlineData("NFA", AutomatonType.NFA)]
@@ -83,8 +77,6 @@ public class CanvasApiControllerSaveTests
         controller.Save(Req(rawType, [], []));
         ReadModel().Type.ShouldBe(expected);
     }
-
-    // ── State mapping ─────────────────────────────────────────────────
 
     [Fact]
     public void Save_States_CountPreserved()
@@ -123,8 +115,6 @@ public class CanvasApiControllerSaveTests
         controller.Save(Req("DFA", [], []));
         ReadModel().States.ShouldBeEmpty();
     }
-
-    // ── Transition mapping ────────────────────────────────────────────
 
     [Fact]
     public void Save_Transitions_CountPreserved()
@@ -191,8 +181,6 @@ public class CanvasApiControllerSaveTests
         t.StackPush.ShouldBeNull();
     }
 
-    // ── Overwrite ─────────────────────────────────────────────────────
-
     [Fact]
     public void Save_CalledTwice_SecondSaveOverwritesFirst()
     {
@@ -203,8 +191,6 @@ public class CanvasApiControllerSaveTests
         ReadModel().Type.ShouldBe(AutomatonType.NFA);
         ReadModel().States.Count.ShouldBe(2);
     }
-
-    // ── Clear ─────────────────────────────────────────────────────────
 
     [Fact]
     public void Clear_ReturnsOk()
@@ -229,8 +215,6 @@ public class CanvasApiControllerSaveTests
         controller.Clear();
         session.TryGetValue(CanvasApiController.SessionKey, out _).ShouldBeFalse();
     }
-
-    // ── Helpers ───────────────────────────────────────────────────────
 
     private string? ReadSessionJson()
     {

@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
+﻿using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,13 +18,13 @@ public class AutomatonGenerationIntegrationTests(IntegrationTestsFixture fixture
 
         var formData = new List<KeyValuePair<string, string>>
         {
-         new("Type", "0"), // DFA enum value
+            new("Type", "0"), // DFA enum value
             new("StateCount", "4"),
-        new("TransitionCount", "6"),
-      new("AlphabetSize", "2"),
-     new("AcceptingStateRatio", "0.5"),
-     new("Seed", "12345")
-   };
+            new("TransitionCount", "6"),
+            new("AlphabetSize", "2"),
+            new("AcceptingStateRatio", "0.5"),
+            new("Seed", "12345")
+        };
 
         // Act - Submit the generation form (client follows redirects by default)
         var postResponse = await client.PostAsync("/AutomatonGeneration/GenerateRandomAutomaton", new FormUrlEncodedContent(formData));
@@ -45,12 +45,12 @@ public class AutomatonGenerationIntegrationTests(IntegrationTestsFixture fixture
 
         var formData = new List<KeyValuePair<string, string>>
         {
-new("Type", "3"), // PDA enum value
+            new("Type", "3"), // PDA enum value
             new("StateCount", "4"),
-   new("TransitionCount", "8"),
-      new("AlphabetSize", "3"),
-    new("AcceptingStateRatio", "0.4"),
-  new("Seed", "4242")
+            new("TransitionCount", "8"),
+            new("AlphabetSize", "3"),
+            new("AcceptingStateRatio", "0.4"),
+            new("Seed", "4242")
         };
 
         // Act
@@ -159,7 +159,7 @@ new("Type", "3"), // PDA enum value
         result.States.Count(s => s.IsStart).ShouldBe(1);
         result.Alphabet.Count.ShouldBe(2);
         result.IsCustomAutomaton.ShouldBeTrue();
-        
+
         // PDA should have stack operations in transitions
         result.Transitions.ShouldNotBeEmpty();
     }
@@ -311,4 +311,3 @@ new("Type", "3"), // PDA enum value
 
     #endregion
 }
-

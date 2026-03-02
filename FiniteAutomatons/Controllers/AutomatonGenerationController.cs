@@ -18,7 +18,10 @@ public class AutomatonGenerationController(
     // GET generator page - redirects to Home with a random automaton with varied parameters
     public IActionResult GenerateRandomAutomaton()
     {
-        logger.LogInformation("Generating random automaton via GET redirect");
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Generating random automaton via GET redirect");
+        }
 
         var (stateCount, transitionCount, alphabetSize, acceptingRatio) = GenerateRandomParameters();
 
@@ -40,8 +43,11 @@ public class AutomatonGenerationController(
     [HttpPost]
     public IActionResult GenerateRandomAutomaton(RandomAutomatonGenerationViewModel model)
     {
-        logger.LogInformation("Generating random automaton Type={Type} States={States} Transitions={Transitions}",
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Generating random automaton Type={Type} States={States} Transitions={Transitions}",
             model.Type, model.StateCount, model.TransitionCount);
+        }
 
         if (!generatorService.ValidateGenerationParameters(model.Type, model.StateCount, model.TransitionCount, model.AlphabetSize))
         {
@@ -73,7 +79,10 @@ public class AutomatonGenerationController(
             return RedirectToAction("Index", "Home");
         }
 
-        logger.LogInformation("Generating preset automaton: {Preset}", preset);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Generating preset automaton: {Preset}", preset);
+        }
 
         try
         {

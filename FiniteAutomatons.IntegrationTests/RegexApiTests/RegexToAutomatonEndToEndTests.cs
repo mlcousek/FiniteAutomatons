@@ -17,7 +17,6 @@ public class RegexToAutomatonEndToEndTests(IntegrationTestsFixture fixture) : In
     {
         var client = GetHttpClient();
 
-        // Call dev endpoint to build automaton from regex
         var content = new StringContent(regex, Encoding.UTF8, "text/plain");
         var resp = await client.PostAsync("/_tests/build-from-regex", content);
         resp.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -31,12 +30,11 @@ public class RegexToAutomatonEndToEndTests(IntegrationTestsFixture fixture) : In
         JsonElement statesElem = GetPropertyIgnoreCase(root, "states");
         JsonElement transElem = GetPropertyIgnoreCase(root, "transitions");
 
-        // Build AutomatonViewModel from returned description
         var model = new AutomatonViewModel
         {
             Type = AutomatonType.EpsilonNFA,
-            States = new List<FiniteAutomatons.Core.Models.DoMain.State>(),
-            Transitions = new List<FiniteAutomatons.Core.Models.DoMain.Transition>(),
+            States = [],
+            Transitions = [],
             Input = input,
             IsCustomAutomaton = true
         };
@@ -47,7 +45,7 @@ public class RegexToAutomatonEndToEndTests(IntegrationTestsFixture fixture) : In
             bool isStart = TryGetBooleanIgnoreCase(s, "IsStart");
             bool isAccept = TryGetBooleanIgnoreCase(s, "IsAccepting");
 
-            model.States.Add(new FiniteAutomatons.Core.Models.DoMain.State
+            model.States.Add(new Core.Models.DoMain.State
             {
                 Id = id,
                 IsStart = isStart,
@@ -71,7 +69,7 @@ public class RegexToAutomatonEndToEndTests(IntegrationTestsFixture fixture) : In
             if (string.IsNullOrEmpty(sym) || sym == "?" || sym == "?" || sym == "\\0") ch = '\0';
             else ch = sym[0];
 
-            model.Transitions.Add(new FiniteAutomatons.Core.Models.DoMain.Transition
+            model.Transitions.Add(new Core.Models.DoMain.Transition
             {
                 FromStateId = from,
                 ToStateId = to,

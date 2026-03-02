@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.ViewModel;
+﻿using FiniteAutomatons.Core.Models.ViewModel;
 using Shouldly;
 
 namespace FiniteAutomatons.IntegrationTests.AutomationFETests;
@@ -12,15 +12,15 @@ public class StartResetButtonVisibilityTests(IntegrationTestsFixture fixture) : 
         {
             Type = AutomatonType.DFA,
             States =
-        [
-        new() { Id =1, IsStart = true, IsAccepting = false },
- new() { Id =2, IsStart = false, IsAccepting = true }
-        ],
+            [
+                new() { Id =1, IsStart = true, IsAccepting = false },
+                new() { Id =2, IsStart = false, IsAccepting = true }
+            ],
             Transitions =
-        [
-        new() { FromStateId =1, ToStateId =2, Symbol = 'a' },
- new() { FromStateId =2, ToStateId =2, Symbol = 'a' }
-        ],
+            [
+                new() { FromStateId =1, ToStateId =2, Symbol = 'a' },
+                new() { FromStateId =2, ToStateId =2, Symbol = 'a' }
+            ],
             Input = input,
             HasExecuted = hasExecuted
         };
@@ -116,10 +116,7 @@ public class StartResetButtonVisibilityTests(IntegrationTestsFixture fixture) : 
         var form = ToFormContent(model);
         var execResponse = await client.PostAsync("/AutomatonExecution/StepForward", form);
         execResponse.EnsureSuccessStatusCode();
-
-        // Extract updated hidden fields for HasExecuted (we only need HasExecuted true to send to Reset)
-        var executedHtml = await execResponse.Content.ReadAsStringAsync();
-        // We don't parse fully; just send HasExecuted true in new form
+        _ = await execResponse.Content.ReadAsStringAsync();
         var afterExecModel = model; // reuse
         afterExecModel.HasExecuted = true; // ensure reset sees executed state
         var resetForm = ToFormContent(afterExecModel);

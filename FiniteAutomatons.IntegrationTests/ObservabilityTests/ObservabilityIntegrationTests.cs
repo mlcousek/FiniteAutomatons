@@ -1,8 +1,8 @@
-using System.Text.Json;
-using System.Reflection;
+﻿using FiniteAutomatons.Core.Models.ViewModel;
 using Microsoft.Extensions.DependencyInjection;
-using FiniteAutomatons.Core.Models.ViewModel;
 using Shouldly;
+using System.Reflection;
+using System.Text.Json;
 
 namespace FiniteAutomatons.IntegrationTests.ObservabilityTests;
 

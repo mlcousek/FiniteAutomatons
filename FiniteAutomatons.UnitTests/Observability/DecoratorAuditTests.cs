@@ -1,7 +1,7 @@
+﻿using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Observability;
 using FiniteAutomatons.Services.Observability;
 using FiniteAutomatons.Services.Services;
-using FiniteAutomatons.Core.Models.ViewModel;
 using Shouldly;
 
 namespace FiniteAutomatons.UnitTests.Observability;

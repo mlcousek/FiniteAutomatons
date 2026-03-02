@@ -23,10 +23,6 @@ public class CanvasApiControllerSyncTests
         };
     }
 
-    // ────────────────────────────────────────────────────────────── //
-    // Null / bad request guard
-    // ────────────────────────────────────────────────────────────── //
-
     [Fact]
     public void Sync_NullRequest_ReturnsBadRequest()
     {
@@ -46,10 +42,6 @@ public class CanvasApiControllerSyncTests
         resp.States.ShouldBeEmpty();
         resp.Transitions.ShouldBeEmpty();
     }
-
-    // ────────────────────────────────────────────────────────────── //
-    // Alphabet derivation
-    // ────────────────────────────────────────────────────────────── //
 
     [Fact]
     public void Sync_DFA_SingleSymbol_AlphabetContainsThatSymbol()
@@ -162,10 +154,6 @@ public class CanvasApiControllerSyncTests
         GetResponse(req).Alphabet.ShouldBeEmpty();
     }
 
-    // ────────────────────────────────────────────────────────────── //
-    // State count & DTO
-    // ────────────────────────────────────────────────────────────── //
-
     [Fact]
     public void Sync_States_CountMatchesInput()
     {
@@ -246,10 +234,6 @@ public class CanvasApiControllerSyncTests
         var resp = GetResponse(req);
         resp.StateCount.ShouldBe(resp.States.Count);
     }
-
-    // ────────────────────────────────────────────────────────────── //
-    // Transition DTO
-    // ────────────────────────────────────────────────────────────── //
 
     [Fact]
     public void Sync_Transitions_CountMatchesInput()
@@ -338,10 +322,6 @@ public class CanvasApiControllerSyncTests
         resp.TransitionCount.ShouldBe(resp.Transitions.Count);
     }
 
-    // ────────────────────────────────────────────────────────────── //
-    // Automaton type flags
-    // ────────────────────────────────────────────────────────────── //
-
     [Theory]
     [InlineData("DFA", false)]
     [InlineData("NFA", false)]
@@ -374,10 +354,6 @@ public class CanvasApiControllerSyncTests
         var result = controller.Sync(req, null);
         result.ShouldBeOfType<OkObjectResult>();
     }
-
-    // ────────────────────────────────────────────────────────────── //
-    // PDA stack operations
-    // ────────────────────────────────────────────────────────────── //
 
     [Fact]
     public void Sync_PDA_StackPopDisplayed()
@@ -450,10 +426,6 @@ public class CanvasApiControllerSyncTests
         resp.Transitions.ShouldAllBe(t => t.IsPDA);
     }
 
-    // ────────────────────────────────────────────────────────────── //
-    // HasEpsilonTransitions flag
-    // ────────────────────────────────────────────────────────────── //
-
     [Fact]
     public void Sync_NoEpsilonTransitions_FlagFalse()
     {
@@ -500,10 +472,6 @@ public class CanvasApiControllerSyncTests
         resp.Alphabet.ShouldBeEmpty();
     }
 
-    // ────────────────────────────────────────────────────────────── //
-    // Large automaton
-    // ────────────────────────────────────────────────────────────── //
-
     [Fact]
     public void Sync_LargeAutomaton_AllStatesAndTransitionsReturned()
     {
@@ -520,10 +488,6 @@ public class CanvasApiControllerSyncTests
         resp.StateCount.ShouldBe(20);
         resp.TransitionCount.ShouldBe(19);
     }
-
-    // ────────────────────────────────────────────────────────────── //
-    // NFA specifics
-    // ────────────────────────────────────────────────────────────── //
 
     [Fact]
     public void Sync_NFA_MultipleTransitionsFromSameState_AllReturned()
@@ -549,10 +513,6 @@ public class CanvasApiControllerSyncTests
         GetResponse(req).IsPDA.ShouldBeFalse();
     }
 
-    // ────────────────────────────────────────────────────────────── //
-    // Response structure completeness
-    // ────────────────────────────────────────────────────────────── //
-
     [Fact]
     public void Sync_Response_ContainsAllRequiredFields()
     {
@@ -577,10 +537,6 @@ public class CanvasApiControllerSyncTests
         resp.TransitionCount.ShouldBe(0);
     }
 
-    // ────────────────────────────────────────────────────────────── //
-    // Symbol normalization
-    // ────────────────────────────────────────────────────────────── //
-
     [Theory]
     [InlineData("\\0", "ε")]
     [InlineData("ε", "ε")]
@@ -599,10 +555,6 @@ public class CanvasApiControllerSyncTests
         var resp = GetResponse(req);
         resp.Transitions[0].SymbolDisplay.ShouldBe(expectedDisplay);
     }
-
-    // ────────────────────────────────────────────────────────────── //
-    // Helpers
-    // ────────────────────────────────────────────────────────────── //
 
     private CanvasSyncResponse GetResponse(CanvasSyncRequest req)
     {

@@ -1,5 +1,4 @@
-using FiniteAutomatons.Core.Models.ViewModel;
-using FiniteAutomatons.IntegrationTests.AutomatonOperations.AutomatonGeneration;
+﻿using FiniteAutomatons.Core.Models.ViewModel;
 using Shouldly;
 using System.Net;
 using System.Text.RegularExpressions;
@@ -74,7 +73,7 @@ public class SimulateControlsDisableTests(IntegrationTestsFixture fixture) : Int
         var model = BuildSimpleDfa("ab");
         // Render initial index by posting create (redirect then GET Index)
         var resp = await PostAsync(client, "/AutomatonCreation/CreateAutomaton", model);
-        resp.StatusCode.ShouldBeOneOf(new[] { HttpStatusCode.OK, HttpStatusCode.Found });
+        resp.StatusCode.ShouldBeOneOf([HttpStatusCode.OK, HttpStatusCode.Found]);
         var html = await resp.Content.ReadAsStringAsync();
         var block = ExtractButtonBlock(html);
         ButtonPresent(block, "backToStart").ShouldBeTrue();
@@ -107,7 +106,7 @@ public class SimulateControlsDisableTests(IntegrationTestsFixture fixture) : Int
     {
         var client = GetHttpClient();
         var model = BuildSimpleDfa("ab");
-        var startHtml = await (await PostAsync(client, "/AutomatonExecution/Start", model)).Content.ReadAsStringAsync();
+        _ = await (await PostAsync(client, "/AutomatonExecution/Start", model)).Content.ReadAsStringAsync();
         // Build model for step forward
         var stepModel = BuildSimpleDfa("ab");
         stepModel.HasExecuted = true; stepModel.CurrentStateId = 1; // current state before consuming 'a'
@@ -138,7 +137,7 @@ public class SimulateControlsDisableTests(IntegrationTestsFixture fixture) : Int
     {
         var client = GetHttpClient();
         var model = BuildSimpleDfa("ab");
-        var endHtml = await (await PostAsync(client, "/AutomatonExecution/ExecuteAll", model)).Content.ReadAsStringAsync();
+        _ = await (await PostAsync(client, "/AutomatonExecution/ExecuteAll", model)).Content.ReadAsStringAsync();
         var endModel = BuildSimpleDfa("ab");
         endModel.HasExecuted = true; endModel.Position = 2; endModel.CurrentStateId = 2;
         var backResp = await PostAsync(client, "/AutomatonExecution/BackToStart", endModel);
@@ -156,7 +155,7 @@ public class SimulateControlsDisableTests(IntegrationTestsFixture fixture) : Int
     {
         var client = GetHttpClient();
         var model = BuildSimpleDfa("ab");
-        var execHtml = await (await PostAsync(client, "/AutomatonExecution/ExecuteAll", model)).Content.ReadAsStringAsync();
+        _ = await (await PostAsync(client, "/AutomatonExecution/ExecuteAll", model)).Content.ReadAsStringAsync();
         var execModel = BuildSimpleDfa("ab");
         execModel.HasExecuted = true; execModel.Position = 2; execModel.CurrentStateId = 2;
         var resetResp = await PostAsync(client, "/AutomatonExecution/Reset", execModel);

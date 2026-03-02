@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.ViewModel;
+﻿using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Services;
 using FiniteAutomatons.UnitTests.Controllers;
 using Microsoft.Extensions.Logging;
@@ -55,18 +55,18 @@ public class HomeAutomatonServiceTests
     {
         // Act - Generate multiple automatons
         var results = new List<(AutomatonType Type, int StateCount)>();
-        
+
         for (int i = 0; i < 5; i++)
         {
             var result = service.GenerateDefaultAutomaton();
             results.Add((result.Type, result.States.Count));
-            
+
             result.ShouldNotBeNull();
             result.States.Count.ShouldBeGreaterThan(0);
             result.States.Count(s => s.IsStart).ShouldBe(1);
             result.IsCustomAutomaton.ShouldBeFalse();
         }
-        
+
         // All should be consistent since we're using mock service
         results.All(r => r.StateCount > 0).ShouldBeTrue();
     }

@@ -1,6 +1,6 @@
 ﻿using FiniteAutomatons.Core.Models.Database;
-using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Core.Models.DTOs;
+using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -11,33 +11,23 @@ namespace FiniteAutomatons.Controllers;
 
 using Microsoft.Extensions.DependencyInjection;
 
-public class ImportExportController : Controller
+[method: ActivatorUtilitiesConstructor]
+public class ImportExportController(
+    IAutomatonFileService fileService,
+    ISavedAutomatonService savedAutomatonService,
+    ISharedAutomatonService sharedAutomatonService,
+    UserManager<ApplicationUser> userManager) : Controller
 {
-    private readonly IAutomatonFileService fileService;
-    private readonly ISavedAutomatonService savedAutomatonService;
-    private readonly ISharedAutomatonService sharedAutomatonService;
-    private readonly UserManager<ApplicationUser> userManager;
+    private readonly IAutomatonFileService fileService = fileService ?? throw new ArgumentNullException(nameof(fileService));
+    private readonly ISavedAutomatonService savedAutomatonService = savedAutomatonService ?? throw new ArgumentNullException(nameof(savedAutomatonService));
+    private readonly ISharedAutomatonService sharedAutomatonService = sharedAutomatonService ?? throw new ArgumentNullException(nameof(sharedAutomatonService));
+    private readonly UserManager<ApplicationUser> userManager = userManager ?? throw new ArgumentNullException(nameof(userManager));
 
-    [ActivatorUtilitiesConstructor]
-    public ImportExportController(
-        IAutomatonFileService fileService,
-        ISavedAutomatonService savedAutomatonService,
-        ISharedAutomatonService sharedAutomatonService,
-        UserManager<ApplicationUser> userManager)
-    {
-        this.fileService = fileService ?? throw new ArgumentNullException(nameof(fileService));
-        this.savedAutomatonService = savedAutomatonService ?? throw new ArgumentNullException(nameof(savedAutomatonService));
-        this.sharedAutomatonService = sharedAutomatonService ?? throw new ArgumentNullException(nameof(sharedAutomatonService));
-        this.userManager = userManager ?? throw new ArgumentNullException(nameof(userManager));
-    }
-
-    // Back-compat constructor for existing tests that don't provide ISharedAutomatonService
     internal ImportExportController(IAutomatonFileService fileService, ISavedAutomatonService savedAutomatonService, UserManager<ApplicationUser> userManager)
         : this(fileService, savedAutomatonService, new NoopSharedAutomatonService(), userManager)
     {
     }
 
-    // Minimal no-op implementation used for tests that don't exercise shared group features.
     private sealed class NoopSharedAutomatonService : ISharedAutomatonService
     {
         public Task<SharedAutomaton> SaveAsync(string userId, int groupId, string name, string? description, AutomatonViewModel model, bool saveExecutionState = false, string? layoutJson = null, string? thumbnailBase64 = null) =>
@@ -62,10 +52,9 @@ public class ImportExportController : Controller
         public Task<SharedGroupRole?> GetUserRoleInGroupAsync(int groupId, string userId) => Task.FromResult<SharedGroupRole?>(null);
     }
 
-    // Lightweight in-memory TempData provider used when controller is exercised in tests
     private sealed class InMemoryTempDataProvider : ITempDataProvider
     {
-        private readonly Dictionary<string, object?> data = new();
+        private readonly Dictionary<string, object?> data = [];
         public IDictionary<string, object?> LoadTempData(HttpContext context) => new Dictionary<string, object?>(data);
         public void SaveTempData(HttpContext context, IDictionary<string, object?> values)
         {
@@ -256,7 +245,7 @@ public class ImportExportController : Controller
         };
     }
 
-    private IActionResult ExportJsonHelper(AutomatonViewModel model, string name, string mode)
+    private FileContentResult ExportJsonHelper(AutomatonViewModel model, string name, string mode)
     {
         string content;
         string fileName;
@@ -264,15 +253,15 @@ public class ImportExportController : Controller
         switch (mode.ToLowerInvariant())
         {
             case "input":
-                (fileName, content) = fileService.ExportWithInput(model);
+                (_, content) = fileService.ExportWithInput(model);
                 fileName = $"{name}_withinput.json";
                 break;
             case "state":
-                (fileName, content) = fileService.ExportWithExecutionState(model);
+                (_, content) = fileService.ExportWithExecutionState(model);
                 fileName = $"{name}_withstate.json";
                 break;
             default:
-                (fileName, content) = fileService.ExportJson(model);
+                (_, content) = fileService.ExportJson(model);
                 fileName = $"{name}.json";
                 break;
         }
@@ -280,14 +269,14 @@ public class ImportExportController : Controller
         return File(System.Text.Encoding.UTF8.GetBytes(content), "application/json", fileName);
     }
 
-    private IActionResult ExportTextHelper(AutomatonViewModel model, string name)
+    private FileContentResult ExportTextHelper(AutomatonViewModel model, string name)
     {
         var content = fileService.ExportText(model).Content;
         return File(System.Text.Encoding.UTF8.GetBytes(content), "text/plain", $"{name}.txt");
     }
 
     [HttpGet]
-    public async Task<IActionResult> ExportGroup(int groupId, string format = "json", string mode = "structure")
+    public async Task<IActionResult> ExportGroup(int groupId)
     {
         var user = await userManager.GetUserAsync(User);
         if (user == null) return Challenge();
@@ -303,7 +292,7 @@ public class ImportExportController : Controller
             GroupName = group.Name,
             GroupDescription = group.Description,
             ExportedAt = DateTime.UtcNow,
-            Automatons = new List<AutomatonExportItemDto>()
+            Automatons = []
         };
 
         foreach (var a in automatons)
@@ -345,7 +334,6 @@ public class ImportExportController : Controller
             TempData ??= new TempDataDictionary(ControllerContext.HttpContext, new InMemoryTempDataProvider());
         }
 
-        // Must have permission to add automatons to the group
         if (!await sharedAutomatonService.CanUserAddToGroupAsync(groupId, user.Id))
         {
             TempData["Error"] = "You do not have permission to import automatons into this group.";
@@ -389,8 +377,8 @@ public class ImportExportController : Controller
                 var model = new AutomatonViewModel
                 {
                     Type = item.Content.Type,
-                    States = item.Content.States ?? new List<Core.Models.DoMain.State>(),
-                    Transitions = item.Content.Transitions ?? new List<Core.Models.DoMain.Transition>(),
+                    States = item.Content.States ?? [],
+                    Transitions = item.Content.Transitions ?? [],
                     IsCustomAutomaton = true,
                     SourceRegex = null
                 };
@@ -400,7 +388,7 @@ public class ImportExportController : Controller
                     model.Input = item.ExecutionState.Input ?? string.Empty;
                     model.Position = item.ExecutionState.Position;
                     model.CurrentStateId = item.ExecutionState.CurrentStateId;
-                    model.CurrentStates = item.ExecutionState.CurrentStates != null ? new HashSet<int>(item.ExecutionState.CurrentStates) : null;
+                    model.CurrentStates = item.ExecutionState.CurrentStates != null ? [.. item.ExecutionState.CurrentStates] : null;
                     model.IsAccepted = item.ExecutionState.IsAccepted;
                     model.StateHistorySerialized = item.ExecutionState.StateHistorySerialized ?? string.Empty;
                     model.StackSerialized = item.ExecutionState.StackSerialized;
@@ -433,9 +421,6 @@ public class ImportExportController : Controller
         if (upload == null)
             return BadRequest("No file uploaded");
 
-        // Single entry point: try to load a full view-model (with execution state) first,
-        // fallback to domain-only parsing inside the service. The service encapsulates
-        // detection and parsing logic so the controller remains thin.
         var (ok, model, error) = await fileService.LoadViewModelWithStateAsync(upload);
         if (!ok || model == null)
             return BadRequest(error ?? "Failed to load automaton");

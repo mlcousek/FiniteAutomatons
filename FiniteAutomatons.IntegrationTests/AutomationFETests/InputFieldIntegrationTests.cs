@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
+﻿using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.ViewModel;
 using Shouldly;
 using System.Net;
@@ -146,7 +146,7 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
         var m = Regex.Match(html, @"name\s*=\s*""StackSerialized""[^>]*value\s*=\s*""([^""]*)""|value\s*=\s*""([^""]*)""[^>]*name\s*=\s*""StackSerialized""", RegexOptions.IgnoreCase);
         var value = m.Success ? (m.Groups[1].Success ? m.Groups[1].Value : m.Groups[2].Value) : string.Empty;
         // HTML decode to handle &quot; etc.
-        return System.Net.WebUtility.HtmlDecode(value);
+        return WebUtility.HtmlDecode(value);
     }
 
     private static string ExtractStateHistorySerialized(string html)
@@ -154,7 +154,7 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
         var m = Regex.Match(html, @"name\s*=\s*""StateHistorySerialized""[^>]*value\s*=\s*""([^""]*)""|value\s*=\s*""([^""]*)""[^>]*name\s*=\s*""StateHistorySerialized""", RegexOptions.IgnoreCase);
         var value = m.Success ? (m.Groups[1].Success ? m.Groups[1].Value : m.Groups[2].Value) : string.Empty;
         // HTML decode to handle &quot; etc.
-        return System.Net.WebUtility.HtmlDecode(value);
+        return WebUtility.HtmlDecode(value);
     }
 
     [Fact]
@@ -163,7 +163,7 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
         var client = GetHttpClient();
         var model = BuildSimpleDfa("abba");
         var resp = await PostAsync(client, "/AutomatonCreation/CreateAutomaton", model); // creation may return OK if validation passes
-        resp.StatusCode.ShouldBeOneOf(new[] { HttpStatusCode.OK, HttpStatusCode.Found });
+        resp.StatusCode.ShouldBeOneOf([HttpStatusCode.OK, HttpStatusCode.Found]);
         var html = await resp.Content.ReadAsStringAsync();
         ExtractInputValue(html).ShouldBe("abba");
         InputIsReadonly(html).ShouldBeFalse();
@@ -244,7 +244,7 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
     {
         var client = GetHttpClient();
         var model = BuildSimpleDfa("ab");
-        var execHtml = await (await PostAsync(client, "/AutomatonExecution/ExecuteAll", model)).Content.ReadAsStringAsync();
+        _ = await (await PostAsync(client, "/AutomatonExecution/ExecuteAll", model)).Content.ReadAsStringAsync();
         var execModel = BuildSimpleDfa("ab");
         execModel.HasExecuted = true;
         execModel.Position = 2;
@@ -504,7 +504,7 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
         var client = GetHttpClient();
         var model = BuildBalancedParenthesesPda("()");
         var resp = await PostAsync(client, "/AutomatonCreation/CreateAutomaton", model);
-        resp.StatusCode.ShouldBeOneOf(new[] { HttpStatusCode.OK, HttpStatusCode.Found });
+        resp.StatusCode.ShouldBeOneOf([HttpStatusCode.OK, HttpStatusCode.Found]);
         var html = await resp.Content.ReadAsStringAsync();
         ExtractInputValue(html).ShouldBe("()");
         InputIsReadonly(html).ShouldBeFalse();
@@ -588,7 +588,7 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
     {
         var client = GetHttpClient();
         var model = BuildBalancedParenthesesPda("()");
-        var execHtml = await (await PostAsync(client, "/AutomatonExecution/ExecuteAll", model)).Content.ReadAsStringAsync();
+        _ = await (await PostAsync(client, "/AutomatonExecution/ExecuteAll", model)).Content.ReadAsStringAsync();
 
         var execModel = BuildBalancedParenthesesPda("()");
         execModel.HasExecuted = true;
@@ -781,7 +781,7 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
         var model = BuildBalancedParenthesesPda("(())");
 
         var startResp = await PostAsync(client, "/AutomatonExecution/Start", model);
-        var startHtml = await startResp.Content.ReadAsStringAsync();
+        _ = await startResp.Content.ReadAsStringAsync();
 
         var stepModel = BuildBalancedParenthesesPda("(())");
         stepModel.HasExecuted = true;
@@ -888,7 +888,7 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
         var model = BuildBalancedParenthesesPda("()");
 
         // Execute partially
-        var startResp = await PostAsync(client, "/AutomatonExecution/Start", model);
+        _ = await PostAsync(client, "/AutomatonExecution/Start", model);
         var stepModel = BuildBalancedParenthesesPda("()");
         stepModel.HasExecuted = true;
         stepModel.CurrentStateId = 1;
@@ -913,8 +913,7 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
     {
         var client = GetHttpClient();
         var model = BuildAnBnPda("aabb");
-
-        var startResp = await PostAsync(client, "/AutomatonExecution/Start", model);
+        _ = await PostAsync(client, "/AutomatonExecution/Start", model);
 
         var stepModel = BuildAnBnPda("aabb");
         stepModel.HasExecuted = true;

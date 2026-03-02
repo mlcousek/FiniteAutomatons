@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.DoMain;
+﻿using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Services;
 using Microsoft.Extensions.Logging;
@@ -12,7 +12,6 @@ public class RegexSourcePreservationTests
     private readonly AutomatonConversionService conversionService;
     private readonly AutomatonMinimizationService minimizationService;
 
-    // lightweight null logger used for tests
     internal class NullLogger2<T> : ILogger<T>
     {
         public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
@@ -23,7 +22,6 @@ public class RegexSourcePreservationTests
     public RegexSourcePreservationTests()
     {
         regexService = new RegexToAutomatonService(new NullLogger2<RegexToAutomatonService>());
-        // instantiate builder and analysis with simple null loggers
         var builder = new AutomatonBuilderService(new NullLogger2<AutomatonBuilderService>());
         var analysis = new AutomatonAnalysisService();
         conversionService = new AutomatonConversionService(builder, new NullLogger2<AutomatonConversionService>());

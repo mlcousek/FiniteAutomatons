@@ -1,4 +1,4 @@
-using FiniteAutomatons.Areas.Identity.Pages.Account.Manage;
+﻿using FiniteAutomatons.Areas.Identity.Pages.Account.Manage;
 using FiniteAutomatons.Core.Models.Database;
 using FiniteAutomatons.Services.Interfaces;
 using Microsoft.AspNetCore.Identity;
@@ -298,4 +298,3 @@ public class NotificationsPageModelTests
 
     #endregion
 }
-

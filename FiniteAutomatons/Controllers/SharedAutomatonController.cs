@@ -74,7 +74,10 @@ public class SharedAutomatonController(
         }
         catch (UnauthorizedAccessException ex)
         {
-            logger.LogWarning(ex, "User {UserId} attempted unauthorized access", user.Id);
+            if (logger.IsEnabled(LogLevel.Warning))
+            {
+                logger.LogWarning(ex, "User {UserId} attempted unauthorized access", user.Id);
+            }
             TempData["Error"] = "You do not have permission to access this resource.";
             return RedirectToAction(nameof(Index));
         }
@@ -88,7 +91,6 @@ public class SharedAutomatonController(
         if (user == null) return Challenge();
         try
         {
-            // Allow a user to remove themselves from a group regardless of member-management permissions
             var membership = await context.SharedAutomatonGroupMembers
                 .FirstOrDefaultAsync(m => m.GroupId == groupId && m.UserId == user.Id);
 
@@ -99,7 +101,6 @@ public class SharedAutomatonController(
                 return RedirectToAction(nameof(Index));
             }
 
-            // Owners cannot leave the group; they must delete or transfer ownership first
             if (membership.Role == SharedGroupRole.Owner)
             {
                 TempData["CreateGroupResult"] = "Group owners cannot leave the group. Transfer ownership or delete the group.";
@@ -141,7 +142,6 @@ public class SharedAutomatonController(
             ViewData["UserRole"] = role;
             ViewData["SelectedGroupId"] = id;
 
-            // Fetch creator emails for the automatons to display friendly names
             var creatorIds = automatons.Select(a => a.CreatedByUserId).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct();
             var creatorEmails = new Dictionary<string, string>();
             foreach (var cid in creatorIds)

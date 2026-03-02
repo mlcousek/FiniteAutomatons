@@ -16,7 +16,10 @@ public class InputGenerationController(
     [HttpPost]
     public IActionResult GenerateRandomString(AutomatonViewModel model, int minLength = 0, int maxLength = 10)
     {
-        logger.LogInformation("Generating random string with length {MinLength}-{MaxLength}", minLength, maxLength);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Generating random string with length {MinLength}-{MaxLength}", minLength, maxLength);
+        }
 
         if (model == null || model.States == null || model.States.Count == 0)
         {
@@ -45,7 +48,10 @@ public class InputGenerationController(
     [HttpPost]
     public IActionResult GenerateAcceptingString(AutomatonViewModel model, int maxLength = 20)
     {
-        logger.LogInformation("Generating accepting string with max length {MaxLength}", maxLength);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Generating accepting string with max length {MaxLength}", maxLength);
+        }
 
         if (model == null || model.States == null || model.States.Count == 0)
         {
@@ -83,8 +89,11 @@ public class InputGenerationController(
     [HttpPost]
     public IActionResult GenerateRandomAcceptingString(AutomatonViewModel model, int minLength = 0, int maxLength = 50, int maxAttempts = 100)
     {
-        logger.LogInformation("Generating random accepting string with length {MinLength}-{MaxLength}, attempts {MaxAttempts}", 
-            minLength, maxLength, maxAttempts);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Generating random accepting string with length {MinLength}-{MaxLength}, attempts {MaxAttempts}",
+                minLength, maxLength, maxAttempts);
+        }
 
         if (model == null || model.States == null || model.States.Count == 0)
         {
@@ -122,7 +131,10 @@ public class InputGenerationController(
     [HttpPost]
     public IActionResult GenerateRejectingString(AutomatonViewModel model, int maxLength = 20)
     {
-        logger.LogInformation("Generating rejecting string with max length {MaxLength}", maxLength);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Generating rejecting string with max length {MaxLength}", maxLength);
+        }
 
         if (model == null || model.States == null || model.States.Count == 0)
         {
@@ -160,7 +172,10 @@ public class InputGenerationController(
     [HttpPost]
     public IActionResult GenerateInterestingCase(AutomatonViewModel model, string caseType = "accepting")
     {
-        logger.LogInformation("Generating interesting case of type: {CaseType}", caseType);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Generating interesting case of type: {CaseType}", caseType);
+        }
 
         if (model == null || model.States == null || model.States.Count == 0)
         {
@@ -187,7 +202,7 @@ public class InputGenerationController(
         }
 
         // Find the requested case type or default to first case
-        var selectedCase = cases.FirstOrDefault(c => c.Description.ToLowerInvariant().Contains(caseType.ToLowerInvariant()));
+        var selectedCase = cases.FirstOrDefault(c => c.Description.Contains(caseType, StringComparison.InvariantCultureIgnoreCase));
         if (selectedCase == default)
         {
             selectedCase = cases[0];
@@ -204,7 +219,10 @@ public class InputGenerationController(
     [HttpPost]
     public IActionResult GenerateNondeterministicCase(AutomatonViewModel model, int maxLength = 15)
     {
-        logger.LogInformation("Generating nondeterministic test case");
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Generating nondeterministic test case");
+        }
 
         if (model == null || model.States == null || model.States.Count == 0)
         {
@@ -242,7 +260,10 @@ public class InputGenerationController(
     [HttpPost]
     public IActionResult GenerateEpsilonCase(AutomatonViewModel model, int maxLength = 15)
     {
-        logger.LogInformation("Generating epsilon transition test case");
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Generating epsilon transition test case");
+        }
 
         if (model == null || model.States == null || model.States.Count == 0)
         {

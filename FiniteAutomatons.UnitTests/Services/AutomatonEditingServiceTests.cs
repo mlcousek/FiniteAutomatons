@@ -1,8 +1,8 @@
-using FiniteAutomatons.Services.Services;
+﻿using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Interfaces;
-using FiniteAutomatons.Core.Models.ViewModel;
-using Shouldly;
+using FiniteAutomatons.Services.Services;
 using FiniteAutomatons.UnitTests.TestHelpers;
+using Shouldly;
 
 namespace FiniteAutomatons.UnitTests.Services;
 

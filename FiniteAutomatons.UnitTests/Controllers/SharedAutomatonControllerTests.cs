@@ -20,8 +20,8 @@ public class SharedAutomatonControllerTests : IDisposable
     private readonly ApplicationDbContext context;
     private readonly SharedAutomatonController controller;
     private readonly TestUserManager userManager;
-    private readonly ISharedAutomatonService sharedService;
-    private readonly ISharedAutomatonSharingService sharingService;
+    private readonly SharedAutomatonService sharedService;
+    private readonly SharedAutomatonSharingService sharingService;
     private const string TestUserId = "test@user.com";
     private const string TestUser2Id = "test2@user.com";
 
@@ -285,7 +285,7 @@ public class SharedAutomatonControllerTests : IDisposable
         var result = await controller.Save(group.Id, "Test Automaton", "Description", false);
 
         // Assert
-        var redirectResult = result.ShouldBeOfType<RedirectToActionResult>();
+        _ = result.ShouldBeOfType<RedirectToActionResult>();
 
         var automatons = await context.SharedAutomatons.ToListAsync();
         automatons.Count.ShouldBe(1);
@@ -379,11 +379,12 @@ public class SharedAutomatonControllerTests : IDisposable
             new TestUserManager(null),
             context,
             new MockInvitationNotificationService(),
-            NullLogger<SharedAutomatonController>.Instance);
-
-        unauthController.ControllerContext = new ControllerContext
+            NullLogger<SharedAutomatonController>.Instance)
         {
-            HttpContext = new DefaultHttpContext()
+            ControllerContext = new ControllerContext
+            {
+                HttpContext = new DefaultHttpContext()
+            }
         };
 
         // Act
@@ -404,7 +405,7 @@ public class SharedAutomatonControllerTests : IDisposable
         var result = await controller.DeleteGroup(group.Id);
 
         // Assert
-        var redirectResult = result.ShouldBeOfType<RedirectToActionResult>();
+        _ = result.ShouldBeOfType<RedirectToActionResult>();
         controller.TempData["CreateGroupSuccess"].ShouldBe("0");
     }
 
@@ -423,7 +424,7 @@ public class SharedAutomatonControllerTests : IDisposable
         var result = await controller.Save(group.Id, "Test", null, false);
 
         // Assert
-        var redirectResult = result.ShouldBeOfType<RedirectToActionResult>();
+        _ = result.ShouldBeOfType<RedirectToActionResult>();
         controller.TempData["SaveError"].ShouldNotBeNull();
     }
 
@@ -439,7 +440,7 @@ public class SharedAutomatonControllerTests : IDisposable
         var result = await controller.Delete(automaton.Id);
 
         // Assert
-        var redirectResult = result.ShouldBeOfType<RedirectToActionResult>();
+        _ = result.ShouldBeOfType<RedirectToActionResult>();
         controller.TempData["CreateGroupSuccess"].ShouldBe("0");
     }
 
@@ -454,7 +455,7 @@ public class SharedAutomatonControllerTests : IDisposable
         var result = await controller.ManageMembers(group.Id);
 
         // Assert
-        var redirectResult = result.ShouldBeOfType<RedirectToActionResult>();
+        _ = result.ShouldBeOfType<RedirectToActionResult>();
         controller.TempData["Error"].ShouldNotBeNull();
     }
 

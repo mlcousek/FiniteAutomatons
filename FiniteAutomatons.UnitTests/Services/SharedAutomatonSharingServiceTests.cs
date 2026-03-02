@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.Database;
+﻿using FiniteAutomatons.Core.Models.Database;
 using FiniteAutomatons.Data;
 using FiniteAutomatons.Services.Services;
 using Microsoft.AspNetCore.Identity;

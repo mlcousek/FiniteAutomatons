@@ -234,6 +234,7 @@ public partial class Program
         services.AddScoped<IAutomatonAnalysisService, AutomatonAnalysisService>();
         services.AddScoped<IAutomatonPresetService, AutomatonPresetService>();
         services.AddScoped<IInputGenerationService, InputGenerationService>();
+        services.AddScoped<ICanvasMappingService, CanvasMappingService>();
 
         // Register automaton types
         services.AddTransient<DFA>();

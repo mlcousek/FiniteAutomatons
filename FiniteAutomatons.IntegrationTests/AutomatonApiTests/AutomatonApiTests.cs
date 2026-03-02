@@ -1,4 +1,5 @@
-using FiniteAutomatons.Core.Models.ViewModel;
+﻿using FiniteAutomatons.Core.Models.ViewModel;
+using Shouldly;
 using System.Net;
 using System.Text.RegularExpressions;
 
@@ -129,18 +130,18 @@ public class AutomatonApiTests(IntegrationTestsFixture fixture) : IntegrationTes
         var html = await response.Content.ReadAsStringAsync();
 
         // Assert
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Contains("Accepted", html, StringComparison.OrdinalIgnoreCase);
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        html.ToLowerInvariant().ShouldContain("accepted");
     }
 
     [Fact]
     public async Task ExecuteAll_RejectsInputNotLeadingToAccepting()
     {
         // Arrange
-        var model = GetDefaultDfaViewModel("ab"); // 1->2(a)->5(b), state 5 is accepting so this SHOULD accept
+        _ = GetDefaultDfaViewModel("ab"); // 1->2(a)->5(b), state 5 is accepting so this SHOULD accept
         // Actually: 1->2(a)->5(b) - wait, let me trace: from state 2 with 'b' goes to state 5 which IS accepting
         // So this test expectation is WRONG. Let's use different input that actually rejects
-        model = GetDefaultDfaViewModel("a"); // 1->2(a), state 2 is NOT accepting - this will reject
+        AutomatonViewModel? model = GetDefaultDfaViewModel("a");
 
         var client = GetHttpClient();
         var form = ToFormContent(model);
@@ -150,11 +151,10 @@ public class AutomatonApiTests(IntegrationTestsFixture fixture) : IntegrationTes
         var html = await response.Content.ReadAsStringAsync();
 
         // Assert
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
         // Check that rejected appears somewhere (case insensitive)
-        var containsRejected = html.Contains("rejected", StringComparison.OrdinalIgnoreCase);
-        Assert.True(containsRejected, $"Expected 'rejected' to appear in HTML, but it didn't. HTML snippet: {html.Substring(0, Math.Min(500, html.Length))}");
+        html.Contains("rejected", StringComparison.InvariantCultureIgnoreCase).ShouldBeTrue($"Expected 'rejected' to appear in HTML, but it didn't. HTML snippet: {html[..Math.Min(500, html.Length)]}");
     }
 
     [Fact]
@@ -168,11 +168,11 @@ public class AutomatonApiTests(IntegrationTestsFixture fixture) : IntegrationTes
         // Step 1: StepForward (should move to state 2)
         var response = await client.PostAsync("/AutomatonExecution/StepForward", form);
         var html = await response.Content.ReadAsStringAsync();
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
         // With StepForward, HasExecuted gets set automatically
         // The execution state should show (even without explicit Start)
         // But we need to verify it displays correctly
-        Assert.Contains("q2", html); // Should have moved to state 2
+        html.ShouldContain("q2"); // Should have moved to state 2
 
         UpdateModelFromHtml(model, html);
 
@@ -180,7 +180,7 @@ public class AutomatonApiTests(IntegrationTestsFixture fixture) : IntegrationTes
         form = ToFormContent(model);
         response = await client.PostAsync("/AutomatonExecution/StepForward", form);
         html = await response.Content.ReadAsStringAsync();
-        Assert.Contains("q5", html);
+        html.ShouldContain("q5");
 
         UpdateModelFromHtml(model, html);
 
@@ -188,7 +188,7 @@ public class AutomatonApiTests(IntegrationTestsFixture fixture) : IntegrationTes
         form = ToFormContent(model);
         response = await client.PostAsync("/AutomatonExecution/StepBackward", form);
         html = await response.Content.ReadAsStringAsync();
-        Assert.Contains("q2", html);
+        html.ShouldContain("q2", Case.Insensitive);
     }
 
     [Fact]
@@ -206,11 +206,11 @@ public class AutomatonApiTests(IntegrationTestsFixture fixture) : IntegrationTes
         var html = await response.Content.ReadAsStringAsync();
 
         // Assert
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Contains("Current State:", html);
-        Assert.Contains("q1", html);
-        Assert.Contains("Current Position:", html);
-        Assert.Contains("0 /", html); // Position 0 out of total
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        html.ShouldContain("Current State:");
+        html.ShouldContain("q1");
+        html.ShouldContain("Current Position:");
+        html.ShouldContain("0 /"); // Position 0 out of total
     }
 
     [Fact]
@@ -229,12 +229,12 @@ public class AutomatonApiTests(IntegrationTestsFixture fixture) : IntegrationTes
         var html = await response.Content.ReadAsStringAsync();
 
         // Assert
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Contains("INPUT", html); // Input section header
-                                        // After reset, execution state section should not be shown since HasExecuted is now false
-                                        // But the comment "Execution State Section" might still be in HTML as a comment
-                                        // Check that there's no actual execution state item displayed
-        Assert.DoesNotContain("execution-state-item", html); // No execution state items rendered
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        html.ShouldContain("INPUT"); // Input section header
+                                     // After reset, execution state section should not be shown since HasExecuted is now false
+                                     // But the comment "Execution State Section" might still be in HTML as a comment
+                                     // Check that there's no actual execution state item displayed
+        html.ShouldNotContain("execution-state-item"); // No execution state items rendered
     }
 
     [Fact]
@@ -248,8 +248,8 @@ public class AutomatonApiTests(IntegrationTestsFixture fixture) : IntegrationTes
         var response = await client.PostAsync("/AutomatonExecution/ExecuteAll", form);
         var html = await response.Content.ReadAsStringAsync();
         // Assert
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Contains("Accepted", html, StringComparison.OrdinalIgnoreCase);
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        html.ToLowerInvariant().ShouldContain("accepted");
     }
 
     [Fact]
@@ -278,9 +278,9 @@ public class AutomatonApiTests(IntegrationTestsFixture fixture) : IntegrationTes
         var response = await client.PostAsync("/AutomatonExecution/ExecuteAll", form);
         var html = await response.Content.ReadAsStringAsync();
         // Assert
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
         // Could be accepted or rejected depending on DFA, just check for result
-        Assert.True(html.Contains("Accepted", StringComparison.OrdinalIgnoreCase) || html.Contains("Rejected", StringComparison.OrdinalIgnoreCase));
+        (html.Contains("accepted", StringComparison.InvariantCultureIgnoreCase) || html.Contains("rejected", StringComparison.InvariantCultureIgnoreCase)).ShouldBeTrue();
     }
 
     [Fact]
@@ -309,8 +309,8 @@ public class AutomatonApiTests(IntegrationTestsFixture fixture) : IntegrationTes
         var response = await client.PostAsync("/AutomatonExecution/ExecuteAll", form);
         var html = await response.Content.ReadAsStringAsync();
         // Assert
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Contains("Accepted", html, StringComparison.OrdinalIgnoreCase);
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        html.ToLowerInvariant().ShouldContain("accepted");
     }
 
     [Fact]
@@ -324,34 +324,34 @@ public class AutomatonApiTests(IntegrationTestsFixture fixture) : IntegrationTes
         // Step 1: StepForward (should move to state 2)
         var response = await client.PostAsync("/AutomatonExecution/StepForward", form);
         var html = await response.Content.ReadAsStringAsync();
-        Assert.Contains("q2", html);
+        html.ShouldContain("q2");
         UpdateModelFromHtml(model, html);
 
         // Step 2: StepForward (with 'b' should move to state 5, not 3!)
         form = ToFormContent(model);
         response = await client.PostAsync("/AutomatonExecution/StepForward", form);
         html = await response.Content.ReadAsStringAsync();
-        Assert.Contains("q5", html);
+        html.ShouldContain("q5");
         UpdateModelFromHtml(model, html);
 
         // Step 3: StepBackward (should move back to state 2)
         form = ToFormContent(model);
         response = await client.PostAsync("/AutomatonExecution/StepBackward", form);
         html = await response.Content.ReadAsStringAsync();
-        Assert.Contains("q2", html);
+        html.ShouldContain("q2", Case.Insensitive);
         UpdateModelFromHtml(model, html);
 
         // Step 4: ExecuteAll (should end in state 5)
         form = ToFormContent(model);
         response = await client.PostAsync("/AutomatonExecution/ExecuteAll", form);
         html = await response.Content.ReadAsStringAsync();
-        var containsAccepted = html.Contains("accepted", StringComparison.OrdinalIgnoreCase);
-        Assert.True(containsAccepted, "Expected 'accepted' in HTML");
+        var containsAccepted = html.Contains("accepted", StringComparison.InvariantCultureIgnoreCase);
+        containsAccepted.ShouldBeTrue("Expected 'accepted' in HTML");
 
         // Step 5: Reset
         response = await client.PostAsync("/AutomatonExecution/Reset", form);
         html = await response.Content.ReadAsStringAsync();
-        Assert.Contains("INPUT", html); // Input section header
-        Assert.DoesNotContain("execution-state-item", html); // No execution state items
+        html.ShouldContain("INPUT"); // Input section header
+        html.ShouldNotContain("execution-state-item"); // No execution state items
     }
 }

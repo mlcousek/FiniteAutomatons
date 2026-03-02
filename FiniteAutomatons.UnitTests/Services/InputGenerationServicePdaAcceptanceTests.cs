@@ -78,8 +78,6 @@ public class InputGenerationServicePdaAcceptanceTests
 
         var result = service.GenerateAcceptingString(model, 10);
 
-        // For EmptyStackOnly, empty string is accepted (starts with empty stack, no transitions)
-        // Or it should find a^n b^n pattern
         if (result != null)
         {
             var pda = builderService.CreatePDA(model);
@@ -87,8 +85,6 @@ public class InputGenerationServicePdaAcceptanceTests
         }
         else
         {
-            // It's acceptable if no non-empty accepting string was found for this PDA
-            // since EmptyStackOnly with no accepting states is unusual
             result.ShouldBeNull("No accepting string found - this is acceptable for EmptyStackOnly with no obvious patterns");
         }
     }

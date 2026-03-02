@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
+﻿using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.ViewModel;
 using Shouldly;
 using System.Net;
@@ -6,9 +6,6 @@ using System.Text.RegularExpressions;
 
 namespace FiniteAutomatons.IntegrationTests.AutomationFETests;
 
-/// <summary>
-/// Integration tests for result display (ACCEPTED/REJECTED) after full input is read.
-/// </summary>
 [Collection("Integration Tests")]
 public class ResultDisplayTests(IntegrationTestsFixture fixture) : IntegrationTestsBase(fixture)
 {
@@ -21,13 +18,13 @@ public class ResultDisplayTests(IntegrationTestsFixture fixture) : IntegrationTe
         {
             Type = AutomatonType.DFA,
             States =
-        [
-           new() { Id = 1, IsStart = true, IsAccepting = false },
-       new() { Id = 2, IsStart = false, IsAccepting = true }
+            [
+                new() { Id = 1, IsStart = true, IsAccepting = false },
+                new() { Id = 2, IsStart = false, IsAccepting = true }
             ],
             Transitions =
-          [
-    new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' }
+            [
+                new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' }
             ],
             Input = "a"
         };
@@ -57,13 +54,13 @@ public class ResultDisplayTests(IntegrationTestsFixture fixture) : IntegrationTe
         {
             Type = AutomatonType.DFA,
             States =
-       [
-      new() { Id = 1, IsStart = true, IsAccepting = false },
- new() { Id = 2, IsStart = false, IsAccepting = true }
+            [
+                new() { Id = 1, IsStart = true, IsAccepting = false },
+                new() { Id = 2, IsStart = false, IsAccepting = true }
             ],
             Transitions =
- [
-   new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' }
+            [
+                new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' }
             ],
             Input = "ab" // Will be rejected
         };
@@ -93,15 +90,15 @@ public class ResultDisplayTests(IntegrationTestsFixture fixture) : IntegrationTe
         {
             Type = AutomatonType.DFA,
             States =
-    [
-      new() { Id = 1, IsStart = true, IsAccepting = false },
-    new() { Id = 2, IsStart = false, IsAccepting = true }
-  ],
+            [
+                new() { Id = 1, IsStart = true, IsAccepting = false },
+                new() { Id = 2, IsStart = false, IsAccepting = true }
+            ],
             Transitions =
-        [
-    new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' },
-       new() { FromStateId = 2, ToStateId = 1, Symbol = 'b' }
-       ],
+            [
+                new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' },
+                new() { FromStateId = 2, ToStateId = 1, Symbol = 'b' }
+            ],
             Input = "ab"
         };
 
@@ -132,9 +129,9 @@ public class ResultDisplayTests(IntegrationTestsFixture fixture) : IntegrationTe
         {
             Type = AutomatonType.DFA,
             States =
-         [
- new() { Id = 1, IsStart = true, IsAccepting = true } // Start state is accepting
-       ],
+            [
+                new() { Id = 1, IsStart = true, IsAccepting = true } // Start state is accepting
+            ],
             Transitions = [],
             Input = "" // Empty input
         };
@@ -164,15 +161,15 @@ public class ResultDisplayTests(IntegrationTestsFixture fixture) : IntegrationTe
             Type = AutomatonType.NFA,
             States =
             [
-             new() { Id = 1, IsStart = true, IsAccepting = false },
-        new() { Id = 2, IsStart = false, IsAccepting = true },
-         new() { Id = 3, IsStart = false, IsAccepting = false }
+                new() { Id = 1, IsStart = true, IsAccepting = false },
+                new() { Id = 2, IsStart = false, IsAccepting = true },
+                new() { Id = 3, IsStart = false, IsAccepting = false }
             ],
             Transitions =
-   [
-      new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' },
-        new() { FromStateId = 1, ToStateId = 3, Symbol = 'a' } // Non-deterministic
-   ],
+            [
+                new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' },
+                new() { FromStateId = 1, ToStateId = 3, Symbol = 'a' } // Non-deterministic
+            ],
             Input = "a"
         };
 
@@ -349,7 +346,7 @@ public class ResultDisplayTests(IntegrationTestsFixture fixture) : IntegrationTe
         var currentStatesMatches = Regex.Matches(html, @"name\s*=\s*""CurrentStates\[\d+\]""[^>]*value\s*=\s*""(\d+)""|value\s*=\s*""(\d+)""[^>]*name\s*=\s*""CurrentStates\[\d+\]""", RegexOptions.IgnoreCase);
         if (currentStatesMatches.Count > 0)
         {
-            model.CurrentStates = new HashSet<int>();
+            model.CurrentStates = [];
             foreach (Match match in currentStatesMatches)
             {
                 var value = match.Groups[1].Success ? match.Groups[1].Value : match.Groups[2].Value;
@@ -371,7 +368,7 @@ public class ResultDisplayTests(IntegrationTestsFixture fixture) : IntegrationTe
             int index = int.Parse(indexValue);
             if (processedIndices.Contains(index)) continue; // Skip duplicates
             processedIndices.Add(index);
-            
+
             var idValue = match.Groups[2].Success ? match.Groups[2].Value : match.Groups[3].Value;
 
             model.States.Add(new Core.Models.DoMain.State
@@ -396,7 +393,7 @@ public class ResultDisplayTests(IntegrationTestsFixture fixture) : IntegrationTe
             int index = int.Parse(indexValue);
             if (processedIndices.Contains(index)) continue; // Skip duplicates
             processedIndices.Add(index);
-            
+
             var fromValue = fromMatch.Groups[2].Success ? fromMatch.Groups[2].Value : fromMatch.Groups[3].Value;
             var toValue = transToMatches[i].Groups[1].Success ? transToMatches[i].Groups[1].Value : transToMatches[i].Groups[2].Value;
             char symbol = '\0';
@@ -890,4 +887,3 @@ public class ResultDisplayTests(IntegrationTestsFixture fixture) : IntegrationTe
 
     #endregion
 }
-

@@ -118,8 +118,8 @@ public class ImportExportControllerTests
 
     private sealed class FakeSharedAutomatonService : ISharedAutomatonService
     {
-        public readonly List<SharedAutomaton> Saved = new();
-        public readonly List<(string userId, int groupId, string name)> Created = new();
+        public readonly List<SharedAutomaton> Saved = [];
+        public readonly List<(string userId, int groupId, string name)> Created = [];
 
         public Task<SharedAutomaton> SaveAsync(string userId, int groupId, string name, string? description, AutomatonViewModel model, bool saveExecutionState = false, string? layoutJson = null, string? thumbnailBase64 = null)
         {
@@ -301,14 +301,14 @@ public class ImportExportControllerTests
                     Name = "Imported1",
                     Description = "d1",
                     HasExecutionState = false,
-                    Content = new AutomatonPayloadDto { Type = AutomatonType.DFA, States = new List<Core.Models.DoMain.State>(), Transitions = new List<Core.Models.DoMain.Transition>() }
+                    Content = new AutomatonPayloadDto { Type = AutomatonType.DFA, States = [], Transitions = [] }
                 },
                 new AutomatonExportItemDto
                 {
                     Name = "Imported2",
                     Description = "d2",
                     HasExecutionState = false,
-                    Content = new AutomatonPayloadDto { Type = AutomatonType.NFA, States = new List<Core.Models.DoMain.State>(), Transitions = new List<Core.Models.DoMain.Transition>() }
+                    Content = new AutomatonPayloadDto { Type = AutomatonType.NFA, States = [], Transitions = [] }
                 }
             ]
         };

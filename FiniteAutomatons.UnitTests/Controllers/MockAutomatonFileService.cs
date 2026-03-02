@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.Database;
+﻿using FiniteAutomatons.Core.Models.Database;
 using FiniteAutomatons.Core.Models.DTOs;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Interfaces;
@@ -10,6 +10,9 @@ namespace FiniteAutomatons.UnitTests.Controllers;
 
 public class MockAutomatonFileService : IAutomatonFileService
 {
+    private static readonly JsonSerializerOptions s_indentedOptions = new() { WriteIndented = true };
+    private static readonly JsonSerializerOptions s_caseInsensitiveOptions = new() { PropertyNameCaseInsensitive = true };
+
     public Task<(bool Ok, AutomatonViewModel? Model, string? Error)> LoadFromFileAsync(IFormFile file)
         => Task.FromResult<(bool, AutomatonViewModel?, string?)>((false, null, "Not implemented in mock"));
 
@@ -18,7 +21,7 @@ public class MockAutomatonFileService : IAutomatonFileService
 
     public (string FileName, string Content) ExportJson(AutomatonViewModel model)
     {
-        var json = JsonSerializer.Serialize(model, new JsonSerializerOptions { WriteIndented = true });
+        var json = JsonSerializer.Serialize(model, s_indentedOptions);
         return ("test.json", json);
     }
 
@@ -27,19 +30,19 @@ public class MockAutomatonFileService : IAutomatonFileService
 
     public (string FileName, string Content) ExportJsonWithState(AutomatonViewModel model)
     {
-        var json = JsonSerializer.Serialize(model, new JsonSerializerOptions { WriteIndented = true });
+        var json = JsonSerializer.Serialize(model, s_indentedOptions);
         return ("test-withstate.json", json);
     }
 
     public (string FileName, string Content) ExportWithInput(AutomatonViewModel model)
     {
-        var json = JsonSerializer.Serialize(model, new JsonSerializerOptions { WriteIndented = true });
+        var json = JsonSerializer.Serialize(model, s_indentedOptions);
         return ("test-withinput.json", json);
     }
 
     public (string FileName, string Content) ExportWithExecutionState(AutomatonViewModel model)
     {
-        var json = JsonSerializer.Serialize(model, new JsonSerializerOptions { WriteIndented = true });
+        var json = JsonSerializer.Serialize(model, s_indentedOptions);
         return ("test-execution.json", json);
     }
 
@@ -58,7 +61,7 @@ public class MockAutomatonFileService : IAutomatonFileService
                 try
                 {
                     if (!string.IsNullOrEmpty(a.ContentJson))
-                        content = JsonSerializer.Deserialize<AutomatonPayloadDto>(a.ContentJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                        content = JsonSerializer.Deserialize<AutomatonPayloadDto>(a.ContentJson, s_caseInsensitiveOptions);
                 }
                 catch { content = new AutomatonPayloadDto(); }
 
@@ -67,7 +70,7 @@ public class MockAutomatonFileService : IAutomatonFileService
                 {
                     try
                     {
-                        exec = JsonSerializer.Deserialize<SavedExecutionStateDto>(a.ExecutionStateJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                        exec = JsonSerializer.Deserialize<SavedExecutionStateDto>(a.ExecutionStateJson, s_caseInsensitiveOptions);
                     }
                     catch { }
                 }
@@ -80,10 +83,10 @@ public class MockAutomatonFileService : IAutomatonFileService
                     Content = content ?? new AutomatonPayloadDto(),
                     ExecutionState = exec
                 };
-            }).ToList() ?? new List<AutomatonExportItemDto>()
+            }).ToList() ?? []
         };
 
-        var json = JsonSerializer.Serialize(exportData, new JsonSerializerOptions { WriteIndented = true });
+        var json = JsonSerializer.Serialize(exportData, s_indentedOptions);
         var fileName = $"{groupName}_export_{DateTime.UtcNow:yyyyMMdd_HHmmss}.json";
         return (fileName, json);
     }
@@ -97,7 +100,7 @@ public class MockAutomatonFileService : IAutomatonFileService
         {
             using var reader = new StreamReader(file.OpenReadStream(), Encoding.UTF8);
             var content = await reader.ReadToEndAsync();
-            var importData = JsonSerializer.Deserialize<GroupExportDto>(content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            var importData = JsonSerializer.Deserialize<GroupExportDto>(content, s_caseInsensitiveOptions);
             if (importData == null)
                 return (false, null, "Invalid group export file.");
             if (importData.Automatons == null)

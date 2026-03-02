@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.Database;
+﻿using FiniteAutomatons.Core.Models.Database;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Data;
 using FiniteAutomatons.Services.Services;
@@ -845,7 +845,7 @@ public class SavedAutomatonServiceTests
 
         res.SaveMode.ShouldBe(AutomatonSaveMode.WithInput);
         res.ExecutionStateJson.ShouldNotBeNullOrWhiteSpace();
-        
+
         var execDoc = JsonDocument.Parse(res.ExecutionStateJson!);
         execDoc.RootElement.GetProperty("Input").GetString().ShouldBe("   ");
     }
@@ -870,7 +870,7 @@ public class SavedAutomatonServiceTests
         var res = await svc.SaveAsync("user-savemode-6", "InputNoState", null, model, saveExecutionState: false);
 
         res.SaveMode.ShouldBe(AutomatonSaveMode.WithInput);
-        
+
         var execDoc = JsonDocument.Parse(res.ExecutionStateJson!);
         execDoc.RootElement.GetProperty("Input").GetString().ShouldBe("abc");
         execDoc.RootElement.GetProperty("Position").GetInt32().ShouldBe(0);
@@ -901,7 +901,7 @@ public class SavedAutomatonServiceTests
         var res = await svc.SaveAsync("user-savemode-7", "FullState", null, model, saveExecutionState: true);
 
         res.SaveMode.ShouldBe(AutomatonSaveMode.WithState);
-        
+
         var execDoc = JsonDocument.Parse(res.ExecutionStateJson!);
         execDoc.RootElement.GetProperty("Input").GetString().ShouldBe("xyz");
         execDoc.RootElement.GetProperty("Position").GetInt32().ShouldBe(3);

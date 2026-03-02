@@ -10,10 +10,6 @@ using System.Text.Json;
 
 namespace FiniteAutomatons.UnitTests.Controllers;
 
-/// <summary>
-/// Unit tests for CanvasApiController's internal BuildViewModel / ParseSymbol logic,
-/// exercised through the public Save endpoint.
-/// </summary>
 public class CanvasApiControllerBuildViewModelTests
 {
     private static (CanvasApiController ctrl, MockSession session) CreateController()
@@ -33,10 +29,6 @@ public class CanvasApiControllerBuildViewModelTests
         return JsonSerializer.Deserialize<AutomatonViewModel>(json)!;
     }
 
-    // ────────────────────────────────────────────────────────────── //
-    // AutomatonType mapping
-    // ────────────────────────────────────────────────────────────── //
-
     [Theory]
     [InlineData("DFA", AutomatonType.DFA)]
     [InlineData("dfa", AutomatonType.DFA)]
@@ -54,10 +46,6 @@ public class CanvasApiControllerBuildViewModelTests
         var model = SaveAndRead(ctrl, session, new CanvasSyncRequest { Type = rawType, States = [], Transitions = [] });
         model.Type.ShouldBe(expected);
     }
-
-    // ────────────────────────────────────────────────────────────── //
-    // ParseSymbol — single character
-    // ────────────────────────────────────────────────────────────── //
 
     [Theory]
     [InlineData("a", 'a')]
@@ -93,10 +81,6 @@ public class CanvasApiControllerBuildViewModelTests
         var model = SaveAndRead(ctrl, session, Req("DFA", "abc"));
         model.Transitions[0].Symbol.ShouldBe('a');
     }
-
-    // ────────────────────────────────────────────────────────────── //
-    // PDA stack parsing
-    // ────────────────────────────────────────────────────────────── //
 
     [Fact]
     public void BuildViewModel_PDA_StackPopSingleChar_Preserved()
@@ -170,10 +154,6 @@ public class CanvasApiControllerBuildViewModelTests
         model.Transitions[0].StackPush.ShouldBe("");
     }
 
-    // ────────────────────────────────────────────────────────────── //
-    // IsCustomAutomaton always true
-    // ────────────────────────────────────────────────────────────── //
-
     [Theory]
     [InlineData("DFA")]
     [InlineData("NFA")]
@@ -185,10 +165,6 @@ public class CanvasApiControllerBuildViewModelTests
         var model = SaveAndRead(ctrl, session, new CanvasSyncRequest { Type = type, States = [], Transitions = [] });
         model.IsCustomAutomaton.ShouldBeTrue();
     }
-
-    // ────────────────────────────────────────────────────────────── //
-    // State mapping
-    // ────────────────────────────────────────────────────────────── //
 
     [Fact]
     public void BuildViewModel_State_ZeroId_Allowed()
@@ -241,10 +217,6 @@ public class CanvasApiControllerBuildViewModelTests
         model.States.Count.ShouldBe(3);
     }
 
-    // ────────────────────────────────────────────────────────────── //
-    // Multiple transitions round-trip
-    // ────────────────────────────────────────────────────────────── //
-
     [Fact]
     public void BuildViewModel_MultipleTransitions_AllPreserved()
     {
@@ -264,9 +236,7 @@ public class CanvasApiControllerBuildViewModelTests
         model.Transitions.Count.ShouldBe(3);
     }
 
-    // ────────────────────────────────────────────────────────────── //
     // Helpers
-    // ────────────────────────────────────────────────────────────── //
 
     private static CanvasSyncRequest Req(string type, string symbol) =>
         new()
