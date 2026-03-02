@@ -1074,6 +1074,11 @@ public class AutomatonPresetServiceTests
         {
             return true;
         }
+
+        public (int stateCount, int transitionCount, int alphabetSize, double acceptingRatio) GenerateRandomParameters(int? seed = null)
+        {
+            return (5, 10, 3, 0.3);
+        }
     }
 
     private class MockAutomatonMinimizationService : IAutomatonMinimizationService

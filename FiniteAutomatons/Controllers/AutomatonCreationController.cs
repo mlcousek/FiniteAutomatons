@@ -1,8 +1,6 @@
 ﻿using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Interfaces;
-using FiniteAutomatons.Services.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging.Abstractions;
 using System.Text.Json;
 
 namespace FiniteAutomatons.Controllers;
@@ -56,14 +54,13 @@ public class AutomatonCreationController(
     [HttpPost]
     public IActionResult AddState(AutomatonViewModel model, int stateId, bool isStart, bool isAccepting)
     {
-        var svc = editingService ?? new AutomatonEditingService(new AutomatonValidationService(NullLogger<AutomatonValidationService>.Instance), NullLogger<AutomatonEditingService>.Instance);
         model.States ??= [];
         model.Transitions ??= [];
         if (!ModelState.IsValid)
         {
             return View("CreateAutomaton", model);
         }
-        var result = svc.AddState(model, stateId, isStart, isAccepting);
+        var result = editingService.AddState(model, stateId, isStart, isAccepting);
         if (!result.Ok && result.Error != null) ModelState.AddModelError(string.Empty, result.Error);
         StoreMinimizationAnalysis(model);
         return View("CreateAutomaton", model);
@@ -72,14 +69,13 @@ public class AutomatonCreationController(
     [HttpPost]
     public IActionResult RemoveState(AutomatonViewModel model, int stateId)
     {
-        var svc = editingService ?? new AutomatonEditingService(new AutomatonValidationService(NullLogger<AutomatonValidationService>.Instance), NullLogger<AutomatonEditingService>.Instance);
         model.States ??= [];
         model.Transitions ??= [];
         if (!ModelState.IsValid)
         {
             return View("CreateAutomaton", model);
         }
-        var result = svc.RemoveState(model, stateId);
+        var result = editingService.RemoveState(model, stateId);
         if (!result.Ok && result.Error != null) ModelState.AddModelError(string.Empty, result.Error);
         StoreMinimizationAnalysis(model);
         return View("CreateAutomaton", model);
@@ -88,14 +84,13 @@ public class AutomatonCreationController(
     [HttpPost]
     public IActionResult AddTransition(AutomatonViewModel model, int fromStateId, int toStateId, string symbol, string? newTransitionStackPop = null, string? newTransitionStackPush = null)
     {
-        var svc = editingService ?? new AutomatonEditingService(new AutomatonValidationService(NullLogger<AutomatonValidationService>.Instance), NullLogger<AutomatonEditingService>.Instance);
         model.States ??= [];
         model.Transitions ??= [];
         if (!ModelState.IsValid)
         {
             return View("CreateAutomaton", model);
         }
-        var result = svc.AddTransition(model, fromStateId, toStateId, symbol, newTransitionStackPop, newTransitionStackPush);
+        var result = editingService.AddTransition(model, fromStateId, toStateId, symbol, newTransitionStackPop, newTransitionStackPush);
         if (!result.Ok && result.Error != null) ModelState.AddModelError(string.Empty, result.Error);
         StoreMinimizationAnalysis(model);
         return View("CreateAutomaton", model);
@@ -104,14 +99,13 @@ public class AutomatonCreationController(
     [HttpPost]
     public IActionResult RemoveTransition(AutomatonViewModel model, int fromStateId, int toStateId, string symbol)
     {
-        var svc = editingService ?? new AutomatonEditingService(new AutomatonValidationService(NullLogger<AutomatonValidationService>.Instance), NullLogger<AutomatonEditingService>.Instance);
         model.States ??= [];
         model.Transitions ??= [];
         if (!ModelState.IsValid)
         {
             return View("CreateAutomaton", model);
         }
-        var result = svc.RemoveTransition(model, fromStateId, toStateId, symbol);
+        var result = editingService.RemoveTransition(model, fromStateId, toStateId, symbol);
         if (!result.Ok && result.Error != null) ModelState.AddModelError(string.Empty, result.Error);
         StoreMinimizationAnalysis(model);
         return View("CreateAutomaton", model);

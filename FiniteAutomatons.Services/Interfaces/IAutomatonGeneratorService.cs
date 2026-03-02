@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
+﻿using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.ViewModel;
 
 namespace FiniteAutomatons.Services.Interfaces;
@@ -16,4 +16,6 @@ public interface IAutomatonGeneratorService
         Stack<char>? initialStack = null);
 
     bool ValidateGenerationParameters(AutomatonType type, int stateCount, int transitionCount, int alphabetSize);
+
+    (int stateCount, int transitionCount, int alphabetSize, double acceptingRatio) GenerateRandomParameters(int? seed = null);
 }

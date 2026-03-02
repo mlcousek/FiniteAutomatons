@@ -14,7 +14,7 @@ public class CanvasApiControllerSyncTests
     public CanvasApiControllerSyncTests()
     {
         var logger = new NoOpLogger<CanvasApiController>();
-        controller = new CanvasApiController(logger)
+        controller = new CanvasApiController(logger, new MockCanvasMappingService())
         {
             ControllerContext = new ControllerContext
             {

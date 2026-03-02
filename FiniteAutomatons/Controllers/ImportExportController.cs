@@ -276,7 +276,7 @@ public class ImportExportController(
     }
 
     [HttpGet]
-    public async Task<IActionResult> ExportGroup(int groupId)
+    public async Task<IActionResult> ExportGroup(int groupId, string v)
     {
         var user = await userManager.GetUserAsync(User);
         if (user == null) return Challenge();

@@ -14,7 +14,7 @@ public class CanvasApiControllerBuildViewModelTests
 {
     private static (CanvasApiController ctrl, MockSession session) CreateController()
     {
-        var ctrl = new CanvasApiController(new NoOpLogger<CanvasApiController>());
+        var ctrl = new CanvasApiController(new NoOpLogger<CanvasApiController>(), new MockCanvasMappingService());
         var session = new MockSession();
         var httpContext = new DefaultHttpContext { Session = session };
         ctrl.ControllerContext = new ControllerContext { HttpContext = httpContext };

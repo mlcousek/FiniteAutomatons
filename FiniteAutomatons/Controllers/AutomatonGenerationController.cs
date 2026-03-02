@@ -23,7 +23,7 @@ public class AutomatonGenerationController(
             logger.LogInformation("Generating random automaton via GET redirect");
         }
 
-        var (stateCount, transitionCount, alphabetSize, acceptingRatio) = GenerateRandomParameters();
+        var (stateCount, transitionCount, alphabetSize, acceptingRatio) = generatorService.GenerateRandomParameters();
 
         var generated = generatorService.GenerateRandomAutomaton(
             AutomatonType.DFA,
@@ -86,7 +86,7 @@ public class AutomatonGenerationController(
 
         try
         {
-            var (stateCount, transitionCount, alphabetSize, acceptingRatio) = GenerateRandomParameters();
+            var (stateCount, transitionCount, alphabetSize, acceptingRatio) = generatorService.GenerateRandomParameters();
             int? seed = null;
 
             AutomatonViewModel generated = preset.Trim().ToLowerInvariant() switch
@@ -110,7 +110,7 @@ public class AutomatonGenerationController(
 
             tempDataService.StoreCustomAutomaton(TempData, generated);
             tempDataService.StoreConversionMessage(TempData,
-                $"Successfully generated {GetPresetDisplayName(preset)} with {generated.States.Count} states and {generated.Transitions.Count} transitions.");
+                $"Successfully generated {presetService.GetPresetDisplayName(preset)} with {generated.States.Count} states and {generated.Transitions.Count} transitions.");
 
             return RedirectToAction("Index", "Home");
         }
@@ -120,38 +120,5 @@ public class AutomatonGenerationController(
             tempDataService.StoreErrorMessage(TempData, $"Failed to generate preset automaton: {ex.Message}");
             return RedirectToAction("Index", "Home");
         }
-    }
-
-    private static (int stateCount, int transitionCount, int alphabetSize, double acceptingRatio) GenerateRandomParameters()
-    {
-        var random = new Random();
-        var stateCount = random.Next(5, 16);           // 5-15 states
-        var transitionCount = random.Next(4, 26);      // 4-25 transitions
-        var alphabetSize = random.Next(2, 9);          // 2-8 alphabet size
-        var acceptingRatio = 0.2 + random.NextDouble() * 0.3; // 0.2-0.5
-
-        return (stateCount, transitionCount, alphabetSize, acceptingRatio);
-    }
-
-    private static string GetPresetDisplayName(string preset)
-    {
-        return preset.Trim().ToLowerInvariant() switch
-        {
-            "random-dfa" => "Random DFA",
-            "minimalized-dfa" => "Minimalized DFA",
-            "unminimalized-dfa" => "Unminimalized DFA",
-            "nondet-nfa" => "Nondeterministic NFA",
-            "random-nfa" => "Random NFA",
-            "enfa-eps" => "ε-NFA with Epsilon Transitions",
-            "enfa-nondet" => "Nondeterministic ε-NFA",
-            "random-enfa" => "Random ε-NFA",
-            "random-pda" => "Random PDA",
-            "pda-pushpop" => "PDA with Push/Pop Pairs",
-            "pda-balanced-parens" => "Balanced Parentheses PDA",
-            "pda-anbn" => "a^n b^n PDA",
-            "pda-palindrome" => "Even-Length Palindrome PDA",
-            "pda-cfg-demo" => "Simple CFG Demo PDA",
-            _ => preset
-        };
     }
 }

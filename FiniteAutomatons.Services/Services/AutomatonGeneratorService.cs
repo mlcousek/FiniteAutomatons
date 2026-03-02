@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.DoMain;
+﻿using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Interfaces;
@@ -76,6 +76,17 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
             return false;
 
         return true;
+    }
+
+    public (int stateCount, int transitionCount, int alphabetSize, double acceptingRatio) GenerateRandomParameters(int? seed = null)
+    {
+        var random = seed.HasValue ? new Random(seed.Value) : this.random;
+        var stateCount = random.Next(5, 16);           // 5-15 states
+        var transitionCount = random.Next(4, 26);      // 4-25 transitions
+        var alphabetSize = random.Next(2, 9);          // 2-8 alphabet size
+        var acceptingRatio = 0.2 + random.NextDouble() * 0.3; // 0.2-0.5
+
+        return (stateCount, transitionCount, alphabetSize, acceptingRatio);
     }
 
     private static List<char> GenerateAlphabet(int size)

@@ -1,4 +1,5 @@
 ﻿using FiniteAutomatons.Controllers;
+using FiniteAutomatons.Core.Models.Api;
 using FiniteAutomatons.Core.Models.Database;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;

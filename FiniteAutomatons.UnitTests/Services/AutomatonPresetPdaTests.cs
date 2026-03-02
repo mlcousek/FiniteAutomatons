@@ -51,6 +51,11 @@ public class AutomatonPresetPdaTests
         }
 
         public bool ValidateGenerationParameters(AutomatonType type, int stateCount, int transitionCount, int alphabetSize) => true;
+
+        public (int stateCount, int transitionCount, int alphabetSize, double acceptingRatio) GenerateRandomParameters(int? seed = null)
+        {
+            return (5, 10, 3, 0.3);
+        }
     }
 
     private class MockMinimization : IAutomatonMinimizationService

@@ -682,4 +682,26 @@ public class AutomatonPresetService(
 
         return automaton;
     }
+
+    public string GetPresetDisplayName(string preset)
+    {
+        return preset.Trim().ToLowerInvariant() switch
+        {
+            "random-dfa" => "Random DFA",
+            "minimalized-dfa" => "Minimalized DFA",
+            "unminimalized-dfa" => "Unminimalized DFA",
+            "nondet-nfa" => "Nondeterministic NFA",
+            "random-nfa" => "Random NFA",
+            "enfa-eps" => "ε-NFA with Epsilon Transitions",
+            "enfa-nondet" => "Nondeterministic ε-NFA",
+            "random-enfa" => "Random ε-NFA",
+            "random-pda" => "Random PDA",
+            "pda-pushpop" => "PDA with Push/Pop Pairs",
+            "pda-balanced-parens" => "Balanced Parentheses PDA",
+            "pda-anbn" => "a^n b^n PDA",
+            "pda-palindrome" => "Even-Length Palindrome PDA",
+            "pda-cfg-demo" => "Simple CFG Demo PDA",
+            _ => preset
+        };
+    }
 }

@@ -58,4 +58,9 @@ public class MockAutomatonGeneratorService : IAutomatonGeneratorService
     {
         return stateCount > 0 && transitionCount >= 0 && alphabetSize > 0;
     }
+
+    public (int stateCount, int transitionCount, int alphabetSize, double acceptingRatio) GenerateRandomParameters(int? seed = null)
+    {
+        return (5, 10, 3, 0.3);
+    }
 }

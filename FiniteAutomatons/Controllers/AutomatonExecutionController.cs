@@ -16,16 +16,7 @@ public class AutomatonExecutionController(IAutomatonTempDataService tempDataServ
         model.HasExecuted = true;
         var updated = executionService.BackToStart(model);
         updated.HasExecuted = true;
-        ModelState.Clear(); // ensure updated values rendered
-        StoreMinimizationAnalysis(updated);
-
-        if (TempData == null)
-        {
-            return View("../Home/Index", updated);
-        }
-
-        tempDataService.StoreCustomAutomaton(TempData, updated);
-        return RedirectToAction("Index", "Home");
+        return ProcessExecutionResult(updated);
     }
 
     [HttpPost]
@@ -34,16 +25,7 @@ public class AutomatonExecutionController(IAutomatonTempDataService tempDataServ
         model.HasExecuted = true;
         var updated = executionService.ExecuteStepForward(model);
         updated.HasExecuted = true;
-        ModelState.Clear(); // ensure updated values rendered
-        StoreMinimizationAnalysis(updated);
-
-        if (TempData == null)
-        {
-            return View("../Home/Index", updated);
-        }
-
-        tempDataService.StoreCustomAutomaton(TempData, updated);
-        return RedirectToAction("Index", "Home");
+        return ProcessExecutionResult(updated);
     }
 
     [HttpPost]
@@ -51,16 +33,7 @@ public class AutomatonExecutionController(IAutomatonTempDataService tempDataServ
     {
         var updated = executionService.ExecuteStepBackward(model);
         updated.HasExecuted = model.HasExecuted || updated.Position > 0;
-        ModelState.Clear(); // ensure updated values rendered
-        StoreMinimizationAnalysis(updated);
-
-        if (TempData == null)
-        {
-            return View("../Home/Index", updated);
-        }
-
-        tempDataService.StoreCustomAutomaton(TempData, updated);
-        return RedirectToAction("Index", "Home");
+        return ProcessExecutionResult(updated);
     }
 
     [HttpPost]
@@ -69,16 +42,7 @@ public class AutomatonExecutionController(IAutomatonTempDataService tempDataServ
         model.HasExecuted = true;
         var updated = executionService.ExecuteAll(model);
         updated.HasExecuted = true;
-        ModelState.Clear(); // ensure updated values rendered
-        StoreMinimizationAnalysis(updated);
-
-        if (TempData == null)
-        {
-            return View("../Home/Index", updated);
-        }
-
-        tempDataService.StoreCustomAutomaton(TempData, updated);
-        return RedirectToAction("Index", "Home");
+        return ProcessExecutionResult(updated);
     }
 
     [HttpPost]
@@ -86,16 +50,7 @@ public class AutomatonExecutionController(IAutomatonTempDataService tempDataServ
     {
         var updated = executionService.BackToStart(model);
         updated.HasExecuted = model.HasExecuted || model.Position > 0 || model.Result != null;
-        ModelState.Clear(); // ensure updated values rendered
-        StoreMinimizationAnalysis(updated);
-
-        if (TempData == null)
-        {
-            return View("../Home/Index", updated);
-        }
-
-        tempDataService.StoreCustomAutomaton(TempData, updated);
-        return RedirectToAction("Index", "Home");
+        return ProcessExecutionResult(updated);
     }
 
     [HttpPost]
@@ -103,16 +58,7 @@ public class AutomatonExecutionController(IAutomatonTempDataService tempDataServ
     {
         var updated = executionService.ResetExecution(model);
         updated.HasExecuted = false;
-        ModelState.Clear(); // ensure updated values rendered
-        StoreMinimizationAnalysis(updated);
-
-        if (TempData == null)
-        {
-            return View("../Home/Index", updated);
-        }
-
-        tempDataService.StoreCustomAutomaton(TempData, updated);
-        return RedirectToAction("Index", "Home");
+        return ProcessExecutionResult(updated);
     }
 
     [HttpPost]
@@ -147,5 +93,19 @@ public class AutomatonExecutionController(IAutomatonTempDataService tempDataServ
             TempData["MinimizationAnalysis"] = System.Text.Json.JsonSerializer.Serialize(analysis);
         }
         catch { /* ignore */ }
+    }
+
+    private IActionResult ProcessExecutionResult(AutomatonViewModel model)
+    {
+        ModelState.Clear();
+        StoreMinimizationAnalysis(model);
+
+        if (TempData == null)
+        {
+            return View("../Home/Index", model);
+        }
+
+        tempDataService.StoreCustomAutomaton(TempData, model);
+        return RedirectToAction("Index", "Home");
     }
 }

@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
+﻿using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Observability;
 using FiniteAutomatons.Services.Interfaces;
@@ -22,6 +22,13 @@ public sealed class AutomatonGeneratorServiceAuditorDecorator(AutomatonGenerator
     {
         return MethodAuditor.AuditAsync(audit, "IAutomatonGeneratorService.ValidateGenerationParameters", () =>
             Task.FromResult(inner.ValidateGenerationParameters(type, stateCount, transitionCount, alphabetSize)))
+            .GetAwaiter().GetResult();
+    }
+
+    public (int stateCount, int transitionCount, int alphabetSize, double acceptingRatio) GenerateRandomParameters(int? seed = null)
+    {
+        return MethodAuditor.AuditAsync(audit, "IAutomatonGeneratorService.GenerateRandomParameters", () =>
+            Task.FromResult(inner.GenerateRandomParameters(seed)))
             .GetAwaiter().GetResult();
     }
 }
