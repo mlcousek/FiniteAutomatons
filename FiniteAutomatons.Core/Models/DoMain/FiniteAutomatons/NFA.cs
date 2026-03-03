@@ -147,7 +147,6 @@ public class NFA : Automaton
     {
         var state = new AutomatonExecutionState(input, null, GetInitialStates());
 
-        // If input is empty, decide acceptance immediately based on initial states
         if (string.IsNullOrEmpty(input))
         {
             state.IsAccepted = state.CurrentStates != null && state.CurrentStates.Any(sid => States.Any(st => st.Id == sid && st.IsAccepting));

@@ -1,4 +1,4 @@
-namespace FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
+﻿namespace FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 
 public class PDA : Automaton
 {
@@ -15,13 +15,10 @@ public class PDA : Automaton
             Stack = new Stack<char>()
         };
 
-        // Initialize stack with provided configuration or default to bottom marker
         if (initialStack != null && initialStack.Count > 0)
         {
-            // Store initial stack for BackToStart restoration
             this.initialStack = new Stack<char>(initialStack.Reverse());
 
-            // Copy initial stack to execution state (reverse to maintain order)
             foreach (var symbol in initialStack.Reverse())
             {
                 state.Stack.Push(symbol);
@@ -29,12 +26,10 @@ public class PDA : Automaton
         }
         else
         {
-            // Default: just bottom marker
             state.Stack.Push(Bottom);
             this.initialStack = null;
         }
 
-        // acceptance decided only after explicit evaluation
         state.IsAccepted = null;
         return state;
     }
@@ -43,13 +38,11 @@ public class PDA : Automaton
     {
         if (baseState is not PDAExecutionState state) throw new ArgumentException("State must be PDAExecutionState");
 
-        // record snapshot for backward navigation
         PushToHistory(state);
 
         char currentInput = state.Position < state.Input.Length ? state.Input[state.Position] : '\0';
         var stackTop = state.Stack.Count > 0 ? state.Stack.Peek() : (char?)null;
 
-        // Debug trace
         try
         {
             Console.WriteLine($"PDA: StepForward pos={state.Position} inputLen={state.Input.Length} cur='{currentInput}' top='{stackTop}' state={state.CurrentStateId}");
@@ -59,7 +52,6 @@ public class PDA : Automaton
         var candidates = Transitions.Where(t => t.FromStateId == state.CurrentStateId).ToList();
         Transition? transition = null;
 
-        // prefer consuming transitions (matching actual input symbol) when available, otherwise try epsilon
         if (state.Position < state.Input.Length)
         {
             transition = candidates.FirstOrDefault(t => t.Symbol == currentInput && StackMatches(t, stackTop));
@@ -67,7 +59,6 @@ public class PDA : Automaton
         }
         else
         {
-            // input consumed -> only epsilon transitions should be attempted
             transition = candidates.FirstOrDefault(t => t.Symbol == '\0' && StackMatches(t, stackTop));
         }
 
@@ -79,7 +70,6 @@ public class PDA : Automaton
 
         if (transition == null)
         {
-            // if we are still in the middle of input and no transition matches -> reject
             if (state.Position < state.Input.Length)
             {
                 state.Position = state.Input.Length;
@@ -87,7 +77,6 @@ public class PDA : Automaton
                 return;
             }
 
-            // otherwise (input consumed and no epsilon transitions) decide acceptance based on state and stack
             state.IsAccepted = CheckAcceptance(state.CurrentStateId, state.Stack);
             return;
         }
@@ -124,8 +113,6 @@ public class PDA : Automaton
         }
         catch { }
 
-        // after applying transition, if we've consumed all input we may still have epsilon transitions to apply;
-        // try to apply epsilon closure and set acceptance if reached
         if (state.Position >= state.Input.Length)
         {
             if (TryApplyEpsilonClosure(state))
@@ -134,11 +121,8 @@ public class PDA : Automaton
                 return;
             }
 
-            // If no epsilon transitions lead to acceptance, decide acceptance based on current state and stack
             state.IsAccepted = CheckAcceptance(state.CurrentStateId, state.Stack);
             return;
-
-            // do not set rejection here; leave to caller (ExecuteAll or Execute) to decide after no more transitions
         }
     }
 
@@ -177,27 +161,24 @@ public class PDA : Automaton
             try { Console.WriteLine($"PDA: ExecuteAll loop hasApplicable={has} pos={state.Position} state={state.CurrentStateId} top='{(state.Stack.Count > 0 ? state.Stack.Peek() : ' ')}'\n"); } catch { }
             if (!has) break;
             StepForward(state);
-            if (state.IsAccepted == false) return; // explicit rejection during step
-            if (state.IsAccepted == true) return; // accepted during step
+            if (state.IsAccepted == false) return;
+            if (state.IsAccepted == true) return;
         }
 
         try { Console.WriteLine($"PDA: ExecuteAll end pos={state.Position} state={state.CurrentStateId} top='{(state.Stack.Count > 0 ? state.Stack.Peek() : ' ')}' IsAccepted={state.IsAccepted}\n"); } catch { }
 
-        // If input not fully consumed -> reject
         if (state.Position < state.Input.Length)
         {
             state.IsAccepted = false;
             return;
         }
 
-        // After input consumed, try to apply epsilon closure to reach accepting state
         if (TryApplyEpsilonClosure(state))
         {
             state.IsAccepted = true;
             return;
         }
 
-        // Immediate epsilon to accepting state without stack modification
         if (state.Position >= state.Input.Length && IsOnlyBottom(state.Stack))
         {
             var immediate = Transitions.FirstOrDefault(t => t.FromStateId == state.CurrentStateId && t.Symbol == '\0' &&
@@ -211,15 +192,12 @@ public class PDA : Automaton
             }
         }
 
-        // Additional check: if stack is only bottom and there is a path of pure epsilons (that don't alter stack)
-        // to an accepting state, accept. This handles epsilon transitions that don't pop/push.
         if (IsOnlyBottom(state.Stack) && CanReachAcceptingViaPureEpsilons(state.CurrentStateId))
         {
             state.IsAccepted = true;
             return;
         }
 
-        // Otherwise input consumed, acceptance depends on accepting state and empty stack (only bottom)
         state.IsAccepted = CheckAcceptance(state.CurrentStateId, state.Stack);
     }
 
@@ -231,7 +209,6 @@ public class PDA : Automaton
         state.Position = 0;
         state.Stack.Clear();
 
-        // Restore initial stack configuration
         if (initialStack != null && initialStack.Count > 0)
         {
             foreach (var symbol in initialStack.Reverse())
@@ -248,30 +225,22 @@ public class PDA : Automaton
         state.History.Clear();
     }
 
-    // Provide deterministic Execute override for PDA to ensure unit tests behave as expected
     public new bool Execute(string input)
     {
-        // initialize
         var state = (PDAExecutionState)StartExecution(input);
 
-        // helper to create stack key (bottom-to-top)
         static string StackToKey(Stack<char> s) => new([.. s.Reverse()]);
 
-        // process consuming transitions deterministically
         while (state.Position < state.Input.Length)
         {
             char cur = state.Input[state.Position];
             var top = state.Stack.Count > 0 ? state.Stack.Peek() : (char?)null;
             var candidates = Transitions.Where(t => t.FromStateId == state.CurrentStateId).ToList();
 
-            // prefer a consuming transition in the current state
             var transition = candidates.FirstOrDefault(t => t.Symbol == cur && StackMatches(t, top));
 
             if (transition == null)
             {
-                // No consuming transition in current state - try to find a configuration reachable via epsilons
-                // that has a consuming transition for the current symbol.
-
                 var q = new Queue<(int StateId, Stack<char> Stack)>();
                 var visited = new HashSet<string>();
                 var initKey = state.CurrentStateId!.Value + "|" + StackToKey(state.Stack);
@@ -284,14 +253,12 @@ public class PDA : Automaton
                 Stack<char>? foundStack = null;
                 Transition? foundTransition = null;
 
-                // Use configurable execution safety limit to avoid unbounded exploration
                 var maxExpansion = Configuration.PdaExecutionSettings.MaxBfsExpansion;
                 while (q.Count > 0 && safety++ < maxExpansion)
                 {
                     var (curState, stackCopy) = q.Dequeue();
 
                     var topCopy = stackCopy.Count > 0 ? stackCopy.Peek() : (char?)null;
-                    // check if there's a consuming transition here
                     var consuming = Transitions.FirstOrDefault(t => t.FromStateId == curState && t.Symbol == cur && StackMatches(t, topCopy));
                     if (consuming != null)
                     {
@@ -302,20 +269,16 @@ public class PDA : Automaton
                         break;
                     }
 
-                    // otherwise, enqueue epsilon moves
                     var eps = Transitions.Where(t => t.FromStateId == curState && t.Symbol == '\0' && StackMatches(t, topCopy));
                     foreach (var t in eps)
                     {
-                        // apply epsilon to a fresh copy
-                        var newStack = new Stack<char>(stackCopy.Reverse()); // copy preserving top
-                        // pop if required
+                        var newStack = new Stack<char>(stackCopy.Reverse());
                         if (t.StackPop.HasValue && t.StackPop.Value != '\0')
                         {
                             if (newStack.Count == 0 || newStack.Peek() != t.StackPop.Value)
                                 continue;
                             newStack.Pop();
                         }
-                        // push if needed
                         if (!string.IsNullOrEmpty(t.StackPush))
                         {
                             for (int i = t.StackPush.Length - 1; i >= 0; i--)
@@ -323,10 +286,8 @@ public class PDA : Automaton
                         }
 
                         var key = t.ToStateId + "|" + new string([.. newStack.Reverse()]);
-                        // enforce stack growth safety: do not enqueue configurations with excessive stack size
                         if (newStack.Count > Configuration.PdaExecutionSettings.MaxStackGrowthTolerance)
                         {
-                            // skip this expansion to avoid unbounded growth
                             continue;
                         }
 
@@ -339,17 +300,14 @@ public class PDA : Automaton
 
                 if (!found)
                 {
-                    // No way to consume current symbol
                     return false;
                 }
 
-                // We found a reachable consuming transition; adopt that configuration
                 state.CurrentStateId = foundState;
                 state.Stack = new Stack<char>(foundStack!.Reverse());
                 transition = foundTransition!;
             }
 
-            // apply consuming transition
             if (transition.StackPop.HasValue && transition.StackPop.Value != '\0')
             {
                 if (state.Stack.Count == 0 || state.Stack.Peek() != transition.StackPop.Value)
@@ -364,7 +322,6 @@ public class PDA : Automaton
             state.CurrentStateId = transition.ToStateId;
             state.Position++;
 
-            // if input consumed, allow epsilon closure to accept
             if (state.Position >= state.Input.Length)
             {
                 if (TryApplyEpsilonClosure(state))
@@ -372,9 +329,7 @@ public class PDA : Automaton
             }
         }
 
-        // input consumed - explore epsilon closure using BFS over configurations (stateId + stack)
-        var startKeyStack = state.Stack.ToArray(); // top-first
-        // represent stack as string from bottom to top for uniqueness: reverse
+        var startKeyStack = state.Stack.ToArray();
 
         var q2 = new Queue<(int StateId, string StackKey, Stack<char> Stack)>();
         var visited2 = new HashSet<string>();
@@ -387,17 +342,14 @@ public class PDA : Automaton
         while (q2.Count > 0 && safety2++ < maxExpansion2)
         {
             var (curState, stackKey, stackCopy) = q2.Dequeue();
-            // check acceptance: accepting state and only bottom
             if (CheckAcceptance(curState, stackCopy))
                 return true;
 
-            // explore epsilon transitions
             var top = stackCopy.Count > 0 ? stackCopy.Peek() : (char?)null;
             var eps = Transitions.Where(t => t.FromStateId == curState && t.Symbol == '\0' && StackMatches(t, top));
             foreach (var t in eps)
             {
-                // apply to copy
-                var newStack = new Stack<char>(stackCopy.Reverse()); // bottom-first -> after constructor top-first
+                var newStack = new Stack<char>(stackCopy.Reverse());
                 // pop
                 if (t.StackPop.HasValue && t.StackPop.Value != '\0')
                 {
@@ -412,7 +364,6 @@ public class PDA : Automaton
                         newStack.Push(t.StackPush[i]);
                 }
 
-                // enforce stack growth safety for epsilon closure expansions
                 if (newStack.Count > Configuration.PdaExecutionSettings.MaxStackGrowthTolerance)
                 {
                     // skip this expansion
@@ -489,17 +440,12 @@ public class PDA : Automaton
         }
         else
         {
-            // only epsilon transitions are applicable when input consumed
             var has = candidates.Any(t => t.Symbol == '\0' && StackMatches(t, top));
             try { Console.WriteLine($"PDA: HasApplicableTransition (input consumed) => {has}"); } catch { }
             return has;
         }
     }
 
-    /// <summary>
-    /// Applies epsilon transitions repeatedly from the current configuration until no more apply or acceptance reached.
-    /// Returns true if an accepting configuration (accepting state + only bottom on stack) was reached.
-    /// </summary>
     private bool TryApplyEpsilonClosure(PDAExecutionState state)
     {
         int safety = 0;
@@ -527,7 +473,6 @@ public class PDA : Automaton
             {
                 if (state.Stack.Count == 0 || state.Stack.Peek() != transition.StackPop.Value)
                 {
-                    // shouldn't happen because StackMatches ensured parity, but guard anyway
                     break;
                 }
                 state.Stack.Pop();

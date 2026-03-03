@@ -2,7 +2,6 @@
 
 public class DFA : Automaton
 {
-    // Mapping from original state id -> new minimized state id (populated on minimized DFA)
     public Dictionary<int, int> StateMapping { get; private set; } = [];
 
     public Dictionary<int, HashSet<int>> MergedStateGroups { get; private set; } = [];
@@ -39,7 +38,7 @@ public class DFA : Automaton
 
         if (!TryAdvanceState(state, transition))
         {
-            return; // state updated inside TryAdvanceState when failed
+            return;
         }
 
         if (IsAtInputEnd(state))
@@ -150,7 +149,6 @@ public class DFA : Automaton
     {
         if (transition == null)
         {
-            // no transition for current symbol -> reject and finish execution
             state.IsAccepted = false;
             state.Position = state.Input.Length;
             return false;
@@ -303,7 +301,6 @@ public class DFA : Automaton
             }
         }
 
-        // Publish mapping info on minimized DFA for clarity: which original states map to which new state ids
         minimizedDfa.StateMapping = stateMap;
         minimizedDfa.MergedStateGroups = stateMap
             .GroupBy(kv => kv.Value)

@@ -526,58 +526,15 @@
             @await Html.PartialAsync("~/Views/Home/Partials/_GenerateModal.cshtml", Model)
         @if (User?.Identity?.IsAuthenticated ?? false)
         {
-           @*  <div class="control-section"> *@
-                @* <div class="section-header-custom">
-                    <h2 style="margin:0;">SAVE</h2>
-                </div>
-                <div class="control-content-left" style="text-align:center; margin-bottom:0.5rem;">
-                    <button id="openSaveModalBtn" class="control-btn" type="button" style="min-width: 200px;">
-                        <i class="fas fa-save"></i>
-                        <span>Save Automaton</span>
-                    </button>
-                </div> *@
-
                 @* Save modal moved to partial *@
                 @await Html.PartialAsync("~/Views/Home/Partials/_SaveAutomatonModal.cshtml", Model)
-            @* </div> *@
         }
-       @*  <div class="control-section">
-            <div class="section-header-custom">
-                <h2>PLACEHOLDER</h2>
-            </div>
-        </div>
 
-        <div class="control-section">
-            <div class="section-header-custom">
-                <h2>PLACEHOLDER</h2>
-            </div>
-        </div>
-        <div class="control-section">
-            <div class="section-header-custom">
-                <h2>PLACEHOLDER</h2>
-            </div>
-        </div>
-        <div class="control-section">
-            <div class="section-header-custom">
-                <h2>PLACEHOLDER</h2>
-            </div>
-        </div> *@
-@*     </div>
-</div>
- *@
 @* New automaton modal moved to partial *@
 @await Html.PartialAsync("~/Views/Home/Partials/_NewAutomatonModal.cshtml", Model)
 
 @section Scripts {
-    <script>
-        // Expose authentication state to client scripts
-        window.__isAuthenticated = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(User?.Identity?.IsAuthenticated ?? false));
-    </script>
-    <!-- Emit saved layout JSON from a loaded automaton so the canvas can restore node positions -->
-    @if (ViewData["LayoutJson"] is string savedLayout)
-    {
-        <script>window.__savedLayoutJson = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(savedLayout));</script>
-    }
+    @await Html.PartialAsync("~/Views/Home/Partials/_ClientContextScript.cshtml")
 
     <!-- Cytoscape.js libraries (CDN for reliability) -->
     <script src="https://unpkg.com/cytoscape@3.23.0/dist/cytoscape.min.js"></script>

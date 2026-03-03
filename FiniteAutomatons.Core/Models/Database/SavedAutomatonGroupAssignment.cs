@@ -1,4 +1,4 @@
-namespace FiniteAutomatons.Core.Models.Database;
+﻿namespace FiniteAutomatons.Core.Models.Database;
 
 public class SavedAutomatonGroupAssignment
 {

@@ -98,7 +98,6 @@ public abstract class Automaton : IAutomaton
     {
         var state = new AutomatonExecutionState(input, ValidateStartState());
 
-        // If input is empty, decide acceptance immediately based on start state
         if (string.IsNullOrEmpty(input))
         {
             state.IsAccepted = state.CurrentStateId != null && States.Any(s => s.Id == state.CurrentStateId && s.IsAccepting);

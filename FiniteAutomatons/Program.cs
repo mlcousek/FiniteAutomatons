@@ -7,7 +7,6 @@ using FiniteAutomatons.Observability;
 using FiniteAutomatons.Services.Interfaces;
 using FiniteAutomatons.Services.Observability;
 using FiniteAutomatons.Services.Services;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
@@ -59,8 +58,11 @@ public partial class Program
                 var pendingMigrations = await dbContext.Database.GetPendingMigrationsAsync();
                 if (pendingMigrations.Any())
                 {
-                    logger.LogInformation("Applying {Count} pending migration(s): {Migrations}",
-                        pendingMigrations.Count(), string.Join(", ", pendingMigrations));
+                    if (logger.IsEnabled(LogLevel.Information))
+                    {
+                        logger.LogInformation("Applying {Count} pending migration(s): {Migrations}",
+                            pendingMigrations.Count(), string.Join(", ", pendingMigrations));
+                    }
                     await dbContext.Database.MigrateAsync();
                     logger.LogInformation("Migrations applied successfully");
                 }
@@ -151,8 +153,8 @@ public partial class Program
             var listener = new ActivityListener
             {
                 ShouldListenTo = _ => true,
-                Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded,
-                SampleUsingParentId = (ref ActivityCreationOptions<string> _) => ActivitySamplingResult.AllDataAndRecorded,
+                Sample = (ref _) => ActivitySamplingResult.AllDataAndRecorded,
+                SampleUsingParentId = (ref _) => ActivitySamplingResult.AllDataAndRecorded,
                 ActivityStarted = a => collector.Add(a),
                 ActivityStopped = a => collector.Add(a)
             };

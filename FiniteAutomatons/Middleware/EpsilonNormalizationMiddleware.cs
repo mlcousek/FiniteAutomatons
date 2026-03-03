@@ -12,12 +12,10 @@ public class EpsilonNormalizationMiddleware(RequestDelegate next)
     {
         var req = context.Request;
 
-        // Only care about POST/PUT/PATCH where a symbol may be sent
         if (HttpMethods.IsPost(req.Method) || HttpMethods.IsPut(req.Method) || HttpMethods.IsPatch(req.Method))
         {
             try
             {
-                // Handle form posts (application/x-www-form-urlencoded, multipart/form-data)
                 if (req.HasFormContentType)
                 {
                     var form = await req.ReadFormAsync();
@@ -39,13 +37,11 @@ public class EpsilonNormalizationMiddleware(RequestDelegate next)
                         dict[kv.Key] = new StringValues(outVals);
                     }
 
-                    // Preserve files
                     var newForm = new FormCollection(dict, form.Files);
                     req.Form = newForm;
                 }
                 else if (!string.IsNullOrEmpty(req.ContentType) && req.ContentType.Contains("application/json", StringComparison.OrdinalIgnoreCase))
                 {
-                    // For JSON bodies do a simple string replacement of the unicode replacement char -> NUL
                     req.EnableBuffering();
                     using var sr = new StreamReader(req.Body, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, leaveOpen: true);
                     var body = await sr.ReadToEndAsync();
@@ -64,8 +60,7 @@ public class EpsilonNormalizationMiddleware(RequestDelegate next)
             }
             catch (Exception ex)
             {
-                // Don't let normalization failures break the request pipeline. Log and continue.
-                var logger = context.RequestServices.GetService<Microsoft.Extensions.Logging.ILogger<EpsilonNormalizationMiddleware>>();
+                var logger = context.RequestServices.GetService<ILogger<EpsilonNormalizationMiddleware>>();
                 logger?.LogWarning(ex, "EpsilonNormalizationMiddleware failed to normalize request; skipping normalization.");
             }
         }

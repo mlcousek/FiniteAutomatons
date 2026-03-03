@@ -1,10 +1,9 @@
-namespace FiniteAutomatons.Core.Models.Database;
+﻿namespace FiniteAutomatons.Core.Models.Database;
 
 public class SavedAutomatonGroup
 {
     public int Id { get; set; }
 
-    // Owner / admin of the group
     public string UserId { get; set; } = string.Empty;
 
     public string Name { get; set; } = string.Empty;
@@ -14,4 +13,3 @@ public class SavedAutomatonGroup
     public List<SavedAutomatonGroupMember> Members { get; set; } = [];
     public List<SavedAutomatonGroupAssignment> Assignments { get; set; } = [];
 }
-

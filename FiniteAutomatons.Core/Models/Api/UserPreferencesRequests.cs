@@ -1,12 +1,11 @@
-﻿namespace FiniteAutomatons.Core.Models.Api
-{
-    public class PanelOrderRequest
-    {
-        public string Preferences { get; set; } = string.Empty;
-    }
+﻿namespace FiniteAutomatons.Core.Models.Api;
 
-    public class CanvasWheelRequest
-    {
-        public bool Enabled { get; set; }
-    }
+public class PanelOrderRequest
+{
+    public string Preferences { get; set; } = string.Empty;
+}
+
+public class CanvasWheelRequest
+{
+    public bool Enabled { get; set; }
 }

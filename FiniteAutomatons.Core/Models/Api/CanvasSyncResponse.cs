@@ -1,12 +1,7 @@
 ﻿namespace FiniteAutomatons.Core.Models.Api;
 
-/// <summary>
-/// Response body for POST /api/canvas/sync.
-/// Contains re-computed model info derived from the submitted automaton state.
-/// </summary>
 public class CanvasSyncResponse
 {
-    /// <summary>Derived alphabet symbols (ε excluded, already human-readable)</summary>
     public List<string> Alphabet { get; set; } = [];
 
     public bool HasEpsilonTransitions { get; set; }
@@ -17,7 +12,6 @@ public class CanvasSyncResponse
     public List<CanvasSyncStateDto> States { get; set; } = [];
     public List<CanvasSyncTransitionDto> Transitions { get; set; } = [];
 
-    // Minimization analysis info (optional) — provided for DFA to allow client UI to update minimize button
     public CanvasMinimizationDto? MinimizationAnalysis { get; set; }
 }
 
@@ -36,7 +30,6 @@ public class CanvasSyncTransitionDto
     public int FromStateId { get; set; }
     public int ToStateId { get; set; }
 
-    /// <summary>Char representation: '\0' stored as 'ε'</summary>
     public string SymbolDisplay { get; set; } = string.Empty;
 
     // PDA-only

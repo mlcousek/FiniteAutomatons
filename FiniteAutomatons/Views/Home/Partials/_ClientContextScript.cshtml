@@ -1,0 +1,13 @@
+﻿@using System.Text.Json
+@{
+    var isAuthenticated = User?.Identity?.IsAuthenticated ?? false;
+    var savedLayout = ViewData["LayoutJson"] as string;
+}
+<script>
+    window.__isAuthenticated = @Html.Raw(JsonSerializer.Serialize(isAuthenticated));
+
+    @if (!string.IsNullOrWhiteSpace(savedLayout))
+    {
+        @:window.__savedLayoutJson = @Html.Raw(JsonSerializer.Serialize(savedLayout));
+    }
+</script>
