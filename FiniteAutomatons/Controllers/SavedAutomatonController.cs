@@ -201,29 +201,12 @@ public class SavedAutomatonController(
                 SourceRegex = entity.SourceRegex
             };
 
-            // Load based on mode
-            if ((mode == "input" || mode == "state") && !string.IsNullOrWhiteSpace(entity.ExecutionStateJson))
+            if (!string.IsNullOrWhiteSpace(entity.ExecutionStateJson))
             {
                 try
                 {
                     var exec = JsonSerializer.Deserialize<SavedExecutionStateDto>(entity.ExecutionStateJson);
-                    if (exec != null)
-                    {
-                        // Always load input for both modes
-                        model.Input = exec.Input ?? string.Empty;
-
-                        // Load execution state only for "state" mode
-                        if (mode == "state" && entity.SaveMode == AutomatonSaveMode.WithState)
-                        {
-                            model.Position = exec.Position;
-                            model.CurrentStateId = exec.CurrentStateId;
-                            model.CurrentStates = exec.CurrentStates != null ? [.. exec.CurrentStates] : null;
-                            model.IsAccepted = exec.IsAccepted;
-                            model.StateHistorySerialized = exec.StateHistorySerialized ?? string.Empty;
-                            model.StackSerialized = exec.StackSerialized;
-                            model.HasExecuted = true;
-                        }
-                    }
+                    fileService.RestoreExecutionStateFromDto(model, exec, mode, entity.SaveMode);
                 }
                 catch { }
             }
@@ -266,26 +249,16 @@ public class SavedAutomatonController(
                 SourceRegex = entity.SourceRegex
             };
 
-            // Determine if there's execution state to share
             bool saveState = false;
             if (!string.IsNullOrWhiteSpace(entity.ExecutionStateJson))
             {
                 try
                 {
                     var exec = JsonSerializer.Deserialize<SavedExecutionStateDto>(entity.ExecutionStateJson);
-                    if (exec != null)
+                    if (exec != null && entity.SaveMode == AutomatonSaveMode.WithState)
                     {
-                        model.Input = exec.Input ?? string.Empty;
-                        if (entity.SaveMode == AutomatonSaveMode.WithState)
-                        {
-                            saveState = true;
-                            model.Position = exec.Position;
-                            model.CurrentStateId = exec.CurrentStateId;
-                            model.CurrentStates = exec.CurrentStates != null ? [.. exec.CurrentStates] : null;
-                            model.IsAccepted = exec.IsAccepted;
-                            model.StateHistorySerialized = exec.StateHistorySerialized ?? string.Empty;
-                            model.StackSerialized = exec.StackSerialized;
-                        }
+                        saveState = true;
+                        fileService.RestoreExecutionStateFromDto(model, exec, "state", entity.SaveMode);
                     }
                 }
                 catch { }

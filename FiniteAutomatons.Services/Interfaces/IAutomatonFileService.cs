@@ -1,7 +1,7 @@
-using Microsoft.AspNetCore.Http;
-using FiniteAutomatons.Core.Models.ViewModel;
+﻿using FiniteAutomatons.Core.Models.Database;
 using FiniteAutomatons.Core.Models.DTOs;
-using FiniteAutomatons.Core.Models.Database;
+using FiniteAutomatons.Core.Models.ViewModel;
+using Microsoft.AspNetCore.Http;
 
 namespace FiniteAutomatons.Services.Interfaces;
 
@@ -60,4 +60,21 @@ public interface IAutomatonFileService
     /// <param name="file">The uploaded group export JSON file</param>
     /// <returns>Tuple indicating success, parsed DTO, and error message if any</returns>
     Task<(bool Ok, GroupExportDto? Data, string? Error)> ImportGroupAsync(IFormFile file);
+
+    /// <summary>
+    /// Restores execution state from JSON to the automaton model based on the specified mode.
+    /// </summary>
+    /// <param name="model">The automaton model to restore state to</param>
+    /// <param name="executionStateJson">JSON string containing execution state</param>
+    /// <param name="mode">Restoration mode: 'structure' (clear all), 'input' (input only), 'state' (full state)</param>
+    void RestoreExecutionState(AutomatonViewModel model, string? executionStateJson, string mode);
+
+    /// <summary>
+    /// Restores execution state from DTO to the automaton model based on the specified mode and save mode.
+    /// </summary>
+    /// <param name="model">The automaton model to restore state to</param>
+    /// <param name="executionState">Execution state DTO</param>
+    /// <param name="mode">Restoration mode: 'structure' (clear all), 'input' (input only), 'state' (full state)</param>
+    /// <param name="saveMode">The save mode that was used when saving</param>
+    void RestoreExecutionStateFromDto(AutomatonViewModel model, SavedExecutionStateDto? executionState, string mode, AutomatonSaveMode saveMode);
 }

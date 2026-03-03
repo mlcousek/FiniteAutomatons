@@ -22,13 +22,13 @@ public class CanvasApiController(ILogger<CanvasApiController> logger, ICanvasMap
 
         try
         {
+            var vm = mappingService.BuildAutomatonViewModel(request);
             var response = mappingService.BuildSyncResponse(request);
-            // Attach minimization analysis when available
+
             try
             {
                 if (minimizationService != null)
                 {
-                    var vm = mappingService.BuildAutomatonViewModel(request);
                     var analysis = minimizationService.AnalyzeAutomaton(vm);
                     response.MinimizationAnalysis = new CanvasMinimizationDto(
                         analysis.SupportsMinimization,

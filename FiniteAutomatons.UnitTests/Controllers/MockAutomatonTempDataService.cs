@@ -1,5 +1,6 @@
 ﻿using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Interfaces;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 
 namespace FiniteAutomatons.UnitTests.Controllers;
@@ -25,5 +26,10 @@ public class MockAutomatonTempDataService : IAutomatonTempDataService
     public void StoreConversionMessage(ITempDataDictionary tempData, string message)
     {
         tempData["ConversionMessage"] = message;
+    }
+
+    public (bool Success, AutomatonViewModel? Model) TryGetSessionAutomaton(ISession session, string sessionKey)
+    {
+        return (false, null);
     }
 }

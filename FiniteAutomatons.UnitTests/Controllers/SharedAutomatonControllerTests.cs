@@ -106,6 +106,8 @@ public class SharedAutomatonControllerTests : IDisposable
         {
             tempData["ConversionMessage"] = message;
         }
+
+        public (bool Success, AutomatonViewModel? Model) TryGetSessionAutomaton(Microsoft.AspNetCore.Http.ISession session, string sessionKey) => (false, null);
     }
 
     private class MockInvitationNotificationService : IInvitationNotificationService
@@ -148,11 +150,13 @@ public class SharedAutomatonControllerTests : IDisposable
 
         var tempDataService = new MockAutomatonTempDataService();
         var invitationService = new MockInvitationNotificationService();
+        var fileService = new MockAutomatonFileService();
 
         controller = new SharedAutomatonController(
             sharedService,
             sharingService,
             tempDataService,
+            fileService,
             userManager,
             context,
             invitationService,
@@ -376,6 +380,7 @@ public class SharedAutomatonControllerTests : IDisposable
             sharedService,
             sharingService,
             new MockAutomatonTempDataService(),
+            new MockAutomatonFileService(),
             new TestUserManager(null),
             context,
             new MockInvitationNotificationService(),

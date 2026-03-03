@@ -252,4 +252,26 @@ public class ConfigurableMockTempDataService : IAutomatonTempDataService
     public void StoreCustomAutomaton(ITempDataDictionary tempData, AutomatonViewModel model) { }
     public void StoreErrorMessage(ITempDataDictionary tempData, string message) { }
     public void StoreConversionMessage(ITempDataDictionary tempData, string message) { }
+
+    public (bool Success, AutomatonViewModel? Model) TryGetSessionAutomaton(ISession session, string sessionKey)
+    {
+        var json = session.GetString(sessionKey);
+        if (string.IsNullOrEmpty(json)) return (false, null);
+
+        try
+        {
+            var sessionModel = JsonSerializer.Deserialize<AutomatonViewModel>(json);
+            if (sessionModel != null)
+            {
+                sessionModel.IsCustomAutomaton = true;
+                sessionModel.States ??= [];
+                sessionModel.Transitions ??= [];
+            }
+            return (sessionModel != null, sessionModel);
+        }
+        catch
+        {
+            return (false, null);
+        }
+    }
 }

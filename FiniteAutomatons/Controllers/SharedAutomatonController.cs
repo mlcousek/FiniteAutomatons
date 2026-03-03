@@ -16,6 +16,7 @@ public class SharedAutomatonController(
     ISharedAutomatonService sharedAutomatonService,
     ISharedAutomatonSharingService sharingService,
     IAutomatonTempDataService tempDataService,
+    IAutomatonFileService fileService,
     UserManager<ApplicationUser> userManager,
     ApplicationDbContext context,
     IInvitationNotificationService invitationNotificationService,
@@ -24,6 +25,7 @@ public class SharedAutomatonController(
     private readonly ISharedAutomatonService sharedAutomatonService = sharedAutomatonService;
     private readonly ISharedAutomatonSharingService sharingService = sharingService;
     private readonly IAutomatonTempDataService tempDataService = tempDataService;
+    private readonly IAutomatonFileService fileService = fileService;
     private readonly UserManager<ApplicationUser> userManager = userManager;
     private readonly ApplicationDbContext context = context;
     private readonly IInvitationNotificationService invitationNotificationService = invitationNotificationService;
@@ -348,27 +350,12 @@ public class SharedAutomatonController(
                 SourceRegex = entity.SourceRegex
             };
 
-            // Load execution state based on mode
-            if ((mode == "input" || mode == "state") && !string.IsNullOrWhiteSpace(entity.ExecutionStateJson))
+            if (!string.IsNullOrWhiteSpace(entity.ExecutionStateJson))
             {
                 try
                 {
                     var exec = JsonSerializer.Deserialize<Core.Models.DTOs.SavedExecutionStateDto>(entity.ExecutionStateJson);
-                    if (exec != null)
-                    {
-                        model.Input = exec.Input ?? string.Empty;
-
-                        if (mode == "state" && entity.SaveMode == AutomatonSaveMode.WithState)
-                        {
-                            model.Position = exec.Position;
-                            model.CurrentStateId = exec.CurrentStateId;
-                            model.CurrentStates = exec.CurrentStates != null ? [.. exec.CurrentStates] : null;
-                            model.IsAccepted = exec.IsAccepted;
-                            model.StateHistorySerialized = exec.StateHistorySerialized ?? string.Empty;
-                            model.StackSerialized = exec.StackSerialized;
-                            model.HasExecuted = true;
-                        }
-                    }
+                    fileService.RestoreExecutionStateFromDto(model, exec, mode, entity.SaveMode);
                 }
                 catch (JsonException ex)
                 {

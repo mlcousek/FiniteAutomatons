@@ -1,5 +1,6 @@
-using FiniteAutomatons.Core.Models.ViewModel;
+﻿using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Interfaces;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
@@ -81,5 +82,34 @@ public class AutomatonTempDataService(ILogger<AutomatonTempDataService> logger) 
     {
         tempData["ConversionMessage"] = message;
         logger.LogInformation("Stored conversion message in TempData: {Message}", message);
+    }
+
+    public (bool Success, AutomatonViewModel? Model) TryGetSessionAutomaton(ISession session, string sessionKey)
+    {
+        var json = session.GetString(sessionKey);
+        if (string.IsNullOrEmpty(json))
+        {
+            logger.LogInformation("No automaton found in session with key: {SessionKey}", sessionKey);
+            return (false, null);
+        }
+
+        try
+        {
+            var model = JsonSerializer.Deserialize<AutomatonViewModel>(json);
+            if (model != null)
+            {
+                model.IsCustomAutomaton = true;
+                model.States ??= [];
+                model.Transitions ??= [];
+                logger.LogInformation("Successfully loaded automaton from session: Type={Type}, States={StateCount}",
+                    model.Type, model.States.Count);
+            }
+            return (model != null, model);
+        }
+        catch (JsonException ex)
+        {
+            logger.LogWarning(ex, "Failed to deserialize canvas automaton from session");
+            return (false, null);
+        }
     }
 }

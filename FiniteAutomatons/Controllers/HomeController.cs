@@ -2,7 +2,6 @@
 using FiniteAutomatons.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
-using System.Text.Json;
 
 namespace FiniteAutomatons.Controllers;
 
@@ -25,13 +24,11 @@ public class HomeController(ILogger<HomeController> logger, IAutomatonTempDataSe
             model = customModel;
             logger.LogInformation("Loaded automaton from TempData");
         }
-        // Priority 2: Session — automaton saved by canvas editor via /api/canvas/save
-        else if (TryGetSessionAutomaton(out var sessionModel) && sessionModel != null)
+        else if (tempDataService.TryGetSessionAutomaton(HttpContext.Session, CanvasApiController.SessionKey) is var sessionResult && sessionResult.Success && sessionResult.Model != null)
         {
-            model = sessionModel;
+            model = sessionResult.Model;
             logger.LogInformation("Loaded automaton from Session (canvas edits)");
         }
-        // Priority 3: Default
         else
         {
             model = homeAutomatonService.GenerateDefaultAutomaton();
@@ -59,28 +56,5 @@ public class HomeController(ILogger<HomeController> logger, IAutomatonTempDataSe
     public IActionResult Error()
     {
         return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
-    }
-    private bool TryGetSessionAutomaton(out AutomatonViewModel? model)
-    {
-        model = null;
-        var json = HttpContext.Session.GetString(CanvasApiController.SessionKey);
-        if (string.IsNullOrEmpty(json)) return false;
-
-        try
-        {
-            model = JsonSerializer.Deserialize<AutomatonViewModel>(json);
-            if (model != null)
-            {
-                model.IsCustomAutomaton = true;
-                model.States ??= [];
-                model.Transitions ??= [];
-            }
-            return model != null;
-        }
-        catch (JsonException ex)
-        {
-            logger.LogWarning(ex, "Failed to deserialize canvas automaton from Session");
-            return false;
-        }
     }
 }

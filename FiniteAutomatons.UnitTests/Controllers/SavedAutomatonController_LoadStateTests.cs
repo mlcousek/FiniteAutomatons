@@ -78,6 +78,8 @@ public class SavedAutomatonController_LoadStateTests
 
         public void StoreConversionMessage(ITempDataDictionary tempData, string message) =>
             tempData["ConversionMessage"] = message;
+
+        public (bool Success, AutomatonViewModel? Model) TryGetSessionAutomaton(Microsoft.AspNetCore.Http.ISession session, string sessionKey) => (false, null);
     }
 
     private class StubSavedAutomatonService(SavedAutomaton? entity) : ISavedAutomatonService

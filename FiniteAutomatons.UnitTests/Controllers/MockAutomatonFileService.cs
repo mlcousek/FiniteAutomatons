@@ -119,4 +119,110 @@ public class MockAutomatonFileService : IAutomatonFileService
             return (false, null, ex.Message);
         }
     }
+
+    public void RestoreExecutionState(AutomatonViewModel model, string? executionStateJson, string mode)
+    {
+        ArgumentNullException.ThrowIfNull(model);
+
+        switch (mode.ToLowerInvariant())
+        {
+            case "input":
+                if (!string.IsNullOrEmpty(executionStateJson))
+                {
+                    var execState = JsonSerializer.Deserialize<JsonElement>(executionStateJson);
+                    if (execState.ValueKind != JsonValueKind.Undefined && execState.TryGetProperty("Input", out var input))
+                    {
+                        model.Input = input.GetString() ?? string.Empty;
+                    }
+                }
+                model.Position = 0;
+                model.CurrentStateId = null;
+                model.CurrentStates = null;
+                model.IsAccepted = null;
+                model.StateHistorySerialized = string.Empty;
+                model.StackSerialized = null;
+                break;
+
+            case "state":
+                if (!string.IsNullOrEmpty(executionStateJson))
+                {
+                    var execState = JsonSerializer.Deserialize<JsonElement>(executionStateJson);
+                    if (execState.ValueKind != JsonValueKind.Undefined)
+                    {
+                        if (execState.TryGetProperty("Input", out var input)) model.Input = input.GetString() ?? string.Empty;
+                        if (execState.TryGetProperty("Position", out var pos)) model.Position = pos.GetInt32();
+                        if (execState.TryGetProperty("CurrentStateId", out var csid) && csid.ValueKind != JsonValueKind.Null)
+                            model.CurrentStateId = csid.GetInt32();
+                        if (execState.TryGetProperty("IsAccepted", out var acc) && acc.ValueKind != JsonValueKind.Null)
+                            model.IsAccepted = acc.GetBoolean();
+                        if (execState.TryGetProperty("StateHistorySerialized", out var hist))
+                            model.StateHistorySerialized = hist.GetString() ?? string.Empty;
+                        if (execState.TryGetProperty("StackSerialized", out var stack) && stack.ValueKind != JsonValueKind.Null)
+                            model.StackSerialized = stack.GetString();
+                    }
+                }
+                break;
+
+            default:
+                model.Input = string.Empty;
+                model.Position = 0;
+                model.CurrentStateId = null;
+                model.CurrentStates = null;
+                model.IsAccepted = null;
+                model.StateHistorySerialized = string.Empty;
+                model.StackSerialized = null;
+                break;
+        }
+    }
+
+    public void RestoreExecutionStateFromDto(AutomatonViewModel model, Core.Models.DTOs.SavedExecutionStateDto? executionState, string mode, Core.Models.Database.AutomatonSaveMode saveMode)
+    {
+        ArgumentNullException.ThrowIfNull(model);
+
+        switch (mode.ToLowerInvariant())
+        {
+            case "input":
+                if (executionState != null)
+                {
+                    model.Input = executionState.Input ?? string.Empty;
+                }
+                model.Position = 0;
+                model.CurrentStateId = null;
+                model.CurrentStates = null;
+                model.IsAccepted = null;
+                model.StateHistorySerialized = string.Empty;
+                model.StackSerialized = null;
+                model.HasExecuted = false;
+                break;
+
+            case "state":
+                if (executionState != null)
+                {
+                    model.Input = executionState.Input ?? string.Empty;
+
+                    if (saveMode == Core.Models.Database.AutomatonSaveMode.WithState)
+                    {
+                        model.Position = executionState.Position;
+                        model.CurrentStateId = executionState.CurrentStateId;
+                        model.CurrentStates = executionState.CurrentStates != null ? [.. executionState.CurrentStates] : null;
+                        model.IsAccepted = executionState.IsAccepted;
+                        model.StateHistorySerialized = executionState.StateHistorySerialized ?? string.Empty;
+                        model.StackSerialized = executionState.StackSerialized;
+                        model.HasExecuted = true;
+                    }
+                }
+                break;
+
+            default:
+                model.Input = string.Empty;
+                model.Position = 0;
+                model.CurrentStateId = null;
+                model.CurrentStates = null;
+                model.IsAccepted = null;
+                model.StateHistorySerialized = string.Empty;
+                model.StackSerialized = null;
+                model.HasExecuted = false;
+                break;
+        }
+    }
 }

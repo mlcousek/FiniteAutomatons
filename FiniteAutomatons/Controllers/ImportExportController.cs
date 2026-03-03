@@ -28,41 +28,6 @@ public class ImportExportController(
     {
     }
 
-    private sealed class NoopSharedAutomatonService : ISharedAutomatonService
-    {
-        public Task<SharedAutomaton> SaveAsync(string userId, int groupId, string name, string? description, AutomatonViewModel model, bool saveExecutionState = false, string? layoutJson = null, string? thumbnailBase64 = null) =>
-            Task.FromException<SharedAutomaton>(new NotSupportedException("Noop service"));
-        public Task<SharedAutomaton?> GetAsync(int id, string userId) => Task.FromResult<SharedAutomaton?>(null);
-        public Task<List<SharedAutomaton>> ListForGroupAsync(int groupId, string userId) => Task.FromResult(new List<SharedAutomaton>());
-        public Task<List<SharedAutomaton>> ListForUserAsync(string userId) => Task.FromResult(new List<SharedAutomaton>());
-        public Task DeleteAsync(int id, string userId) => Task.CompletedTask;
-        public Task<SharedAutomaton> UpdateAsync(int id, string userId, string? name, string? description, AutomatonViewModel? model) => Task.FromException<SharedAutomaton>(new NotSupportedException("Noop service"));
-        public Task<SharedAutomatonGroup> CreateGroupAsync(string userId, string name, string? description) => Task.FromException<SharedAutomatonGroup>(new NotSupportedException("Noop service"));
-        public Task<SharedAutomatonGroup?> GetGroupAsync(int groupId, string userId) => Task.FromResult<SharedAutomatonGroup?>(null);
-        public Task<List<SharedAutomatonGroup>> ListGroupsForUserAsync(string userId) => Task.FromResult(new List<SharedAutomatonGroup>());
-        public Task DeleteGroupAsync(int groupId, string userId) => Task.CompletedTask;
-        public Task UpdateGroupAsync(int groupId, string userId, string? name, string? description) => Task.CompletedTask;
-        public Task<List<SharedAutomatonGroupMember>> ListGroupMembersAsync(int groupId, string userId) => Task.FromResult(new List<SharedAutomatonGroupMember>());
-        public Task RemoveMemberAsync(int groupId, string userId, string memberUserId) => Task.CompletedTask;
-        public Task UpdateMemberRoleAsync(int groupId, string userId, string memberUserId, SharedGroupRole newRole) => Task.CompletedTask;
-        public Task<bool> CanUserViewGroupAsync(int groupId, string userId) => Task.FromResult(false);
-        public Task<bool> CanUserAddToGroupAsync(int groupId, string userId) => Task.FromResult(false);
-        public Task<bool> CanUserEditInGroupAsync(int groupId, string userId) => Task.FromResult(false);
-        public Task<bool> CanUserManageMembersAsync(int groupId, string userId) => Task.FromResult(false);
-        public Task<SharedGroupRole?> GetUserRoleInGroupAsync(int groupId, string userId) => Task.FromResult<SharedGroupRole?>(null);
-    }
-
-    private sealed class InMemoryTempDataProvider : ITempDataProvider
-    {
-        private readonly Dictionary<string, object?> data = [];
-        public IDictionary<string, object?> LoadTempData(HttpContext context) => new Dictionary<string, object?>(data);
-        public void SaveTempData(HttpContext context, IDictionary<string, object?> values)
-        {
-            data.Clear();
-            foreach (var kv in values) data[kv.Key] = kv.Value;
-        }
-    }
-
     [HttpPost]
     public IActionResult ExportJson([FromForm] AutomatonViewModel model)
     {
@@ -82,54 +47,7 @@ public class ImportExportController(
         var model = JsonSerializer.Deserialize<AutomatonViewModel>(entity.ContentJson);
         if (model == null) return BadRequest("Failed to deserialize automaton");
 
-        // Apply mode-specific adjustments (similar to ExportSaved)
-        switch (mode.ToLowerInvariant())
-        {
-            case "input":
-                if (!string.IsNullOrEmpty(entity.ExecutionStateJson))
-                {
-                    var execState = JsonSerializer.Deserialize<JsonElement>(entity.ExecutionStateJson);
-                    if (execState.ValueKind != JsonValueKind.Undefined && execState.TryGetProperty("Input", out var input))
-                    {
-                        model.Input = input.GetString() ?? string.Empty;
-                    }
-                }
-                model.Position = 0;
-                model.CurrentStateId = null;
-                model.CurrentStates = null;
-                model.IsAccepted = null;
-                model.StateHistorySerialized = string.Empty;
-                model.StackSerialized = null;
-                break;
-            case "state":
-                if (!string.IsNullOrEmpty(entity.ExecutionStateJson))
-                {
-                    var execState = JsonSerializer.Deserialize<JsonElement>(entity.ExecutionStateJson);
-                    if (execState.ValueKind != JsonValueKind.Undefined)
-                    {
-                        if (execState.TryGetProperty("Input", out var input)) model.Input = input.GetString() ?? string.Empty;
-                        if (execState.TryGetProperty("Position", out var pos)) model.Position = pos.GetInt32();
-                        if (execState.TryGetProperty("CurrentStateId", out var csid) && csid.ValueKind != JsonValueKind.Null)
-                            model.CurrentStateId = csid.GetInt32();
-                        if (execState.TryGetProperty("IsAccepted", out var acc) && acc.ValueKind != JsonValueKind.Null)
-                            model.IsAccepted = acc.GetBoolean();
-                        if (execState.TryGetProperty("StateHistorySerialized", out var hist))
-                            model.StateHistorySerialized = hist.GetString() ?? string.Empty;
-                        if (execState.TryGetProperty("StackSerialized", out var stack) && stack.ValueKind != JsonValueKind.Null)
-                            model.StackSerialized = stack.GetString();
-                    }
-                }
-                break;
-            default:
-                model.Input = string.Empty;
-                model.Position = 0;
-                model.CurrentStateId = null;
-                model.CurrentStates = null;
-                model.IsAccepted = null;
-                model.StateHistorySerialized = string.Empty;
-                model.StackSerialized = null;
-                break;
-        }
+        fileService.RestoreExecutionState(model, entity.ExecutionStateJson, mode);
 
         return format switch
         {
@@ -176,67 +94,11 @@ public class ImportExportController(
         var saved = await savedAutomatonService.GetAsync(id, user.Id);
         if (saved == null) return NotFound();
 
-        // Deserialize the saved automaton JSON
         var model = JsonSerializer.Deserialize<AutomatonViewModel>(saved.ContentJson);
         if (model == null) return BadRequest("Failed to deserialize automaton");
 
-        // Apply mode-specific logic
-        switch (mode.ToLowerInvariant())
-        {
-            case "input":
-                // Include input but clear execution state
-                if (!string.IsNullOrEmpty(saved.ExecutionStateJson))
-                {
-                    var execState = JsonSerializer.Deserialize<JsonElement>(saved.ExecutionStateJson);
-                    if (execState.ValueKind != JsonValueKind.Undefined && execState.TryGetProperty("Input", out var input))
-                    {
-                        model.Input = input.GetString() ?? string.Empty;
-                    }
-                }
-                // Clear execution state
-                model.Position = 0;
-                model.CurrentStateId = null;
-                model.CurrentStates = null;
-                model.IsAccepted = null;
-                model.StateHistorySerialized = string.Empty;
-                model.StackSerialized = null;
-                break;
+        fileService.RestoreExecutionState(model, saved.ExecutionStateJson, mode);
 
-            case "state":
-                // Include full execution state if available
-                if (!string.IsNullOrEmpty(saved.ExecutionStateJson))
-                {
-                    var execState = JsonSerializer.Deserialize<JsonElement>(saved.ExecutionStateJson);
-                    if (execState.ValueKind != JsonValueKind.Undefined)
-                    {
-                        if (execState.TryGetProperty("Input", out var input)) model.Input = input.GetString() ?? string.Empty;
-                        if (execState.TryGetProperty("Position", out var pos)) model.Position = pos.GetInt32();
-                        if (execState.TryGetProperty("CurrentStateId", out var csid) && csid.ValueKind != JsonValueKind.Null)
-                            model.CurrentStateId = csid.GetInt32();
-                        if (execState.TryGetProperty("IsAccepted", out var acc) && acc.ValueKind != JsonValueKind.Null)
-                            model.IsAccepted = acc.GetBoolean();
-                        if (execState.TryGetProperty("StateHistorySerialized", out var hist))
-                            model.StateHistorySerialized = hist.GetString() ?? string.Empty;
-                        if (execState.TryGetProperty("StackSerialized", out var stack) && stack.ValueKind != JsonValueKind.Null)
-                            model.StackSerialized = stack.GetString();
-                    }
-                }
-                break;
-
-            case "structure":
-            default:
-                // Structure only - no input, no execution state
-                model.Input = string.Empty;
-                model.Position = 0;
-                model.CurrentStateId = null;
-                model.CurrentStates = null;
-                model.IsAccepted = null;
-                model.StateHistorySerialized = string.Empty;
-                model.StackSerialized = null;
-                break;
-        }
-
-        // Export based on format
         return format switch
         {
             "json" => ExportJsonHelper(model, saved.Name, mode),
@@ -427,6 +289,41 @@ public class ImportExportController(
 
         TempData["CustomAutomaton"] = JsonSerializer.Serialize(model);
         return RedirectToAction("Index", "Home");
+    }
+
+    private sealed class NoopSharedAutomatonService : ISharedAutomatonService
+    {
+        public Task<SharedAutomaton> SaveAsync(string userId, int groupId, string name, string? description, AutomatonViewModel model, bool saveExecutionState = false, string? layoutJson = null, string? thumbnailBase64 = null) =>
+            Task.FromException<SharedAutomaton>(new NotSupportedException("Noop service"));
+        public Task<SharedAutomaton?> GetAsync(int id, string userId) => Task.FromResult<SharedAutomaton?>(null);
+        public Task<List<SharedAutomaton>> ListForGroupAsync(int groupId, string userId) => Task.FromResult(new List<SharedAutomaton>());
+        public Task<List<SharedAutomaton>> ListForUserAsync(string userId) => Task.FromResult(new List<SharedAutomaton>());
+        public Task DeleteAsync(int id, string userId) => Task.CompletedTask;
+        public Task<SharedAutomaton> UpdateAsync(int id, string userId, string? name, string? description, AutomatonViewModel? model) => Task.FromException<SharedAutomaton>(new NotSupportedException("Noop service"));
+        public Task<SharedAutomatonGroup> CreateGroupAsync(string userId, string name, string? description) => Task.FromException<SharedAutomatonGroup>(new NotSupportedException("Noop service"));
+        public Task<SharedAutomatonGroup?> GetGroupAsync(int groupId, string userId) => Task.FromResult<SharedAutomatonGroup?>(null);
+        public Task<List<SharedAutomatonGroup>> ListGroupsForUserAsync(string userId) => Task.FromResult(new List<SharedAutomatonGroup>());
+        public Task DeleteGroupAsync(int groupId, string userId) => Task.CompletedTask;
+        public Task UpdateGroupAsync(int groupId, string userId, string? name, string? description) => Task.CompletedTask;
+        public Task<List<SharedAutomatonGroupMember>> ListGroupMembersAsync(int groupId, string userId) => Task.FromResult(new List<SharedAutomatonGroupMember>());
+        public Task RemoveMemberAsync(int groupId, string userId, string memberUserId) => Task.CompletedTask;
+        public Task UpdateMemberRoleAsync(int groupId, string userId, string memberUserId, SharedGroupRole newRole) => Task.CompletedTask;
+        public Task<bool> CanUserViewGroupAsync(int groupId, string userId) => Task.FromResult(false);
+        public Task<bool> CanUserAddToGroupAsync(int groupId, string userId) => Task.FromResult(false);
+        public Task<bool> CanUserEditInGroupAsync(int groupId, string userId) => Task.FromResult(false);
+        public Task<bool> CanUserManageMembersAsync(int groupId, string userId) => Task.FromResult(false);
+        public Task<SharedGroupRole?> GetUserRoleInGroupAsync(int groupId, string userId) => Task.FromResult<SharedGroupRole?>(null);
+    }
+
+    private sealed class InMemoryTempDataProvider : ITempDataProvider
+    {
+        private readonly Dictionary<string, object?> data = [];
+        public IDictionary<string, object?> LoadTempData(HttpContext context) => new Dictionary<string, object?>(data);
+        public void SaveTempData(HttpContext context, IDictionary<string, object?> values)
+        {
+            data.Clear();
+            foreach (var kv in values) data[kv.Key] = kv.Value;
+        }
     }
 }
 

@@ -86,6 +86,8 @@ public class SharedAutomatonController_LoadStateTests : IDisposable
 
         public void StoreConversionMessage(ITempDataDictionary tempData, string message) =>
             tempData["ConversionMessage"] = message;
+
+        public (bool Success, AutomatonViewModel? Model) TryGetSessionAutomaton(Microsoft.AspNetCore.Http.ISession session, string sessionKey) => (false, null);
     }
 
     private class MockInvitationNotificationService : IInvitationNotificationService
@@ -122,6 +124,7 @@ public class SharedAutomatonController_LoadStateTests : IDisposable
             sharedService,
             sharingService,
             tempSvc,
+            new MockAutomatonFileService(),
             userManager,
             context,
             new MockInvitationNotificationService(),

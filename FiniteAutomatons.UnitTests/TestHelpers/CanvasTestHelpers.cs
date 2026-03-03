@@ -1,7 +1,9 @@
 ﻿using FiniteAutomatons.Core.Models.Api;
+using FiniteAutomatons.Core.Models.Database;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Interfaces;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using System.Text;
 
 namespace FiniteAutomatons.UnitTests.TestHelpers;
@@ -129,5 +131,40 @@ public sealed class MockCanvasMappingService : ICanvasMappingService
         if (stackPop == "\\0" || stackPop == "ε" || stackPop == "epsilon")
             return '\0';
         return stackPop[0];
+    }
+}
+
+public sealed class NoopSharedAutomatonService : ISharedAutomatonService
+{
+    public Task<SharedAutomaton> SaveAsync(string userId, int groupId, string name, string? description, AutomatonViewModel model, bool saveExecutionState = false, string? layoutJson = null, string? thumbnailBase64 = null) =>
+        Task.FromException<SharedAutomaton>(new NotSupportedException("Noop service"));
+    public Task<SharedAutomaton?> GetAsync(int id, string userId) => Task.FromResult<SharedAutomaton?>(null);
+    public Task<List<SharedAutomaton>> ListForGroupAsync(int groupId, string userId) => Task.FromResult(new List<SharedAutomaton>());
+    public Task<List<SharedAutomaton>> ListForUserAsync(string userId) => Task.FromResult(new List<SharedAutomaton>());
+    public Task DeleteAsync(int id, string userId) => Task.CompletedTask;
+    public Task<SharedAutomaton> UpdateAsync(int id, string userId, string? name, string? description, AutomatonViewModel? model) => Task.FromException<SharedAutomaton>(new NotSupportedException("Noop service"));
+    public Task<SharedAutomatonGroup> CreateGroupAsync(string userId, string name, string? description) => Task.FromException<SharedAutomatonGroup>(new NotSupportedException("Noop service"));
+    public Task<SharedAutomatonGroup?> GetGroupAsync(int groupId, string userId) => Task.FromResult<SharedAutomatonGroup?>(null);
+    public Task<List<SharedAutomatonGroup>> ListGroupsForUserAsync(string userId) => Task.FromResult(new List<SharedAutomatonGroup>());
+    public Task DeleteGroupAsync(int groupId, string userId) => Task.CompletedTask;
+    public Task UpdateGroupAsync(int groupId, string userId, string? name, string? description) => Task.CompletedTask;
+    public Task<List<SharedAutomatonGroupMember>> ListGroupMembersAsync(int groupId, string userId) => Task.FromResult(new List<SharedAutomatonGroupMember>());
+    public Task RemoveMemberAsync(int groupId, string userId, string memberUserId) => Task.CompletedTask;
+    public Task UpdateMemberRoleAsync(int groupId, string userId, string memberUserId, SharedGroupRole newRole) => Task.CompletedTask;
+    public Task<bool> CanUserViewGroupAsync(int groupId, string userId) => Task.FromResult(false);
+    public Task<bool> CanUserAddToGroupAsync(int groupId, string userId) => Task.FromResult(false);
+    public Task<bool> CanUserEditInGroupAsync(int groupId, string userId) => Task.FromResult(false);
+    public Task<bool> CanUserManageMembersAsync(int groupId, string userId) => Task.FromResult(false);
+    public Task<SharedGroupRole?> GetUserRoleInGroupAsync(int groupId, string userId) => Task.FromResult<SharedGroupRole?>(null);
+}
+
+public sealed class InMemoryTempDataProvider : ITempDataProvider
+{
+    private readonly Dictionary<string, object?> data = [];
+    public IDictionary<string, object?> LoadTempData(HttpContext context) => new Dictionary<string, object?>(data);
+    public void SaveTempData(HttpContext context, IDictionary<string, object?> values)
+    {
+        data.Clear();
+        foreach (var kv in values) data[kv.Key] = kv.Value;
     }
 }
