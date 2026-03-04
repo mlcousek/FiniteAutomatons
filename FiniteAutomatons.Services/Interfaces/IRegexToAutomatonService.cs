@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
+﻿using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 
 namespace FiniteAutomatons.Services.Interfaces;
 

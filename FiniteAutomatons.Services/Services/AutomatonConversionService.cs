@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
+﻿using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Core.Utilities;
 using FiniteAutomatons.Services.Interfaces;
@@ -17,13 +17,11 @@ public class AutomatonConversionService(IAutomatonBuilderService builderService,
         model.Transitions ??= [];
         var warnings = new List<string>();
 
-        // Always normalize epsilon aliases first so internal representation uses '\0'
         if (model.Type == AutomatonType.EpsilonNFA)
         {
             model.NormalizeEpsilonTransitions();
         }
 
-        // Full conversion: EpsilonNFA -> NFA using epsilon-closure elimination (removes epsilon transitions)
         if (model.Type == AutomatonType.EpsilonNFA && newType == AutomatonType.NFA)
         {
             try
@@ -42,7 +40,10 @@ public class AutomatonConversionService(IAutomatonBuilderService builderService,
                         SourceRegex = model.SourceRegex
                     };
                     warnings.Add("Converted EpsilonNFA to NFA via epsilon-closure elimination. Epsilon transitions removed.");
-                    logger.LogInformation("Performed full EpsilonNFA -> NFA conversion. States={StateCount} Transitions={TransitionCount}", convertedModelFull.States.Count, convertedModelFull.Transitions.Count);
+                    if (logger.IsEnabled(LogLevel.Information))
+                    {
+                        logger.LogInformation("Performed full EpsilonNFA -> NFA conversion. States={StateCount} Transitions={TransitionCount}", convertedModelFull.States.Count, convertedModelFull.Transitions.Count);
+                    }
                     return (convertedModelFull, warnings);
                 }
             }
@@ -50,7 +51,6 @@ public class AutomatonConversionService(IAutomatonBuilderService builderService,
             {
                 logger.LogWarning(ex, "Failed semantic conversion EpsilonNFA -> NFA; falling back to simple removal.");
             }
-            // Fallback: just remove epsilon transitions (now guaranteed normalized to '\0')
             var fallback = new AutomatonViewModel
             {
                 Type = AutomatonType.NFA,
@@ -64,7 +64,6 @@ public class AutomatonConversionService(IAutomatonBuilderService builderService,
             return (fallback, warnings);
         }
 
-        // Shallow conversions (label/type changes) for other paths
         var shallow = new AutomatonViewModel
         {
             Type = newType,
@@ -83,7 +82,10 @@ public class AutomatonConversionService(IAutomatonBuilderService builderService,
                 break;
         }
 
-        logger.LogInformation("Shallow converted automaton from {From} to {To}", model.Type, newType);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Shallow converted automaton from {From} to {To}", model.Type, newType);
+        }
         return (shallow, warnings);
     }
 
@@ -92,7 +94,6 @@ public class AutomatonConversionService(IAutomatonBuilderService builderService,
         model.States ??= [];
         model.Transitions ??= [];
 
-        // Normalize epsilon before building (important if UI posted a visible alias like '?')
         if (model.Type == AutomatonType.EpsilonNFA)
         {
             model.NormalizeEpsilonTransitions();
@@ -132,8 +133,10 @@ public class AutomatonConversionService(IAutomatonBuilderService builderService,
             IsCustomAutomaton = true,
             SourceRegex = model.SourceRegex
         };
-
-        logger.LogInformation("Successfully converted {SourceType} to DFA with {StateCount} states", model.Type, convertedModel.States.Count);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Successfully converted {SourceType} to DFA with {StateCount} states", model.Type, convertedModel.States.Count);
+        }
 
         return convertedModel;
     }

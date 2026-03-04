@@ -1,8 +1,8 @@
+﻿using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text.Json;
-using System.Collections.Concurrent;
 
-namespace FiniteAutomatons.Observability;
+namespace FiniteAutomatons.Services.Observability;
 
 public sealed class ActivityFileWriter
 {
@@ -20,8 +20,8 @@ public sealed class ActivityFileWriter
         ActivityListener listener = new()
         {
             ShouldListenTo = a => true,
-            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded,
-            SampleUsingParentId = (ref ActivityCreationOptions<string> _) => ActivitySamplingResult.AllDataAndRecorded,
+            Sample = (ref _) => ActivitySamplingResult.AllDataAndRecorded,
+            SampleUsingParentId = (ref _) => ActivitySamplingResult.AllDataAndRecorded,
             ActivityStarted = a => WriteActivity(a, true),
             ActivityStopped = a => WriteActivity(a, false)
         };
@@ -67,10 +67,8 @@ public sealed class ActivityFileWriter
             }
             catch
             {
-                // Swallow I/O errors in production to avoid impacting app flow; tests will use in-memory entries.
             }
 
-            // Keep in-memory cache
             EnqueueRecent(line);
         }
     }

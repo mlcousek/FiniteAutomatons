@@ -1,4 +1,4 @@
-namespace FiniteAutomatons.Services.Interfaces;
+﻿namespace FiniteAutomatons.Services.Interfaces;
 
 public interface IRegexPresetService
 {

@@ -28,13 +28,12 @@ public class AutomatonExecutionService(IAutomatonBuilderService builderService, 
                     Position = model.Position,
                     IsAccepted = model.IsAccepted
                 };
-                // Deserialize stack
                 if (!string.IsNullOrEmpty(model.StackSerialized))
                 {
                     try
                     {
                         var stackArray = JsonSerializer.Deserialize<List<char>>(model.StackSerialized) ?? [];
-                        pdaState.Stack = new Stack<char>(Enumerable.Reverse(stackArray)); // incoming top-first; Stack enumerates top-first, so reverse to push bottom-first
+                        pdaState.Stack = new Stack<char>(Enumerable.Reverse(stackArray));
                     }
                     catch (Exception ex)
                     {
@@ -43,11 +42,9 @@ public class AutomatonExecutionService(IAutomatonBuilderService builderService, 
                 }
                 else
                 {
-                    // Initialize stack with bottom marker if not already serialized
                     pdaState.Stack = new Stack<char>();
-                    pdaState.Stack.Push('#'); // Default bottom marker
+                    pdaState.Stack.Push('#');
                 }
-                // Deserialize PDA history if present (list of snapshots)
                 if (!string.IsNullOrEmpty(model.StateHistorySerialized))
                 {
                     try
@@ -132,9 +129,7 @@ public class AutomatonExecutionService(IAutomatonBuilderService builderService, 
 
         if (model.Type == AutomatonType.PDA && state is PDAExecutionState pdaState)
         {
-            // Serialize stack (top-first)
             model.StackSerialized = JsonSerializer.Serialize(pdaState.Stack.ToArray());
-            // Serialize history snapshots
             model.StateHistorySerialized = JsonSerializer.Serialize(pdaState.History.ToArray());
         }
         else
@@ -191,10 +186,11 @@ public class AutomatonExecutionService(IAutomatonBuilderService builderService, 
         automaton.StepForward(execState);
         UpdateModelFromState(model, execState);
         model.Result = execState.IsAccepted;
-
-        logger.LogInformation("Executed step forward, position: {Position}, accepted: {IsAccepted}",
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Executed step forward, position: {Position}, accepted: {IsAccepted}",
             model.Position, model.IsAccepted);
-
+        }
         return model;
     }
 
@@ -209,10 +205,11 @@ public class AutomatonExecutionService(IAutomatonBuilderService builderService, 
         automaton.StepBackward(execState);
         UpdateModelFromState(model, execState);
         model.Result = execState.IsAccepted;
-
-        logger.LogInformation("Executed step backward, position: {Position}, accepted: {IsAccepted}",
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Executed step backward, position: {Position}, accepted: {IsAccepted}",
             model.Position, model.IsAccepted);
-
+        }
         return model;
     }
 
@@ -228,10 +225,11 @@ public class AutomatonExecutionService(IAutomatonBuilderService builderService, 
         automaton.ExecuteAll(execState);
         UpdateModelFromState(model, execState);
         model.Result = execState.IsAccepted;
-
-        logger.LogInformation("Executed all steps, final position: {Position}, accepted: {IsAccepted}",
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Executed all steps, final position: {Position}, accepted: {IsAccepted}",
             model.Position, model.IsAccepted);
-
+        }
         return model;
     }
 
@@ -243,14 +241,12 @@ public class AutomatonExecutionService(IAutomatonBuilderService builderService, 
 
         var automaton = builderService.CreateAutomatonFromModel(model);
 
-        // Deserialize initial stack for PDA if present
         Stack<char>? initialStack = null;
         if (model.Type == AutomatonType.PDA && !string.IsNullOrEmpty(model.InitialStackSerialized))
         {
             try
             {
                 var stackArray = JsonSerializer.Deserialize<List<char>>(model.InitialStackSerialized) ?? [];
-                // InitialStackSerialized is bottom-first, so reverse to get proper stack order
                 initialStack = new Stack<char>(Enumerable.Reverse(stackArray));
             }
             catch (Exception ex)
@@ -261,9 +257,10 @@ public class AutomatonExecutionService(IAutomatonBuilderService builderService, 
 
         var execState = automaton.StartExecution(model.Input, initialStack);
         UpdateModelFromState(model, execState);
-
-        logger.LogInformation("Reset to start state, position: {Position}", model.Position);
-
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Reset to start state, position: {Position}", model.Position);
+        }
         return model;
     }
 

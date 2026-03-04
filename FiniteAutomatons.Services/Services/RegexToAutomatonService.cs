@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.DoMain;
+﻿using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Services.Interfaces;
 using Microsoft.Extensions.Logging;
@@ -11,21 +11,22 @@ public sealed class RegexToAutomatonService(ILogger<RegexToAutomatonService> log
 
     public EpsilonNFA BuildEpsilonNfaFromRegex(string regex)
     {
-        if (regex == null) throw new ArgumentNullException(nameof(regex));
-        // Tokenize and convert to postfix (Shunting-yard) then build via Thompson
-        var tokens = Tokenize(regex).ToList();
+        ArgumentNullException.ThrowIfNull(regex);
+        var tokens = Tokenize(regex);
         var postfix = ToPostfix(tokens);
         var enfa = BuildFromPostfix(postfix);
-        logger.LogInformation("Built EpsilonNFA from regex '{Regex}' with {States} states and {Transitions} transitions",
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Built EpsilonNFA from regex '{Regex}' with {States} states and {Transitions} transitions",
             regex, enfa.States.Count, enfa.Transitions.Count);
+        }
         return enfa;
     }
 
-    // --- Tokenization ---
     private enum TokType { Char, CharClass, Star, Plus, Question, Or, Open, Close, Concat }
     private sealed record Tok(TokType Type, string? Value);
 
-    private IEnumerable<Tok> Tokenize(string s)
+    private static IEnumerable<Tok> Tokenize(string s)
     {
         var outTokens = new List<Tok>();
         bool escape = false;
@@ -40,27 +41,22 @@ public sealed class RegexToAutomatonService(ILogger<RegexToAutomatonService> log
             }
             if (c == '\\') { escape = true; continue; }
 
-            // Anchors: '^' at start and '$' at end are acknowledged but ignored for construction
             if (c == '^' && i == 0)
             {
-                // ignore as automaton always starts at beginning
                 continue;
             }
             if (c == '$' && i == s.Length - 1)
             {
-                // ignore as automaton matches full input by design
                 continue;
             }
 
             if (c == '[')
             {
-                // parse character class until closing ']'
                 var j = i + 1;
                 var classChars = new List<char>();
                 bool negated = false;
                 if (j < s.Length && s[j] == '^')
                 {
-                    // negation is not supported in character classes for this converter
                     negated = true;
                     j++;
                 }
@@ -72,7 +68,6 @@ public sealed class RegexToAutomatonService(ILogger<RegexToAutomatonService> log
                         j += 2;
                         continue;
                     }
-                    // range a-z
                     if (j + 2 < s.Length && s[j + 1] == '-' && s[j + 2] != ']')
                     {
                         char start = s[j];
@@ -87,11 +82,10 @@ public sealed class RegexToAutomatonService(ILogger<RegexToAutomatonService> log
                 }
                 if (j >= s.Length || s[j] != ']') throw new ArgumentException("Unterminated character class");
                 if (classChars.Count == 0) throw new ArgumentException("Empty character class");
-                // if negated, we currently don't support negation - it's an error
                 if (negated) throw new ArgumentException("Negated character classes are not supported");
-                var val = new string(classChars.Distinct().ToArray());
+                var val = new string([.. classChars.Distinct()]);
                 outTokens.Add(new Tok(TokType.CharClass, val));
-                i = j; // advance to closing ']'
+                i = j;
                 continue;
             }
 
@@ -110,10 +104,8 @@ public sealed class RegexToAutomatonService(ILogger<RegexToAutomatonService> log
             }
         }
 
-        // If the regex ended with a trailing backslash, that's an error
         if (escape) throw new ArgumentException("Trailing escape character in regular expression");
 
-        // Insert explicit concatenation tokens where appropriate
         var withConcat = new List<Tok>();
         for (int i = 0; i < outTokens.Count; i++)
         {
@@ -135,7 +127,6 @@ public sealed class RegexToAutomatonService(ILogger<RegexToAutomatonService> log
         return withConcat;
     }
 
-    // --- Shunting-yard to postfix ---
     private static readonly Dictionary<TokType, int> Prec = new()
     {
         [TokType.Star] = 5,
@@ -145,7 +136,7 @@ public sealed class RegexToAutomatonService(ILogger<RegexToAutomatonService> log
         [TokType.Or] = 3
     };
 
-    private List<Tok> ToPostfix(IEnumerable<Tok> tokens)
+    private static List<Tok> ToPostfix(IEnumerable<Tok> tokens)
     {
         var output = new List<Tok>();
         var stack = new Stack<Tok>();
@@ -188,14 +179,13 @@ public sealed class RegexToAutomatonService(ILogger<RegexToAutomatonService> log
         return output;
     }
 
-    // --- Thompson construction stack fragments ---
     private sealed class Fragment
     {
         public int Start { get; set; }
         public int End { get; set; }
     }
 
-    private EpsilonNFA BuildFromPostfix(List<Tok> postfix)
+    private static EpsilonNFA BuildFromPostfix(List<Tok> postfix)
     {
         var enfa = new EpsilonNFA();
         int nextId = 1;
@@ -237,7 +227,6 @@ public sealed class RegexToAutomatonService(ILogger<RegexToAutomatonService> log
                     {
                         var f2 = fragStack.Pop();
                         var f1 = fragStack.Pop();
-                        // connect f1.End -> f2.Start via epsilon
                         enfa.AddEpsilonTransition(f1.End, f2.Start);
                         fragStack.Push(new Fragment { Start = f1.Start, End = f2.End });
                     }
@@ -297,14 +286,12 @@ public sealed class RegexToAutomatonService(ILogger<RegexToAutomatonService> log
         if (fragStack.Count != 1) throw new ArgumentException("Invalid regular expression");
         var top = fragStack.Pop();
         enfa.SetStartState(top.Start);
-        // mark end as accepting
         var endState = enfa.States.First(s => s.Id == top.End);
         endState.IsAccepting = true;
         return enfa;
     }
 
-    // Expose a small helper to serialize to a view model-like DTO for tests/integration
-    public object DescribeEnfa(EpsilonNFA enfa)
+    public static object DescribeEnfa(EpsilonNFA enfa)
     {
         return new
         {

@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.DoMain;
+﻿using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Core.Utilities;
 using FiniteAutomatons.Services.Interfaces;
@@ -18,7 +18,10 @@ public class AutomatonEditingService(IAutomatonValidationService validationServi
         if (!ok) return (false, error);
         model.States.Add(new State { Id = id, IsStart = isStart, IsAccepting = isAccepting });
         model.ClearExecutionState(keepInput: true);
-        logger.LogInformation("Added state {Id} (start={Start} accept={Accept})", id, isStart, isAccepting);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Added state {Id} (start={Start} accept={Accept})", id, isStart, isAccepting);
+        }
         return (true, null);
     }
 
@@ -34,7 +37,10 @@ public class AutomatonEditingService(IAutomatonValidationService validationServi
             model.States[0].IsStart = true;
         }
         model.ClearExecutionState();
-        logger.LogInformation("Removed state {Id}", id);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Removed state {Id}", id);
+        }
         return (true, null);
     }
 
@@ -44,13 +50,11 @@ public class AutomatonEditingService(IAutomatonValidationService validationServi
         var (ok, processed, error) = validation.ValidateTransitionAddition(model, fromId, toId, symbol ?? string.Empty);
         if (!ok) return (false, '\0', error);
 
-        // Validate PDA stack inputs if model.Type == PDA
         char? stackPopChar = null;
         if (model.Type == AutomatonType.PDA)
         {
             if (!string.IsNullOrEmpty(stackPop))
             {
-                // allow epsilon token or single char
                 if (AutomatonSymbolHelper.IsEpsilon(stackPop))
                     stackPopChar = '\0';
                 else if (stackPop.Trim().Length == 1)
@@ -63,7 +67,10 @@ public class AutomatonEditingService(IAutomatonValidationService validationServi
         var transition = new Transition { FromStateId = fromId, ToStateId = toId, Symbol = processed, StackPop = stackPopChar, StackPush = string.IsNullOrWhiteSpace(stackPush) ? null : stackPush };
         model.Transitions.Add(transition);
         model.ClearExecutionState(keepInput: true);
-        logger.LogInformation("Added transition {From}->{To} '{Sym}' pop='{Pop}' push='{Push}'", fromId, toId, processed == AutomatonSymbolHelper.EpsilonInternal ? AutomatonSymbolHelper.EpsilonDisplay : processed, stackPopChar == null ? "null" : (stackPopChar == '\0' ? "?" : stackPopChar.ToString()), stackPush);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Added transition {From}->{To} '{Sym}' pop='{Pop}' push='{Push}'", fromId, toId, processed == AutomatonSymbolHelper.EpsilonInternal ? AutomatonSymbolHelper.EpsilonDisplay : processed, stackPopChar == null ? "null" : (stackPopChar == '\0' ? "?" : stackPopChar.ToString()), stackPush);
+        }
         return (true, processed, null);
     }
 
@@ -78,7 +85,10 @@ public class AutomatonEditingService(IAutomatonValidationService validationServi
         int removed = model.Transitions.RemoveAll(t => t.FromStateId == fromId && t.ToStateId == toId && t.Symbol == symbolChar);
         if (removed == 0) return (false, "No matching transition found to remove.");
         model.ClearExecutionState();
-        logger.LogInformation("Removed transition {From}->{To} '{Sym}'", fromId, toId, symbolChar == AutomatonSymbolHelper.EpsilonInternal ? AutomatonSymbolHelper.EpsilonDisplay : symbolChar);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Removed transition {From}->{To} '{Sym}'", fromId, toId, symbolChar == AutomatonSymbolHelper.EpsilonInternal ? AutomatonSymbolHelper.EpsilonDisplay : symbolChar);
+        }
         return (true, null);
     }
 }

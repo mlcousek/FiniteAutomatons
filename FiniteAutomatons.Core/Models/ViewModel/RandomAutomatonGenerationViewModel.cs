@@ -1,5 +1,4 @@
-using FiniteAutomatons.Core.Models.DoMain;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace FiniteAutomatons.Core.Models.ViewModel;
 
@@ -38,8 +37,8 @@ public class RandomAutomatonGenerationViewModel
     public int MinTransitionCount => StateCount;
     public int MaxTransitionCount => Type == AutomatonType.DFA ? StateCount * AlphabetSize : StateCount * StateCount;
 
-    public bool IsValid => StateCount >= 1 && 
-                          TransitionCount >= 0 && 
+    public bool IsValid => StateCount >= 1 &&
+                          TransitionCount >= 0 &&
                           AlphabetSize >= 1 &&
                           AcceptingStateRatio >= 0.0 && AcceptingStateRatio <= 1.0 &&
                           (Type != AutomatonType.DFA || TransitionCount <= StateCount * AlphabetSize);

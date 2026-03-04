@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.Database;
+﻿using FiniteAutomatons.Core.Models.Database;
 using FiniteAutomatons.Core.Models.DTOs;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Data;
@@ -16,15 +16,12 @@ public class SharedAutomatonService(
     private readonly ApplicationDbContext context = context;
     private readonly ILogger<SharedAutomatonService> logger = logger;
 
-    #region CRUD Operations
-
     public async Task<SharedAutomaton> SaveAsync(string userId, int groupId, string name, string? description, AutomatonViewModel model, bool saveExecutionState = false, string? layoutJson = null, string? thumbnailBase64 = null)
     {
         ArgumentNullException.ThrowIfNull(userId);
         ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(model);
 
-        // Check permissions
         if (!await CanUserAddToGroupAsync(groupId, userId))
         {
             throw new UnauthorizedAccessException($"User {userId} does not have permission to add automatons to group {groupId}");
@@ -50,7 +47,6 @@ public class SharedAutomatonService(
             CreatedAt = DateTime.UtcNow
         };
 
-        // Handle execution state
         if (saveExecutionState && !string.IsNullOrWhiteSpace(model.Input))
         {
             var execState = new SavedExecutionStateDto
@@ -87,7 +83,6 @@ public class SharedAutomatonService(
         context.SharedAutomatons.Add(automaton);
         await context.SaveChangesAsync();
 
-        // Assign to group
         var assignment = new SharedAutomatonGroupAssignment
         {
             AutomatonId = automaton.Id,
@@ -98,9 +93,11 @@ public class SharedAutomatonService(
         context.SharedAutomatonGroupAssignments.Add(assignment);
         await context.SaveChangesAsync();
 
-        logger.LogInformation("User {UserId} saved shared automaton {AutomatonId} '{Name}' to group {GroupId}",
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("User {UserId} saved shared automaton {AutomatonId} '{Name}' to group {GroupId}",
             userId, automaton.Id, name, groupId);
-
+        }
         return automaton;
     }
 
@@ -117,7 +114,6 @@ public class SharedAutomatonService(
         if (automaton == null)
             return null;
 
-        // Check if user has access to any group containing this automaton
         var hasAccess = automaton.Assignments.Any(assignment =>
             assignment.Group != null &&
             assignment.Group.Members.Any(m => m.UserId == userId));
@@ -129,7 +125,6 @@ public class SharedAutomatonService(
     {
         ArgumentNullException.ThrowIfNull(userId);
 
-        // Check permissions
         if (!await CanUserViewGroupAsync(groupId, userId))
         {
             throw new UnauthorizedAccessException($"User {userId} does not have permission to view group {groupId}");
@@ -146,7 +141,6 @@ public class SharedAutomatonService(
     {
         ArgumentNullException.ThrowIfNull(userId);
 
-        // Get all groups the user is a member of
         var userGroupIds = await context.SharedAutomatonGroupMembers
             .Where(m => m.UserId == userId)
             .Select(m => m.GroupId)
@@ -168,14 +162,8 @@ public class SharedAutomatonService(
             .Include(a => a.Assignments)
                 .ThenInclude(a => a.Group)
                     .ThenInclude(g => g!.Members)
-            .FirstOrDefaultAsync(a => a.Id == id);
+            .FirstOrDefaultAsync(a => a.Id == id) ?? throw new InvalidOperationException($"Automaton {id} not found");
 
-        if (automaton == null)
-        {
-            throw new InvalidOperationException($"Automaton {id} not found");
-        }
-
-        // Check if user can delete (must be creator or have Editor/Admin/Owner role in at least one group)
         var canDelete = automaton.CreatedByUserId == userId;
 
         if (!canDelete)
@@ -198,8 +186,10 @@ public class SharedAutomatonService(
 
         context.SharedAutomatons.Remove(automaton);
         await context.SaveChangesAsync();
-
-        logger.LogInformation("User {UserId} deleted shared automaton {AutomatonId}", userId, id);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("User {UserId} deleted shared automaton {AutomatonId}", userId, id);
+        }
     }
 
     public async Task<SharedAutomaton> UpdateAsync(int id, string userId, string? name, string? description, AutomatonViewModel? model)
@@ -210,14 +200,8 @@ public class SharedAutomatonService(
             .Include(a => a.Assignments)
                 .ThenInclude(a => a.Group)
                     .ThenInclude(g => g!.Members)
-            .FirstOrDefaultAsync(a => a.Id == id);
+            .FirstOrDefaultAsync(a => a.Id == id) ?? throw new InvalidOperationException($"Automaton {id} not found");
 
-        if (automaton == null)
-        {
-            throw new InvalidOperationException($"Automaton {id} not found");
-        }
-
-        // Check if user can edit (must be creator or have Editor/Admin/Owner role)
         var canEdit = automaton.CreatedByUserId == userId;
 
         if (!canEdit)
@@ -238,7 +222,6 @@ public class SharedAutomatonService(
             throw new UnauthorizedAccessException($"User {userId} does not have permission to edit automaton {id}");
         }
 
-        // Update fields
         if (!string.IsNullOrWhiteSpace(name))
             automaton.Name = name.Trim();
 
@@ -261,14 +244,13 @@ public class SharedAutomatonService(
 
         await context.SaveChangesAsync();
 
-        logger.LogInformation("User {UserId} updated shared automaton {AutomatonId}", userId, id);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("User {UserId} updated shared automaton {AutomatonId}", userId, id);
+        }
 
         return automaton;
     }
-
-    #endregion
-
-    #region Group Management
 
     public async Task<SharedAutomatonGroup> CreateGroupAsync(string userId, string name, string? description)
     {
@@ -286,7 +268,6 @@ public class SharedAutomatonService(
         context.SharedAutomatonGroups.Add(group);
         await context.SaveChangesAsync();
 
-        // Add creator as Owner
         var member = new SharedAutomatonGroupMember
         {
             GroupId = group.Id,
@@ -297,9 +278,10 @@ public class SharedAutomatonService(
 
         context.SharedAutomatonGroupMembers.Add(member);
         await context.SaveChangesAsync();
-
-        logger.LogInformation("User {UserId} created shared group {GroupId} '{Name}'", userId, group.Id, name);
-
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("User {UserId} created shared group {GroupId} '{Name}'", userId, group.Id, name);
+        }
         return group;
     }
 
@@ -315,7 +297,6 @@ public class SharedAutomatonService(
         if (group == null)
             return null;
 
-        // Check if user is a member
         var isMember = group.Members.Any(m => m.UserId == userId);
 
         return isMember ? group : null;
@@ -338,14 +319,8 @@ public class SharedAutomatonService(
 
         var group = await context.SharedAutomatonGroups
             .Include(g => g.Members)
-            .FirstOrDefaultAsync(g => g.Id == groupId);
+            .FirstOrDefaultAsync(g => g.Id == groupId) ?? throw new InvalidOperationException($"Group {groupId} not found");
 
-        if (group == null)
-        {
-            throw new InvalidOperationException($"Group {groupId} not found");
-        }
-
-        // Only owner can delete
         if (group.UserId != userId)
         {
             throw new UnauthorizedAccessException($"User {userId} is not the owner of group {groupId}");
@@ -353,8 +328,10 @@ public class SharedAutomatonService(
 
         context.SharedAutomatonGroups.Remove(group);
         await context.SaveChangesAsync();
-
-        logger.LogInformation("User {UserId} deleted shared group {GroupId}", userId, groupId);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("User {UserId} deleted shared group {GroupId}", userId, groupId);
+        }
     }
 
     public async Task UpdateGroupAsync(int groupId, string userId, string? name, string? description)
@@ -363,14 +340,8 @@ public class SharedAutomatonService(
 
         var group = await context.SharedAutomatonGroups
             .Include(g => g.Members)
-            .FirstOrDefaultAsync(g => g.Id == groupId);
+            .FirstOrDefaultAsync(g => g.Id == groupId) ?? throw new InvalidOperationException($"Group {groupId} not found");
 
-        if (group == null)
-        {
-            throw new InvalidOperationException($"Group {groupId} not found");
-        }
-
-        // Check if user is Admin or Owner
         if (!await CanUserManageMembersAsync(groupId, userId))
         {
             throw new UnauthorizedAccessException($"User {userId} does not have permission to update group {groupId}");
@@ -384,12 +355,11 @@ public class SharedAutomatonService(
 
         await context.SaveChangesAsync();
 
-        logger.LogInformation("User {UserId} updated shared group {GroupId}", userId, groupId);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("User {UserId} updated shared group {GroupId}", userId, groupId);
+        }
     }
-
-    #endregion
-
-    #region Member Management
 
     public async Task<List<SharedAutomatonGroupMember>> ListGroupMembersAsync(int groupId, string userId)
     {
@@ -418,14 +388,8 @@ public class SharedAutomatonService(
         }
 
         var member = await context.SharedAutomatonGroupMembers
-            .FirstOrDefaultAsync(m => m.GroupId == groupId && m.UserId == memberUserId);
+            .FirstOrDefaultAsync(m => m.GroupId == groupId && m.UserId == memberUserId) ?? throw new InvalidOperationException($"User {memberUserId} is not a member of group {groupId}");
 
-        if (member == null)
-        {
-            throw new InvalidOperationException($"User {memberUserId} is not a member of group {groupId}");
-        }
-
-        // Cannot remove the owner
         if (member.Role == SharedGroupRole.Owner)
         {
             throw new InvalidOperationException("Cannot remove the group owner");
@@ -434,7 +398,10 @@ public class SharedAutomatonService(
         context.SharedAutomatonGroupMembers.Remove(member);
         await context.SaveChangesAsync();
 
-        logger.LogInformation("User {UserId} removed member {MemberUserId} from group {GroupId}", userId, memberUserId, groupId);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("User {UserId} removed member {MemberUserId} from group {GroupId}", userId, memberUserId, groupId);
+        }
     }
 
     public async Task UpdateMemberRoleAsync(int groupId, string userId, string memberUserId, SharedGroupRole newRole)
@@ -448,14 +415,8 @@ public class SharedAutomatonService(
         }
 
         var member = await context.SharedAutomatonGroupMembers
-            .FirstOrDefaultAsync(m => m.GroupId == groupId && m.UserId == memberUserId);
+            .FirstOrDefaultAsync(m => m.GroupId == groupId && m.UserId == memberUserId) ?? throw new InvalidOperationException($"User {memberUserId} is not a member of group {groupId}");
 
-        if (member == null)
-        {
-            throw new InvalidOperationException($"User {memberUserId} is not a member of group {groupId}");
-        }
-
-        // Cannot change owner role
         if (member.Role == SharedGroupRole.Owner || newRole == SharedGroupRole.Owner)
         {
             throw new InvalidOperationException("Cannot change owner role");
@@ -464,13 +425,12 @@ public class SharedAutomatonService(
         member.Role = newRole;
         await context.SaveChangesAsync();
 
-        logger.LogInformation("User {UserId} updated role of {MemberUserId} to {NewRole} in group {GroupId}",
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("User {UserId} updated role of {MemberUserId} to {NewRole} in group {GroupId}",
             userId, memberUserId, newRole, groupId);
+        }
     }
-
-    #endregion
-
-    #region Permission Checking
 
     public async Task<bool> CanUserViewGroupAsync(int groupId, string userId)
     {
@@ -507,6 +467,4 @@ public class SharedAutomatonService(
 
         return member?.Role;
     }
-
-    #endregion
 }

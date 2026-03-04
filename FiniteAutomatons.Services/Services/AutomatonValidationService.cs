@@ -54,7 +54,7 @@ public class AutomatonValidationService(ILogger<AutomatonValidationService> logg
         if (model.Type == AutomatonType.PDA)
         {
             var grouped = model.Transitions
-                .GroupBy(t => new { t.FromStateId, Symbol = t.Symbol, Stack = t.StackPop ?? '\0' })
+                .GroupBy(t => new { t.FromStateId, t.Symbol, Stack = t.StackPop ?? '\0' })
                 .Where(g => g.Count() > 1)
                 .ToList();
             if (grouped.Count > 0)
@@ -64,8 +64,10 @@ public class AutomatonValidationService(ILogger<AutomatonValidationService> logg
         }
 
         var isValid = errors.Count == 0;
-        logger.LogInformation("Automaton validation completed: {IsValid}, Errors: {ErrorCount}", isValid, errors.Count);
-
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Automaton validation completed: {IsValid}, Errors: {ErrorCount}", isValid, errors.Count);
+        }
         return (isValid, errors);
     }
 
@@ -90,9 +92,10 @@ public class AutomatonValidationService(ILogger<AutomatonValidationService> logg
     {
         model.States ??= [];
         model.Transitions ??= [];
-
-        logger.LogInformation("Validating transition addition: {From} -> {To} on '{Symbol}'", fromStateId, toStateId, symbol ?? "NULL");
-
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Validating transition addition: {From} -> {To} on '{Symbol}'", fromStateId, toStateId, symbol ?? "NULL");
+        }
         if (!model.States.Any(s => s.Id == fromStateId))
         {
             return (false, AutomatonSymbolHelper.EpsilonInternal, $"From state {fromStateId} does not exist.");

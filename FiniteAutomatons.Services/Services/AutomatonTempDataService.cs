@@ -20,8 +20,10 @@ public class AutomatonTempDataService(ILogger<AutomatonTempDataService> logger) 
         }
 
         var modelJson = tempData["CustomAutomaton"] as string;
-        logger.LogInformation("Found CustomAutomaton in TempData, length: {Length}", modelJson?.Length ?? 0);
-
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Found CustomAutomaton in TempData, length: {Length}", modelJson?.Length ?? 0);
+        }
         if (string.IsNullOrEmpty(modelJson))
         {
             logger.LogWarning("CustomAutomaton TempData is null or empty");
@@ -36,10 +38,11 @@ public class AutomatonTempDataService(ILogger<AutomatonTempDataService> logger) 
                 logger.LogWarning("Deserialized AutomatonViewModel is null");
                 return (false, null);
             }
-
-            logger.LogInformation("Successfully deserialized custom automaton: Type={Type}, States={StateCount}, IsCustom={IsCustom}",
+            if (logger.IsEnabled(LogLevel.Information))
+            {
+                logger.LogInformation("Successfully deserialized custom automaton: Type={Type}, States={StateCount}, IsCustom={IsCustom}",
                 customModel.Type, customModel.States?.Count ?? 0, customModel.IsCustomAutomaton);
-
+            }
             customModel.IsCustomAutomaton = true;
 
             customModel.States ??= [];
@@ -62,8 +65,11 @@ public class AutomatonTempDataService(ILogger<AutomatonTempDataService> logger) 
         {
             var modelJson = JsonSerializer.Serialize(model);
             tempData["CustomAutomaton"] = modelJson;
-            logger.LogInformation("Successfully stored custom automaton in TempData: Type={Type}, States={StateCount}",
+            if (logger.IsEnabled(LogLevel.Information))
+            {
+                logger.LogInformation("Successfully stored custom automaton in TempData: Type={Type}, States={StateCount}",
                 model.Type, model.States?.Count ?? 0);
+            }
         }
         catch (JsonException ex)
         {
@@ -75,13 +81,19 @@ public class AutomatonTempDataService(ILogger<AutomatonTempDataService> logger) 
     public void StoreErrorMessage(ITempDataDictionary tempData, string errorMessage)
     {
         tempData["ErrorMessage"] = errorMessage;
-        logger.LogInformation("Stored error message in TempData: {Message}", errorMessage);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Stored error message in TempData: {Message}", errorMessage);
+        }
     }
 
     public void StoreConversionMessage(ITempDataDictionary tempData, string message)
     {
         tempData["ConversionMessage"] = message;
-        logger.LogInformation("Stored conversion message in TempData: {Message}", message);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Stored conversion message in TempData: {Message}", message);
+        }
     }
 
     public (bool Success, AutomatonViewModel? Model) TryGetSessionAutomaton(ISession session, string sessionKey)
@@ -89,7 +101,10 @@ public class AutomatonTempDataService(ILogger<AutomatonTempDataService> logger) 
         var json = session.GetString(sessionKey);
         if (string.IsNullOrEmpty(json))
         {
-            logger.LogInformation("No automaton found in session with key: {SessionKey}", sessionKey);
+            if (logger.IsEnabled(LogLevel.Information))
+            {
+                logger.LogInformation("No automaton found in session with key: {SessionKey}", sessionKey);
+            }
             return (false, null);
         }
 
@@ -101,8 +116,11 @@ public class AutomatonTempDataService(ILogger<AutomatonTempDataService> logger) 
                 model.IsCustomAutomaton = true;
                 model.States ??= [];
                 model.Transitions ??= [];
-                logger.LogInformation("Successfully loaded automaton from session: Type={Type}, States={StateCount}",
+                if (logger.IsEnabled(LogLevel.Information))
+                {
+                    logger.LogInformation("Successfully loaded automaton from session: Type={Type}, States={StateCount}",
                     model.Type, model.States.Count);
+                }
             }
             return (model != null, model);
         }

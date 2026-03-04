@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.DoMain;
+﻿using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Interfaces;
 using Microsoft.Extensions.Logging;
@@ -35,9 +35,11 @@ public class HomeAutomatonService(IAutomatonGeneratorService automatonGeneratorS
 
             defaultModel.IsCustomAutomaton = false;
 
-            logger.LogInformation("Generated random default automaton: Type={Type}, States={StateCount}, Transitions={TransitionCount}, Alphabet={AlphabetSize}",
+            if (logger.IsEnabled(LogLevel.Information))
+            {
+                logger.LogInformation("Generated random default automaton: Type={Type}, States={StateCount}, Transitions={TransitionCount}, Alphabet={AlphabetSize}",
                 defaultModel.Type, defaultModel.States?.Count ?? 0, defaultModel.Transitions?.Count ?? 0, defaultModel.Alphabet?.Count ?? 0);
-
+            }
             return defaultModel;
         }
         catch (Exception ex)
@@ -61,7 +63,6 @@ public class HomeAutomatonService(IAutomatonGeneratorService automatonGeneratorS
             new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' },
             new() { FromStateId = 2, ToStateId = 2, Symbol = 'a' }
         };
-        var fallbackAlphabet = new List<char> { 'a' };
 
         var fallbackModel = new AutomatonViewModel
         {

@@ -28,32 +28,26 @@ public class AutomatonViewModel
     public string Input { get; set; } = string.Empty;
     public bool? Result { get; set; }
     public bool HasExecuted { get; set; } = false;
-    public int? CurrentStateId { get; set; } // For DFA / PDA - single current state
-    public HashSet<int>? CurrentStates { get; set; } // For NFA/EpsilonNFA - current set of states
+    public int? CurrentStateId { get; set; }
+    public HashSet<int>? CurrentStates { get; set; }
     public int Position { get; set; }
     public bool? IsAccepted { get; set; }
-    public string StateHistorySerialized { get; set; } = string.Empty; // for round-tripping state history
-    public string? StackSerialized { get; set; } // PDA stack serialization (top-first JSON array of chars)
-    public string? InitialStackSerialized { get; set; } // PDA initial stack configuration (bottom-first JSON array of chars)
-    public PDAAcceptanceMode AcceptanceMode { get; set; } = PDAAcceptanceMode.FinalStateAndEmptyStack; // PDA acceptance criterion
+    public string StateHistorySerialized { get; set; } = string.Empty;
+    public string? StackSerialized { get; set; }
+    public string? InitialStackSerialized { get; set; }
+    public PDAAcceptanceMode AcceptanceMode { get; set; } = PDAAcceptanceMode.FinalStateAndEmptyStack;
     public bool IsCustomAutomaton { get; set; } = false;
-
-    // Source information for automatons created from regex
     public string? SourceRegex { get; set; }
-
-    // Minimization metadata populated when DFA is minimized
     public Dictionary<int, int>? StateMapping { get; set; }
     public Dictionary<int, List<int>>? MergedStateGroups { get; set; }
     public string? MinimizationReport { get; set; }
-
-    // For create page: temporary inputs for PDA transitions
     public string? NewTransitionStackPop { get; set; }
     public string? NewTransitionStackPush { get; set; }
 
     public string CurrentStatesDisplay => CurrentStates != null && CurrentStates.Count != 0
         ? string.Join(", ", CurrentStates.OrderBy(x => x))
         : CurrentStateId?.ToString() ?? "";
-    public bool SupportsEpsilonTransitions => Type == AutomatonType.EpsilonNFA || Type == AutomatonType.PDA; // PDA supports epsilon input moves
+    public bool SupportsEpsilonTransitions => Type == AutomatonType.EpsilonNFA || Type == AutomatonType.PDA;
     public string TypeDisplayName => Type switch
     {
         AutomatonType.DFA => "Deterministic Finite Automaton (DFA)",

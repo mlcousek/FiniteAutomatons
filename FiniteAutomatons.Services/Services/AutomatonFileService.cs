@@ -15,6 +15,9 @@ namespace FiniteAutomatons.Services.Services;
 
 public class AutomatonFileService(ILogger<AutomatonFileService> logger) : IAutomatonFileService
 {
+    private static readonly JsonSerializerOptions s_indentedSerializerOptions = new() { WriteIndented = true };
+    private static readonly JsonSerializerOptions s_caseInsensitiveDeserializerOptions = new() { PropertyNameCaseInsensitive = true };
+
     private readonly ILogger<AutomatonFileService> logger = logger;
 
     public async Task<(bool Ok, AutomatonViewModel? Model, string? Error)> LoadFromFileAsync(IFormFile file)
@@ -77,7 +80,10 @@ public class AutomatonFileService(ILogger<AutomatonFileService> logger) : IAutom
         };
 
         vm.NormalizeEpsilonTransitions();
-        logger.LogInformation("Loaded automaton from file {Name}: Type={Type} States={States} Transitions={Trans}", file.FileName, vm.Type, vm.States.Count, vm.Transitions.Count);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Loaded automaton from file {Name}: Type={Type} States={States} Transitions={Trans}", file.FileName, vm.Type, vm.States.Count, vm.Transitions.Count);
+        }
         return (true, vm, null);
     }
 
@@ -108,7 +114,6 @@ public class AutomatonFileService(ILogger<AutomatonFileService> logger) : IAutom
             logger.LogDebug(ex, "Uploaded file is not a full viewmodel JSON, falling back to domain parser.");
         }
 
-        // Fallback to domain parsing
         return await LoadFromFileAsync(file);
     }
 
@@ -123,7 +128,7 @@ public class AutomatonFileService(ILogger<AutomatonFileService> logger) : IAutom
     public (string FileName, string Content) ExportJsonWithState(AutomatonViewModel model)
     {
         model = model ?? throw new ArgumentNullException(nameof(model));
-        var content = System.Text.Json.JsonSerializer.Serialize(model, new JsonSerializerOptions { WriteIndented = true });
+        var content = JsonSerializer.Serialize(model, s_indentedSerializerOptions);
         var name = $"automaton-withstate-{DateTime.UtcNow:yyyyMMddHHmmss}.json";
         return (name, content);
     }
@@ -147,7 +152,7 @@ public class AutomatonFileService(ILogger<AutomatonFileService> logger) : IAutom
             StackSerialized = null
         };
 
-        var content = System.Text.Json.JsonSerializer.Serialize(exportModel, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+        var content = JsonSerializer.Serialize(exportModel, s_indentedSerializerOptions);
         var name = $"automaton-withinput-{DateTime.UtcNow:yyyyMMddHHmmss}.json";
         return (name, content);
     }
@@ -161,7 +166,7 @@ public class AutomatonFileService(ILogger<AutomatonFileService> logger) : IAutom
             logger.LogWarning("Exporting automaton with execution state but no input provided");
         }
 
-        var content = System.Text.Json.JsonSerializer.Serialize(model, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+        var content = JsonSerializer.Serialize(model, s_indentedSerializerOptions);
         var name = $"automaton-execution-{DateTime.UtcNow:yyyyMMddHHmmss}.json";
         return (name, content);
     }
@@ -178,15 +183,16 @@ public class AutomatonFileService(ILogger<AutomatonFileService> logger) : IAutom
     {
         ArgumentNullException.ThrowIfNull(groupName);
         ArgumentNullException.ThrowIfNull(automatons);
-
-        logger.LogInformation("Exporting group '{GroupName}' with {Count} automaton(s)", groupName, automatons.Count);
-
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Exporting group '{GroupName}' with {Count} automaton(s)", groupName, automatons.Count);
+        }
         var exportData = new GroupExportDto
         {
             GroupName = groupName,
             GroupDescription = groupDescription,
             ExportedAt = DateTime.UtcNow,
-            Automatons = automatons.Select(a =>
+            Automatons = [.. automatons.Select(a =>
             {
                 AutomatonPayloadDto? content = null;
                 SavedExecutionStateDto? execState = null;
@@ -201,7 +207,6 @@ public class AutomatonFileService(ILogger<AutomatonFileService> logger) : IAutom
                     content = new AutomatonPayloadDto();
                 }
 
-                // Handle execution state based on SaveMode
                 if (a.SaveMode >= AutomatonSaveMode.WithInput && !string.IsNullOrEmpty(a.ExecutionStateJson))
                 {
                     try
@@ -211,7 +216,6 @@ public class AutomatonFileService(ILogger<AutomatonFileService> logger) : IAutom
                         {
                             if (a.SaveMode == AutomatonSaveMode.WithInput)
                             {
-                                // Export only input, clear execution state
                                 execState = new SavedExecutionStateDto
                                 {
                                     Input = fullExecState.Input,
@@ -225,7 +229,6 @@ public class AutomatonFileService(ILogger<AutomatonFileService> logger) : IAutom
                             }
                             else if (a.SaveMode == AutomatonSaveMode.WithState)
                             {
-                                // Export full execution state
                                 execState = fullExecState;
                             }
                         }
@@ -246,13 +249,15 @@ public class AutomatonFileService(ILogger<AutomatonFileService> logger) : IAutom
                     Content = content ?? new AutomatonPayloadDto(),
                     ExecutionState = execState
                 };
-            }).ToList()
+            })]
         };
 
-        var json = JsonSerializer.Serialize(exportData, new JsonSerializerOptions { WriteIndented = true });
+        var json = JsonSerializer.Serialize(exportData, s_indentedSerializerOptions);
         var fileName = $"{SanitizeFileName(groupName)}_export_{DateTime.UtcNow:yyyyMMdd_HHmmss}.json";
-
-        logger.LogInformation("Successfully exported group '{GroupName}' to {FileName}", groupName, fileName);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Successfully exported group '{GroupName}' to {FileName}", groupName, fileName);
+        }
         return (fileName, json);
     }
 
@@ -263,9 +268,10 @@ public class AutomatonFileService(ILogger<AutomatonFileService> logger) : IAutom
             logger.LogWarning("ImportGroupAsync called with empty file");
             return (false, null, "No file uploaded.");
         }
-
-        logger.LogInformation("Importing group from file {FileName}", file.FileName);
-
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Importing group from file {FileName}", file.FileName);
+        }
         try
         {
             string content;
@@ -275,10 +281,7 @@ public class AutomatonFileService(ILogger<AutomatonFileService> logger) : IAutom
                 content = Encoding.UTF8.GetString(ms.ToArray());
             }
 
-            var importData = JsonSerializer.Deserialize<GroupExportDto>(content, new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            });
+            var importData = JsonSerializer.Deserialize<GroupExportDto>(content, s_caseInsensitiveDeserializerOptions);
 
             if (importData == null)
             {
@@ -291,10 +294,11 @@ public class AutomatonFileService(ILogger<AutomatonFileService> logger) : IAutom
                 logger.LogWarning("Group import file {FileName} contains no automatons", file.FileName);
                 return (false, null, "Group export file contains no automatons.");
             }
-
-            logger.LogInformation("Successfully imported group '{GroupName}' with {Count} automaton(s)",
+            if (logger.IsEnabled(LogLevel.Information))
+            {
+                logger.LogInformation("Successfully imported group '{GroupName}' with {Count} automaton(s)",
                 importData.GroupName, importData.Automatons.Count);
-
+            }
             return (true, importData, null);
         }
         catch (JsonException ex)

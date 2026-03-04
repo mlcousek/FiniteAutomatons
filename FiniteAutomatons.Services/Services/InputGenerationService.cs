@@ -12,9 +12,11 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
 
     public string GenerateRandomString(AutomatonViewModel automaton, int minLength = 0, int maxLength = 10, int? seed = null)
     {
-        logger.LogInformation("Generating random string for automaton type {Type}, length {MinLength}-{MaxLength}",
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Generating random string for automaton type {Type}, length {MinLength}-{MaxLength}",
             automaton.Type, minLength, maxLength);
-
+        }
         var random = seed.HasValue ? new Random(seed.Value) : new Random();
         var alphabet = automaton.Alphabet?.Where(c => c != '\0').ToList() ?? [];
 
@@ -33,15 +35,20 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
         }
 
         var generatedString = new string(result);
-        logger.LogInformation("Generated random string: '{String}'", generatedString);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Generated random string: '{String}'", generatedString);
+        }
         return generatedString;
     }
 
     public string? GenerateAcceptingString(AutomatonViewModel automaton, int maxLength = 20)
     {
-        logger.LogInformation("Generating accepting string for {Type} with {States} states",
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Generating accepting string for {Type} with {States} states",
             automaton.Type, automaton.States?.Count ?? 0);
-
+        }
         if (automaton.States == null || automaton.Transitions == null)
         {
             logger.LogWarning("Cannot generate accepting string - no states or transitions");
@@ -62,13 +69,11 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
             return null;
         }
 
-        // PDA-aware shortest accepting generation: simulate PDA on candidate inputs
         if (automaton.Type == AutomatonType.PDA)
         {
-            var alphabet = automaton.Alphabet?.Where(c => c != '\0').ToList() ?? new List<char>();
+            var alphabet = automaton.Alphabet?.Where(c => c != '\0').ToList() ?? [];
             var pda = automatonBuilderService.CreatePDA(automaton);
 
-            // check empty string first
             try
             {
                 if (pda.Execute(string.Empty))
@@ -82,7 +87,6 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
                 logger.LogWarning(ex, "PDA simulation failed while checking empty string");
             }
 
-            // brute-force by increasing length (safe for small alphabets / lengths)
             for (int len = 1; len <= maxLength; len++)
             {
                 if (alphabet.Count == 0) break;
@@ -92,13 +96,19 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
                     {
                         if (pda.Execute(candidate))
                         {
-                            logger.LogInformation("Found accepting PDA string: '{String}'", candidate);
+                            if (logger.IsEnabled(LogLevel.Information))
+                            {
+                                logger.LogInformation("Found accepting PDA string: '{String}'", candidate);
+                            }
                             return candidate;
                         }
                     }
                     catch (Exception ex)
                     {
-                        logger.LogDebug(ex, "PDA simulation error for candidate '{Candidate}'", candidate);
+                        if (logger.IsEnabled(LogLevel.Debug))
+                        {
+                            logger.LogDebug(ex, "PDA simulation error for candidate '{Candidate}'", candidate);
+                        }
                     }
                 }
             }
@@ -107,9 +117,8 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
             return null;
         }
 
-        // BFS to find shortest non-empty accepting path (prefer non-empty strings)
         var queue = new Queue<(int StateId, string Path)>();
-        var visited = new HashSet<(int, int)>(); // (stateId, pathLength)
+        var visited = new HashSet<(int, int)>();
         string? shortestAcceptingPath = null;
 
         queue.Enqueue((startState.Id, string.Empty));
@@ -121,27 +130,24 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
             if (currentPath.Length > maxLength)
                 continue;
 
-            // Check if we reached an accepting state
             if (acceptingStates.Contains(currentState))
             {
-                // Prefer non-empty paths, but accept empty if it's the only option
                 if (currentPath.Length > 0)
                 {
-                    logger.LogInformation("Found accepting string: '{String}'", currentPath);
+                    if (logger.IsEnabled(LogLevel.Information))
+                    {
+                        logger.LogInformation("Found accepting string: '{String}'", currentPath);
+                    }
                     return currentPath;
                 }
-                else if (shortestAcceptingPath == null)
-                {
-                    // Store empty string as fallback if no non-empty path is found
-                    shortestAcceptingPath = currentPath;
-                }
+                else
+                    shortestAcceptingPath ??= currentPath;
             }
 
             var stateKey = (currentState, currentPath.Length);
             if (!visited.Add(stateKey))
                 continue;
 
-            // Explore transitions
             var transitions = automaton.Transitions.Where(t => t.FromStateId == currentState);
 
             foreach (var transition in transitions)
@@ -154,7 +160,10 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
 
         if (shortestAcceptingPath != null)
         {
-            logger.LogInformation("Found accepting string (empty): '{String}'", shortestAcceptingPath);
+            if (logger.IsEnabled(LogLevel.Information))
+            {
+                logger.LogInformation("Found accepting string (empty): '{String}'", shortestAcceptingPath);
+            }
             return shortestAcceptingPath;
         }
 
@@ -164,9 +173,11 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
 
     public string? GenerateRandomAcceptingString(AutomatonViewModel automaton, int minLength = 0, int maxLength = 50, int maxAttempts = 100, int? seed = null)
     {
-        logger.LogInformation("Generating random accepting string for {Type}, length {MinLength}-{MaxLength}, attempts {MaxAttempts}",
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Generating random accepting string for {Type}, length {MinLength}-{MaxLength}, attempts {MaxAttempts}",
             automaton.Type, minLength, maxLength, maxAttempts);
-
+        }
         if (automaton.States == null || automaton.Transitions == null)
         {
             logger.LogWarning("Cannot generate random accepting string - no states or transitions");
@@ -180,7 +191,6 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
             return null;
         }
 
-        // PDA: need to simulate execution to check acceptance (considering stack)
         if (automaton.Type == AutomatonType.PDA)
         {
             return GenerateRandomAcceptingStringForPda(automaton, minLength, maxLength, maxAttempts, seed);
@@ -200,30 +210,37 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
 
         string? emptyAcceptingFallback = null;
 
-        // Try multiple attempts to find an accepting string
         for (int attempt = 0; attempt < maxAttempts; attempt++)
         {
             var result = TryRandomWalk(startState.Id, acceptingStates, transitionsByState, minLength, maxLength, random);
             if (result != null)
             {
-                // Prefer non-empty strings; store empty as fallback
                 if (result.Length > 0)
                 {
-                    logger.LogInformation("Found random accepting string on attempt {Attempt}: '{String}'", attempt + 1, result);
+                    if (logger.IsEnabled(LogLevel.Information))
+                    {
+                        logger.LogInformation("Found random accepting string on attempt {Attempt}: '{String}'", attempt + 1, result);
+                    }
                     return result;
                 }
                 else if (emptyAcceptingFallback == null)
                 {
                     emptyAcceptingFallback = result;
-                    logger.LogInformation("Found empty accepting string on attempt {Attempt}, continuing to search for non-empty", attempt + 1);
+                    if (logger.IsEnabled(LogLevel.Information))
+                    {
+                        logger.LogInformation("Found empty accepting string on attempt {Attempt}, continuing to search for non-empty", attempt + 1);
+                    }
                 }
             }
         }
 
-        // Return empty string as last resort if found
         if (emptyAcceptingFallback != null)
         {
-            logger.LogInformation("Returning empty accepting string as fallback after {MaxAttempts} attempts", maxAttempts);
+            if (logger.IsEnabled(LogLevel.Information))
+            {
+                logger.LogInformation("Returning empty accepting string as fallback after {MaxAttempts} attempts", maxAttempts);
+
+            }
             return emptyAcceptingFallback;
         }
 
@@ -244,7 +261,6 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
         var random = seed.HasValue ? new Random(seed.Value) : new Random();
         string? emptyAcceptingFallback = null;
 
-        // Try empty string first
         try
         {
             if (pda.Execute(string.Empty))
@@ -258,7 +274,6 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
             logger.LogDebug(ex, "PDA execution failed for empty string");
         }
 
-        // Try random strings
         for (int attempt = 0; attempt < maxAttempts; attempt++)
         {
             var length = random.Next(minLength, maxLength + 1);
@@ -275,18 +290,23 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
                 {
                     if (candidate.Length > 0)
                     {
-                        logger.LogInformation("Found random accepting PDA string on attempt {Attempt}: '{String}'", attempt + 1, candidate);
+                        if (logger.IsEnabled(LogLevel.Information))
+                        {
+                            logger.LogInformation("Found random accepting PDA string on attempt {Attempt}: '{String}'", attempt + 1, candidate);
+                        }
                         return candidate;
                     }
                 }
             }
             catch (Exception ex)
             {
-                logger.LogDebug(ex, "PDA execution error for candidate '{Candidate}'", candidate);
+                if (logger.IsEnabled(LogLevel.Debug))
+                {
+                    logger.LogDebug(ex, "PDA execution error for candidate '{Candidate}'", candidate);
+                }
             }
         }
 
-        // Return empty string as fallback
         if (emptyAcceptingFallback != null)
         {
             logger.LogInformation("Returning empty accepting string for PDA as fallback");
@@ -327,47 +347,36 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
                 stepsWithoutProgress = 0;
             }
 
-            // Check if we're in an accepting state and within length constraints
-            // Prefer non-empty strings: only accept empty if we have no transitions to continue
             if (acceptingStates.Contains(currentState) && path.Count >= minLength)
             {
-                // If path is non-empty, return it immediately
                 if (path.Count > 0)
                 {
                     return new string([.. path]);
                 }
 
-                // If path is empty, check if we have transitions to continue
                 if (!transitionsByState.TryGetValue(currentState, out var availableTransitions) || availableTransitions.Count == 0)
                 {
-                    // No way to continue, return empty string
                     return new string([.. path]);
                 }
-                // Otherwise, continue walking to try to find non-empty path
             }
 
-            // If we've reached maxLength and not in accepting state, this path failed
             if (path.Count >= maxLength)
             {
                 return null;
             }
 
-            // Get available transitions from current state
             if (!transitionsByState.TryGetValue(currentState, out var transitions) || transitions.Count == 0)
             {
                 return null;
             }
 
-            // Randomly select a transition
             var selectedTransition = transitions[random.Next(transitions.Count)];
 
-            // Add symbol to path (skip epsilon transitions in path)
             if (selectedTransition.Symbol != '\0')
             {
                 path.Add(selectedTransition.Symbol);
             }
 
-            // Move to next state
             currentState = selectedTransition.ToStateId;
         }
 
@@ -376,7 +385,10 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
 
     public string? GenerateRejectingString(AutomatonViewModel automaton, int maxLength = 20)
     {
-        logger.LogInformation("Generating rejecting string for {Type}", automaton.Type);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Generating rejecting string for {Type}", automaton.Type);
+        }
 
         if (automaton.States == null || automaton.Transitions == null || automaton.Alphabet == null)
         {
@@ -390,21 +402,21 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
             return null;
         }
 
-        // Try progressively longer strings
         for (int len = 1; len <= maxLength; len++)
         {
-            // Try different combinations
+
             var testString = GenerateStringOfLength(alphabet, len, 0);
 
-            // Simple heuristic: if string uses symbols not in heavily-used transitions, likely to reject
             if (WouldLikelyReject(automaton, testString))
             {
-                logger.LogInformation("Found likely rejecting string: '{String}'", testString);
+                if (logger.IsEnabled(LogLevel.Information))
+                {
+                    logger.LogInformation("Found likely rejecting string: '{String}'", testString);
+                }
                 return testString;
             }
         }
 
-        // Fallback: generate a string with a symbol that has few transitions
         var leastUsedSymbol = alphabet
             .OrderBy(c => automaton.Transitions.Count(t => t.Symbol == c))
             .FirstOrDefault();
@@ -412,7 +424,10 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
         if (leastUsedSymbol != default(char))
         {
             var result = new string(leastUsedSymbol, Math.Min(3, maxLength));
-            logger.LogInformation("Generated rejecting string using least-used symbol: '{String}'", result);
+            if (logger.IsEnabled(LogLevel.Information))
+            {
+                logger.LogInformation("Generated rejecting string using least-used symbol: '{String}'", result);
+            }
             return result;
         }
 
@@ -422,11 +437,12 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
 
     public List<(string Input, string Description)> GenerateInterestingCases(AutomatonViewModel automaton, int maxLength = 15)
     {
-        logger.LogInformation("Generating interesting test cases for {Type}", automaton.Type);
-
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Generating interesting test cases for {Type}", automaton.Type);
+        }
         var cases = new List<(string, string)>
         {
-            // Case 1: Empty string
             (string.Empty, "Empty string (ε)")
         };
 
@@ -441,20 +457,16 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
             return cases;
         }
 
-        // Case 2: Single character from alphabet
         cases.Add((alphabet[0].ToString(), "Single character"));
 
-        // Case 3: All alphabet symbols once
         if (alphabet.Count <= maxLength)
         {
             cases.Add((new string([.. alphabet]), "All alphabet symbols"));
         }
 
-        // Case 4: Repeated character
         var repeatedChar = new string(alphabet[0], Math.Min(5, maxLength));
         cases.Add((repeatedChar, $"Repeated '{alphabet[0]}'"));
 
-        // Case 5: Alternating pattern (if 2+ symbols)
         if (alphabet.Count >= 2)
         {
             var alternating = string.Concat(Enumerable.Range(0, Math.Min(6, maxLength))
@@ -462,21 +474,18 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
             cases.Add((alternating, "Alternating pattern"));
         }
 
-        // Case 6: Accepting string (if found)
         var accepting = GenerateAcceptingString(automaton, maxLength);
         if (accepting != null)
         {
             cases.Add((accepting, "Known accepting string"));
         }
 
-        // Case 7: Likely rejecting string
         var rejecting = GenerateRejectingString(automaton, maxLength);
         if (rejecting != null)
         {
             cases.Add((rejecting, "Likely rejecting string"));
         }
 
-        // Case 8: Nondeterministic case (for NFAs)
         if (automaton.Type == AutomatonType.NFA || automaton.Type == AutomatonType.EpsilonNFA)
         {
             var nondetCase = GenerateNondeterministicCase(automaton, maxLength);
@@ -486,7 +495,6 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
             }
         }
 
-        // Case 9: Epsilon case (for ε-NFAs)
         if (automaton.Type == AutomatonType.EpsilonNFA)
         {
             var epsilonCase = GenerateEpsilonCase(automaton, maxLength);
@@ -496,26 +504,22 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
             }
         }
 
-        // Case 10: Long string
         if (maxLength >= 10)
         {
             var longString = GenerateRandomString(automaton, maxLength - 2, maxLength, null);
             cases.Add((longString, "Long string test"));
         }
 
-        // PDA-specific interesting cases
         if (automaton.Type == AutomatonType.PDA)
         {
             logger.LogInformation("Adding PDA-specific interesting cases");
 
-            // Push-loop: find a transition that pushes to the stack (StackPush not empty)
-            var pushTransitions = automaton.Transitions?.Where(t => !string.IsNullOrEmpty(t.StackPush)).ToList() ?? new List<Transition>();
+            var pushTransitions = automaton.Transitions?.Where(t => !string.IsNullOrEmpty(t.StackPush)).ToList() ?? [];
             if (pushTransitions.Count > 0)
             {
                 var t = pushTransitions.First();
                 var pathToState = FindPathToState(automaton, t.FromStateId, maxLength);
                 var pushSymbol = t.Symbol != '\0' ? t.Symbol.ToString() : string.Empty;
-                // Repeat the push action to exercise stack growth (may include ε-transitions)
                 var repeatCount = Math.Min(4, Math.Max(1, maxLength / (Math.Max(1, pushSymbol.Length))));
                 var pushSegment = (pathToState ?? string.Empty) + string.Concat(Enumerable.Repeat(pushSymbol, repeatCount));
                 if (pushSegment.Length <= maxLength)
@@ -524,8 +528,7 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
                 }
             }
 
-            // Pop-requiring transition: find a transition that checks/pops a specific stack symbol
-            var popTransitions = automaton.Transitions?.Where(t => t.StackPop.HasValue && t.StackPop.Value != '\0').ToList() ?? new List<Transition>();
+            var popTransitions = automaton.Transitions?.Where(t => t.StackPop.HasValue && t.StackPop.Value != '\0').ToList() ?? [];
             if (popTransitions.Count > 0)
             {
                 var t = popTransitions.First();
@@ -538,12 +541,10 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
                 }
             }
 
-            // Balanced-like pattern: attempt to create a push...pop sequence using a push transition and a pop transition
             if (pushTransitions.Count > 0 && popTransitions.Count > 0)
             {
                 var push = pushTransitions.First();
                 var pop = popTransitions.First();
-                // Try to find path to push.FromState, then to pop.FromState
                 var toPush = FindPathToState(automaton, push.FromStateId, maxLength);
                 var toPop = FindPathToState(automaton, pop.FromStateId, maxLength);
                 var pushSym = push.Symbol != '\0' ? push.Symbol.ToString() : string.Empty;
@@ -551,7 +552,6 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
 
                 if (toPush != null && toPop != null)
                 {
-                    // build pattern: reach push, repeat pushSym N times, then reach pop and emit popSym N times
                     var n = Math.Min(3, Math.Max(1, maxLength / Math.Max(1, pushSym.Length + popSym.Length + 1)));
                     var middle = string.Concat(Enumerable.Repeat(pushSym, n));
                     var trailing = string.Concat(Enumerable.Repeat(popSym, n));
@@ -563,8 +563,10 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
                 }
             }
         }
-
-        logger.LogInformation("Generated {Count} interesting test cases", cases.Count);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Generated {Count} interesting test cases", cases.Count);
+        }
         return cases;
     }
 
@@ -575,7 +577,6 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
         if (automaton.Transitions == null)
             return null;
 
-        // Find states with multiple transitions on same symbol (nondeterminism)
         var nondeterministicTransitions = automaton.Transitions
             .GroupBy(t => new { t.FromStateId, t.Symbol })
             .Where(g => g.Count() > 1 && g.Key.Symbol != '\0')
@@ -590,12 +591,14 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
         var symbol = nondeterministicTransitions.Key.Symbol;
         var fromState = nondeterministicTransitions.Key.FromStateId;
 
-        // Build a string that reaches this nondeterministic choice
         var pathToState = FindPathToState(automaton, fromState, maxLength - 1);
         if (pathToState != null)
         {
             var result = pathToState + symbol;
-            logger.LogInformation("Generated nondeterministic case: '{String}'", result);
+            if (logger.IsEnabled(LogLevel.Information))
+            {
+                logger.LogInformation("Generated nondeterministic case: '{String}'", result);
+            }
             return result;
         }
 
@@ -610,7 +613,6 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
         if (automaton.Transitions == null)
             return null;
 
-        // Find epsilon transitions (targets we want to reach)
         var epsilonTransitions = automaton.Transitions
             .Where(t => t.Symbol == '\0')
             .ToList();
@@ -621,12 +623,9 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
             return null;
         }
 
-        // Try to generate a random path that reaches the source of an epsilon transition.
-        // If that fails, fall back to first-found deterministic path. If that also fails, return null.
         var random = new Random();
         var transitionsByState = automaton.Transitions.GroupBy(t => t.FromStateId).ToDictionary(g => g.Key, g => g.ToList());
 
-        // Shuffle epsilon transitions to randomize which epsilon we attempt first
         var epsList = epsilonTransitions.OrderBy(_ => random.Next()).ToList();
 
         const int attemptsPerEpsilon = 30;
@@ -637,18 +636,23 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
                 var candidate = TryRandomWalkToState(automaton.States?.FirstOrDefault(s => s.IsStart)?.Id ?? -1, eps.FromStateId, transitionsByState, maxLength, random);
                 if (candidate != null)
                 {
-                    logger.LogInformation("Generated random epsilon case on attempt {Attempt}: '{String}' (reaches state {State})", attempt + 1, candidate, eps.FromStateId);
+                    if (logger.IsEnabled(LogLevel.Information))
+                    {
+                        logger.LogInformation("Generated random epsilon case on attempt {Attempt}: '{String}' (reaches state {State})", attempt + 1, candidate, eps.FromStateId);
+                    }
                     return candidate;
                 }
             }
         }
 
-        // Fallback: return the first deterministic path to any epsilon source
         var firstEps = epsilonTransitions.First();
         var fallback = FindPathToState(automaton, firstEps.FromStateId, maxLength);
         if (fallback != null)
         {
-            logger.LogInformation("Falling back to deterministic epsilon case: '{String}'", fallback);
+            if (logger.IsEnabled(LogLevel.Information))
+            {
+                logger.LogInformation("Falling back to deterministic epsilon case: '{String}'", fallback);
+            }
             return fallback;
         }
 
@@ -665,7 +669,6 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
         var stepsWithoutProgress = 0;
         const int maxStepsWithoutProgress = 40;
 
-        // Try up to maxLength steps (randomly choosing transitions)
         while (path.Count <= maxLength)
         {
             var stateKey = (currentState, path.Count);
@@ -687,10 +690,9 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
 
             if (!transitionsByState.TryGetValue(currentState, out var transitions) || transitions.Count == 0)
             {
-                return null; // stuck
+                return null;
             }
 
-            // Randomly select a transition
             var selected = transitions[random.Next(transitions.Count)];
             if (selected.Symbol != '\0') path.Add(selected.Symbol);
             currentState = selected.ToStateId;
@@ -700,7 +702,6 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
     }
 
     // Helper methods
-
     private static string GenerateStringOfLength(List<char> alphabet, int length, int seed)
     {
         var random = new Random(seed);
@@ -742,7 +743,6 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
 
     private static bool WouldLikelyReject(AutomatonViewModel automaton, string input)
     {
-        // Simple heuristic: check if string contains symbols with sparse transitions
         var symbolCounts = automaton.Transitions!
             .Where(t => t.Symbol != '\0')
             .GroupBy(t => t.Symbol)
@@ -752,7 +752,7 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
         {
             if (!symbolCounts.TryGetValue(ch, out int value) || value < 2)
             {
-                return true; // Likely to get stuck
+                return true;
             }
         }
 
@@ -768,7 +768,6 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
         if (startState == null)
             return null;
 
-        // BFS to find path
         var queue = new Queue<(int StateId, string Path)>();
         var visited = new HashSet<int>();
 

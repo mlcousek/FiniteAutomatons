@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using FiniteAutomatons.Services.Observability;
+using System.Diagnostics;
 
 namespace FiniteAutomatons.Observability;
 

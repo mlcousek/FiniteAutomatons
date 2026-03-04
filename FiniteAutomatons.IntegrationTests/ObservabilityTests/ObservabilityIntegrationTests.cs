@@ -1,4 +1,5 @@
 ﻿using FiniteAutomatons.Core.Models.ViewModel;
+using FiniteAutomatons.Services.Observability;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
 using System.Reflection;
@@ -14,10 +15,10 @@ public class ObservabilityIntegrationTests(IntegrationTestsFixture fixture) : In
     {
         using var scope = GetServiceScope();
 
-        var inMem = scope.ServiceProvider.GetService<Observability.InMemoryAuditService>();
+        var inMem = scope.ServiceProvider.GetService<InMemoryAuditService>();
         if (inMem != null)
         {
-            var svc = scope.ServiceProvider.GetRequiredService<Observability.IAuditService>();
+            var svc = scope.ServiceProvider.GetRequiredService<IAuditService>();
             await svc.AuditAsync("IntegrationAudit", "Integration test audit", new Dictionary<string, string?> { ["k"] = "v" });
 
             await Task.Delay(50);
@@ -30,7 +31,7 @@ public class ObservabilityIntegrationTests(IntegrationTestsFixture fixture) : In
         }
         else
         {
-            var svc = scope.ServiceProvider.GetService(typeof(Observability.IAuditService)) as Observability.IAuditService;
+            var svc = scope.ServiceProvider.GetService(typeof(IAuditService)) as IAuditService;
             svc.ShouldNotBeNull();
 
             await svc!.AuditAsync("IntegrationAudit", "Integration test audit", new Dictionary<string, string?> { ["k"] = "v" });
@@ -74,7 +75,7 @@ public class ObservabilityIntegrationTests(IntegrationTestsFixture fixture) : In
         }
         else
         {
-            var writer = ((scope.ServiceProvider.GetService(typeof(Observability.ActivityFileWriter)) as Observability.ActivityFileWriter));
+            var writer = ((scope.ServiceProvider.GetService(typeof(ActivityFileWriter)) as ActivityFileWriter));
             writer.ShouldNotBeNull();
 
             var recent = writer!.GetRecentEntries();

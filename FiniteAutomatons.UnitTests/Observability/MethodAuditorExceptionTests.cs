@@ -1,4 +1,5 @@
 ﻿using FiniteAutomatons.Observability;
+using FiniteAutomatons.Services.Observability;
 using Shouldly;
 
 namespace FiniteAutomatons.UnitTests.Observability;

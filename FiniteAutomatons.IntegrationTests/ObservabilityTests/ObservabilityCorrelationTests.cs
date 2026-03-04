@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using FiniteAutomatons.Services.Observability;
+using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
 
 namespace FiniteAutomatons.IntegrationTests.ObservabilityTests;
@@ -15,7 +16,7 @@ public class ObservabilityCorrelationTests(IntegrationTestsFixture fixture) : In
         response.EnsureSuccessStatusCode();
 
         using var scope = GetServiceScope();
-        var audit = scope.ServiceProvider.GetRequiredService<Observability.InMemoryAuditService>();
+        var audit = scope.ServiceProvider.GetRequiredService<InMemoryAuditService>();
         var collector = scope.ServiceProvider.GetRequiredService<Services.Observability.InMemoryActivityCollector>();
 
         await Task.Delay(100);

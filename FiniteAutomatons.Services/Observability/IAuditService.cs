@@ -1,4 +1,4 @@
-namespace FiniteAutomatons.Observability;
+﻿namespace FiniteAutomatons.Services.Observability;
 
 public interface IAuditService
 {

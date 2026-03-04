@@ -1,7 +1,7 @@
+﻿using System.Diagnostics;
 using System.Text.Json;
-using System.Diagnostics;
 
-namespace FiniteAutomatons.Observability;
+namespace FiniteAutomatons.Services.Observability;
 
 public sealed class FileAuditService : IAuditService
 {

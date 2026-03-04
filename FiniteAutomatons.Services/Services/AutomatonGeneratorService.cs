@@ -137,27 +137,20 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
         var transitions = new List<Transition>();
         var addedTransitions = new HashSet<string>();
 
-        // Respect the requested transitionCount strictly. We may optionally try to ensure
-        // connectivity and alphabet coverage but only as budget allows. This makes it possible
-        // to request fewer transitions than number of states (resulting in states without transitions).
         int budget = Math.Max(0, transitionCount);
 
-        // Try to ensure basic connectivity only if there's enough budget to add at least (states.Count - 1) edges
-        // and user requested enough transitions. Otherwise skip to allow sparse graphs.
         if (budget >= states.Count - 1 && states.Count > 1)
         {
             int added = EnsureConnectivity(type, states, alphabet, transitions, addedTransitions, random, budget);
             budget -= added;
         }
 
-        // Ensure each alphabet symbol appears at least once only if we still have budget
         if (budget > 0)
         {
             int added = EnsureAllSymbolsPresent(type, states, alphabet, transitions, addedTransitions, random, budget);
             budget -= added;
         }
 
-        // Fill remaining budget with random transitions (may be zero)
         for (int i = 0; i < budget; i++)
         {
             var transition = GenerateRandomTransition(type, states, alphabet, addedTransitions, random);
@@ -168,20 +161,16 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
             }
             else
             {
-                break; // cannot generate more unique transitions
+                break;
             }
         }
 
-        // Make a best-effort to ensure every alphabet symbol appears at least once in transitions.
-        // Some earlier steps (connectivity, push/pop pairs) may have consumed the budget and left
-        // some symbols unused; add extra transitions for any missing symbols if possible.
         var maxTotal = Math.Max(0, transitionCount);
         var present = transitions.Select(t => t.Symbol).Where(c => c != '\0').ToHashSet();
         foreach (var symbol in alphabet)
         {
             if (transitions.Count >= maxTotal && present.Contains(symbol)) continue;
             if (present.Contains(symbol)) continue;
-            // try a few times to add a transition for this symbol
             const int maxAttempts = 50;
             bool added = false;
             for (int attempt = 0; attempt < maxAttempts && !added && transitions.Count < maxTotal; attempt++)
@@ -191,23 +180,19 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
                 var candidate = new Transition { FromStateId = fromState, ToStateId = toState, Symbol = symbol };
                 if (type == AutomatonType.PDA)
                 {
-                    // basic PDA candidate: no pop, push the input symbol
                     candidate.StackPop = null;
                     candidate.StackPush = symbol.ToString();
                 }
                 var key = GetTransitionKey(candidate);
                 if (addedTransitions.Contains(key)) continue;
-                // respect DFA uniqueness if needed
                 if (type == AutomatonType.DFA && transitions.Any(t => t.FromStateId == fromState && t.Symbol == symbol)) continue;
                 transitions.Add(candidate);
                 addedTransitions.Add(key);
                 present.Add(symbol);
                 added = true;
             }
-            // If we couldn't add because we are at maxTotal, try to replace an existing transition that has a duplicate symbol
             if (!added && transitions.Count >= maxTotal)
             {
-                // find a transition whose symbol occurs more than once and which can be safely replaced
                 var symbolCounts = transitions.GroupBy(t => t.Symbol).ToDictionary(g => g.Key, g => g.Count());
                 var replacable = transitions.FirstOrDefault(t => symbolCounts.TryGetValue(t.Symbol, out var c) && c > 1);
                 if (replacable != null)
@@ -221,7 +206,6 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
                     var newKey = GetTransitionKey(newCandidate);
                     if (!addedTransitions.Contains(newKey))
                     {
-                        // replace
                         var oldKey = GetTransitionKey(replacable);
                         addedTransitions.Remove(oldKey);
                         addedTransitions.Add(newKey);
@@ -261,7 +245,6 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
 
             if (type == AutomatonType.PDA)
             {
-                // For connectivity, create simple PDA moves: push on symbol (no pop)
                 transition.StackPop = null;
                 transition.StackPush = symbol.ToString();
             }
@@ -275,10 +258,8 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
             }
         }
 
-        // If PDA, additionally create some matching push/pop pairs to produce useful PDA patterns
         if (type == AutomatonType.PDA && added < maxToAdd)
         {
-            // Allow PDA extra pairs but bounded by remaining budget
             int addedPairs = CreateMatchingPushPopPairs(states, alphabet, transitions, addedTransitions, random, maxToAdd - added);
             added += addedPairs;
         }
@@ -288,15 +269,12 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
 
     private static int CreateMatchingPushPopPairs(List<State> states, List<char> alphabet, List<Transition> transitions, HashSet<string> addedTransitions, Random random, int maxToAdd)
     {
-        // Decide number of pairs: at most alphabet.Count / 2, at least 1
         int pairCount = Math.Max(1, alphabet.Count / 2);
         pairCount = Math.Min(pairCount, Math.Max(1, alphabet.Count));
 
-        // Use distinct stack symbols for each pair (uppercase letters)
         int added = 0;
         for (int i = 0; i < pairCount && added < maxToAdd; i++)
         {
-            // pick two distinct input symbols to act as push and pop triggers
             char pushInput = alphabet[random.Next(alphabet.Count)];
             char popInput = alphabet[random.Next(alphabet.Count)];
             if (alphabet.Count > 1)
@@ -308,11 +286,9 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
                 }
             }
 
-            // choose a stack symbol (uppercase letter A..Z based on i)
             char stackSym = (char)('A' + (i % 26));
             string stackPushStr = stackSym.ToString();
 
-            // create a push transition (no stack pop condition)
             var fromPush = states[random.Next(states.Count)].Id;
             var toPush = states[random.Next(states.Count)].Id;
             var pushTrans = new Transition
@@ -331,7 +307,6 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
                 added++;
             }
 
-            // create a pop transition (requires stackSym on top)
             var fromPop = states[random.Next(states.Count)].Id;
             var toPop = states[random.Next(states.Count)].Id;
             var popTrans = new Transition
@@ -379,7 +354,6 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
 
                 if (type == AutomatonType.PDA)
                 {
-                    // create a basic PDA candidate: either push or pop pattern
                     candidate.StackPop = null;
                     candidate.StackPush = symbol.ToString();
                 }
@@ -437,7 +411,6 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
 
             if (type == AutomatonType.PDA)
             {
-                // Decide stackPop: either null (no condition) or a symbol from alphabet
                 if (random.NextDouble() < 0.5)
                 {
                     transition.StackPop = null;
@@ -447,7 +420,6 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
                     transition.StackPop = alphabet[random.Next(alphabet.Count)];
                 }
 
-                // Decide stackPush: either null (no push) or a short string of 1-2 symbols
                 if (random.NextDouble() < 0.6)
                 {
                     transition.StackPush = null;
@@ -486,7 +458,6 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
 
     private static string GetTransitionKey(Transition transition)
     {
-        // Use FromStateId + Symbol + StackPop as uniqueness key to enforce deterministic PDA constraints
         var pop = transition.StackPop.HasValue ? transition.StackPop.Value.ToString() : "_";
         return $"{transition.FromStateId}-{transition.Symbol}-{pop}";
     }

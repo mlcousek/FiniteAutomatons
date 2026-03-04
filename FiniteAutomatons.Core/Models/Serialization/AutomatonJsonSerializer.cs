@@ -13,7 +13,7 @@ public static class AutomatonJsonSerializer
     {
         WriteIndented = true,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping // keep ε unescaped
+        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
     };
 
     private static readonly HashSet<string> EpsilonTokens = new(StringComparer.OrdinalIgnoreCase)
@@ -30,8 +30,8 @@ public static class AutomatonJsonSerializer
         public int FromStateId { get; set; }
         public int ToStateId { get; set; }
         public string Symbol { get; set; } = string.Empty;
-        public string? StackPop { get; set; } // PDA only
-        public string? StackPush { get; set; } // PDA only
+        public string? StackPop { get; set; }
+        public string? StackPush { get; set; }
     }
     private class AutomatonDto
     {

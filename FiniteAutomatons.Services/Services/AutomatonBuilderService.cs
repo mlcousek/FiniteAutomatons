@@ -20,8 +20,11 @@ public class AutomatonBuilderService(ILogger<AutomatonBuilderService> logger) : 
             throw new InvalidOperationException("Multiple start states defined. Automaton must have exactly one start state.");
         }
 
-        logger.LogInformation("Creating automaton of type {Type} with {StateCount} states and {TransitionCount} transitions",
-            model.Type, model.States.Count, model.Transitions.Count);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Creating automaton of type {Type} with {StateCount} states and {TransitionCount} transitions",
+                model.Type, model.States.Count, model.Transitions.Count);
+        }
 
         return model.Type switch
         {
@@ -53,8 +56,11 @@ public class AutomatonBuilderService(ILogger<AutomatonBuilderService> logger) : 
             dfa.SetStartState(startState.Id);
         }
 
-        logger.LogInformation("Created DFA with {StateCount} states and {TransitionCount} transitions",
-            dfa.States.Count, dfa.Transitions.Count);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Created DFA with {StateCount} states and {TransitionCount} transitions",
+                dfa.States.Count, dfa.Transitions.Count);
+        }
 
         return dfa;
     }
@@ -79,8 +85,11 @@ public class AutomatonBuilderService(ILogger<AutomatonBuilderService> logger) : 
             nfa.SetStartState(startState.Id);
         }
 
-        logger.LogInformation("Created NFA with {StateCount} states and {TransitionCount} transitions",
-            nfa.States.Count, nfa.Transitions.Count);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Created NFA with {StateCount} states and {TransitionCount} transitions",
+                nfa.States.Count, nfa.Transitions.Count);
+        }
 
         return nfa;
     }
@@ -105,8 +114,11 @@ public class AutomatonBuilderService(ILogger<AutomatonBuilderService> logger) : 
             enfa.SetStartState(startState.Id);
         }
 
-        logger.LogInformation("Created EpsilonNFA with {StateCount} states and {TransitionCount} transitions",
-            enfa.States.Count, enfa.Transitions.Count);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Created EpsilonNFA with {StateCount} states and {TransitionCount} transitions",
+                enfa.States.Count, enfa.Transitions.Count);
+        }
 
         return enfa;
     }
@@ -134,8 +146,11 @@ public class AutomatonBuilderService(ILogger<AutomatonBuilderService> logger) : 
             pda.SetStartState(startState.Id);
         }
 
-        logger.LogInformation("Created PDA with {StateCount} states and {TransitionCount} transitions, AcceptanceMode: {AcceptanceMode}",
-            pda.States.Count, pda.Transitions.Count, pda.AcceptanceMode);
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Created PDA with {StateCount} states and {TransitionCount} transitions, AcceptanceMode: {AcceptanceMode}",
+                pda.States.Count, pda.Transitions.Count, pda.AcceptanceMode);
+        }
 
         return pda;
     }

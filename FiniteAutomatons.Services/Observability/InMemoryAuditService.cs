@@ -1,9 +1,7 @@
-using System.Collections.Concurrent;
-using System.Text.Json;
+﻿using System.Collections.Concurrent;
 using System.Diagnostics;
-using System.Linq;
 
-namespace FiniteAutomatons.Observability;
+namespace FiniteAutomatons.Services.Observability;
 
 public sealed class InMemoryAuditService : IAuditService
 {
@@ -38,7 +36,7 @@ public sealed class InMemoryAuditService : IAuditService
 
     public IEnumerable<AuditRecord> GetByTraceId(string traceId)
     {
-        if (string.IsNullOrEmpty(traceId)) return Array.Empty<AuditRecord>();
+        if (string.IsNullOrEmpty(traceId)) return [];
         return [.. entries.Where(e => string.Equals(e.TraceId, traceId, StringComparison.OrdinalIgnoreCase))];
     }
 
@@ -59,7 +57,7 @@ public sealed class InMemoryAuditService : IAuditService
         return record != null;
     }
 
-    public void Clear() { while(entries.TryDequeue(out _)) { } }
+    public void Clear() { while (entries.TryDequeue(out _)) { } }
 }
 
 public sealed class AuditRecord
