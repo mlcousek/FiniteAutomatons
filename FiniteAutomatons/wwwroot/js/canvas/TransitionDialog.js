@@ -1,19 +1,4 @@
-﻿/**
- * TransitionDialog.js
- * Custom HTML modal dialog for entering transition symbols and stack operations.
- * Replaces native window.prompt/confirm for a professional UX.
- *
- * Supports:
- *   - DFA/NFA/ε-NFA: single symbol input with ε button
- *   - PDA: symbol + stack pop + stack push inputs
- *
- * @module TransitionDialog
- */
-
-export class TransitionDialog {
-    /**
-     * @param {HTMLElement} containerEl - The canvas container element (for positioning reference)
-     */
+﻿export class TransitionDialog {
     constructor(containerEl) {
         this.containerEl = containerEl;
         this._dialog = null;
@@ -22,13 +7,6 @@ export class TransitionDialog {
         this._keyHandler = null;
     }
 
-    /**
-     * Show the dialog for creating a new transition
-     * @param {Object} sourceNode - Cytoscape source node
-     * @param {Object} targetNode - Cytoscape target node
-     * @param {string} automatonType - 'DFA' | 'NFA' | 'EpsilonNFA' | 'PDA'
-     * @returns {Promise<Object|null>} Resolves with { symbol, stackPop?, stackPush? } or null if cancelled
-     */
     show(sourceNode, targetNode, automatonType) {
         const title = `Add Transition`;
         const subtitle = `${sourceNode.data('label')} → ${targetNode.data('label')}`;
@@ -38,12 +16,6 @@ export class TransitionDialog {
         return this._showDialog({ title, subtitle, isPDA, allowEpsilon, initialValues: {} });
     }
 
-    /**
-     * Show the dialog for editing an existing edge
-     * @param {Object} edge - Cytoscape edge
-     * @param {string} automatonType - automaton type string
-     * @returns {Promise<Object|null>} Resolves with updated values or null if cancelled
-     */
     showEdit(edge, automatonType) {
         const sourceLabel = edge.source().data('label');
         const targetLabel = edge.target().data('label');
@@ -61,11 +33,6 @@ export class TransitionDialog {
         return this._showDialog({ title, subtitle, isPDA, allowEpsilon, initialValues });
     }
 
-    /**
-     * Show a simple property dialog for a node (start/accepting toggle)
-     * @param {Object} node - Cytoscape node
-     * @returns {Promise<string|null>} Resolves with 'start' | 'accepting' | null
-     */
     showNodeProperties(node) {
         const label = node.data('label');
         const isStart = node.hasClass('start');
@@ -137,17 +104,12 @@ export class TransitionDialog {
 
             document.body.appendChild(backdrop);
             document.body.appendChild(dialog);
-            // Focus first button
             setTimeout(() => dialog.querySelector('#cdToggleStart')?.focus(), 50);
         });
     }
 
     // ==================== PRIVATE ====================
 
-    /**
-     * Core dialog builder for transition inputs
-     * @private
-     */
     _showDialog({ title, subtitle, isPDA, allowEpsilon, initialValues }) {
         return new Promise((resolve) => {
             const { dialog, backdrop } = this._createBackdrop();
@@ -210,7 +172,6 @@ export class TransitionDialog {
             const stackPopInput = dialog.querySelector('#cdStackPop');
             const stackPushInput = dialog.querySelector('#cdStackPush');
 
-            // Epsilon buttons
             dialog.querySelector('#cdEpsilonBtn')?.addEventListener('click', () => {
                 symbolInput.value = 'ε';
                 symbolInput.focus();
@@ -224,7 +185,6 @@ export class TransitionDialog {
                 let rawSymbol = symbolInput.value.trim();
                 if (!rawSymbol) { symbolInput.classList.add('cd-input-error'); symbolInput.focus(); return; }
 
-                // Enforce single-character symbol (except epsilon)
                 if (rawSymbol.length > 1 && rawSymbol !== 'ε') {
                     rawSymbol = rawSymbol.charAt(0);
                 }
@@ -261,7 +221,6 @@ export class TransitionDialog {
             dialog.querySelector('.cd-close').addEventListener('click', cancel);
             backdrop.addEventListener('click', (e) => { if (e.target === backdrop) cancel(); });
 
-            // Enter key on inputs also confirms
             dialog.querySelectorAll('.cd-input').forEach(input => {
                 input.addEventListener('keydown', (e) => {
                     if (e.key === 'Enter') { e.preventDefault(); confirm(); }
@@ -272,15 +231,10 @@ export class TransitionDialog {
 
             document.body.appendChild(backdrop);
             document.body.appendChild(dialog);
-            // Auto-focus symbol input
             setTimeout(() => symbolInput?.select(), 50);
         });
     }
 
-    /**
-     * Create the dialog and backdrop elements
-     * @private
-     */
     _createBackdrop() {
         const backdrop = document.createElement('div');
         backdrop.className = 'cd-backdrop';
@@ -295,10 +249,6 @@ export class TransitionDialog {
         return { dialog, backdrop };
     }
 
-    /**
-     * Remove dialog and backdrop from DOM
-     * @private
-     */
     _removeDialog(dialog, backdrop) {
         dialog?.remove();
         backdrop?.remove();
@@ -306,19 +256,11 @@ export class TransitionDialog {
         this._backdrop = null;
     }
 
-    /**
-     * Attach global key handler
-     * @private
-     */
     _attachKeyHandler(handler) {
         this._keyHandler = (e) => handler(e.key);
         document.addEventListener('keydown', this._keyHandler);
     }
 
-    /**
-     * Detach global key handler
-     * @private
-     */
     _detachKeyHandler() {
         if (this._keyHandler) {
             document.removeEventListener('keydown', this._keyHandler);
@@ -326,36 +268,24 @@ export class TransitionDialog {
         }
     }
 
-    /**
-     * Parse symbol input (handle ε → \0)
-     * @private
-     */
     _parseSymbol(raw) {
         if (!raw || raw === 'ε' || raw === 'epsilon' || raw === '\\0') {
             return '\0';
         }
-        return raw.charAt(0); // Only first character for symbol
+        return raw.charAt(0); 
     }
 
-    /**
-     * HTML-escape a string for safe innerHTML insertion
-     * @private
-     */
     _escHtml(str) {
         return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
                   .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
 
-    /**
-     * Destroy the dialog manager (cleanup any open dialogs)
-     */
     destroy() {
         this._detachKeyHandler();
         this._removeDialog(this._dialog, this._backdrop);
     }
 }
 
-// Expose to window for non-module usage
 if (typeof window !== 'undefined') {
     window.TransitionDialog = TransitionDialog;
 }

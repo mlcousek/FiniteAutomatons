@@ -1,34 +1,13 @@
-﻿/**
- * EditModeManager.js
- * Manages edit mode state for the automaton canvas
- * Handles enabling/disabling interactive editing features
- * 
- * @module EditModeManager
- */
-
-/**
- * Manages edit mode state and controls for canvas editing
- */
-export class EditModeManager {
-    /**
-     * @param {Object} cy - Cytoscape instance
-     * @param {Object} options - Configuration options
-     * @param {boolean} options.enableByDefault - Whether edit mode is enabled by default
-     * @param {Function} options.onModeChange - Callback when mode changes
-     */
+﻿export class EditModeManager {
     constructor(cy, options = {}) {
         this.cy = cy;
         this.isEditMode = options.enableByDefault || false;
         this.isSimulating = false;
         this.onModeChange = options.onModeChange || (() => {});
-        
-        // Initialize mode
+
         this._applyMode();
     }
 
-    /**
-     * Enable edit mode (allow editing)
-     */
     enableEditMode() {
         if (this.isSimulating) {
             console.warn('Cannot enable edit mode during simulation');
@@ -36,7 +15,7 @@ export class EditModeManager {
         }
 
         if (this.isEditMode) {
-            return true; // Already in edit mode
+            return true;
         }
 
         this.isEditMode = true;
@@ -46,12 +25,9 @@ export class EditModeManager {
         return true;
     }
 
-    /**
-     * Disable edit mode (view-only)
-     */
     disableEditMode() {
         if (!this.isEditMode) {
-            return true; // Already disabled
+            return true; 
         }
 
         this.isEditMode = false;
@@ -61,10 +37,6 @@ export class EditModeManager {
         return true;
     }
 
-    /**
-     * Toggle edit mode
-     * @returns {boolean} New edit mode state
-     */
     toggleEditMode() {
         if (this.isEditMode) {
             this.disableEditMode();
@@ -74,15 +46,10 @@ export class EditModeManager {
         return this.isEditMode;
     }
 
-    /**
-     * Set simulation state (disables edit mode during simulation)
-     * @param {boolean} isSimulating - Whether simulation is running
-     */
     setSimulationState(isSimulating) {
         this.isSimulating = isSimulating;
         
         if (isSimulating && this.isEditMode) {
-            // Force disable edit mode during simulation
             this.isEditMode = false;
             this._applyMode();
             this.onModeChange(this.isEditMode);
@@ -90,66 +57,38 @@ export class EditModeManager {
         }
     }
 
-    /**
-     * Check if edit mode is currently active
-     * @returns {boolean} True if edit mode is active
-     */
     isActive() {
         return this.isEditMode && !this.isSimulating;
     }
 
-    /**
-     * Apply current mode settings to the canvas
-     * @private
-     */
     _applyMode() {
       
         if (this.isEditMode && !this.isSimulating) {
             this._enableSelection();
             this._showEditCursor();
         } else {
-            // When not in edit mode we disable selection to keep canvas read-only.
-            // However keep selection enabled when simulation is running.
             if (this.cy) {
                 this.cy.autounselectify(true);
             }
-            // Keep selection for tooltips when appropriate
             this._hideEditCursor();
         }
     }
 
-    /**
-     * Enable node dragging
-     * @private
-     */
     _enableDragging() {
         
     }
 
-    /**
-     * Disable node dragging
-     * @private
-     */
     _disableDragging() {
         
     }
 
-    /**
-     * Enable element selection
-     * @private
-     */
     _enableSelection() {
         this.cy.selectionType('single');
-        // Allow selection when edit mode is active
         if (this.cy) {
             this.cy.autounselectify(false);
         }
     }
 
-    /**
-     * Show edit mode cursor
-     * @private
-     */
     _showEditCursor() {
         const container = this.cy.container();
         if (container) {
@@ -157,10 +96,6 @@ export class EditModeManager {
         }
     }
 
-    /**
-     * Hide edit mode cursor (reset to normal)
-     * @private
-     */
     _hideEditCursor() {
         const container = this.cy.container();
         if (container) {
@@ -168,10 +103,6 @@ export class EditModeManager {
         }
     }
 
-    /**
-     * Get current mode status
-     * @returns {Object} Status object with mode flags
-     */
     getStatus() {
         return {
             isEditMode: this.isEditMode,
@@ -180,9 +111,6 @@ export class EditModeManager {
         };
     }
 
-    /**
-     * Destroy and cleanup
-     */
     destroy() {
         this.disableEditMode();
         this.originalGrabbableState.clear();
@@ -190,7 +118,6 @@ export class EditModeManager {
     }
 }
 
-// Expose to window for non-module usage
 if (typeof window !== 'undefined') {
     window.EditModeManager = EditModeManager;
 }

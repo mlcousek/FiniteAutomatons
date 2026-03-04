@@ -1,4 +1,4 @@
-// Modal handling for Generate Input with modern animations and drag-and-drop
+﻿// Modal handling for Generate Input with modern animations and drag-and-drop
 (function() {
     const modal = document.getElementById('generateInputModal');
     const btn = document.getElementById('generateInputModalBtn');
@@ -9,7 +9,6 @@
     let dragEl = null;
     let lockState = false;
 
-    // Restore lock state from localStorage
     try { 
         lockState = localStorage.getItem('inputSectionsLocked') === 'true'; 
     } catch(e) { }
@@ -18,20 +17,17 @@
         if (!modal) return;
         modal.style.display = 'flex';
         document.body.style.overflow = 'hidden';
-        
-        // Trigger reflow for animation
+ 
         modal.offsetHeight;
         modal.classList.add('modal-open');
-        
-        // Initialize draggable sections
+
         updateLockedClass();
     };
 
     const closeModal = () => {
         if (!modal) return;
         modal.classList.remove('modal-open');
-        
-        // Wait for animation to complete
+
         setTimeout(() => {
             modal.style.display = 'none';
             document.body.style.overflow = '';
@@ -58,7 +54,6 @@
         } catch(e) { }
     }
 
-    // Drag and drop event handlers
     if (container) {
         container.addEventListener('dragstart', function(e) {
             if (lockState) { 
@@ -165,7 +160,6 @@
 
     // Lock button handler
     if (lockBtn) {
-        // Set initial icon based on stored state
         lockBtn.setAttribute('aria-pressed', lockState ? 'true' : 'false');
         const icon = lockBtn.querySelector('i');
         if (icon) { 
@@ -192,18 +186,15 @@
     if (close && modal) {
         close.addEventListener('click', closeModal);
     }
-    
-    // Close on backdrop click
+
     window.addEventListener('click', (e) => { 
         if (e.target === modal) closeModal(); 
     });
-    
-    // Close on Escape key
+
     window.addEventListener('keydown', (e) => { 
         if (e.key === 'Escape' && modal.style.display === 'flex') closeModal(); 
     });
-    
-    // Add keyboard focus trap
+
     if (modal) {
         modal.addEventListener('keydown', (e) => {
             if (e.key === 'Tab') {
@@ -224,5 +215,3 @@
         });
     }
 })();
-
-

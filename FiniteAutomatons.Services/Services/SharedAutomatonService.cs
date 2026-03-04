@@ -18,87 +18,133 @@ public class SharedAutomatonService(
 
     public async Task<SharedAutomaton> SaveAsync(string userId, int groupId, string name, string? description, AutomatonViewModel model, bool saveExecutionState = false, string? layoutJson = null, string? thumbnailBase64 = null)
     {
+        ValidateSaveParameters(userId, name, model);
+
+        await ValidateUserCanAddToGroupAsync(groupId, userId);
+
+        var payload = SerializeAutomatonPayload(model);
+        var (saveMode, execJson) = DetermineExecutionState(model, saveExecutionState);
+        var automaton = CreateSharedAutomatonEntity(userId, name, description, model, payload, saveMode, execJson, layoutJson, thumbnailBase64);
+
+        context.SharedAutomatons.Add(automaton);
+        await context.SaveChangesAsync();
+
+        await CreateGroupAssignmentAsync(automaton.Id, groupId);
+
+        LogSaveSuccess(userId, automaton.Id, name, groupId);
+        return automaton;
+    }
+
+    private static void ValidateSaveParameters(string userId, string name, AutomatonViewModel model)
+    {
         ArgumentNullException.ThrowIfNull(userId);
         ArgumentNullException.ThrowIfNull(name);
         ArgumentNullException.ThrowIfNull(model);
+    }
 
+    private async Task ValidateUserCanAddToGroupAsync(int groupId, string userId)
+    {
         if (!await CanUserAddToGroupAsync(groupId, userId))
         {
             throw new UnauthorizedAccessException($"User {userId} does not have permission to add automatons to group {groupId}");
         }
+    }
 
+    private static string SerializeAutomatonPayload(AutomatonViewModel model)
+    {
         var payload = new AutomatonPayloadDto
         {
             Type = model.Type,
             States = model.States,
             Transitions = model.Transitions
         };
+        return JsonSerializer.Serialize(payload);
+    }
 
-        var automaton = new SharedAutomaton
+    private static (AutomatonSaveMode SaveMode, string? ExecJson) DetermineExecutionState(AutomatonViewModel model, bool saveExecutionState)
+    {
+        if (saveExecutionState && !string.IsNullOrWhiteSpace(model.Input))
+        {
+            return (AutomatonSaveMode.WithState, SerializeFullExecutionState(model));
+        }
+
+        if (!string.IsNullOrWhiteSpace(model.Input))
+        {
+            return (AutomatonSaveMode.WithInput, SerializeInputOnly(model));
+        }
+
+        return (AutomatonSaveMode.Structure, null);
+    }
+
+    private static string SerializeFullExecutionState(AutomatonViewModel model)
+    {
+        var execState = new SavedExecutionStateDto
+        {
+            Input = model.Input,
+            Position = model.Position,
+            CurrentStateId = model.CurrentStateId,
+            CurrentStates = model.CurrentStates != null ? [.. model.CurrentStates] : null,
+            IsAccepted = model.IsAccepted,
+            StateHistorySerialized = model.StateHistorySerialized ?? string.Empty,
+            StackSerialized = model.StackSerialized
+        };
+        return JsonSerializer.Serialize(execState);
+    }
+
+    private static string SerializeInputOnly(AutomatonViewModel model)
+    {
+        var execState = new SavedExecutionStateDto
+        {
+            Input = model.Input,
+            Position = 0,
+            CurrentStateId = null,
+            CurrentStates = null,
+            IsAccepted = null,
+            StateHistorySerialized = string.Empty,
+            StackSerialized = null
+        };
+        return JsonSerializer.Serialize(execState);
+    }
+
+    private static SharedAutomaton CreateSharedAutomatonEntity(string userId, string name, string? description, 
+        AutomatonViewModel model, string contentJson, AutomatonSaveMode saveMode, string? execJson, 
+        string? layoutJson, string? thumbnailBase64)
+    {
+        return new SharedAutomaton
         {
             CreatedByUserId = userId,
             Name = name.Trim(),
             Description = description?.Trim(),
-            ContentJson = JsonSerializer.Serialize(payload),
-            SaveMode = AutomatonSaveMode.Structure,
+            ContentJson = contentJson,
+            SaveMode = saveMode,
+            ExecutionStateJson = execJson,
             LayoutJson = string.IsNullOrWhiteSpace(layoutJson) ? null : layoutJson,
             ThumbnailBase64 = string.IsNullOrWhiteSpace(thumbnailBase64) ? null : thumbnailBase64,
             SourceRegex = model.SourceRegex,
             CreatedAt = DateTime.UtcNow
         };
+    }
 
-        if (saveExecutionState && !string.IsNullOrWhiteSpace(model.Input))
-        {
-            var execState = new SavedExecutionStateDto
-            {
-                Input = model.Input,
-                Position = model.Position,
-                CurrentStateId = model.CurrentStateId,
-                CurrentStates = model.CurrentStates != null ? [.. model.CurrentStates] : null,
-                IsAccepted = model.IsAccepted,
-                StateHistorySerialized = model.StateHistorySerialized ?? string.Empty,
-                StackSerialized = model.StackSerialized
-            };
-
-            automaton.SaveMode = AutomatonSaveMode.WithState;
-            automaton.ExecutionStateJson = JsonSerializer.Serialize(execState);
-        }
-        else if (!string.IsNullOrWhiteSpace(model.Input))
-        {
-            var execState = new SavedExecutionStateDto
-            {
-                Input = model.Input,
-                Position = 0,
-                CurrentStateId = null,
-                CurrentStates = null,
-                IsAccepted = null,
-                StateHistorySerialized = string.Empty,
-                StackSerialized = null
-            };
-
-            automaton.SaveMode = AutomatonSaveMode.WithInput;
-            automaton.ExecutionStateJson = JsonSerializer.Serialize(execState);
-        }
-
-        context.SharedAutomatons.Add(automaton);
-        await context.SaveChangesAsync();
-
+    private async Task CreateGroupAssignmentAsync(int automatonId, int groupId)
+    {
         var assignment = new SharedAutomatonGroupAssignment
         {
-            AutomatonId = automaton.Id,
+            AutomatonId = automatonId,
             GroupId = groupId,
             AssignedAt = DateTime.UtcNow
         };
 
         context.SharedAutomatonGroupAssignments.Add(assignment);
         await context.SaveChangesAsync();
+    }
 
+    private void LogSaveSuccess(string userId, int automatonId, string name, int groupId)
+    {
         if (logger.IsEnabled(LogLevel.Information))
         {
             logger.LogInformation("User {UserId} saved shared automaton {AutomatonId} '{Name}' to group {GroupId}",
-            userId, automaton.Id, name, groupId);
+                userId, automatonId, name, groupId);
         }
-        return automaton;
     }
 
     public async Task<SharedAutomaton?> GetAsync(int id, string userId)
@@ -158,37 +204,53 @@ public class SharedAutomatonService(
     {
         ArgumentNullException.ThrowIfNull(userId);
 
-        var automaton = await context.SharedAutomatons
-            .Include(a => a.Assignments)
-                .ThenInclude(a => a.Group)
-                    .ThenInclude(g => g!.Members)
-            .FirstOrDefaultAsync(a => a.Id == id) ?? throw new InvalidOperationException($"Automaton {id} not found");
-
-        var canDelete = automaton.CreatedByUserId == userId;
-
-        if (!canDelete)
-        {
-            foreach (var assignment in automaton.Assignments)
-            {
-                var userRole = await GetUserRoleInGroupAsync(assignment.GroupId, userId);
-                if (userRole >= SharedGroupRole.Editor)
-                {
-                    canDelete = true;
-                    break;
-                }
-            }
-        }
-
-        if (!canDelete)
-        {
-            throw new UnauthorizedAccessException($"User {userId} does not have permission to delete automaton {id}");
-        }
+        var automaton = await LoadAutomatonWithPermissionsAsync(id);
+        await ValidateDeletePermissionAsync(automaton, userId, id);
 
         context.SharedAutomatons.Remove(automaton);
         await context.SaveChangesAsync();
+
+        LogDeleteSuccess(userId, id);
+    }
+
+    private async Task<SharedAutomaton> LoadAutomatonWithPermissionsAsync(int id)
+    {
+        return await context.SharedAutomatons
+            .Include(a => a.Assignments)
+                .ThenInclude(a => a.Group)
+                    .ThenInclude(g => g!.Members)
+            .FirstOrDefaultAsync(a => a.Id == id) 
+            ?? throw new InvalidOperationException($"Automaton {id} not found");
+    }
+
+    private async Task ValidateDeletePermissionAsync(SharedAutomaton automaton, string userId, int id)
+    {
+        if (await CanUserDeleteAutomatonAsync(automaton, userId))
+            return;
+
+        throw new UnauthorizedAccessException($"User {userId} does not have permission to delete automaton {id}");
+    }
+
+    private async Task<bool> CanUserDeleteAutomatonAsync(SharedAutomaton automaton, string userId)
+    {
+        if (automaton.CreatedByUserId == userId)
+            return true;
+
+        foreach (var assignment in automaton.Assignments)
+        {
+            var userRole = await GetUserRoleInGroupAsync(assignment.GroupId, userId);
+            if (userRole >= SharedGroupRole.Editor)
+                return true;
+        }
+
+        return false;
+    }
+
+    private void LogDeleteSuccess(string userId, int automatonId)
+    {
         if (logger.IsEnabled(LogLevel.Information))
         {
-            logger.LogInformation("User {UserId} deleted shared automaton {AutomatonId}", userId, id);
+            logger.LogInformation("User {UserId} deleted shared automaton {AutomatonId}", userId, automatonId);
         }
     }
 
@@ -196,32 +258,42 @@ public class SharedAutomatonService(
     {
         ArgumentNullException.ThrowIfNull(userId);
 
-        var automaton = await context.SharedAutomatons
-            .Include(a => a.Assignments)
-                .ThenInclude(a => a.Group)
-                    .ThenInclude(g => g!.Members)
-            .FirstOrDefaultAsync(a => a.Id == id) ?? throw new InvalidOperationException($"Automaton {id} not found");
+        var automaton = await LoadAutomatonWithPermissionsAsync(id);
+        await ValidateEditPermissionAsync(automaton, userId, id);
 
-        var canEdit = automaton.CreatedByUserId == userId;
+        UpdateAutomatonProperties(automaton, name, description, model, userId);
 
-        if (!canEdit)
+        await context.SaveChangesAsync();
+        LogUpdateSuccess(userId, id);
+
+        return automaton;
+    }
+
+    private async Task ValidateEditPermissionAsync(SharedAutomaton automaton, string userId, int id)
+    {
+        if (await CanUserEditAutomatonAsync(automaton, userId))
+            return;
+
+        throw new UnauthorizedAccessException($"User {userId} does not have permission to edit automaton {id}");
+    }
+
+    private async Task<bool> CanUserEditAutomatonAsync(SharedAutomaton automaton, string userId)
+    {
+        if (automaton.CreatedByUserId == userId)
+            return true;
+
+        foreach (var assignment in automaton.Assignments)
         {
-            foreach (var assignment in automaton.Assignments)
-            {
-                var userRole = await GetUserRoleInGroupAsync(assignment.GroupId, userId);
-                if (userRole >= SharedGroupRole.Editor)
-                {
-                    canEdit = true;
-                    break;
-                }
-            }
+            var userRole = await GetUserRoleInGroupAsync(assignment.GroupId, userId);
+            if (userRole >= SharedGroupRole.Editor)
+                return true;
         }
 
-        if (!canEdit)
-        {
-            throw new UnauthorizedAccessException($"User {userId} does not have permission to edit automaton {id}");
-        }
+        return false;
+    }
 
+    private static void UpdateAutomatonProperties(SharedAutomaton automaton, string? name, string? description, AutomatonViewModel? model, string userId)
+    {
         if (!string.IsNullOrWhiteSpace(name))
             automaton.Name = name.Trim();
 
@@ -241,15 +313,14 @@ public class SharedAutomatonService(
 
         automaton.ModifiedAt = DateTime.UtcNow;
         automaton.ModifiedByUserId = userId;
+    }
 
-        await context.SaveChangesAsync();
-
+    private void LogUpdateSuccess(string userId, int automatonId)
+    {
         if (logger.IsEnabled(LogLevel.Information))
         {
-            logger.LogInformation("User {UserId} updated shared automaton {AutomatonId}", userId, id);
+            logger.LogInformation("User {UserId} updated shared automaton {AutomatonId}", userId, automatonId);
         }
-
-        return automaton;
     }
 
     public async Task<SharedAutomatonGroup> CreateGroupAsync(string userId, string name, string? description)
@@ -257,20 +328,32 @@ public class SharedAutomatonService(
         ArgumentNullException.ThrowIfNull(userId);
         ArgumentNullException.ThrowIfNull(name);
 
-        var group = new SharedAutomatonGroup
+        var group = CreateGroupEntity(userId, name, description);
+        context.SharedAutomatonGroups.Add(group);
+        await context.SaveChangesAsync();
+
+        await AddGroupOwnerAsync(group.Id, userId);
+        LogGroupCreation(userId, group.Id, name);
+
+        return group;
+    }
+
+    private static SharedAutomatonGroup CreateGroupEntity(string userId, string name, string? description)
+    {
+        return new SharedAutomatonGroup
         {
             UserId = userId,
             Name = name.Trim(),
             Description = description?.Trim(),
             CreatedAt = DateTime.UtcNow
         };
+    }
 
-        context.SharedAutomatonGroups.Add(group);
-        await context.SaveChangesAsync();
-
+    private async Task AddGroupOwnerAsync(int groupId, string userId)
+    {
         var member = new SharedAutomatonGroupMember
         {
-            GroupId = group.Id,
+            GroupId = groupId,
             UserId = userId,
             Role = SharedGroupRole.Owner,
             JoinedAt = DateTime.UtcNow
@@ -278,11 +361,14 @@ public class SharedAutomatonService(
 
         context.SharedAutomatonGroupMembers.Add(member);
         await context.SaveChangesAsync();
+    }
+
+    private void LogGroupCreation(string userId, int groupId, string name)
+    {
         if (logger.IsEnabled(LogLevel.Information))
         {
-            logger.LogInformation("User {UserId} created shared group {GroupId} '{Name}'", userId, group.Id, name);
+            logger.LogInformation("User {UserId} created shared group {GroupId} '{Name}'", userId, groupId, name);
         }
-        return group;
     }
 
     public async Task<SharedAutomatonGroup?> GetGroupAsync(int groupId, string userId)

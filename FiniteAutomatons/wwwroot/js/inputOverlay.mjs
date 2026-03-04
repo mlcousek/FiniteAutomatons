@@ -17,9 +17,7 @@ export function init() {
         createOverlay();
     }
 
-    // Dynamic padding for inputField - only apply padding when execution has started
     const input = document.getElementById('inputField');
-    // helper to parse boolean-like hidden inputs
     function parseBool(val){ if (val === undefined || val === null) return false; return String(val).toLowerCase() === 'true'; }
     function getHasExecuted(){ const el = document.querySelector('input[name="HasExecuted"]'); return el ? parseBool(el.value) : false; }
 
@@ -38,20 +36,17 @@ export function init() {
         function updatePadding() {
             const hasExecuted = getHasExecuted();
             if (hasExecuted) {
-                // when execution started keep the larger right padding and include button width
                 const rootFont = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
-                const baseRightRem = input.value.length > 0 ? 5 : 1.25; // matches previous behavior
+                const baseRightRem = input.value.length > 0 ? 5 : 1.25; 
                 const baseRightPx = baseRightRem * rootFont;
                 const btnWidth = getButtonWidth();
                 input.style.padding = `0.75rem ${Math.round(baseRightPx + btnWidth + 20)}px`;
             } else {
-                // when not executing remove inline padding so server-rendered or stylesheet rules take precedence
                 input.style.padding = '';
             }
         }
 
         input.addEventListener('input', updatePadding);
-        // Also update when execution state changes — polling is cheap and reliable across postbacks
         updatePadding();
         setInterval(updatePadding, 400);
     }
@@ -146,12 +141,9 @@ function createOverlay() {
     attachInputHandlers();
 }
 
-// Auto-init when module is loaded so the scrollbar/overlay is available
-// even if no other script explicitly calls `init()`.
 try {
     init();
 } catch (e) {
-    // ignore in environments where automatic init is undesirable
 }
 
 export function show() { 
@@ -195,8 +187,7 @@ export function render(position) {
         inner.appendChild(span);
     }
 
-    // Set inner width to match full scrollable content width + padding for last chars
-    const extraPadding = 20000; // extra pixels to ensure last characters are visible
+    const extraPadding = 20000; 
     inner.style.minWidth = (inputEl.scrollWidth + extraPadding) + 'px';
     inner.style.width = 'max-content';
 
@@ -206,19 +197,15 @@ export function render(position) {
     const scroll = inputEl.scrollLeft;
     inner.style.transform = `translateY(-50%) translateX(${-scroll}px)`;
 
-    // Auto-scroll to make the current character visible unless user is dragging
     const currentSpan = inner.querySelector('.input-overlay-char.current');
     if (currentSpan && !isDragging) {
         const clientWidth = inputEl.clientWidth;
         const scrollWidth = inputEl.scrollWidth;
-        // Position of the character within the overlay inner
         const charLeft = currentSpan.offsetLeft;
         const charWidth = currentSpan.offsetWidth || 1;
-        // Desired scroll so the character is centered (if possible)
         let targetScroll = Math.round(charLeft - (clientWidth / 2) + (charWidth / 2));
         targetScroll = Math.max(0, Math.min(scrollWidth - clientWidth, targetScroll));
         try {
-            // Smooth scroll when supported
             inputEl.scrollTo({ left: targetScroll, behavior: 'smooth' });
         } catch (e) {
             inputEl.scrollLeft = targetScroll;

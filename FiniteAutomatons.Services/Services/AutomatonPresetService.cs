@@ -52,41 +52,101 @@ public class AutomatonPresetService(
 
     public AutomatonViewModel GeneratePdaWithPushPopPairs(int stateCount = 5, int transitionCount = 12, int alphabetSize = 3, double acceptingRatio = 0.3, int? seed = null, PDAAcceptanceMode? acceptanceMode = null, Stack<char>? initialStack = null)
     {
-        if (logger.IsEnabled(LogLevel.Information))
-        {
-            logger.LogInformation("Generating PDA preset with push/pop pairs, states={StateCount}, AcceptanceMode: {Mode}", stateCount, acceptanceMode ?? PDAAcceptanceMode.FinalStateAndEmptyStack);
-        }
+        LogPdaGenerationStart(stateCount, acceptanceMode);
 
-        var basePda = generatorService.GenerateRandomAutomaton(AutomatonType.PDA, stateCount, transitionCount, alphabetSize, acceptingRatio, seed, acceptanceMode, initialStack);
+        var basePda = generatorService.GenerateRandomAutomaton(AutomatonType.PDA, stateCount, transitionCount,
+            alphabetSize, acceptingRatio, seed, acceptanceMode, initialStack);
 
         var random = seed.HasValue ? new Random(seed.Value) : new Random();
-        var alphabet = basePda.Transitions.Where(t => t.Symbol != '\0').Select(t => t.Symbol).Distinct().ToList();
+        var alphabet = ExtractAlphabet(basePda);
+
         if (alphabet.Count == 0)
-        {
             return basePda;
-        }
 
+        AddPushPopPairs(basePda, alphabet, random);
+
+        LogPdaGenerationComplete(basePda);
+        return basePda;
+    }
+
+    private static void AddPushPopPairs(AutomatonViewModel pda, List<char> alphabet, Random random)
+    {
         int added = 0;
-        for (int i = 0; i < Math.Min(3, alphabet.Count) && added < 3; i++)
+        int maxPairs = Math.Min(3, alphabet.Count);
+
+        for (int i = 0; i < maxPairs && added < 6; i++)
         {
-            var pushSym = alphabet[random.Next(alphabet.Count)];
-            var popSym = alphabet[random.Next(alphabet.Count)];
-            if (pushSym == popSym) continue;
+            var (pushSymbol, popSymbol) = SelectDifferentSymbols(alphabet, random);
+            if (pushSymbol == popSymbol)
+                continue;
 
-            var from = basePda.States[random.Next(basePda.States.Count)].Id;
-            var to = basePda.States[random.Next(basePda.States.Count)].Id;
-            basePda.Transitions.Add(new Transition { FromStateId = from, ToStateId = to, Symbol = pushSym, StackPop = null, StackPush = pushSym.ToString() });
-
-            var from2 = basePda.States[random.Next(basePda.States.Count)].Id;
-            var to2 = basePda.States[random.Next(basePda.States.Count)].Id;
-            basePda.Transitions.Add(new Transition { FromStateId = from2, ToStateId = to2, Symbol = popSym, StackPop = pushSym, StackPush = null });
+            AddPushTransition(pda, pushSymbol, random);
+            AddPopTransition(pda, popSymbol, pushSymbol, random);
             added += 2;
         }
+    }
+
+    private static (char push, char pop) SelectDifferentSymbols(List<char> alphabet, Random random)
+    {
+        var pushSym = alphabet[random.Next(alphabet.Count)];
+        var popSym = alphabet[random.Next(alphabet.Count)];
+        return (pushSym, popSym);
+    }
+
+    private static void AddPushTransition(AutomatonViewModel pda, char symbol, Random random)
+    {
+        var from = pda.States[random.Next(pda.States.Count)].Id;
+        var to = pda.States[random.Next(pda.States.Count)].Id;
+
+        pda.Transitions.Add(new Transition
+        {
+            FromStateId = from,
+            ToStateId = to,
+            Symbol = symbol,
+            StackPop = null,
+            StackPush = symbol.ToString()
+        });
+    }
+
+    private static void AddPopTransition(AutomatonViewModel pda, char symbol, char stackSymbol, Random random)
+    {
+        var from = pda.States[random.Next(pda.States.Count)].Id;
+        var to = pda.States[random.Next(pda.States.Count)].Id;
+
+        pda.Transitions.Add(new Transition
+        {
+            FromStateId = from,
+            ToStateId = to,
+            Symbol = symbol,
+            StackPop = stackSymbol,
+            StackPush = null
+        });
+    }
+
+    private static List<char> ExtractAlphabet(AutomatonViewModel automaton)
+    {
+        return [.. automaton.Transitions
+            .Where(t => t.Symbol != '\0')
+            .Select(t => t.Symbol)
+            .Distinct()];
+    }
+
+    private void LogPdaGenerationStart(int stateCount, PDAAcceptanceMode? acceptanceMode)
+    {
         if (logger.IsEnabled(LogLevel.Information))
         {
-            logger.LogInformation("Generated PDA preset with {Transitions} transitions (including push/pop)", basePda.Transitions.Count);
+            logger.LogInformation("Generating PDA preset with push/pop pairs, states={StateCount}, AcceptanceMode: {Mode}",
+                stateCount, acceptanceMode ?? PDAAcceptanceMode.FinalStateAndEmptyStack);
         }
-        return basePda;
+    }
+
+    private void LogPdaGenerationComplete(AutomatonViewModel pda)
+    {
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Generated PDA preset with {Transitions} transitions (including push/pop)",
+                pda.Transitions.Count);
+        }
     }
 
     public AutomatonViewModel GenerateBalancedParenthesesPda(PDAAcceptanceMode? acceptanceMode = null, Stack<char>? initialStack = null)
@@ -264,25 +324,9 @@ public class AutomatonPresetService(
     private AutomatonViewModel AddEquivalentStates(AutomatonViewModel dfa, int? seed)
     {
         var random = seed.HasValue ? new Random(seed.Value) : new Random();
+        var unminimalized = CloneAutomaton(dfa);
 
-        var unminimalized = new AutomatonViewModel
-        {
-            Type = AutomatonType.DFA,
-            States = [.. dfa.States],
-            Transitions = [.. dfa.Transitions],
-            Input = dfa.Input,
-            IsCustomAutomaton = dfa.IsCustomAutomaton
-        };
-
-        var candidateStates = unminimalized.States
-            .Where(s => !s.IsStart && !s.IsAccepting)
-            .ToList();
-
-        if (candidateStates.Count == 0)
-        {
-            candidateStates = [.. unminimalized.States.Where(s => !s.IsStart)];
-        }
-
+        var candidateStates = SelectCandidateStates(unminimalized);
         if (candidateStates.Count == 0)
         {
             logger.LogWarning("Cannot add equivalent states - DFA has only start state");
@@ -295,41 +339,93 @@ public class AutomatonPresetService(
         for (int i = 0; i < statesToDuplicate; i++)
         {
             var originalState = candidateStates[random.Next(candidateStates.Count)];
-
-            var equivalentState = new State
-            {
-                Id = nextStateId++,
-                IsStart = false,
-                IsAccepting = originalState.IsAccepting
-            };
-
-            unminimalized.States.Add(equivalentState);
-
-            var outgoingTransitions = unminimalized.Transitions
-                .Where(t => t.FromStateId == originalState.Id)
-                .ToList();
-
-            foreach (var transition in outgoingTransitions)
-            {
-                unminimalized.Transitions.Add(new Transition
-                {
-                    FromStateId = equivalentState.Id,
-                    ToStateId = transition.ToStateId,
-                    Symbol = transition.Symbol
-                });
-            }
-            if (logger.IsEnabled(LogLevel.Information))
-            {
-                logger.LogInformation("Added equivalent state q{EquivalentId} for q{OriginalId}",
-                equivalentState.Id, originalState.Id);
-            }
+            nextStateId = DuplicateState(unminimalized, originalState, nextStateId);
         }
+
+        LogUnminimalizationComplete(dfa.States.Count, statesToDuplicate);
+        return unminimalized;
+    }
+
+    private static AutomatonViewModel CloneAutomaton(AutomatonViewModel source)
+    {
+        return new AutomatonViewModel
+        {
+            Type = source.Type,
+            States = [.. source.States],
+            Transitions = [.. source.Transitions],
+            Input = source.Input,
+            IsCustomAutomaton = source.IsCustomAutomaton
+        };
+    }
+
+    private static List<State> SelectCandidateStates(AutomatonViewModel automaton)
+    {
+        var candidates = automaton.States
+            .Where(s => !s.IsStart && !s.IsAccepting)
+            .ToList();
+
+        if (candidates.Count == 0)
+        {
+            candidates = [.. automaton.States.Where(s => !s.IsStart)];
+        }
+
+        return candidates;
+    }
+
+    private int DuplicateState(AutomatonViewModel automaton, State originalState, int nextStateId)
+    {
+        var equivalentState = CreateEquivalentState(originalState, nextStateId);
+        automaton.States.Add(equivalentState);
+
+        CopyOutgoingTransitions(automaton, originalState.Id, equivalentState.Id);
+        LogStateDuplication(equivalentState.Id, originalState.Id);
+
+        return nextStateId + 1;
+    }
+
+    private static State CreateEquivalentState(State original, int newId)
+    {
+        return new State
+        {
+            Id = newId,
+            IsStart = false,
+            IsAccepting = original.IsAccepting
+        };
+    }
+
+    private static void CopyOutgoingTransitions(AutomatonViewModel automaton, int fromStateId, int toNewStateId)
+    {
+        var outgoingTransitions = automaton.Transitions
+            .Where(t => t.FromStateId == fromStateId)
+            .ToList();
+
+        foreach (var transition in outgoingTransitions)
+        {
+            automaton.Transitions.Add(new Transition
+            {
+                FromStateId = toNewStateId,
+                ToStateId = transition.ToStateId,
+                Symbol = transition.Symbol
+            });
+        }
+    }
+
+    private void LogStateDuplication(int equivalentId, int originalId)
+    {
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Added equivalent state q{EquivalentId} for q{OriginalId}",
+                equivalentId, originalId);
+        }
+    }
+
+    private void LogUnminimalizationComplete(int originalCount, int addedCount)
+    {
         if (logger.IsEnabled(LogLevel.Information))
         {
             logger.LogInformation("Successfully created unminimalized DFA with {OriginalStates} + {AddedStates} states",
-            dfa.States.Count, statesToDuplicate);
+                originalCount, addedCount);
         }
-        return unminimalized;
     }
 
     public AutomatonViewModel GenerateNondeterministicNfa(int stateCount = 5, int transitionCount = 10, int alphabetSize = 3, double acceptingRatio = 0.3, int? seed = null)
@@ -382,29 +478,28 @@ public class AutomatonPresetService(
     private AutomatonViewModel AddNondeterministicTransitions(AutomatonViewModel nfa, int? seed)
     {
         var random = seed.HasValue ? new Random(seed.Value) : new Random();
+        var nondetNfa = CloneAutomaton(nfa);
 
-        var nondetNfa = new AutomatonViewModel
-        {
-            Type = nfa.Type,
-            States = [.. nfa.States],
-            Transitions = [.. nfa.Transitions],
-            Input = nfa.Input,
-            IsCustomAutomaton = nfa.IsCustomAutomaton
-        };
+        var context = PrepareNondeterministicContext(nondetNfa);
+        if (!context.IsValid)
+            return nondetNfa;
 
-        var alphabet = nondetNfa.Transitions
-            .Where(t => t.Symbol != '\0')
-            .Select(t => t.Symbol)
-            .Distinct()
-            .ToList();
+        AddNondeterministicTransitionsLoop(nondetNfa, context, random);
+        LogNondeterministicResult(context);
 
+        return nondetNfa;
+    }
+
+    private NondeterministicContext PrepareNondeterministicContext(AutomatonViewModel nfa)
+    {
+        var alphabet = ExtractAlphabet(nfa);
         if (alphabet.Count == 0)
         {
             logger.LogWarning("Cannot add nondeterministic transitions - no alphabet symbols");
-            return nondetNfa;
+            return NondeterministicContext.Invalid();
         }
 
-        var statesWithTransitions = nondetNfa.Transitions
+        var statesWithTransitions = nfa.Transitions
             .Select(t => t.FromStateId)
             .Distinct()
             .ToList();
@@ -412,61 +507,100 @@ public class AutomatonPresetService(
         if (statesWithTransitions.Count == 0)
         {
             logger.LogWarning("Cannot add nondeterministic transitions - no states with transitions");
-            return nondetNfa;
+            return NondeterministicContext.Invalid();
         }
 
-        var added = 0;
-        var attempts = 0;
         var maxAttempts = Math.Max(50, statesWithTransitions.Count * alphabet.Count * 2);
         var desiredTransitions = Math.Min(3, statesWithTransitions.Count);
 
-        while (added < desiredTransitions && attempts < maxAttempts)
+        return new NondeterministicContext
         {
-            attempts++;
-            var fromState = statesWithTransitions[random.Next(statesWithTransitions.Count)];
-            var symbol = alphabet[random.Next(alphabet.Count)];
+            IsValid = true,
+            Alphabet = alphabet,
+            StatesWithTransitions = statesWithTransitions,
+            MaxAttempts = maxAttempts,
+            DesiredTransitions = desiredTransitions
+        };
+    }
 
-            var existingTargets = nondetNfa.Transitions
-                .Where(t => t.FromStateId == fromState && t.Symbol == symbol)
-                .Select(t => t.ToStateId)
-                .ToHashSet();
+    private void AddNondeterministicTransitionsLoop(AutomatonViewModel nfa, NondeterministicContext context, Random random)
+    {
+        while (context.Added < context.DesiredTransitions && context.Attempts < context.MaxAttempts)
+        {
+            context.Attempts++;
 
-            var availableTargets = nondetNfa.States
-                .Select(s => s.Id)
-                .Where(id => !existingTargets.Contains(id))
-                .ToList();
+            var fromState = context.StatesWithTransitions[random.Next(context.StatesWithTransitions.Count)];
+            var symbol = context.Alphabet[random.Next(context.Alphabet.Count)];
+
+            var existingTargets = GetExistingTargets(nfa, fromState, symbol);
+            var availableTargets = GetAvailableTargets(nfa, existingTargets);
 
             if (availableTargets.Count > 0)
             {
-                var toState = availableTargets[random.Next(availableTargets.Count)];
-
-                nondetNfa.Transitions.Add(new Transition
-                {
-                    FromStateId = fromState,
-                    ToStateId = toState,
-                    Symbol = symbol
-                });
-
-                added++;
-                if (logger.IsEnabled(LogLevel.Information))
-                {
-                    logger.LogInformation("Added nondeterministic transition: q{From} --{Symbol}--> q{To}",
-                    fromState, symbol, toState);
-                }
+                AddNondeterministicTransition(nfa, fromState, symbol, availableTargets, random);
+                context.Added++;
             }
         }
+    }
 
-        if (added == 0)
+    private static HashSet<int> GetExistingTargets(AutomatonViewModel nfa, int fromState, char symbol)
+    {
+        return [.. nfa.Transitions
+            .Where(t => t.FromStateId == fromState && t.Symbol == symbol)
+            .Select(t => t.ToStateId)];
+    }
+
+    private static List<int> GetAvailableTargets(AutomatonViewModel nfa, HashSet<int> existingTargets)
+    {
+        return [.. nfa.States
+            .Select(s => s.Id)
+            .Where(id => !existingTargets.Contains(id))];
+    }
+
+    private void AddNondeterministicTransition(AutomatonViewModel nfa, int fromState, char symbol,
+        List<int> availableTargets, Random random)
+    {
+        var toState = availableTargets[random.Next(availableTargets.Count)];
+
+        nfa.Transitions.Add(new Transition
         {
-            logger.LogWarning("Failed to add any nondeterministic transitions after {Attempts} attempts", attempts);
+            FromStateId = fromState,
+            ToStateId = toState,
+            Symbol = symbol
+        });
+
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Added nondeterministic transition: q{From} --{Symbol}--> q{To}",
+                fromState, symbol, toState);
         }
-        else
+    }
+
+    private void LogNondeterministicResult(NondeterministicContext context)
+    {
+        if (context.Added == 0)
+        {
+            logger.LogWarning("Failed to add any nondeterministic transitions after {Attempts} attempts",
+                context.Attempts);
+        }
+        else if (logger.IsEnabled(LogLevel.Information))
         {
             logger.LogInformation("Successfully created nondeterministic NFA: added {Added} transitions in {Attempts} attempts",
-                added, attempts);
+                context.Added, context.Attempts);
         }
+    }
 
-        return nondetNfa;
+    private class NondeterministicContext
+    {
+        public bool IsValid { get; init; }
+        public List<char> Alphabet { get; init; } = [];
+        public List<int> StatesWithTransitions { get; init; } = [];
+        public int MaxAttempts { get; init; }
+        public int DesiredTransitions { get; init; }
+        public int Added { get; set; }
+        public int Attempts { get; set; }
+
+        public static NondeterministicContext Invalid() => new() { IsValid = false };
     }
 
     public AutomatonViewModel GenerateRandomDfa(int stateCount = 5, int transitionCount = 10, int alphabetSize = 3, double acceptingRatio = 0.3, int? seed = null)
@@ -528,57 +662,99 @@ public class AutomatonPresetService(
     private AutomatonViewModel AddEpsilonTransitions(AutomatonViewModel enfa, int? seed)
     {
         var random = seed.HasValue ? new Random(seed.Value) : new Random();
+        var withEpsilon = CloneAutomaton(enfa);
+        withEpsilon.Type = AutomatonType.EpsilonNFA;
 
-        var withEpsilon = new AutomatonViewModel
-        {
-            Type = AutomatonType.EpsilonNFA,
-            States = [.. enfa.States],
-            Transitions = [.. enfa.Transitions],
-            Input = enfa.Input,
-            IsCustomAutomaton = enfa.IsCustomAutomaton
-        };
-
-        if (withEpsilon.States.Count < 2)
-        {
-            logger.LogWarning("Cannot add epsilon transitions - need at least 2 states");
+        if (!ValidateStateCountForEpsilon(withEpsilon))
             return withEpsilon;
-        }
 
-        var epsilonTransitionsToAdd = Math.Min(3, withEpsilon.States.Count);
-        var added = 0;
-        var attempts = 0;
-        var maxAttempts = Math.Max(10, epsilonTransitionsToAdd * 10);
+        var context = CreateEpsilonContext(withEpsilon);
+        AddEpsilonTransitionsLoop(withEpsilon, context, random);
+        LogEpsilonTransitionResult(withEpsilon, context);
 
-        while (added < epsilonTransitionsToAdd && attempts < maxAttempts)
+        return withEpsilon;
+    }
+
+    private bool ValidateStateCountForEpsilon(AutomatonViewModel automaton)
+    {
+        if (automaton.States.Count >= 2)
+            return true;
+
+        logger.LogWarning("Cannot add epsilon transitions - need at least 2 states");
+        return false;
+    }
+
+    private static EpsilonContext CreateEpsilonContext(AutomatonViewModel automaton)
+    {
+        var transitionsToAdd = Math.Min(3, automaton.States.Count);
+        var maxAttempts = Math.Max(10, transitionsToAdd * 10);
+
+        return new EpsilonContext
         {
-            attempts++;
-            var fromState = withEpsilon.States[random.Next(withEpsilon.States.Count)];
-            var toState = withEpsilon.States[random.Next(withEpsilon.States.Count)];
+            TransitionsToAdd = transitionsToAdd,
+            MaxAttempts = maxAttempts
+        };
+    }
 
-            if (fromState.Id == toState.Id)
+    private void AddEpsilonTransitionsLoop(AutomatonViewModel automaton, EpsilonContext context, Random random)
+    {
+        while (context.Added < context.TransitionsToAdd && context.Attempts < context.MaxAttempts)
+        {
+            context.Attempts++;
+
+            var fromState = automaton.States[random.Next(automaton.States.Count)];
+            var toState = automaton.States[random.Next(automaton.States.Count)];
+
+            if (!IsValidEpsilonTransition(automaton, fromState, toState))
                 continue;
-            if (withEpsilon.Transitions.Any(t => t.FromStateId == fromState.Id && t.ToStateId == toState.Id && t.Symbol == '\0'))
-                continue;
 
-            withEpsilon.Transitions.Add(new Transition
-            {
-                FromStateId = fromState.Id,
-                ToStateId = toState.Id,
-                Symbol = '\0'
-            });
-
-            added++;
-            if (logger.IsEnabled(LogLevel.Information))
-            {
-                logger.LogInformation("Added epsilon transition: q{From} --ε--> q{To}", fromState.Id, toState.Id);
-            }
+            AddEpsilonTransition(automaton, fromState.Id, toState.Id);
+            context.Added++;
         }
+    }
+
+    private static bool IsValidEpsilonTransition(AutomatonViewModel automaton, State fromState, State toState)
+    {
+        if (fromState.Id == toState.Id)
+            return false;
+
+        return !automaton.Transitions.Any(t =>
+            t.FromStateId == fromState.Id &&
+            t.ToStateId == toState.Id &&
+            t.Symbol == '\0');
+    }
+
+    private void AddEpsilonTransition(AutomatonViewModel automaton, int fromStateId, int toStateId)
+    {
+        automaton.Transitions.Add(new Transition
+        {
+            FromStateId = fromStateId,
+            ToStateId = toStateId,
+            Symbol = '\0'
+        });
+
         if (logger.IsEnabled(LogLevel.Information))
         {
-            logger.LogInformation("Successfully created ε-NFA: attempted {Attempts}, added {Added} epsilon transitions (total now {Total})",
-            attempts, added, withEpsilon.Transitions.Count(t => t.Symbol == '\0'));
+            logger.LogInformation("Added epsilon transition: q{From} --ε--> q{To}", fromStateId, toStateId);
         }
-        return withEpsilon;
+    }
+
+    private void LogEpsilonTransitionResult(AutomatonViewModel automaton, EpsilonContext context)
+    {
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            var totalEpsilon = automaton.Transitions.Count(t => t.Symbol == '\0');
+            logger.LogInformation("Successfully created ε-NFA: attempted {Attempts}, added {Added} epsilon transitions (total now {Total})",
+                context.Attempts, context.Added, totalEpsilon);
+        }
+    }
+
+    private class EpsilonContext
+    {
+        public int TransitionsToAdd { get; init; }
+        public int MaxAttempts { get; init; }
+        public int Added { get; set; }
+        public int Attempts { get; set; }
     }
 
     public AutomatonViewModel GenerateEpsilonNfaNondeterministic(int stateCount = 5, int transitionCount = 10, int alphabetSize = 3, double acceptingRatio = 0.3, int? seed = null)
@@ -611,43 +787,53 @@ public class AutomatonPresetService(
     private AutomatonViewModel ForceNondeterministicTransition(AutomatonViewModel automaton, int? seed)
     {
         var random = seed.HasValue ? new Random(seed.Value) : new Random();
+        var alphabet = ExtractAlphabet(automaton);
 
-        var alphabet = automaton.Transitions
-            .Where(t => t.Symbol != '\0')
-            .Select(t => t.Symbol)
-            .Distinct()
-            .ToList();
-
-        if (alphabet.Count == 0 || automaton.States.Count < 2)
-        {
-            logger.LogWarning("Cannot force nondeterministic transition - insufficient alphabet or states");
+        if (!ValidateForceNondeterminism(alphabet, automaton))
             return automaton;
-        }
 
+        if (TryDuplicateExistingTransition(automaton, random))
+            return automaton;
+
+        AddRandomNondeterministicTransition(automaton, alphabet, random);
+        return automaton;
+    }
+
+    private bool ValidateForceNondeterminism(List<char> alphabet, AutomatonViewModel automaton)
+    {
+        if (alphabet.Count > 0 && automaton.States.Count >= 2)
+            return true;
+
+        logger.LogWarning("Cannot force nondeterministic transition - insufficient alphabet or states");
+        return false;
+    }
+
+    private bool TryDuplicateExistingTransition(AutomatonViewModel automaton, Random random)
+    {
         var existingTransitions = automaton.Transitions.Where(t => t.Symbol != '\0').ToList();
-        if (existingTransitions.Count != 0)
+        if (existingTransitions.Count == 0)
+            return false;
+
+        var baseTransition = existingTransitions[random.Next(existingTransitions.Count)];
+        var otherStates = automaton.States.Where(s => s.Id != baseTransition.ToStateId).ToList();
+
+        if (otherStates.Count == 0)
+            return false;
+
+        var newTarget = otherStates[random.Next(otherStates.Count)];
+        automaton.Transitions.Add(new Transition
         {
-            var baseTransition = existingTransitions[random.Next(existingTransitions.Count)];
-            var otherStates = automaton.States.Where(s => s.Id != baseTransition.ToStateId).ToList();
+            FromStateId = baseTransition.FromStateId,
+            ToStateId = newTarget.Id,
+            Symbol = baseTransition.Symbol
+        });
 
-            if (otherStates.Count != 0)
-            {
-                var newTarget = otherStates[random.Next(otherStates.Count)];
-                automaton.Transitions.Add(new Transition
-                {
-                    FromStateId = baseTransition.FromStateId,
-                    ToStateId = newTarget.Id,
-                    Symbol = baseTransition.Symbol
-                });
-                if (logger.IsEnabled(LogLevel.Information))
-                {
-                    logger.LogInformation("Force-added nondeterministic transition: q{From} --{Symbol}--> q{To}",
-                    baseTransition.FromStateId, baseTransition.Symbol, newTarget.Id);
-                }
-                return automaton;
-            }
-        }
+        LogForcedTransition(baseTransition.FromStateId, baseTransition.Symbol, newTarget.Id);
+        return true;
+    }
 
+    private void AddRandomNondeterministicTransition(AutomatonViewModel automaton, List<char> alphabet, Random random)
+    {
         var fromState = automaton.States[random.Next(automaton.States.Count)];
         var symbol = alphabet[random.Next(alphabet.Count)];
         var toState = automaton.States[random.Next(automaton.States.Count)];
@@ -658,12 +844,17 @@ public class AutomatonPresetService(
             ToStateId = toState.Id,
             Symbol = symbol
         });
+
+        LogForcedTransition(fromState.Id, symbol, toState.Id);
+    }
+
+    private void LogForcedTransition(int fromStateId, char symbol, int toStateId)
+    {
         if (logger.IsEnabled(LogLevel.Information))
         {
             logger.LogInformation("Force-added nondeterministic transition: q{From} --{Symbol}--> q{To}",
-            fromState.Id, symbol, toState.Id);
+                fromStateId, symbol, toStateId);
         }
-        return automaton;
     }
 
     public string GetPresetDisplayName(string preset)

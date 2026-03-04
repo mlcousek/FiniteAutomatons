@@ -1,4 +1,4 @@
-// home.mjs - ES module orchestrator
+﻿// home.mjs - ES module orchestrator
 'use strict';
 
 import * as InputOverlay from './inputOverlay.mjs';
@@ -35,7 +35,7 @@ function disableInput(dis){
     var input = document.getElementById('inputField');
     if (!input) return;
     if (dis){
-        input.readOnly = true; // preserve value in POST
+        input.readOnly = true;
         input.classList.add('input-readonly');
     } else {
         input.readOnly = false;
@@ -50,38 +50,33 @@ function updateAll(){
     
     setStartAsStop(isSimulating);
     disableInput(isSimulating);
-    
-    // Show/hide overlay based on simulation state
+
     if (isSimulating) {
         InputOverlay.show();
         InputOverlay.render(posVal);
     } else {
         InputOverlay.hide();
     }
-    
-    // Update panel highlights
+
     PanelHighlighter.highlightCanvasState();
     PanelHighlighter.highlightLeftPanel();
 }
 
 document.addEventListener('DOMContentLoaded', function(){
     InputOverlay.init();
-    
-    // Initial update after a short delay to ensure DOM is fully ready
+
     setTimeout(updateAll,100);
     
     window.addEventListener('resize', function(){ 
         var posVal = parseInt(getInputValue('Position') || '0',10);
         InputOverlay.render(posVal); 
     });
-    
-    // Poll for updates
+
     setInterval(updateAll,300);
 
     var startBtn = document.querySelector('button[title="Start"], button[title="Stop"]');
     if (startBtn){ 
         startBtn.addEventListener('click', function(){ 
-            // Overlay will be shown by updateAll when server responds
             setTimeout(updateAll,50);
         }); 
     }
@@ -94,12 +89,10 @@ document.addEventListener('DOMContentLoaded', function(){
         }); 
     }
 
-    // Initialize panel drag & lock (left-side panels reordering)
     try{
         const panels = PanelHighlighter.initPanelDragAndLock('panelContainer');
         const lockBtn = document.getElementById('panelsLockBtn');
         if (lockBtn && panels){
-            // set initial icon based on stored state
             const locked = (function(){ try{ return localStorage.getItem('panelsLocked') === 'true'; }catch(e){ return false; } })();
             lockBtn.setAttribute('aria-pressed', locked ? 'true' : 'false');
             const icon = lockBtn.querySelector('i');
@@ -115,7 +108,6 @@ document.addEventListener('DOMContentLoaded', function(){
         }
     }catch(e){ console.warn('panel drag init failed', e); }
 
-    // Enable import button only when file selected
     try {
         const importForm = document.getElementById('importForm');
         if (importForm) {

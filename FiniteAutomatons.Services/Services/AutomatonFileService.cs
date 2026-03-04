@@ -25,66 +25,127 @@ public class AutomatonFileService(ILogger<AutomatonFileService> logger) : IAutom
         if (file == null || file.Length == 0)
             return (false, null, "Empty file.");
 
-        string content;
-        using (var ms = new MemoryStream())
-        {
-            await file.CopyToAsync(ms);
-            content = Encoding.UTF8.GetString(ms.ToArray());
-        }
+        var content = await ReadFileContentAsync(file);
+        var parseResult = ParseAutomatonFile(content, file.FileName);
 
-        var ext = Path.GetExtension(file.FileName).ToLowerInvariant();
-        Automaton? automaton = null;
-        var textErrors = new List<string>();
-        string? jsonError = null;
-        bool ok = false;
+        if (!parseResult.IsSuccess)
+            return (false, null, parseResult.ErrorMessage);
+
+        var viewModel = CreateViewModelFromAutomaton(parseResult.Automaton!);
+        LogSuccessfulLoad(file.FileName, viewModel);
+
+        return (true, viewModel, null);
+    }
+
+    private static async Task<string> ReadFileContentAsync(IFormFile file)
+    {
+        using var ms = new MemoryStream();
+        await file.CopyToAsync(ms);
+        return Encoding.UTF8.GetString(ms.ToArray());
+    }
+
+    private AutomatonParseResult ParseAutomatonFile(string content, string fileName)
+    {
+        var ext = Path.GetExtension(fileName).ToLowerInvariant();
+
         try
         {
             if (ext == ".json")
             {
-                ok = AutomatonJsonSerializer.TryDeserialize(content, out automaton, out jsonError);
+                return TryParseJson(content);
             }
-            else
-            {
-                ok = AutomatonCustomTextSerializer.TryDeserialize(content, out automaton, out textErrors);
-                if (!ok && ext == ".txt")
-                {
-                    ok = AutomatonJsonSerializer.TryDeserialize(content, out automaton, out jsonError);
-                }
-            }
+
+            return TryParseTextFormat(content, ext);
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Failed to parse automaton file {Name}", file.FileName);
-            return (false, null, "Failed to parse automaton file.");
+            logger.LogWarning(ex, "Failed to parse automaton file {Name}", fileName);
+            return AutomatonParseResult.Failure("Failed to parse automaton file.");
         }
+    }
 
-        if (!ok || automaton == null)
+    private static AutomatonParseResult TryParseJson(string content)
+    {
+        var ok = AutomatonJsonSerializer.TryDeserialize(content, out var automaton, out var jsonError);
+        return ok && automaton != null
+            ? AutomatonParseResult.Success(automaton)
+            : AutomatonParseResult.Failure(string.IsNullOrWhiteSpace(jsonError) ? "Invalid automaton file." : jsonError);
+    }
+
+    private static AutomatonParseResult TryParseTextFormat(string content, string extension)
+    {
+        var ok = AutomatonCustomTextSerializer.TryDeserialize(content, out var automaton, out var textErrors);
+
+        if (!ok && extension == ".txt")
         {
-            var err = jsonError ?? string.Join("; ", textErrors);
-            return (false, null, string.IsNullOrWhiteSpace(err) ? "Invalid automaton file." : err);
+            ok = AutomatonJsonSerializer.TryDeserialize(content, out automaton, out var jsonError);
+            if (ok && automaton != null)
+                return AutomatonParseResult.Success(automaton);
+
+            return AutomatonParseResult.Failure(string.IsNullOrWhiteSpace(jsonError) ? "Invalid automaton file." : jsonError);
         }
 
+        if (ok && automaton != null)
+            return AutomatonParseResult.Success(automaton);
+
+        var errorMessage = string.Join("; ", textErrors);
+        return AutomatonParseResult.Failure(string.IsNullOrWhiteSpace(errorMessage) ? "Invalid automaton file." : errorMessage);
+    }
+
+    private static AutomatonViewModel CreateViewModelFromAutomaton(Automaton automaton)
+    {
         var vm = new AutomatonViewModel
         {
-            Type = automaton switch
-            {
-                EpsilonNFA => AutomatonType.EpsilonNFA,
-                NFA => AutomatonType.NFA,
-                DFA => AutomatonType.DFA,
-                PDA => AutomatonType.PDA,
-                _ => AutomatonType.DFA
-            },
+            Type = DetermineAutomatonType(automaton),
             States = [.. automaton.States.Select(s => new State { Id = s.Id, IsStart = s.IsStart, IsAccepting = s.IsAccepting })],
-            Transitions = [.. automaton.Transitions.Select(t => new Transition { FromStateId = t.FromStateId, ToStateId = t.ToStateId, Symbol = t.Symbol, StackPop = t.StackPop, StackPush = t.StackPush })],
+            Transitions = [.. automaton.Transitions.Select(t => new Transition
+            {
+                FromStateId = t.FromStateId,
+                ToStateId = t.ToStateId,
+                Symbol = t.Symbol,
+                StackPop = t.StackPop,
+                StackPush = t.StackPush
+            })],
             IsCustomAutomaton = true
         };
 
         vm.NormalizeEpsilonTransitions();
+        return vm;
+    }
+
+    private static AutomatonType DetermineAutomatonType(Automaton automaton)
+    {
+        return automaton switch
+        {
+            EpsilonNFA => AutomatonType.EpsilonNFA,
+            NFA => AutomatonType.NFA,
+            DFA => AutomatonType.DFA,
+            PDA => AutomatonType.PDA,
+            _ => AutomatonType.DFA
+        };
+    }
+
+    private void LogSuccessfulLoad(string fileName, AutomatonViewModel viewModel)
+    {
         if (logger.IsEnabled(LogLevel.Information))
         {
-            logger.LogInformation("Loaded automaton from file {Name}: Type={Type} States={States} Transitions={Trans}", file.FileName, vm.Type, vm.States.Count, vm.Transitions.Count);
+            logger.LogInformation(
+                "Loaded automaton from file {Name}: Type={Type} States={States} Transitions={Trans}",
+                fileName, viewModel.Type, viewModel.States.Count, viewModel.Transitions.Count);
         }
-        return (true, vm, null);
+    }
+
+    private class AutomatonParseResult
+    {
+        public bool IsSuccess { get; init; }
+        public Automaton? Automaton { get; init; }
+        public string? ErrorMessage { get; init; }
+
+        public static AutomatonParseResult Success(Automaton automaton) =>
+            new() { IsSuccess = true, Automaton = automaton };
+
+        public static AutomatonParseResult Failure(string errorMessage) =>
+            new() { IsSuccess = false, ErrorMessage = errorMessage };
     }
 
     public async Task<(bool Ok, AutomatonViewModel? Model, string? Error)> LoadViewModelWithStateAsync(IFormFile file)
@@ -183,134 +244,219 @@ public class AutomatonFileService(ILogger<AutomatonFileService> logger) : IAutom
     {
         ArgumentNullException.ThrowIfNull(groupName);
         ArgumentNullException.ThrowIfNull(automatons);
-        if (logger.IsEnabled(LogLevel.Information))
-        {
-            logger.LogInformation("Exporting group '{GroupName}' with {Count} automaton(s)", groupName, automatons.Count);
-        }
-        var exportData = new GroupExportDto
+
+        LogExportStart(groupName, automatons.Count);
+
+        var exportData = CreateGroupExportData(groupName, groupDescription, automatons);
+        var json = JsonSerializer.Serialize(exportData, s_indentedSerializerOptions);
+        var fileName = GenerateExportFileName(groupName);
+
+        LogExportSuccess(groupName, fileName);
+
+        return (fileName, json);
+    }
+
+    private GroupExportDto CreateGroupExportData(string groupName, string? groupDescription, List<SavedAutomaton> automatons)
+    {
+        return new GroupExportDto
         {
             GroupName = groupName,
             GroupDescription = groupDescription,
             ExportedAt = DateTime.UtcNow,
-            Automatons = [.. automatons.Select(a =>
-            {
-                AutomatonPayloadDto? content = null;
-                SavedExecutionStateDto? execState = null;
-
-                try
-                {
-                    content = JsonSerializer.Deserialize<AutomatonPayloadDto>(a.ContentJson);
-                }
-                catch (Exception ex)
-                {
-                    logger.LogWarning(ex, "Failed to deserialize content for automaton {Id}", a.Id);
-                    content = new AutomatonPayloadDto();
-                }
-
-                if (a.SaveMode >= AutomatonSaveMode.WithInput && !string.IsNullOrEmpty(a.ExecutionStateJson))
-                {
-                    try
-                    {
-                        var fullExecState = JsonSerializer.Deserialize<SavedExecutionStateDto>(a.ExecutionStateJson);
-                        if (fullExecState != null)
-                        {
-                            if (a.SaveMode == AutomatonSaveMode.WithInput)
-                            {
-                                execState = new SavedExecutionStateDto
-                                {
-                                    Input = fullExecState.Input,
-                                    Position = 0,
-                                    CurrentStateId = null,
-                                    CurrentStates = null,
-                                    IsAccepted = null,
-                                    StateHistorySerialized = string.Empty,
-                                    StackSerialized = null
-                                };
-                            }
-                            else if (a.SaveMode == AutomatonSaveMode.WithState)
-                            {
-                                execState = fullExecState;
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.LogWarning(ex, "Failed to deserialize execution state for automaton {Id}", a.Id);
-                    }
-                }
-
-                var hasExecutionState = a.SaveMode == AutomatonSaveMode.WithState;
-
-                return new AutomatonExportItemDto
-                {
-                    Name = a.Name,
-                    Description = a.Description,
-                    HasExecutionState = hasExecutionState,
-                    Content = content ?? new AutomatonPayloadDto(),
-                    ExecutionState = execState
-                };
-            })]
+            Automatons = [.. automatons.Select(ConvertToExportItem)]
         };
+    }
 
-        var json = JsonSerializer.Serialize(exportData, s_indentedSerializerOptions);
-        var fileName = $"{SanitizeFileName(groupName)}_export_{DateTime.UtcNow:yyyyMMdd_HHmmss}.json";
+    private AutomatonExportItemDto ConvertToExportItem(SavedAutomaton automaton)
+    {
+        var content = DeserializeAutomatonContent(automaton);
+        var execState = ProcessExecutionState(automaton);
+        var hasExecutionState = automaton.SaveMode == AutomatonSaveMode.WithState;
+
+        return new AutomatonExportItemDto
+        {
+            Name = automaton.Name,
+            Description = automaton.Description,
+            HasExecutionState = hasExecutionState,
+            Content = content ?? new AutomatonPayloadDto(),
+            ExecutionState = execState
+        };
+    }
+
+    private AutomatonPayloadDto? DeserializeAutomatonContent(SavedAutomaton automaton)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<AutomatonPayloadDto>(automaton.ContentJson);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to deserialize content for automaton {Id}", automaton.Id);
+            return new AutomatonPayloadDto();
+        }
+    }
+
+    private SavedExecutionStateDto? ProcessExecutionState(SavedAutomaton automaton)
+    {
+        if (automaton.SaveMode < AutomatonSaveMode.WithInput || string.IsNullOrEmpty(automaton.ExecutionStateJson))
+            return null;
+
+        try
+        {
+            var fullExecState = JsonSerializer.Deserialize<SavedExecutionStateDto>(automaton.ExecutionStateJson);
+            if (fullExecState == null)
+                return null;
+
+            return automaton.SaveMode == AutomatonSaveMode.WithInput
+                ? CreateInputOnlyExecutionState(fullExecState)
+                : fullExecState;
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to deserialize execution state for automaton {Id}", automaton.Id);
+            return null;
+        }
+    }
+
+    private static SavedExecutionStateDto CreateInputOnlyExecutionState(SavedExecutionStateDto fullState)
+    {
+        return new SavedExecutionStateDto
+        {
+            Input = fullState.Input,
+            Position = 0,
+            CurrentStateId = null,
+            CurrentStates = null,
+            IsAccepted = null,
+            StateHistorySerialized = string.Empty,
+            StackSerialized = null
+        };
+    }
+
+    private static string GenerateExportFileName(string groupName)
+    {
+        return $"{SanitizeFileName(groupName)}_export_{DateTime.UtcNow:yyyyMMdd_HHmmss}.json";
+    }
+
+    private void LogExportStart(string groupName, int count)
+    {
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Exporting group '{GroupName}' with {Count} automaton(s)", groupName, count);
+        }
+    }
+
+    private void LogExportSuccess(string groupName, string fileName)
+    {
         if (logger.IsEnabled(LogLevel.Information))
         {
             logger.LogInformation("Successfully exported group '{GroupName}' to {FileName}", groupName, fileName);
         }
-        return (fileName, json);
     }
 
     public async Task<(bool Ok, GroupExportDto? Data, string? Error)> ImportGroupAsync(IFormFile file)
     {
+        var validation = ValidateImportFile(file);
+        if (!validation.IsValid)
+            return (false, null, validation.ErrorMessage);
+
+        LogImportStart(file.FileName);
+
+        var content = await ReadFileContentAsync(file);
+        var deserializationResult = DeserializeGroupImport(content, file.FileName);
+
+        if (!deserializationResult.IsSuccess)
+            return (false, null, deserializationResult.ErrorMessage);
+
+        var dataValidation = ValidateImportData(deserializationResult.Data!, file.FileName);
+        if (!dataValidation.IsValid)
+            return (false, null, dataValidation.ErrorMessage);
+
+        LogImportSuccess(deserializationResult.Data!);
+        return (true, deserializationResult.Data, null);
+    }
+
+    private ImportValidationResult ValidateImportFile(IFormFile? file)
+    {
         if (file == null || file.Length == 0)
         {
             logger.LogWarning("ImportGroupAsync called with empty file");
-            return (false, null, "No file uploaded.");
+            return ImportValidationResult.Invalid("No file uploaded.");
         }
-        if (logger.IsEnabled(LogLevel.Information))
-        {
-            logger.LogInformation("Importing group from file {FileName}", file.FileName);
-        }
+
+        return ImportValidationResult.Valid();
+    }
+
+    private GroupDeserializationResult DeserializeGroupImport(string content, string fileName)
+    {
         try
         {
-            string content;
-            using (var ms = new MemoryStream())
-            {
-                await file.CopyToAsync(ms);
-                content = Encoding.UTF8.GetString(ms.ToArray());
-            }
-
             var importData = JsonSerializer.Deserialize<GroupExportDto>(content, s_caseInsensitiveDeserializerOptions);
 
             if (importData == null)
             {
-                logger.LogWarning("Failed to deserialize group import file {FileName}", file.FileName);
-                return (false, null, "Invalid group export file format.");
+                logger.LogWarning("Failed to deserialize group import file {FileName}", fileName);
+                return GroupDeserializationResult.Failure("Invalid group export file format.");
             }
 
-            if (importData.Automatons == null || importData.Automatons.Count == 0)
-            {
-                logger.LogWarning("Group import file {FileName} contains no automatons", file.FileName);
-                return (false, null, "Group export file contains no automatons.");
-            }
-            if (logger.IsEnabled(LogLevel.Information))
-            {
-                logger.LogInformation("Successfully imported group '{GroupName}' with {Count} automaton(s)",
-                importData.GroupName, importData.Automatons.Count);
-            }
-            return (true, importData, null);
+            return GroupDeserializationResult.Success(importData);
         }
         catch (JsonException ex)
         {
-            logger.LogError(ex, "JSON parsing error while importing group from {FileName}", file.FileName);
-            return (false, null, "Invalid JSON format in group export file.");
+            logger.LogError(ex, "JSON parsing error while importing group from {FileName}", fileName);
+            return GroupDeserializationResult.Failure("Invalid JSON format in group export file.");
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Unexpected error while importing group from {FileName}", file.FileName);
-            return (false, null, "Failed to import group: " + ex.Message);
+            logger.LogError(ex, "Unexpected error while importing group from {FileName}", fileName);
+            return GroupDeserializationResult.Failure("Failed to import group: " + ex.Message);
         }
+    }
+
+    private ImportValidationResult ValidateImportData(GroupExportDto importData, string fileName)
+    {
+        if (importData.Automatons == null || importData.Automatons.Count == 0)
+        {
+            logger.LogWarning("Group import file {FileName} contains no automatons", fileName);
+            return ImportValidationResult.Invalid("Group export file contains no automatons.");
+        }
+
+        return ImportValidationResult.Valid();
+    }
+
+    private void LogImportStart(string fileName)
+    {
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Importing group from file {FileName}", fileName);
+        }
+    }
+
+    private void LogImportSuccess(GroupExportDto importData)
+    {
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Successfully imported group '{GroupName}' with {Count} automaton(s)",
+                importData.GroupName, importData.Automatons.Count);
+        }
+    }
+
+    private class ImportValidationResult
+    {
+        public bool IsValid { get; init; }
+        public string? ErrorMessage { get; init; }
+
+        public static ImportValidationResult Valid() => new() { IsValid = true };
+        public static ImportValidationResult Invalid(string errorMessage) => new() { IsValid = false, ErrorMessage = errorMessage };
+    }
+
+    private class GroupDeserializationResult
+    {
+        public bool IsSuccess { get; init; }
+        public GroupExportDto? Data { get; init; }
+        public string? ErrorMessage { get; init; }
+
+        public static GroupDeserializationResult Success(GroupExportDto data) => new() { IsSuccess = true, Data = data };
+        public static GroupDeserializationResult Failure(string errorMessage) => new() { IsSuccess = false, ErrorMessage = errorMessage };
     }
 
     private static string SanitizeFileName(string fileName)
@@ -361,50 +507,16 @@ public class AutomatonFileService(ILogger<AutomatonFileService> logger) : IAutom
         switch (mode.ToLowerInvariant())
         {
             case "input":
-                if (!string.IsNullOrEmpty(executionStateJson))
-                {
-                    var execState = JsonSerializer.Deserialize<JsonElement>(executionStateJson);
-                    if (execState.ValueKind != JsonValueKind.Undefined && execState.TryGetProperty("Input", out var input))
-                    {
-                        model.Input = input.GetString() ?? string.Empty;
-                    }
-                }
-                model.Position = 0;
-                model.CurrentStateId = null;
-                model.CurrentStates = null;
-                model.IsAccepted = null;
-                model.StateHistorySerialized = string.Empty;
-                model.StackSerialized = null;
+                ApplyInputFromJson(model, executionStateJson);
+                ResetModelToInputOnly(model);
                 break;
 
             case "state":
-                if (!string.IsNullOrEmpty(executionStateJson))
-                {
-                    var execState = JsonSerializer.Deserialize<JsonElement>(executionStateJson);
-                    if (execState.ValueKind != JsonValueKind.Undefined)
-                    {
-                        if (execState.TryGetProperty("Input", out var input)) model.Input = input.GetString() ?? string.Empty;
-                        if (execState.TryGetProperty("Position", out var pos)) model.Position = pos.GetInt32();
-                        if (execState.TryGetProperty("CurrentStateId", out var csid) && csid.ValueKind != JsonValueKind.Null)
-                            model.CurrentStateId = csid.GetInt32();
-                        if (execState.TryGetProperty("IsAccepted", out var acc) && acc.ValueKind != JsonValueKind.Null)
-                            model.IsAccepted = acc.GetBoolean();
-                        if (execState.TryGetProperty("StateHistorySerialized", out var hist))
-                            model.StateHistorySerialized = hist.GetString() ?? string.Empty;
-                        if (execState.TryGetProperty("StackSerialized", out var stack) && stack.ValueKind != JsonValueKind.Null)
-                            model.StackSerialized = stack.GetString();
-                    }
-                }
+                ApplyStateFromJson(model, executionStateJson);
                 break;
 
             default:
-                model.Input = string.Empty;
-                model.Position = 0;
-                model.CurrentStateId = null;
-                model.CurrentStates = null;
-                model.IsAccepted = null;
-                model.StateHistorySerialized = string.Empty;
-                model.StackSerialized = null;
+                ResetModelToDefaultState(model);
                 break;
         }
     }
@@ -416,47 +528,111 @@ public class AutomatonFileService(ILogger<AutomatonFileService> logger) : IAutom
         switch (mode.ToLowerInvariant())
         {
             case "input":
-                if (executionState != null)
-                {
-                    model.Input = executionState.Input ?? string.Empty;
-                }
-                model.Position = 0;
-                model.CurrentStateId = null;
-                model.CurrentStates = null;
-                model.IsAccepted = null;
-                model.StateHistorySerialized = string.Empty;
-                model.StackSerialized = null;
-                model.HasExecuted = false;
+                ApplyInputFromDto(model, executionState);
+                ResetModelToInputOnly(model, setHasExecuted: true);
                 break;
 
             case "state":
-                if (executionState != null)
-                {
-                    model.Input = executionState.Input ?? string.Empty;
-
-                    if (saveMode == AutomatonSaveMode.WithState)
-                    {
-                        model.Position = executionState.Position;
-                        model.CurrentStateId = executionState.CurrentStateId;
-                        model.CurrentStates = executionState.CurrentStates != null ? [.. executionState.CurrentStates] : null;
-                        model.IsAccepted = executionState.IsAccepted;
-                        model.StateHistorySerialized = executionState.StateHistorySerialized ?? string.Empty;
-                        model.StackSerialized = executionState.StackSerialized;
-                        model.HasExecuted = true;
-                    }
-                }
+                ApplyStateFromDto(model, executionState, saveMode);
                 break;
 
             default:
-                model.Input = string.Empty;
-                model.Position = 0;
-                model.CurrentStateId = null;
-                model.CurrentStates = null;
-                model.IsAccepted = null;
-                model.StateHistorySerialized = string.Empty;
-                model.StackSerialized = null;
-                model.HasExecuted = false;
+                ResetModelToDefaultState(model, setHasExecuted: true);
                 break;
         }
+    }
+
+    private static void ApplyInputFromJson(AutomatonViewModel model, string? executionStateJson)
+    {
+        if (string.IsNullOrEmpty(executionStateJson))
+            return;
+
+        var execState = JsonSerializer.Deserialize<JsonElement>(executionStateJson);
+        if (execState.ValueKind != JsonValueKind.Undefined && execState.TryGetProperty("Input", out var input))
+        {
+            model.Input = input.GetString() ?? string.Empty;
+        }
+    }
+
+    private static void ApplyStateFromJson(AutomatonViewModel model, string? executionStateJson)
+    {
+        if (string.IsNullOrEmpty(executionStateJson))
+            return;
+
+        var execState = JsonSerializer.Deserialize<JsonElement>(executionStateJson);
+        if (execState.ValueKind == JsonValueKind.Undefined)
+            return;
+
+        if (execState.TryGetProperty("Input", out var input))
+            model.Input = input.GetString() ?? string.Empty;
+
+        if (execState.TryGetProperty("Position", out var pos))
+            model.Position = pos.GetInt32();
+
+        if (execState.TryGetProperty("CurrentStateId", out var csid) && csid.ValueKind != JsonValueKind.Null)
+            model.CurrentStateId = csid.GetInt32();
+
+        if (execState.TryGetProperty("IsAccepted", out var acc) && acc.ValueKind != JsonValueKind.Null)
+            model.IsAccepted = acc.GetBoolean();
+
+        if (execState.TryGetProperty("StateHistorySerialized", out var hist))
+            model.StateHistorySerialized = hist.GetString() ?? string.Empty;
+
+        if (execState.TryGetProperty("StackSerialized", out var stack) && stack.ValueKind != JsonValueKind.Null)
+            model.StackSerialized = stack.GetString();
+    }
+
+    private static void ApplyInputFromDto(AutomatonViewModel model, SavedExecutionStateDto? executionState)
+    {
+        if (executionState != null)
+        {
+            model.Input = executionState.Input ?? string.Empty;
+        }
+    }
+
+    private static void ApplyStateFromDto(AutomatonViewModel model, SavedExecutionStateDto? executionState, AutomatonSaveMode saveMode)
+    {
+        if (executionState == null)
+            return;
+
+        model.Input = executionState.Input ?? string.Empty;
+
+        if (saveMode == AutomatonSaveMode.WithState)
+        {
+            model.Position = executionState.Position;
+            model.CurrentStateId = executionState.CurrentStateId;
+            model.CurrentStates = executionState.CurrentStates != null ? [.. executionState.CurrentStates] : null;
+            model.IsAccepted = executionState.IsAccepted;
+            model.StateHistorySerialized = executionState.StateHistorySerialized ?? string.Empty;
+            model.StackSerialized = executionState.StackSerialized;
+            model.HasExecuted = true;
+        }
+    }
+
+    private static void ResetModelToInputOnly(AutomatonViewModel model, bool setHasExecuted = false)
+    {
+        model.Position = 0;
+        model.CurrentStateId = null;
+        model.CurrentStates = null;
+        model.IsAccepted = null;
+        model.StateHistorySerialized = string.Empty;
+        model.StackSerialized = null;
+
+        if (setHasExecuted)
+            model.HasExecuted = false;
+    }
+
+    private static void ResetModelToDefaultState(AutomatonViewModel model, bool setHasExecuted = false)
+    {
+        model.Input = string.Empty;
+        model.Position = 0;
+        model.CurrentStateId = null;
+        model.CurrentStates = null;
+        model.IsAccepted = null;
+        model.StateHistorySerialized = string.Empty;
+        model.StackSerialized = null;
+
+        if (setHasExecuted)
+            model.HasExecuted = false;
     }
 }

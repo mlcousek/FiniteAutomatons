@@ -11,27 +11,14 @@ import { CanvasFormSync } from './canvas/CanvasFormSync.js';
 import { PanelSync } from './canvas/PanelSync.js';
 import { CanvasLayoutCache } from './canvas/CanvasLayoutCache.js';
 
-/**
- * Global canvas instance
- */
 let canvas = null;
 
-/**
- * Global form sync instance
- */
 let formSync = null;
 
-/**
- * Global panel sync instance (real-time left-panel updates)
- */
 let panelSync = null;
 
-/**
- * Initialize the automaton canvas on page load
- */
 export function initAutomatonCanvas() {
     try {
-        // Create canvas instance
         canvas = new AutomatonCanvas('automatonCanvasContainer', {
             readOnly: true,
             enablePanZoom: true,
@@ -41,20 +28,14 @@ export function initAutomatonCanvas() {
             wheelSensitivity: 0.2
         });
 
-        // Initialize
         canvas.init();
 
-        // Expose canvas to non-module scripts (e.g. saveAutomatonModal.js)
         window.getCanvasInstance = () => canvas;
 
-        // Load automaton data from form
         const automatonData = parseAutomatonFromForm();
         if (automatonData && automatonData.states && automatonData.states.length > 0) {
             canvas.loadAutomaton(automatonData);
 
-            // If the server passed saved DB layout positions, seed them into the
-            // localStorage cache AND apply them directly. This overrides whatever
-            // the cache had, ensuring a just-loaded automaton uses its DB positions.
             if (window.__savedLayoutJson) {
                 try {
                     const positions = typeof window.__savedLayoutJson === 'string'
@@ -64,7 +45,6 @@ export function initAutomatonCanvas() {
                     if (positions && typeof positions === 'object') {
                         CanvasLayoutCache.applyPositions(canvas.cy, positions);
 
-                        // Re-seed cache so page reloads also use these positions
                         if (canvas._layoutFingerprint) {
                             const entry = { savedAt: Date.now(), positions };
                             try {
@@ -82,31 +62,22 @@ export function initAutomatonCanvas() {
                 }
             }
 
-            // Highlight active states if execution started
             highlightActiveStates();
         } else {
             showPlaceholder();
         }
 
-        // Set up control buttons
         setupCanvasControls();
 
-        // Set up form synchronization (Phase 2)
         setupFormSync();
 
-        // Canvas ready (minimal logging)
     } catch (error) {
         console.error('Failed to initialize canvas:', error);
     }
 }
 
-/**
- * Parse automaton data from hidden form inputs
- * @returns {Object} Automaton data object
- */
 function parseAutomatonFromForm() {
     try {
-        // Get automaton type
         const typeInput = document.querySelector('input[name="Type"]');
         if (!typeInput) {
             console.warn('Automaton type input not found');
@@ -115,20 +86,16 @@ function parseAutomatonFromForm() {
 
         const automatonType = parseAutomatonType(typeInput.value);
 
-        // Parse states
         const states = parseStates();
         if (states.length === 0) {
             console.warn('No states found in form');
             return null;
         }
 
-        // Parse transitions
         const transitions = parseTransitions(automatonType);
 
-        // Get active states
         const activeStates = getActiveStateIds();
 
-        // Get metadata
         const hasExecuted = document.querySelector('input[name="HasExecuted"]')?.value === 'true';
         const position = parseInt(document.querySelector('input[name="Position"]')?.value || '0', 10);
 
@@ -148,11 +115,6 @@ function parseAutomatonFromForm() {
     }
 }
 
-/**
- * Parse automaton type from string/number
- * @param {string|number} typeValue - Type value from form
- * @returns {string} Automaton type string
- */
 function parseAutomatonType(typeValue) {
     const typeMap = {
         '0': 'DFA',
@@ -168,10 +130,6 @@ function parseAutomatonType(typeValue) {
     return typeMap[typeValue] || 'DFA';
 }
 
-/**
- * Parse states from form inputs
- * @returns {Array} Array of state objects
- */
 function parseStates() {
     const states = [];
     const stateIndexInputs = document.querySelectorAll('input[name="States.Index"]');
@@ -194,11 +152,6 @@ function parseStates() {
     return states;
 }
 
-/**
- * Parse transitions from form inputs
- * @param {string} automatonType - Type of automaton
- * @returns {Array} Array of transition objects
- */
 function parseTransitions(automatonType) {
     const transitions = [];
     const transIndexInputs = document.querySelectorAll('input[name="Transitions.Index"]');
@@ -216,7 +169,6 @@ function parseTransitions(automatonType) {
                 symbol: parseSymbol(symbolInput?.value)
             };
 
-            // PDA-specific fields
             if (automatonType === 'PDA') {
                 const stackPopInput = document.querySelector(`input[name="Transitions[${index}].StackPop"]`);
                 const stackPushInput = document.querySelector(`input[name="Transitions[${index}].StackPush"]`);
@@ -232,11 +184,6 @@ function parseTransitions(automatonType) {
     return transitions;
 }
 
-/**
- * Parse symbol (handle epsilon notation)
- * @param {string} symbolValue - Symbol value from form
- * @returns {string} Parsed symbol
- */
 function parseSymbol(symbolValue) {
     if (!symbolValue || symbolValue === '\\0') {
         return '\0'; // Epsilon
@@ -244,14 +191,9 @@ function parseSymbol(symbolValue) {
     return symbolValue;
 }
 
-/**
- * Get currently active state IDs
- * @returns {Array<number>} Array of active state IDs
- */
 function getActiveStateIds() {
     const activeIds = [];
 
-    // Check for single current state (DFA/PDA)
     const currentStateInput = document.querySelector('input[name="CurrentStateId"]');
     if (currentStateInput && currentStateInput.value) {
         const stateId = parseInt(currentStateInput.value, 10);
@@ -260,7 +202,6 @@ function getActiveStateIds() {
         }
     }
 
-    // Check for multiple current states (NFA/ε-NFA)
     const currentStatesInputs = document.querySelectorAll('input[name^="CurrentStates["]');
     currentStatesInputs.forEach(input => {
         const stateId = parseInt(input.value, 10);
@@ -272,9 +213,6 @@ function getActiveStateIds() {
     return activeIds;
 }
 
-/**
- * Highlight currently active states on canvas
- */
 function highlightActiveStates() {
     if (!canvas) return;
 
@@ -282,13 +220,11 @@ function highlightActiveStates() {
     if (activeStateIds.length > 0) {
         canvas.highlight(activeStateIds);
 
-        // Disable edit mode button during simulation (moving remains available)
         const editModeToggleBtn = document.getElementById('editModeToggleBtn');
         if (editModeToggleBtn) {
             editModeToggleBtn.disabled = true;
         }
     } else {
-        // Re-enable edit mode button when simulation ends
         const editModeToggleBtn = document.getElementById('editModeToggleBtn');
         if (editModeToggleBtn) {
             editModeToggleBtn.disabled = false;
@@ -296,11 +232,7 @@ function highlightActiveStates() {
     }
 }
 
-/**
- * Set up canvas control buttons
- */
 function setupCanvasControls() {
-    // Zoom in button
     const zoomInBtn = document.getElementById('zoomInBtn');
     if (zoomInBtn) {
         zoomInBtn.addEventListener('click', () => {
@@ -308,7 +240,6 @@ function setupCanvasControls() {
         });
     }
 
-    // Zoom out button
     const zoomOutBtn = document.getElementById('zoomOutBtn');
     if (zoomOutBtn) {
         zoomOutBtn.addEventListener('click', () => {
@@ -316,7 +247,6 @@ function setupCanvasControls() {
         });
     }
 
-    // Fit to view button
     const fitBtn = document.getElementById('fitBtn');
     if (fitBtn) {
         fitBtn.addEventListener('click', () => {
@@ -324,21 +254,17 @@ function setupCanvasControls() {
         });
     }
 
-    // Wheel lock toggle (enable/disable zooming by mouse wheel)
     const wheelLockBtn = document.getElementById('wheelLockBtn');
     const wheelLockIcon = document.getElementById('wheelLockIcon');
     if (wheelLockBtn) {
-        // Preference key in localStorage
         const LOCAL_KEY = 'fa-wheel-zoom-enabled';
 
-        // Initialize from localStorage (default false)
         let wheelEnabled = false;
         try {
             const ls = localStorage.getItem(LOCAL_KEY);
             if (ls !== null) wheelEnabled = ls === 'true';
         } catch (_) { }
 
-        // If user is authenticated, attempt to load server-side preference which overrides localStorage
         (async function loadServerPrefIfAuth(){
             try {
                 if (window.__isAuthenticated) {
@@ -358,16 +284,13 @@ function setupCanvasControls() {
             }
         })();
 
-        // Attach click handler
         wheelLockBtn.addEventListener('click', async () => {
             if (!canvas) return;
             wheelEnabled = !wheelEnabled;
             applyWheelState(wheelEnabled);
 
-            // Persist locally
             try { localStorage.setItem(LOCAL_KEY, String(wheelEnabled)); } catch (_) { }
 
-            // Persist server-side for authenticated users
             try {
                 if (window.__isAuthenticated) {
                     await fetch('/api/preferences/canvas-wheel', {
@@ -400,16 +323,13 @@ function setupCanvasControls() {
         updateWheelButton(enabled);
     }
 
-    // Reset layout button — clears the position cache, then re-runs the layout algorithm
     const resetLayoutBtn = document.getElementById('resetLayoutBtn');
     if (resetLayoutBtn) {
         resetLayoutBtn.addEventListener('click', () => {
-            if (canvas) canvas.relayout(); // relayout() already calls clearLayoutCache() internally
+            if (canvas) canvas.relayout(); 
         });
     }
 
-    // Buttons that replace the current automaton with a completely new one —
-    // clear the layout cache so stale positions don’t bleed into the new graph.
     const newAutomatonBtn = document.getElementById('newAutomatonBtn');
     if (newAutomatonBtn) {
         newAutomatonBtn.addEventListener('click', () => {
@@ -420,19 +340,15 @@ function setupCanvasControls() {
     const generateModalBtnEl = document.getElementById('generateModalBtn');
     if (generateModalBtnEl) {
         generateModalBtnEl.addEventListener('click', () => {
-            // Cache cleared when the new automaton is actually loaded (fingerprint will change).
-            // No explicit clear needed here.
         });
     }
 
-    // Import replaces the automaton entirely — clear cache proactively
     const importUpload = document.getElementById('importUploadInput');
     if (importUpload) {
         importUpload.addEventListener('change', () => {
-            if (canvas) CanvasLayoutCache.clearAll(); // imported automaton IDs may differ
+            if (canvas) CanvasLayoutCache.clearAll(); 
         });
     }
-    // Edit & Move mode toggles (Phase 2)
     const editModeToggleBtn = document.getElementById('editModeToggleBtn');
     const editModeIcon = document.getElementById('editModeIcon');
     const editModeText = document.getElementById('editModeText');
@@ -441,11 +357,8 @@ function setupCanvasControls() {
     const moveModeIcon = document.getElementById('moveModeIcon');
     const moveModeText = document.getElementById('moveModeText');
 
-    // MOVE toggle: controls node dragging separately from edit mode
     if (moveToggleBtn) {
-        // Default: moving enabled
         let moveActive = true;
-        // Ensure canvas moving state matches
         if (canvas && canvas.enableMoving) canvas.enableMoving();
         updateMoveButton(moveActive);
 
@@ -475,12 +388,9 @@ function setupCanvasControls() {
         }
     }
 
-    // EDIT toggle: controls add/delete/edit actions
     if (editModeToggleBtn) {
-        // Enable button (disabled by default in HTML)
         editModeToggleBtn.disabled = false;
 
-        // Click handler
         editModeToggleBtn.addEventListener('click', () => {
             if (!canvas) return;
 
@@ -488,21 +398,17 @@ function setupCanvasControls() {
             updateEditModeButton(isActive);
         });
 
-        // Listen for edit mode changes from canvas
         window.addEventListener('canvasEditModeChanged', (e) => {
             updateEditModeButton(e.detail.isEditMode);
         });
 
-        // Function to update button state
         function updateEditModeButton(isEditMode) {
             if (isEditMode) {
-                // Edit mode ON (unlocked)
                 editModeIcon.className = 'fas fa-unlock';
                 editModeText.textContent = 'Unlocked';
                 editModeToggleBtn.classList.add('edit-mode-active');
                 editModeToggleBtn.title = 'Lock Canvas (Disable Editing)';
             } else {
-                // Edit mode OFF (locked)
                 editModeIcon.className = 'fas fa-lock';
                 editModeText.textContent = 'Locked';
                 editModeToggleBtn.classList.remove('edit-mode-active');
@@ -510,11 +416,9 @@ function setupCanvasControls() {
             }
         }
 
-        // Initialize button state
         updateEditModeButton(false);
     }
 
-    // Undo/Redo buttons (Phase 2)
     const undoBtn = document.getElementById('undoBtn');
     const redoBtn = document.getElementById('redoBtn');
 
@@ -530,10 +434,8 @@ function setupCanvasControls() {
         });
     }
 
-    // Keyboard shortcuts: Ctrl+Z (undo), Ctrl+Y / Ctrl+Shift+Z (redo)
     document.addEventListener('keydown', (e) => {
         if (!canvas) return;
-        // Only fire if not typing in an input/textarea
         const tag = document.activeElement?.tagName;
         if (tag === 'INPUT' || tag === 'TEXTAREA') return;
 
@@ -547,13 +449,9 @@ function setupCanvasControls() {
     });
 }
 
-/**
- * Set up form synchronization — listens to canvas events and rebuilds form inputs
- */
 function setupFormSync() {
     if (!canvas) return;
 
-    // Determine automaton type for PDA detection
     const typeInput = document.querySelector('input[name="Type"]');
     const automatonType = parseAutomatonType(typeInput?.value || 'DFA');
 
@@ -568,17 +466,14 @@ function setupFormSync() {
         }
     };
 
-    // Listen for all canvas edit events
     window.addEventListener('canvasStateAdded', syncCanvas);
     window.addEventListener('canvasStateDeleted', syncCanvas);
     window.addEventListener('canvasStateModified', syncCanvas);
     window.addEventListener('canvasTransitionAdded', syncCanvas);
     window.addEventListener('canvasTransitionDeleted', syncCanvas);
     window.addEventListener('canvasTransitionModified', syncCanvas);
-    // When undo/redo is applied via ActionHistory, re-sync the form
     window.addEventListener('canvasHistoryApplied', syncCanvas);
 
-    // Initialize PanelSync for real-time left-panel updates
     panelSync = new PanelSync({
         getCanvasInstance: () => canvas
     });
@@ -587,16 +482,10 @@ function setupFormSync() {
     console.log('CanvasFormSync + PanelSync initialized');
 }
 
-/**
- * Observe form changes and update canvas (legacy — replaced by setupFormSync)
- */
 function observeFormChanges() {
     console.log('Canvas form sync active (Phase 2 interactive mode)');
 }
 
-/**
- * Reload canvas with current form data
- */
 function reloadCanvas() {
     if (!canvas) return;
 
@@ -611,9 +500,6 @@ function reloadCanvas() {
     }
 }
 
-/**
- * Show placeholder when no automaton is loaded
- */
 function showPlaceholder() {
     const container = document.getElementById('automatonCanvasContainer');
     if (!container) return;
@@ -633,16 +519,10 @@ function showPlaceholder() {
     container.appendChild(placeholder);
 }
 
-/**
- * Public API: Force refresh canvas
- */
 export function refreshCanvas() {
     reloadCanvas();
 }
 
-/**
- * Public API: Export canvas as image
- */
 export function exportCanvasImage() {
     if (!canvas) {
         console.warn('Canvas not initialized');
@@ -652,23 +532,16 @@ export function exportCanvasImage() {
     return canvas.exportAsImage();
 }
 
-/**
- * Public API: Get canvas instance
- */
 export function getCanvasInstance() {
     return canvas;
 }
 
-/**
- * Initialize on DOM ready
- */
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initAutomatonCanvas);
 } else {
     initAutomatonCanvas();
 }
 
-// Expose to window for compatibility
 if (typeof window !== 'undefined') {
     window.refreshCanvas = refreshCanvas;
     window.exportCanvasImage = exportCanvasImage;

@@ -9,7 +9,6 @@
     let dragEl = null;
     let lockState = false;
 
-    // Restore lock state from localStorage
     try { 
         lockState = localStorage.getItem('generateSectionsLocked') === 'true'; 
     } catch(e) { }
@@ -18,12 +17,10 @@
         if (!modal) return;
         modal.style.display = 'flex';
         document.body.style.overflow = 'hidden';
-        
-        // Trigger reflow for animation
+
         modal.offsetHeight;
         modal.classList.add('modal-open');
-        
-        // Populate options when opening
+
         populateOptionsForFamily(document.getElementById('generateFamilySelect')?.value || 'DFA');
         updateLockedClass();
     };
@@ -31,8 +28,7 @@
     const closeModal = () => {
         if (!modal) return;
         modal.classList.remove('modal-open');
-        
-        // Wait for animation to complete
+
         setTimeout(() => {
             modal.style.display = 'none';
             document.body.style.overflow = '';
@@ -59,7 +55,6 @@
         } catch(e) { }
     }
 
-    // Drag and drop event handlers
     if (container) {
         container.addEventListener('dragstart', function(e) {
             if (lockState) { 
@@ -161,8 +156,7 @@
             } catch(e) {}
         }
     }
-    
-    // Lock button handler
+
     if (lockBtn) {
         lockBtn.setAttribute('aria-pressed', lockState ? 'true' : 'false');
         const icon = lockBtn.querySelector('i');
@@ -190,13 +184,11 @@
     if (close && modal) {
         close.addEventListener('click', closeModal);
     }
-    
-    // Close on backdrop click
+
     window.addEventListener('click', (e) => { 
         if (e.target === modal) closeModal(); 
     });
-    
-    // Close on Escape key
+
     window.addEventListener('keydown', (e) => { 
         if (e.key === 'Escape' && modal.style.display === 'flex') closeModal(); 
     });
@@ -227,8 +219,7 @@
     if (familySelect) {
         familySelect.addEventListener('change', () => populateOptionsForFamily(familySelect.value));
     }
-    
-    // Add keyboard focus trap
+
     if (modal) {
         modal.addEventListener('keydown', (e) => {
             if (e.key === 'Tab') {
@@ -251,4 +242,3 @@
 
     restorePanelOrder();
 })();
-

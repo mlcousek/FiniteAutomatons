@@ -1,4 +1,4 @@
-// simulateControls.mjs
+﻿// simulateControls.mjs
 // Dynamically manages enable/disable state of simulation buttons to avoid server-side duplication.
 'use strict';
 
@@ -21,7 +21,6 @@ function updateButtons(){
     const inputEl = qs('#inputField');
     const inputLen = inputEl ? inputEl.value.length : 0;
 
-    // Base rule: buttons require execution started
     qsa('[data-sim-action]').forEach(btn => {
         if (!hasExecuted){
             btn.setAttribute('disabled','');
@@ -30,7 +29,6 @@ function updateButtons(){
         }
     });
 
-    // When at first position (0) disable BackToStart & StepBackward
     if (hasExecuted && pos <= 0){
         const backToStart = qs('[data-sim-action="backToStart"]');
         const stepBackward = qs('[data-sim-action="stepBackward"]');
@@ -38,7 +36,6 @@ function updateButtons(){
         if (stepBackward) stepBackward.setAttribute('disabled','');
     }
 
-    // When at or past end of input disable StepForward & ExecuteAll
     if (hasExecuted && pos >= inputLen){
         const stepForward = qs('[data-sim-action="stepForward"]');
         const executeAll = qs('[data-sim-action="executeAll"]');
@@ -48,9 +45,7 @@ function updateButtons(){
 }
 
 export function init(){
-    // Initial state
     updateButtons();
-    // Poll (cheap) because page re-posts for state changes
     setInterval(updateButtons, 500);
 }
 

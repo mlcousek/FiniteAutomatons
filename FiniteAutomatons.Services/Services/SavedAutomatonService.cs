@@ -19,72 +19,124 @@ public class SavedAutomatonService(ILogger<SavedAutomatonService> logger, Applic
 
     public async Task<SavedAutomaton> SaveAsync(string userId, string name, string? description, AutomatonViewModel model, bool saveExecutionState = false, int? groupId = null, string? layoutJson = null, string? thumbnailBase64 = null)
     {
-        ArgumentNullException.ThrowIfNull(userId);
-        ArgumentNullException.ThrowIfNull(name);
-        ArgumentNullException.ThrowIfNull(model);
+        ValidateSaveParameters(userId, name, model);
 
         model.States ??= [];
         model.Transitions ??= [];
 
         if (groupId.HasValue)
         {
-            var grp = await db.SavedAutomatonGroups.FirstOrDefaultAsync(g => g.Id == groupId.Value) ?? throw new InvalidOperationException("Group not found");
-            if (!grp.MembersCanShare && grp.UserId != userId)
-            {
-                throw new UnauthorizedAccessException("You are not allowed to save into this group.");
-            }
-            else
-            {
-                if (grp.MembersCanShare && grp.UserId != userId)
-                {
-                    var isMember = await db.SavedAutomatonGroupMembers.AnyAsync(m => m.GroupId == grp.Id && m.UserId == userId);
-                    if (!isMember) throw new UnauthorizedAccessException("You are not a member of this group.");
-                }
-            }
+            await ValidateGroupPermissionsAsync(groupId.Value, userId);
         }
 
-        var payload = System.Text.Json.JsonSerializer.Serialize(new AutomatonPayloadDto
+        var payload = SerializeAutomatonPayload(model);
+        var (saveMode, execJson) = DetermineSaveModeAndExecutionState(model, saveExecutionState);
+        var entity = CreateSavedAutomatonEntity(userId, name, description, model, payload, saveMode, execJson, layoutJson, thumbnailBase64);
+
+        db.SavedAutomatons.Add(entity);
+        await db.SaveChangesAsync();
+
+        if (groupId.HasValue)
+        {
+            await AssignToGroupIfNotExistsAsync(entity.Id, groupId.Value);
+        }
+
+        LogSaveSuccess(entity.Id, userId, saveMode);
+        return entity;
+    }
+
+    private static void ValidateSaveParameters(string userId, string name, AutomatonViewModel model)
+    {
+        ArgumentNullException.ThrowIfNull(userId);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(model);
+    }
+
+    private async Task ValidateGroupPermissionsAsync(int groupId, string userId)
+    {
+        var grp = await db.SavedAutomatonGroups.FirstOrDefaultAsync(g => g.Id == groupId)
+            ?? throw new InvalidOperationException("Group not found");
+
+        if (!grp.MembersCanShare && grp.UserId != userId)
+        {
+            throw new UnauthorizedAccessException("You are not allowed to save into this group.");
+        }
+
+        if (grp.MembersCanShare && grp.UserId != userId)
+        {
+            await ValidateGroupMembershipAsync(grp.Id, userId);
+        }
+    }
+
+    private async Task ValidateGroupMembershipAsync(int groupId, string userId)
+    {
+        var isMember = await db.SavedAutomatonGroupMembers.AnyAsync(m => m.GroupId == groupId && m.UserId == userId);
+        if (!isMember)
+        {
+            throw new UnauthorizedAccessException("You are not a member of this group.");
+        }
+    }
+
+    private static string SerializeAutomatonPayload(AutomatonViewModel model)
+    {
+        return System.Text.Json.JsonSerializer.Serialize(new AutomatonPayloadDto
         {
             Type = model.Type,
             States = model.States,
             Transitions = model.Transitions
         }, JsonOptions);
+    }
 
-        string? execJson = null;
-        AutomatonSaveMode saveMode = AutomatonSaveMode.Structure;
-
+    private static (AutomatonSaveMode SaveMode, string? ExecJson) DetermineSaveModeAndExecutionState(AutomatonViewModel model, bool saveExecutionState)
+    {
         if (saveExecutionState)
         {
-            saveMode = AutomatonSaveMode.WithState;
-            var exec = new SavedExecutionStateDto
-            {
-                Input = model.Input,
-                Position = model.Position,
-                CurrentStateId = model.CurrentStateId,
-                CurrentStates = model.CurrentStates?.ToList(),
-                IsAccepted = model.IsAccepted,
-                StateHistorySerialized = model.StateHistorySerialized,
-                StackSerialized = model.StackSerialized
-            };
-            execJson = System.Text.Json.JsonSerializer.Serialize(exec, JsonOptions);
-        }
-        else if (!string.IsNullOrEmpty(model.Input))
-        {
-            saveMode = AutomatonSaveMode.WithInput;
-            var exec = new SavedExecutionStateDto
-            {
-                Input = model.Input,
-                Position = 0,
-                CurrentStateId = null,
-                CurrentStates = null,
-                IsAccepted = null,
-                StateHistorySerialized = string.Empty,
-                StackSerialized = null
-            };
-            execJson = System.Text.Json.JsonSerializer.Serialize(exec, JsonOptions);
+            return (AutomatonSaveMode.WithState, SerializeFullExecutionState(model));
         }
 
-        var entity = new SavedAutomaton
+        if (!string.IsNullOrEmpty(model.Input))
+        {
+            return (AutomatonSaveMode.WithInput, SerializeInputOnly(model));
+        }
+
+        return (AutomatonSaveMode.Structure, null);
+    }
+
+    private static string SerializeFullExecutionState(AutomatonViewModel model)
+    {
+        var exec = new SavedExecutionStateDto
+        {
+            Input = model.Input,
+            Position = model.Position,
+            CurrentStateId = model.CurrentStateId,
+            CurrentStates = model.CurrentStates?.ToList(),
+            IsAccepted = model.IsAccepted,
+            StateHistorySerialized = model.StateHistorySerialized,
+            StackSerialized = model.StackSerialized
+        };
+        return System.Text.Json.JsonSerializer.Serialize(exec, JsonOptions);
+    }
+
+    private static string SerializeInputOnly(AutomatonViewModel model)
+    {
+        var exec = new SavedExecutionStateDto
+        {
+            Input = model.Input,
+            Position = 0,
+            CurrentStateId = null,
+            CurrentStates = null,
+            IsAccepted = null,
+            StateHistorySerialized = string.Empty,
+            StackSerialized = null
+        };
+        return System.Text.Json.JsonSerializer.Serialize(exec, JsonOptions);
+    }
+
+    private static SavedAutomaton CreateSavedAutomatonEntity(string userId, string name, string? description,
+        AutomatonViewModel model, string payload, AutomatonSaveMode saveMode, string? execJson,
+        string? layoutJson, string? thumbnailBase64)
+    {
+        return new SavedAutomaton
         {
             UserId = userId,
             Name = name,
@@ -97,23 +149,29 @@ public class SavedAutomatonService(ILogger<SavedAutomatonService> logger, Applic
             SourceRegex = model.SourceRegex,
             CreatedAt = DateTime.UtcNow,
         };
+    }
 
-        db.SavedAutomatons.Add(entity);
-        await db.SaveChangesAsync();
-        if (groupId.HasValue)
+    private async Task AssignToGroupIfNotExistsAsync(int automatonId, int groupId)
+    {
+        var exists = await db.SavedAutomatonGroupAssignments.AnyAsync(a => a.AutomatonId == automatonId && a.GroupId == groupId);
+        if (!exists)
         {
-            var exists = await db.SavedAutomatonGroupAssignments.AnyAsync(a => a.AutomatonId == entity.Id && a.GroupId == groupId.Value);
-            if (!exists)
+            db.SavedAutomatonGroupAssignments.Add(new SavedAutomatonGroupAssignment
             {
-                db.SavedAutomatonGroupAssignments.Add(new SavedAutomatonGroupAssignment { AutomatonId = entity.Id, GroupId = groupId.Value });
-                await db.SaveChangesAsync();
-            }
+                AutomatonId = automatonId,
+                GroupId = groupId
+            });
+            await db.SaveChangesAsync();
         }
+    }
+
+    private void LogSaveSuccess(int automatonId, string userId, AutomatonSaveMode saveMode)
+    {
         if (logger.IsEnabled(LogLevel.Information))
         {
-            logger.LogInformation("Saved automaton {Id} for user {User} (saveMode={SaveMode})", entity.Id, userId, saveMode);
+            logger.LogInformation("Saved automaton {Id} for user {User} (saveMode={SaveMode})",
+                automatonId, userId, saveMode);
         }
-        return entity;
     }
 
     public async Task DeleteGroupAsync(int groupId, string userId)
@@ -228,25 +286,45 @@ public class SavedAutomatonService(ILogger<SavedAutomatonService> logger, Applic
 
     public async Task AssignAutomatonToGroupAsync(int automatonId, string userId, int? groupId)
     {
-        var entity = await db.SavedAutomatons.FirstOrDefaultAsync(s => s.Id == automatonId && s.UserId == userId) ?? throw new InvalidOperationException("Automaton not found or access denied.");
+        await ValidateAutomatonOwnershipAsync(automatonId, userId);
+
         if (!groupId.HasValue)
         {
-            var assigns = await db.SavedAutomatonGroupAssignments.Where(a => a.AutomatonId == automatonId).ToListAsync();
-            if (assigns.Count != 0)
-            {
-                db.SavedAutomatonGroupAssignments.RemoveRange(assigns);
-                await db.SaveChangesAsync();
-            }
+            await UnassignFromAllGroupsAsync(automatonId);
             return;
         }
 
-        var grp = await db.SavedAutomatonGroups.FirstOrDefaultAsync(g => g.Id == groupId.Value) ?? throw new InvalidOperationException("Group not found");
-        if (!await CanUserSaveToGroupAsync(grp.Id, userId)) throw new UnauthorizedAccessException("You are not allowed to assign to this group.");
+        await ValidateGroupAndPermissionsAsync(groupId.Value, userId);
+        await AssignToGroupIfNotExistsAsync(automatonId, groupId.Value);
+    }
 
-        var exists = await db.SavedAutomatonGroupAssignments.AnyAsync(a => a.AutomatonId == automatonId && a.GroupId == groupId.Value);
-        if (exists) return;
-        db.SavedAutomatonGroupAssignments.Add(new SavedAutomatonGroupAssignment { AutomatonId = automatonId, GroupId = groupId.Value });
-        await db.SaveChangesAsync();
+    private async Task ValidateAutomatonOwnershipAsync(int automatonId, string userId)
+    {
+        var entity = await db.SavedAutomatons.FirstOrDefaultAsync(s => s.Id == automatonId && s.UserId == userId) ?? throw new InvalidOperationException("Automaton not found or access denied.");
+    }
+
+    private async Task UnassignFromAllGroupsAsync(int automatonId)
+    {
+        var assigns = await db.SavedAutomatonGroupAssignments
+            .Where(a => a.AutomatonId == automatonId)
+            .ToListAsync();
+
+        if (assigns.Count != 0)
+        {
+            db.SavedAutomatonGroupAssignments.RemoveRange(assigns);
+            await db.SaveChangesAsync();
+        }
+    }
+
+    private async Task ValidateGroupAndPermissionsAsync(int groupId, string userId)
+    {
+        var grp = await db.SavedAutomatonGroups.FirstOrDefaultAsync(g => g.Id == groupId)
+            ?? throw new InvalidOperationException("Group not found");
+
+        if (!await CanUserSaveToGroupAsync(grp.Id, userId))
+        {
+            throw new UnauthorizedAccessException("You are not allowed to assign to this group.");
+        }
     }
 
     public async Task RemoveAutomatonFromGroupAsync(int automatonId, string userId, int groupId)

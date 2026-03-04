@@ -1,36 +1,6 @@
-﻿/**
- * TransitionEditor.js
- * Handles interactive transition (edge) creation, deletion, and editing on the automaton canvas.
- *
- * Workflow:
- *   1. User clicks source node (highlights with .source-selected class + shown hint)
- *   2. User clicks target node → TransitionDialog opens for symbol/stack input
- *   3. Edge added to Cytoscape graph + callbacks fired
- *
- * Also handles:
- *   - Double-click edge to edit symbol
- *   - Delete/Backspace key to remove selected edge
- *   - Escape key to cancel transition in progress
- *
- * @module TransitionEditor
- */
+﻿import { TransitionDialog } from './TransitionDialog.js';
 
-import { TransitionDialog } from './TransitionDialog.js';
-
-/**
- * Manages transition (edge) editing operations on the canvas
- */
 export class TransitionEditor {
-    /**
-     * @param {Object} cy - Cytoscape instance
-     * @param {HTMLElement} containerEl - Canvas container element
-     * @param {Object} options - Configuration options
-     * @param {string} [options.automatonType='DFA'] - Current automaton type
-     * @param {Function} [options.onTransitionAdded] - Callback when transition is added
-     * @param {Function} [options.onTransitionDeleted] - Callback when transition is deleted
-     * @param {Function} [options.onTransitionModified] - Callback when transition is modified
-     * @param {Object} [options.actionHistory] - ActionHistory instance for undo/redo
-     */
     constructor(cy, containerEl, options = {}) {
         this.cy = cy;
         this.containerEl = containerEl;
@@ -40,114 +10,84 @@ export class TransitionEditor {
         this.onTransitionModified = options.onTransitionModified || (() => {});
         this.actionHistory = options.actionHistory || null;
 
-        // Two-click state machine
         this._sourceNode = null;
 
-        // Event handlers (stored for clean removal)
         this._nodeClickHandler = null;
         this._edgeDblClickHandler = null;
         this._keyHandler = null;
         this._canvasClickHandler = null;
 
-        // Dialog instance
         this._dialog = new TransitionDialog(containerEl);
 
-        // Hint overlay element
         this._hint = null;
 
-        // Click delay timer to detect double-clicks
         this._clickTimer = null;
-        this._clickDelay = 320; // Slightly longer than StateEditor's 300ms to ensure double-click is detected first
-        this._multiClickHandler = null; // Listener for StateEditor multi-click events
-        this._suppressUntil = 0; // Timestamp: suppress source-selection until this time (after multi-click)
+        this._clickDelay = 320; 
+        this._multiClickHandler = null; 
+        this._suppressUntil = 0; 
 
         this.isEnabled = false;
         this._isShowingDialog = false;
     }
 
-    /**
-     * Enable transition editing — attaches all event handlers
-     */
     enable() {
         if (this.isEnabled) return;
         this.isEnabled = true;
         this._setupEventHandlers();
 
-        // Listen for multi-click events from StateEditor to cancel pending timers and suppress overlay
         this._multiClickHandler = (event) => {
             if (this._clickTimer) {
                 clearTimeout(this._clickTimer);
                 this._clickTimer = null;
             }
-            // Suppress source selection for a full click-delay window so that subsequent
-            // clicks in the double/triple-click sequence don't re-trigger the overlay.
+
             this._suppressUntil = Date.now() + this._clickDelay + 50;
             console.log('TransitionEditor: Suppressing source-selection due to StateEditor multi-click');
         };
         window.addEventListener('stateMultiClickHandled', this._multiClickHandler);
     }
 
-    /**
-     * Disable transition editing — remove handlers, cancel pending state
-     */
     disable() {
         if (!this.isEnabled) return;
         this.isEnabled = false;
         this._cancelTransitionInProgress();
         this._removeEventHandlers();
 
-        // Clear click timer
         if (this._clickTimer) {
             clearTimeout(this._clickTimer);
             this._clickTimer = null;
         }
 
-        // Remove multi-click listener
         if (this._multiClickHandler) {
             window.removeEventListener('stateMultiClickHandled', this._multiClickHandler);
             this._multiClickHandler = null;
         }
     }
 
-    /**
-     * Update the automaton type (for dialog PDA vs standard input)
-     * @param {string} type - New automaton type
-     */
     setAutomatonType(type) {
         this.automatonType = type;
     }
 
-    /**
-     * Check if a transition creation is in progress
-     * @returns {boolean}
-     */
     isTransitionInProgress() {
         return this._sourceNode !== null;
     }
 
     // ==================== PRIVATE ====================
 
-    /**
-     * Set up all event handlers
-     * @private
-     */
     _setupEventHandlers() {
-        // Node click — two-click transition creation
+
         this._nodeClickHandler = (event) => {
-            // Don't interfere if a dialog is already open
             if (this._isShowingDialog) return;
             this._handleNodeClick(event.target);
         };
         this.cy.on('tap', 'node', this._nodeClickHandler);
 
-        // Edge double-click — edit symbol
         this._edgeDblClickHandler = (event) => {
             if (this._isShowingDialog) return;
             this._handleEdgeDoubleClick(event.target);
         };
         this.cy.on('dbltap', 'edge', this._edgeDblClickHandler);
 
-        // Canvas tap — cancel transition in progress if clicked on empty space
         this._canvasClickHandler = (event) => {
             if (event.target === this.cy && this._sourceNode) {
                 this._cancelTransitionInProgress();
@@ -155,7 +95,6 @@ export class TransitionEditor {
         };
         this.cy.on('tap', this._canvasClickHandler);
 
-        // Keyboard — Delete removes selected edge, Escape cancels transition
         this._keyHandler = (e) => {
             if (!this.isEnabled || this._isShowingDialog) return;
             if (e.key === 'Delete' || e.key === 'Backspace') {
@@ -167,10 +106,6 @@ export class TransitionEditor {
         document.addEventListener('keydown', this._keyHandler);
     }
 
-    /**
-     * Remove all event handlers
-     * @private
-     */
     _removeEventHandlers() {
         if (this._nodeClickHandler) {
             this.cy.off('tap', 'node', this._nodeClickHandler);
@@ -190,66 +125,41 @@ export class TransitionEditor {
         }
     }
 
-    /**
-     * Handle node click in two-click scheme
-     * Delays processing to detect if this is part of a double/triple-click sequence
-     * @private
-     * @param {Object} node - Clicked Cytoscape node
-     */
     _handleNodeClick(node) {
-        // If there's already a source selected, process immediately (second click of transition)
         if (this._sourceNode) {
-            // Clear any pending timer
             if (this._clickTimer) {
                 clearTimeout(this._clickTimer);
                 this._clickTimer = null;
             }
 
             if (this._sourceNode.id() === node.id()) {
-                // Clicked same node again — create self-loop
                 this._createTransition(this._sourceNode, node);
             } else {
-                // Second click: create transition to target
                 this._createTransition(this._sourceNode, node);
             }
             return;
         }
 
-        // First click: wait to see if this is a double/triple-click
-        // Clear any existing timer
         if (this._clickTimer) {
             clearTimeout(this._clickTimer);
         }
 
-        // Set a timer to delay the source selection
         this._clickTimer = setTimeout(() => {
             this._clickTimer = null;
-            // Only select source if still enabled, no dialog is showing, and we are not in
-            // the suppression window that was set because a double/triple-click was detected.
             if (this.isEnabled && !this._isShowingDialog && Date.now() >= this._suppressUntil) {
                 this._selectSource(node);
             }
         }, this._clickDelay);
     }
 
-    /**
-     * Select source node for transition
-     * @private
-     */
     _selectSource(node) {
         this._sourceNode = node;
         node.addClass('source-selected');
 
-        // Show hint
         this._showHint(`Click target state to complete transition from <strong>${node.data('label')}</strong>, press Esc to cancel or press Del/Backspace for delete`);
     }
 
-    /**
-     * Cancel an in-progress transition (no edge created)
-     * @private
-     */
     _cancelTransitionInProgress() {
-        // Clear click timer
         if (this._clickTimer) {
             clearTimeout(this._clickTimer);
             this._clickTimer = null;
@@ -262,12 +172,7 @@ export class TransitionEditor {
         this._removeHint();
     }
 
-    /**
-     * Create transition after both nodes are selected
-     * @private
-     */
     async _createTransition(sourceNode, targetNode) {
-        // Clear selection visuals first
         sourceNode.removeClass('source-selected');
         this._sourceNode = null;
         this._removeHint();
@@ -282,7 +187,6 @@ export class TransitionEditor {
 
         if (!result) return; // Cancelled
 
-        // Build the edge data
         const fromId = sourceNode.data('stateId');
         const toId = targetNode.data('stateId');
         const edgeId = this._generateEdgeId(fromId, toId);
@@ -295,7 +199,6 @@ export class TransitionEditor {
             isPDA ? 'pda' : ''
         ].filter(Boolean).join(' ');
 
-        // Check for parallel edge
         const reverseEdge = this.cy.getElementById(`edge-${toId}-${fromId}`);
         const existingEdge = this.cy.getElementById(edgeId);
 
@@ -316,17 +219,12 @@ export class TransitionEditor {
             classes
         };
 
-        // If edge between this pair already exists, merge the new symbol into the label
         if (existingEdge && existingEdge.length > 0) {
-            // Capture the previous label BEFORE mutating so undo can restore it correctly
             const prevLabel = existingEdge.data('label');
-            // Use ', ' for non-PDA (matches how AutomatonRenderer joins symbols: join(', '))
-            // Use '\n' for PDA (each PDA entry already contains commas: "sym, pop/push")
             const separator = isPDA ? '\n' : ', ';
             const newLabel = prevLabel + separator + label;
             existingEdge.data('label', newLabel);
 
-            // Record for undo
             if (this.actionHistory) {
                 this.actionHistory.recordAction({
                     do: () => existingEdge.data('label', newLabel),
@@ -339,16 +237,13 @@ export class TransitionEditor {
             return;
         }
 
-        // Auto-detect parallel edge — add .parallel class if reverse edge exists
         if (reverseEdge && reverseEdge.length > 0) {
             edgeData.classes += (edgeData.classes ? ' ' : '') + 'parallel';
             reverseEdge.addClass('parallel');
         }
 
-        // Add edge to graph
         const addedEdge = this.cy.add(edgeData);
 
-        // Record for undo
         if (this.actionHistory) {
             this.actionHistory.recordAction({
                 do: () => { if (!this.cy.getElementById(edgeId).length) this.cy.add(edgeData); },
@@ -361,10 +256,6 @@ export class TransitionEditor {
         console.log(`Transition added: ${sourceNode.data('label')} → ${targetNode.data('label')} [${label}]`);
     }
 
-    /**
-     * Handle double-click on an edge to edit its symbol
-     * @private
-     */
     async _handleEdgeDoubleClick(edge) {
         this._isShowingDialog = true;
         let result;
@@ -391,7 +282,6 @@ export class TransitionEditor {
             edge.data('rawStackPop', result.rawStackPop);
         }
 
-        // Record for undo
         if (this.actionHistory) {
             this.actionHistory.recordAction({
                 do: () => {
@@ -418,13 +308,8 @@ export class TransitionEditor {
         console.log(`Transition modified: ${edge.id()} → [${newLabel}]`);
     }
 
-    /**
-     * Handle Delete/Backspace key — remove selected edges
-     * @private
-     */
     _handleDeleteKey() {
         if (this._sourceNode) {
-            // Cancel transition creation first
             this._cancelTransitionInProgress();
             return;
         }
@@ -433,7 +318,6 @@ export class TransitionEditor {
         const selectedEdges = selected.filter('edge');
 
         if (selectedEdges.length > 0) {
-            // Collect data for undo
             const edgeSnapshots = selectedEdges.map(e => ({
                 data: { ...e.data() },
                 classes: e.className()
@@ -453,7 +337,6 @@ export class TransitionEditor {
                 console.log(`Transition deleted: ${edge.id()}`);
             });
 
-            // Record for undo
             if (this.actionHistory) {
                 this.actionHistory.recordAction({
                     do: () => edgeSnapshots.forEach(snap => {
@@ -467,8 +350,6 @@ export class TransitionEditor {
                         }
                     })
                 });
-                // Fix: actual do is remove, undo is restore
-                // Swap the last action's do/undo (the above is backwards, correct below)
                 const last = this.actionHistory._undoStack[this.actionHistory._undoStack.length - 1];
                 if (last) {
                     const restore = last.do;
@@ -479,10 +360,6 @@ export class TransitionEditor {
         }
     }
 
-    /**
-     * Build edge label string from dialog result
-     * @private
-     */
     _buildEdgeLabel(result, isPDA) {
         if (!isPDA) {
             return this._formatSymbol(result.rawSymbol || result.symbol);
@@ -493,20 +370,12 @@ export class TransitionEditor {
         return `${sym}, ${pop}/${push}`;
     }
 
-    /**
-     * Format symbol for display
-     * @private
-     */
     _formatSymbol(raw) {
         if (!raw || raw === '\0' || raw === '\\0') return 'ε';
         if (raw === 'ε') return 'ε';
         return raw;
     }
 
-    /**
-     * Build transition data object for callbacks
-     * @private
-     */
     _buildTransitionData(fromId, toId, result, isPDA) {
         const trans = {
             fromStateId: fromId,
@@ -520,18 +389,10 @@ export class TransitionEditor {
         return trans;
     }
 
-    /**
-     * Generate a unique edge ID for a from-to pair
-     * @private
-     */
     _generateEdgeId(fromId, toId) {
         return `edge-${fromId}-${toId}`;
     }
 
-    /**
-     * Show the transition hint overlay
-     * @private
-     */
     _showHint(html) {
         this._removeHint();
         const hint = document.createElement('div');
@@ -541,10 +402,6 @@ export class TransitionEditor {
         this._hint = hint;
     }
 
-    /**
-     * Remove the hint overlay
-     * @private
-     */
     _removeHint() {
         if (this._hint) {
             this._hint.remove();
@@ -552,9 +409,6 @@ export class TransitionEditor {
         }
     }
 
-    /**
-     * Destroy and cleanup all resources
-     */
     destroy() {
         this.disable();
         this._dialog.destroy();
@@ -563,7 +417,6 @@ export class TransitionEditor {
     }
 }
 
-// Expose to window for non-module usage
 if (typeof window !== 'undefined') {
     window.TransitionEditor = TransitionEditor;
 }

@@ -22,6 +22,22 @@ public class SharedAutomatonSharingService(
 
     public async Task<SharedAutomatonGroupInvitation> InviteByEmailAsync(int groupId, string inviterUserId, string email, SharedGroupRole role, int expirationDays = 7)
     {
+        ValidateInviteParameters(inviterUserId, email);
+        await ValidateInvitePermissionsAsync(groupId, inviterUserId);
+        await ValidateNoExistingMemberAsync(groupId, email);
+        await ValidateNoPendingInvitationAsync(groupId, email);
+
+        var invitation = CreateInvitation(groupId, inviterUserId, email, role, expirationDays);
+
+        context.SharedAutomatonGroupInvitations.Add(invitation);
+        await context.SaveChangesAsync();
+
+        LogInvitationCreated(inviterUserId, email, groupId, role);
+        return invitation;
+    }
+
+    private static void ValidateInviteParameters(string inviterUserId, string email)
+    {
         ArgumentNullException.ThrowIfNull(inviterUserId);
         ArgumentNullException.ThrowIfNull(email);
 
@@ -29,12 +45,18 @@ public class SharedAutomatonSharingService(
         {
             throw new ArgumentException($"Invalid email format: {email}");
         }
+    }
 
+    private async Task ValidateInvitePermissionsAsync(int groupId, string inviterUserId)
+    {
         if (!await sharedAutomatonService.CanUserManageMembersAsync(groupId, inviterUserId))
         {
             throw new UnauthorizedAccessException($"User {inviterUserId} does not have permission to invite members to group {groupId}");
         }
+    }
 
+    private async Task ValidateNoExistingMemberAsync(int groupId, string email)
+    {
         var existingMember = await context.SharedAutomatonGroupMembers
             .FirstOrDefaultAsync(m => m.GroupId == groupId && m.UserId == email);
 
@@ -42,7 +64,10 @@ public class SharedAutomatonSharingService(
         {
             throw new InvalidOperationException($"User {email} is already a member of group {groupId}");
         }
+    }
 
+    private async Task ValidateNoPendingInvitationAsync(int groupId, string email)
+    {
         var existingInvitation = await context.SharedAutomatonGroupInvitations
             .FirstOrDefaultAsync(i => i.GroupId == groupId && i.Email == email && i.Status == InvitationStatus.Pending);
 
@@ -50,10 +75,13 @@ public class SharedAutomatonSharingService(
         {
             throw new InvalidOperationException($"There is already a pending invitation for {email} to group {groupId}");
         }
+    }
 
+    private static SharedAutomatonGroupInvitation CreateInvitation(int groupId, string inviterUserId, string email, SharedGroupRole role, int expirationDays)
+    {
         var token = GenerateUniqueToken();
 
-        var invitation = new SharedAutomatonGroupInvitation
+        return new SharedAutomatonGroupInvitation
         {
             GroupId = groupId,
             Email = email.ToLowerInvariant(),
@@ -64,17 +92,15 @@ public class SharedAutomatonSharingService(
             Token = token,
             Status = InvitationStatus.Pending
         };
+    }
 
-        context.SharedAutomatonGroupInvitations.Add(invitation);
-        await context.SaveChangesAsync();
-
+    private void LogInvitationCreated(string inviterUserId, string email, int groupId, SharedGroupRole role)
+    {
         if (logger.IsEnabled(LogLevel.Information))
         {
             logger.LogInformation("User {InviterUserId} invited {Email} to group {GroupId} with role {Role}",
-            inviterUserId, email, groupId, role);
+                inviterUserId, email, groupId, role);
         }
-
-        return invitation;
     }
 
     public async Task<List<SharedAutomatonGroupInvitation>> ListPendingInvitationsAsync(int groupId, string userId)
@@ -120,7 +146,22 @@ public class SharedAutomatonSharingService(
         ArgumentNullException.ThrowIfNull(token);
         ArgumentNullException.ThrowIfNull(userId);
 
-        var invitation = await GetInvitationByTokenAsync(token) ?? throw new InvalidOperationException("Invitation not found");
+        var invitation = await LoadAndValidateInvitationAsync(token);
+        await ValidateUserMatchesInvitationAsync(userId, invitation);
+        await ValidateNotAlreadyMemberAsync(userId, invitation.GroupId);
+
+        await AddMemberFromInvitationAsync(userId, invitation);
+        MarkInvitationAsAccepted(invitation);
+
+        await context.SaveChangesAsync();
+        LogInvitationAccepted(userId, invitation.Id, invitation.GroupId);
+    }
+
+    private async Task<SharedAutomatonGroupInvitation> LoadAndValidateInvitationAsync(string token)
+    {
+        var invitation = await GetInvitationByTokenAsync(token)
+            ?? throw new InvalidOperationException("Invitation not found");
+
         if (invitation.Status != InvitationStatus.Pending)
         {
             throw new InvalidOperationException($"Invitation is not pending (status: {invitation.Status})");
@@ -133,21 +174,33 @@ public class SharedAutomatonSharingService(
             throw new InvalidOperationException("Invitation has expired");
         }
 
-        var user = await userManager.FindByIdAsync(userId) ?? throw new InvalidOperationException($"User {userId} not found");
+        return invitation;
+    }
+
+    private async Task ValidateUserMatchesInvitationAsync(string userId, SharedAutomatonGroupInvitation invitation)
+    {
+        var user = await userManager.FindByIdAsync(userId)
+            ?? throw new InvalidOperationException($"User {userId} not found");
 
         if (!string.Equals(user.Email, invitation.Email, StringComparison.OrdinalIgnoreCase))
         {
             throw new UnauthorizedAccessException($"Invitation email ({invitation.Email}) does not match user email ({user.Email})");
         }
+    }
 
+    private async Task ValidateNotAlreadyMemberAsync(string userId, int groupId)
+    {
         var existingMember = await context.SharedAutomatonGroupMembers
-            .FirstOrDefaultAsync(m => m.GroupId == invitation.GroupId && m.UserId == userId);
+            .FirstOrDefaultAsync(m => m.GroupId == groupId && m.UserId == userId);
 
         if (existingMember != null)
         {
-            throw new InvalidOperationException($"User is already a member of group {invitation.GroupId}");
+            throw new InvalidOperationException($"User is already a member of group {groupId}");
         }
+    }
 
+    private async Task AddMemberFromInvitationAsync(string userId, SharedAutomatonGroupInvitation invitation)
+    {
         var member = new SharedAutomatonGroupMember
         {
             GroupId = invitation.GroupId,
@@ -158,16 +211,20 @@ public class SharedAutomatonSharingService(
         };
 
         context.SharedAutomatonGroupMembers.Add(member);
+    }
 
+    private static void MarkInvitationAsAccepted(SharedAutomatonGroupInvitation invitation)
+    {
         invitation.Status = InvitationStatus.Accepted;
         invitation.ResponsedAt = DateTime.UtcNow;
+    }
 
-        await context.SaveChangesAsync();
-
+    private void LogInvitationAccepted(string userId, int invitationId, int groupId)
+    {
         if (logger.IsEnabled(LogLevel.Information))
         {
             logger.LogInformation("User {UserId} accepted invitation {InvitationId} and joined group {GroupId}",
-            userId, invitation.Id, invitation.GroupId);
+                userId, invitationId, groupId);
         }
     }
 
@@ -226,14 +283,34 @@ public class SharedAutomatonSharingService(
     {
         ArgumentNullException.ThrowIfNull(userId);
 
+        await ValidateCanManageMembersAsync(groupId, userId);
+        var group = await LoadGroupAsync(groupId);
+        var inviteCode = await GenerateUniqueInviteCodeAsync();
+
+        UpdateGroupInviteSettings(group, inviteCode, defaultRole, expirationDays);
+        await context.SaveChangesAsync();
+
+        LogInviteLinkGenerated(userId, groupId, inviteCode);
+        return inviteCode;
+    }
+
+    private async Task ValidateCanManageMembersAsync(int groupId, string userId)
+    {
         if (!await sharedAutomatonService.CanUserManageMembersAsync(groupId, userId))
         {
             throw new UnauthorizedAccessException($"User {userId} does not have permission to generate invite links for group {groupId}");
         }
+    }
 
-        var group = await context.SharedAutomatonGroups
-            .FirstOrDefaultAsync(g => g.Id == groupId) ?? throw new InvalidOperationException($"Group {groupId} not found");
+    private async Task<SharedAutomatonGroup> LoadGroupAsync(int groupId)
+    {
+        return await context.SharedAutomatonGroups
+            .FirstOrDefaultAsync(g => g.Id == groupId)
+            ?? throw new InvalidOperationException($"Group {groupId} not found");
+    }
 
+    private async Task<string> GenerateUniqueInviteCodeAsync()
+    {
         var inviteCode = GenerateInviteCode();
 
         while (await context.SharedAutomatonGroups.AnyAsync(g => g.InviteCode == inviteCode))
@@ -241,20 +318,24 @@ public class SharedAutomatonSharingService(
             inviteCode = GenerateInviteCode();
         }
 
+        return inviteCode;
+    }
+
+    private static void UpdateGroupInviteSettings(SharedAutomatonGroup group, string inviteCode, SharedGroupRole defaultRole, int? expirationDays)
+    {
         group.InviteCode = inviteCode;
         group.DefaultRoleForInvite = defaultRole;
         group.IsInviteLinkActive = true;
         group.InviteLinkExpiresAt = expirationDays.HasValue ? DateTime.UtcNow.AddDays(expirationDays.Value) : null;
+    }
 
-        await context.SaveChangesAsync();
-
+    private void LogInviteLinkGenerated(string userId, int groupId, string inviteCode)
+    {
         if (logger.IsEnabled(LogLevel.Information))
         {
             logger.LogInformation("User {UserId} generated invite link for group {GroupId} with code {InviteCode}",
-            userId, groupId, inviteCode);
+                userId, groupId, inviteCode);
         }
-
-        return inviteCode;
     }
 
     public async Task<string?> GetInviteLinkAsync(int groupId, string userId)
@@ -310,9 +391,26 @@ public class SharedAutomatonSharingService(
         ArgumentNullException.ThrowIfNull(inviteCode);
         ArgumentNullException.ThrowIfNull(userId);
 
-        var group = await context.SharedAutomatonGroups
+        var group = await LoadGroupByInviteCodeAsync(inviteCode);
+        await ValidateInviteLinkActiveAsync(group);
+        ValidateNotExistingMember(group, userId);
+
+        await AddMemberViaInviteLinkAsync(group, userId);
+        LogUserJoinedViaLink(userId, group.Id, group.Name);
+
+        return group;
+    }
+
+    private async Task<SharedAutomatonGroup> LoadGroupByInviteCodeAsync(string inviteCode)
+    {
+        return await context.SharedAutomatonGroups
             .Include(g => g.Members)
-            .FirstOrDefaultAsync(g => g.InviteCode == inviteCode) ?? throw new InvalidOperationException($"Invalid invite code: {inviteCode}");
+            .FirstOrDefaultAsync(g => g.InviteCode == inviteCode)
+            ?? throw new InvalidOperationException($"Invalid invite code: {inviteCode}");
+    }
+
+    private async Task ValidateInviteLinkActiveAsync(SharedAutomatonGroup group)
+    {
         if (!group.IsInviteLinkActive)
         {
             throw new InvalidOperationException("Invite link is no longer active");
@@ -324,13 +422,19 @@ public class SharedAutomatonSharingService(
             await context.SaveChangesAsync();
             throw new InvalidOperationException("Invite link has expired");
         }
+    }
 
+    private static void ValidateNotExistingMember(SharedAutomatonGroup group, string userId)
+    {
         var existingMember = group.Members.FirstOrDefault(m => m.UserId == userId);
         if (existingMember != null)
         {
             throw new InvalidOperationException($"User is already a member of group {group.Name}");
         }
+    }
 
+    private async Task AddMemberViaInviteLinkAsync(SharedAutomatonGroup group, string userId)
+    {
         var member = new SharedAutomatonGroupMember
         {
             GroupId = group.Id,
@@ -342,14 +446,15 @@ public class SharedAutomatonSharingService(
 
         context.SharedAutomatonGroupMembers.Add(member);
         await context.SaveChangesAsync();
+    }
 
+    private void LogUserJoinedViaLink(string userId, int groupId, string groupName)
+    {
         if (logger.IsEnabled(LogLevel.Information))
         {
             logger.LogInformation("User {UserId} joined group {GroupId} '{GroupName}' via invite link",
-            userId, group.Id, group.Name);
+                userId, groupId, groupName);
         }
-
-        return group;
     }
 
     public Task<string> GetInvitationEmailContentAsync(SharedAutomatonGroupInvitation invitation)

@@ -134,90 +134,182 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
         List<char> alphabet,
         Random random)
     {
-        var transitions = new List<Transition>();
-        var addedTransitions = new HashSet<string>();
-
-        int budget = Math.Max(0, transitionCount);
-
-        if (budget >= states.Count - 1 && states.Count > 1)
+        var context = new TransitionGenerationContext
         {
-            int added = EnsureConnectivity(type, states, alphabet, transitions, addedTransitions, random, budget);
-            budget -= added;
+            Type = type,
+            States = states,
+            Alphabet = alphabet,
+            Random = random,
+            Transitions = [],
+            AddedTransitions = [],
+            Budget = Math.Max(0, transitionCount)
+        };
+
+        EnsureGraphConnectivity(context);
+        EnsureAlphabetCoverage(context);
+        FillRemainingBudget(context);
+        GuaranteeAllSymbolsPresent(context, transitionCount);
+
+        return context.Transitions;
+    }
+
+    private static void EnsureGraphConnectivity(TransitionGenerationContext context)
+    {
+        if (context.Budget >= context.States.Count - 1 && context.States.Count > 1)
+        {
+            int added = EnsureConnectivity(context.Type, context.States, context.Alphabet,
+                context.Transitions, context.AddedTransitions, context.Random, context.Budget);
+            context.Budget -= added;
         }
+    }
 
-        if (budget > 0)
+    private static void EnsureAlphabetCoverage(TransitionGenerationContext context)
+    {
+        if (context.Budget > 0)
         {
-            int added = EnsureAllSymbolsPresent(type, states, alphabet, transitions, addedTransitions, random, budget);
-            budget -= added;
+            int added = EnsureAllSymbolsPresent(context.Type, context.States, context.Alphabet,
+                context.Transitions, context.AddedTransitions, context.Random, context.Budget);
+            context.Budget -= added;
         }
+    }
 
-        for (int i = 0; i < budget; i++)
+    private static void FillRemainingBudget(TransitionGenerationContext context)
+    {
+        for (int i = 0; i < context.Budget; i++)
         {
-            var transition = GenerateRandomTransition(type, states, alphabet, addedTransitions, random);
-            if (transition != null)
-            {
-                transitions.Add(transition);
-                addedTransitions.Add(GetTransitionKey(transition));
-            }
-            else
-            {
+            var transition = GenerateRandomTransition(context.Type, context.States, context.Alphabet,
+                context.AddedTransitions, context.Random);
+
+            if (transition == null)
                 break;
-            }
-        }
 
-        var maxTotal = Math.Max(0, transitionCount);
-        var present = transitions.Select(t => t.Symbol).Where(c => c != '\0').ToHashSet();
-        foreach (var symbol in alphabet)
+            context.Transitions.Add(transition);
+            context.AddedTransitions.Add(GetTransitionKey(transition));
+        }
+    }
+
+    private static void GuaranteeAllSymbolsPresent(TransitionGenerationContext context, int maxTotal)
+    {
+        var presentSymbols = context.Transitions
+            .Select(t => t.Symbol)
+            .Where(c => c != '\0')
+            .ToHashSet();
+
+        foreach (var symbol in context.Alphabet)
         {
-            if (transitions.Count >= maxTotal && present.Contains(symbol)) continue;
-            if (present.Contains(symbol)) continue;
-            const int maxAttempts = 50;
-            bool added = false;
-            for (int attempt = 0; attempt < maxAttempts && !added && transitions.Count < maxTotal; attempt++)
-            {
-                var fromState = states[random.Next(states.Count)].Id;
-                var toState = states[random.Next(states.Count)].Id;
-                var candidate = new Transition { FromStateId = fromState, ToStateId = toState, Symbol = symbol };
-                if (type == AutomatonType.PDA)
-                {
-                    candidate.StackPop = null;
-                    candidate.StackPush = symbol.ToString();
-                }
-                var key = GetTransitionKey(candidate);
-                if (addedTransitions.Contains(key)) continue;
-                if (type == AutomatonType.DFA && transitions.Any(t => t.FromStateId == fromState && t.Symbol == symbol)) continue;
-                transitions.Add(candidate);
-                addedTransitions.Add(key);
-                present.Add(symbol);
-                added = true;
-            }
-            if (!added && transitions.Count >= maxTotal)
-            {
-                var symbolCounts = transitions.GroupBy(t => t.Symbol).ToDictionary(g => g.Key, g => g.Count());
-                var replacable = transitions.FirstOrDefault(t => symbolCounts.TryGetValue(t.Symbol, out var c) && c > 1);
-                if (replacable != null)
-                {
-                    var newCandidate = new Transition { FromStateId = replacable.FromStateId, ToStateId = replacable.ToStateId, Symbol = symbol };
-                    if (type == AutomatonType.PDA)
-                    {
-                        newCandidate.StackPop = null;
-                        newCandidate.StackPush = symbol.ToString();
-                    }
-                    var newKey = GetTransitionKey(newCandidate);
-                    if (!addedTransitions.Contains(newKey))
-                    {
-                        var oldKey = GetTransitionKey(replacable);
-                        addedTransitions.Remove(oldKey);
-                        addedTransitions.Add(newKey);
-                        transitions.Remove(replacable);
-                        transitions.Add(newCandidate);
-                        present.Add(symbol);
-                    }
-                }
-            }
+            if (context.Transitions.Count >= maxTotal && presentSymbols.Contains(symbol))
+                continue;
+
+            if (presentSymbols.Contains(symbol))
+                continue;
+
+            TryAddMissingSymbol(context, symbol, maxTotal, presentSymbols);
+        }
+    }
+
+    private static void TryAddMissingSymbol(TransitionGenerationContext context, char symbol, int maxTotal, HashSet<char> presentSymbols)
+    {
+        const int maxAttempts = 50;
+
+        if (TryAddNewTransitionForSymbol(context, symbol, maxTotal, maxAttempts, presentSymbols))
+            return;
+
+        if (context.Transitions.Count >= maxTotal)
+        {
+            TryReplaceTransitionToIncludeSymbol(context, symbol, presentSymbols);
+        }
+    }
+
+    private static bool TryAddNewTransitionForSymbol(TransitionGenerationContext context, char symbol,
+        int maxTotal, int maxAttempts, HashSet<char> presentSymbols)
+    {
+        for (int attempt = 0; attempt < maxAttempts && context.Transitions.Count < maxTotal; attempt++)
+        {
+            var candidate = CreateTransitionCandidate(context, symbol);
+            var key = GetTransitionKey(candidate);
+
+            if (context.AddedTransitions.Contains(key))
+                continue;
+
+            if (context.Type == AutomatonType.DFA &&
+                context.Transitions.Any(t => t.FromStateId == candidate.FromStateId && t.Symbol == symbol))
+                continue;
+
+            context.Transitions.Add(candidate);
+            context.AddedTransitions.Add(key);
+            presentSymbols.Add(symbol);
+            return true;
         }
 
-        return transitions;
+        return false;
+    }
+
+    private static void TryReplaceTransitionToIncludeSymbol(TransitionGenerationContext context, char symbol, HashSet<char> presentSymbols)
+    {
+        var symbolCounts = context.Transitions
+            .GroupBy(t => t.Symbol)
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        var replaceable = context.Transitions.FirstOrDefault(t =>
+            symbolCounts.TryGetValue(t.Symbol, out var count) && count > 1);
+
+        if (replaceable == null)
+            return;
+
+        var newCandidate = new Transition
+        {
+            FromStateId = replaceable.FromStateId,
+            ToStateId = replaceable.ToStateId,
+            Symbol = symbol
+        };
+
+        if (context.Type == AutomatonType.PDA)
+        {
+            newCandidate.StackPop = null;
+            newCandidate.StackPush = symbol.ToString();
+        }
+
+        var newKey = GetTransitionKey(newCandidate);
+        if (context.AddedTransitions.Contains(newKey))
+            return;
+
+        var oldKey = GetTransitionKey(replaceable);
+        context.AddedTransitions.Remove(oldKey);
+        context.AddedTransitions.Add(newKey);
+        context.Transitions.Remove(replaceable);
+        context.Transitions.Add(newCandidate);
+        presentSymbols.Add(symbol);
+    }
+
+    private static Transition CreateTransitionCandidate(TransitionGenerationContext context, char symbol)
+    {
+        var fromState = context.States[context.Random.Next(context.States.Count)].Id;
+        var toState = context.States[context.Random.Next(context.States.Count)].Id;
+        var candidate = new Transition
+        {
+            FromStateId = fromState,
+            ToStateId = toState,
+            Symbol = symbol
+        };
+
+        if (context.Type == AutomatonType.PDA)
+        {
+            candidate.StackPop = null;
+            candidate.StackPush = symbol.ToString();
+        }
+
+        return candidate;
+    }
+
+    private class TransitionGenerationContext
+    {
+        public AutomatonType Type { get; init; }
+        public List<State> States { get; init; } = null!;
+        public List<char> Alphabet { get; init; } = null!;
+        public Random Random { get; init; } = null!;
+        public List<Transition> Transitions { get; init; } = null!;
+        public HashSet<string> AddedTransitions { get; init; } = null!;
+        public int Budget { get; set; }
     }
 
     private static int EnsureConnectivity(
@@ -267,66 +359,109 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
         return added;
     }
 
-    private static int CreateMatchingPushPopPairs(List<State> states, List<char> alphabet, List<Transition> transitions, HashSet<string> addedTransitions, Random random, int maxToAdd)
+    private static int CreateMatchingPushPopPairs(List<State> states, List<char> alphabet,
+        List<Transition> transitions, HashSet<string> addedTransitions, Random random, int maxToAdd)
     {
-        int pairCount = Math.Max(1, alphabet.Count / 2);
-        pairCount = Math.Min(pairCount, Math.Max(1, alphabet.Count));
-
+        int pairCount = CalculatePairCount(alphabet.Count);
         int added = 0;
+
         for (int i = 0; i < pairCount && added < maxToAdd; i++)
         {
-            char pushInput = alphabet[random.Next(alphabet.Count)];
-            char popInput = alphabet[random.Next(alphabet.Count)];
-            if (alphabet.Count > 1)
-            {
-                int attempts = 0;
-                while (popInput == pushInput && attempts++ < 10)
-                {
-                    popInput = alphabet[random.Next(alphabet.Count)];
-                }
-            }
+            var (pushInput, popInput) = SelectPushPopSymbols(alphabet, random);
+            char stackSymbol = GenerateStackSymbol(i);
 
-            char stackSym = (char)('A' + (i % 26));
-            string stackPushStr = stackSym.ToString();
+            added += TryAddPushTransition(states, transitions, addedTransitions, random,
+                maxToAdd, added, pushInput, stackSymbol);
 
-            var fromPush = states[random.Next(states.Count)].Id;
-            var toPush = states[random.Next(states.Count)].Id;
-            var pushTrans = new Transition
-            {
-                FromStateId = fromPush,
-                ToStateId = toPush,
-                Symbol = pushInput,
-                StackPop = null,
-                StackPush = stackPushStr
-            };
-            var keyPush = GetTransitionKey(pushTrans);
-            if (!addedTransitions.Contains(keyPush) && added < maxToAdd)
-            {
-                transitions.Add(pushTrans);
-                addedTransitions.Add(keyPush);
-                added++;
-            }
-
-            var fromPop = states[random.Next(states.Count)].Id;
-            var toPop = states[random.Next(states.Count)].Id;
-            var popTrans = new Transition
-            {
-                FromStateId = fromPop,
-                ToStateId = toPop,
-                Symbol = popInput,
-                StackPop = stackSym,
-                StackPush = null
-            };
-            var keyPop = GetTransitionKey(popTrans);
-            if (!addedTransitions.Contains(keyPop) && added < maxToAdd)
-            {
-                transitions.Add(popTrans);
-                addedTransitions.Add(keyPop);
-                added++;
-            }
+            added += TryAddPopTransition(states, transitions, addedTransitions, random,
+                maxToAdd, added, popInput, stackSymbol);
         }
 
         return added;
+    }
+
+    private static int CalculatePairCount(int alphabetSize)
+    {
+        int pairCount = Math.Max(1, alphabetSize / 2);
+        return Math.Min(pairCount, Math.Max(1, alphabetSize));
+    }
+
+    private static (char pushInput, char popInput) SelectPushPopSymbols(List<char> alphabet, Random random)
+    {
+        char pushInput = alphabet[random.Next(alphabet.Count)];
+        char popInput = alphabet[random.Next(alphabet.Count)];
+
+        if (alphabet.Count > 1)
+        {
+            int attempts = 0;
+            while (popInput == pushInput && attempts++ < 10)
+            {
+                popInput = alphabet[random.Next(alphabet.Count)];
+            }
+        }
+
+        return (pushInput, popInput);
+    }
+
+    private static char GenerateStackSymbol(int index)
+    {
+        return (char)('A' + (index % 26));
+    }
+
+    private static int TryAddPushTransition(List<State> states, List<Transition> transitions,
+        HashSet<string> addedTransitions, Random random, int maxToAdd, int currentAdded,
+        char pushInput, char stackSymbol)
+    {
+        if (currentAdded >= maxToAdd)
+            return 0;
+
+        var fromState = states[random.Next(states.Count)].Id;
+        var toState = states[random.Next(states.Count)].Id;
+
+        var pushTransition = new Transition
+        {
+            FromStateId = fromState,
+            ToStateId = toState,
+            Symbol = pushInput,
+            StackPop = null,
+            StackPush = stackSymbol.ToString()
+        };
+
+        var key = GetTransitionKey(pushTransition);
+        if (addedTransitions.Contains(key))
+            return 0;
+
+        transitions.Add(pushTransition);
+        addedTransitions.Add(key);
+        return 1;
+    }
+
+    private static int TryAddPopTransition(List<State> states, List<Transition> transitions,
+        HashSet<string> addedTransitions, Random random, int maxToAdd, int currentAdded,
+        char popInput, char stackSymbol)
+    {
+        if (currentAdded >= maxToAdd)
+            return 0;
+
+        var fromState = states[random.Next(states.Count)].Id;
+        var toState = states[random.Next(states.Count)].Id;
+
+        var popTransition = new Transition
+        {
+            FromStateId = fromState,
+            ToStateId = toState,
+            Symbol = popInput,
+            StackPop = stackSymbol,
+            StackPush = null
+        };
+
+        var key = GetTransitionKey(popTransition);
+        if (addedTransitions.Contains(key))
+            return 0;
+
+        transitions.Add(popTransition);
+        addedTransitions.Add(key);
+        return 1;
     }
 
     private static int EnsureAllSymbolsPresent(
@@ -384,76 +519,105 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
         HashSet<string> addedTransitions,
         Random random)
     {
-        int maxAttempts = 200;
+        const int maxAttempts = 200;
 
         for (int attempt = 0; attempt < maxAttempts; attempt++)
         {
-            var fromState = states[random.Next(states.Count)].Id;
-            var toState = states[random.Next(states.Count)].Id;
-
-            char symbol;
-
-            if (type == AutomatonType.EpsilonNFA && random.NextDouble() < 0.2)
-            {
-                symbol = '\0';
-            }
-            else
-            {
-                symbol = alphabet[random.Next(alphabet.Count)];
-            }
-
-            var transition = new Transition
-            {
-                FromStateId = fromState,
-                ToStateId = toState,
-                Symbol = symbol
-            };
-
-            if (type == AutomatonType.PDA)
-            {
-                if (random.NextDouble() < 0.5)
-                {
-                    transition.StackPop = null;
-                }
-                else
-                {
-                    transition.StackPop = alphabet[random.Next(alphabet.Count)];
-                }
-
-                if (random.NextDouble() < 0.6)
-                {
-                    transition.StackPush = null;
-                }
-                else
-                {
-                    int len = random.Next(1, 3);
-                    var sb = new System.Text.StringBuilder();
-                    for (int i = 0; i < len; i++) sb.Append(alphabet[random.Next(alphabet.Count)]);
-                    transition.StackPush = sb.ToString();
-                }
-            }
-
+            var transition = CreateRandomTransitionCandidate(type, states, alphabet, random);
             var key = GetTransitionKey(transition);
 
             if (addedTransitions.Contains(key))
                 continue;
 
-            if (type == AutomatonType.DFA && symbol != '\0')
-            {
-                var conflictExists = addedTransitions.Any(existing =>
-                {
-                    var parts = existing.Split('-');
-                    return parts.Length >= 2 && parts[0] == fromState.ToString() && parts[1] == symbol.ToString();
-                });
-
-                if (conflictExists)
-                    continue;
-            }
+            if (HasDfaConflict(type, transition, addedTransitions))
+                continue;
 
             return transition;
         }
 
         return null;
+    }
+
+    private static Transition CreateRandomTransitionCandidate(AutomatonType type, List<State> states,
+        List<char> alphabet, Random random)
+    {
+        var fromState = states[random.Next(states.Count)].Id;
+        var toState = states[random.Next(states.Count)].Id;
+        var symbol = SelectTransitionSymbol(type, alphabet, random);
+
+        var transition = new Transition
+        {
+            FromStateId = fromState,
+            ToStateId = toState,
+            Symbol = symbol
+        };
+
+        if (type == AutomatonType.PDA)
+        {
+            AssignPdaStackOperations(transition, alphabet, random);
+        }
+
+        return transition;
+    }
+
+    private static char SelectTransitionSymbol(AutomatonType type, List<char> alphabet, Random random)
+    {
+        if (type == AutomatonType.EpsilonNFA && random.NextDouble() < 0.2)
+        {
+            return '\0';
+        }
+
+        return alphabet[random.Next(alphabet.Count)];
+    }
+
+    private static void AssignPdaStackOperations(Transition transition, List<char> alphabet, Random random)
+    {
+        // Stack pop operation
+        if (random.NextDouble() < 0.5)
+        {
+            transition.StackPop = null;
+        }
+        else
+        {
+            transition.StackPop = alphabet[random.Next(alphabet.Count)];
+        }
+
+        // Stack push operation
+        if (random.NextDouble() < 0.6)
+        {
+            transition.StackPush = null;
+        }
+        else
+        {
+            transition.StackPush = GenerateStackPushString(alphabet, random);
+        }
+    }
+
+    private static string GenerateStackPushString(List<char> alphabet, Random random)
+    {
+        int length = random.Next(1, 3);
+        var builder = new System.Text.StringBuilder(length);
+
+        for (int i = 0; i < length; i++)
+        {
+            builder.Append(alphabet[random.Next(alphabet.Count)]);
+        }
+
+        return builder.ToString();
+    }
+
+    private static bool HasDfaConflict(AutomatonType type, Transition transition, HashSet<string> addedTransitions)
+    {
+        if (type != AutomatonType.DFA || transition.Symbol == '\0')
+            return false;
+
+        return addedTransitions.Any(existing =>
+        {
+            var parts = existing.Split('-');
+            return parts.Length >= 2 &&
+                   parts[0] == transition.FromStateId.ToString() &&
+                   parts[1] == transition.Symbol.ToString();
+        });
     }
 
     private static string GetTransitionKey(Transition transition)

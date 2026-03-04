@@ -2,26 +2,6 @@
 
 public class EpsilonNFA : NFA
 {
-    private HashSet<int> EpsilonClosure(HashSet<int> states)
-    {
-        var closure = new HashSet<int>(states);
-        var stack = new Stack<int>(states);
-
-        while (stack.Count > 0)
-        {
-            var state = stack.Pop();
-            var epsilonTransitions = Transitions
-                .Where(t => t.FromStateId == state && t.Symbol == '\0');
-            foreach (var transition in from transition in epsilonTransitions
-                                       where closure.Add(transition.ToStateId)
-                                       select transition)
-            {
-                stack.Push(transition.ToStateId);
-            }
-        }
-
-        return closure;
-    }
 
     protected override HashSet<int> GetInitialStates()
     {
@@ -101,54 +81,78 @@ public class EpsilonNFA : NFA
     {
         var nfa = new NFA();
 
-        foreach (var stateId in States.Select(state => state.Id))
+        ConvertStates(nfa);
+        ConvertTransitions(nfa);
+
+        return nfa;
+    }
+
+    private void ConvertStates(NFA nfa)
+    {
+        foreach (var state in States)
         {
-            var closure = EpsilonClosure([stateId]);
+            var closure = EpsilonClosure([state.Id]);
             bool isAccepting = closure.Any(id => States.First(s => s.Id == id).IsAccepting);
-            var state = States.First(s => s.Id == stateId);
+
             nfa.AddState(new State
             {
                 Id = state.Id,
                 IsStart = state.IsStart,
                 IsAccepting = isAccepting
             });
+
             if (state.IsStart)
                 nfa.SetStartState(state.Id);
         }
+    }
 
-        var symbols = Transitions
-            .Where(t => t.Symbol != '\0')
-            .Select(t => t.Symbol)
-            .Distinct()
-            .ToList();
+    private void ConvertTransitions(NFA nfa)
+    {
+        var symbols = GetNonEpsilonSymbols();
 
-        foreach (var stateId in States.Select(state => state.Id))
+        foreach (var state in States)
         {
-            var fromClosure = EpsilonClosure([stateId]);
+            var fromClosure = EpsilonClosure([state.Id]);
+
             foreach (var symbol in symbols)
             {
-                var toStates = new HashSet<int>();
-                foreach (var closureState in fromClosure)
+                var targetStates = ComputeTargetStates(fromClosure, symbol);
+
+                foreach (var targetState in targetStates)
                 {
-                    var transitions = Transitions
-                        .Where(t => t.FromStateId == closureState && t.Symbol == symbol);
-                    foreach (var t in transitions)
-                    {
-                        foreach (var target in EpsilonClosure([t.ToStateId]))
-                            toStates.Add(target);
-                    }
-                }
-                foreach (var to in toStates)
-                {
-                    nfa.AddTransition(stateId, to, symbol);
+                    nfa.AddTransition(state.Id, targetState, symbol);
                 }
             }
         }
-
-        return nfa;
     }
 
-    // Helper method to add epsilon transitions
+    private List<char> GetNonEpsilonSymbols()
+    {
+        return [.. Transitions
+            .Where(t => t.Symbol != '\0')
+            .Select(t => t.Symbol)
+            .Distinct()];
+    }
+
+    private HashSet<int> ComputeTargetStates(HashSet<int> fromClosure, char symbol)
+    {
+        var targetStates = new HashSet<int>();
+
+        foreach (var closureState in fromClosure)
+        {
+            var transitions = Transitions
+                .Where(t => t.FromStateId == closureState && t.Symbol == symbol);
+
+            foreach (var transition in transitions)
+            {
+                var targetClosure = EpsilonClosure([transition.ToStateId]);
+                targetStates.UnionWith(targetClosure);
+            }
+        }
+
+        return targetStates;
+    }
+
     public void AddEpsilonTransition(int fromStateId, int toStateId)
     {
         AddTransition(fromStateId, toStateId, '\0');
@@ -209,5 +213,25 @@ public class EpsilonNFA : NFA
             }
             state.CurrentStates = ProcessNextStates(nextStates);
         }
+    }
+    private HashSet<int> EpsilonClosure(HashSet<int> states)
+    {
+        var closure = new HashSet<int>(states);
+        var stack = new Stack<int>(states);
+
+        while (stack.Count > 0)
+        {
+            var state = stack.Pop();
+            var epsilonTransitions = Transitions
+                .Where(t => t.FromStateId == state && t.Symbol == '\0');
+            foreach (var transition in from transition in epsilonTransitions
+                                       where closure.Add(transition.ToStateId)
+                                       select transition)
+            {
+                stack.Push(transition.ToStateId);
+            }
+        }
+
+        return closure;
     }
 }

@@ -1,4 +1,4 @@
-﻿using FiniteAutomatons.Services.Observability;
+﻿using FiniteAutomatons.Services.Interfaces;
 using System.Diagnostics;
 
 namespace FiniteAutomatons.Observability;

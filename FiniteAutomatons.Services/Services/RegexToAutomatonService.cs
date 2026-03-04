@@ -28,103 +28,183 @@ public sealed class RegexToAutomatonService(ILogger<RegexToAutomatonService> log
 
     private static IEnumerable<Tok> Tokenize(string s)
     {
+        var outTokens = ParseTokens(s);
+        return InsertConcatenationTokens(outTokens);
+    }
+
+    private static List<Tok> ParseTokens(string s)
+    {
         var outTokens = new List<Tok>();
         bool escape = false;
+
         for (int i = 0; i < s.Length; i++)
         {
             var c = s[i];
+
             if (escape)
             {
                 outTokens.Add(new Tok(TokType.Char, c.ToString()));
                 escape = false;
                 continue;
             }
-            if (c == '\\') { escape = true; continue; }
 
-            if (c == '^' && i == 0)
+            if (c == '\\')
             {
+                escape = true;
                 continue;
             }
-            if (c == '$' && i == s.Length - 1)
-            {
+
+            if (IsAnchorCharacter(c, i, s.Length))
                 continue;
-            }
 
             if (c == '[')
             {
-                var j = i + 1;
-                var classChars = new List<char>();
-                bool negated = false;
-                if (j < s.Length && s[j] == '^')
-                {
-                    negated = true;
-                    j++;
-                }
-                while (j < s.Length && s[j] != ']')
-                {
-                    if (s[j] == '\\' && j + 1 < s.Length)
-                    {
-                        classChars.Add(s[j + 1]);
-                        j += 2;
-                        continue;
-                    }
-                    if (j + 2 < s.Length && s[j + 1] == '-' && s[j + 2] != ']')
-                    {
-                        char start = s[j];
-                        char end = s[j + 2];
-                        if (start > end) throw new ArgumentException($"Invalid range '{start}-{end}' in character class");
-                        for (char cc = start; cc <= end; cc++) classChars.Add(cc);
-                        j += 3;
-                        continue;
-                    }
-                    classChars.Add(s[j]);
-                    j++;
-                }
-                if (j >= s.Length || s[j] != ']') throw new ArgumentException("Unterminated character class");
-                if (classChars.Count == 0) throw new ArgumentException("Empty character class");
-                if (negated) throw new ArgumentException("Negated character classes are not supported");
-                var val = new string([.. classChars.Distinct()]);
-                outTokens.Add(new Tok(TokType.CharClass, val));
-                i = j;
+                var (charClassToken, endIndex) = ParseCharacterClass(s, i);
+                outTokens.Add(charClassToken);
+                i = endIndex;
                 continue;
             }
 
-            switch (c)
-            {
-                case '*': outTokens.Add(new Tok(TokType.Star, null)); break;
-                case '+': outTokens.Add(new Tok(TokType.Plus, null)); break;
-                case '?': outTokens.Add(new Tok(TokType.Question, null)); break;
-                case '|': outTokens.Add(new Tok(TokType.Or, null)); break;
-                case '(':
-                    outTokens.Add(new Tok(TokType.Open, null)); break;
-                case ')':
-                    outTokens.Add(new Tok(TokType.Close, null)); break;
-                default:
-                    outTokens.Add(new Tok(TokType.Char, c.ToString())); break;
-            }
+            outTokens.Add(CreateOperatorToken(c));
         }
 
-        if (escape) throw new ArgumentException("Trailing escape character in regular expression");
+        if (escape)
+            throw new ArgumentException("Trailing escape character in regular expression");
 
-        var withConcat = new List<Tok>();
-        for (int i = 0; i < outTokens.Count; i++)
+        return outTokens;
+    }
+
+    private static bool IsAnchorCharacter(char c, int index, int length)
+    {
+        return (c == '^' && index == 0) || (c == '$' && index == length - 1);
+    }
+
+    private static (Tok Token, int EndIndex) ParseCharacterClass(string s, int startIndex)
+    {
+        int j = startIndex + 1;
+        var classChars = new List<char>();
+        bool negated = false;
+
+        if (j < s.Length && s[j] == '^')
         {
-            var t = outTokens[i];
-            withConcat.Add(t);
-            if (i + 1 < outTokens.Count)
+            negated = true;
+            j++;
+        }
+
+        while (j < s.Length && s[j] != ']')
+        {
+            if (TryParseEscapedChar(s, j, out var escapedChar, out var charsConsumed))
             {
-                var a = t.Type;
-                var b = outTokens[i + 1].Type;
-                bool aCanBeBefore = a == TokType.Char || a == TokType.CharClass || a == TokType.Star || a == TokType.Plus || a == TokType.Question || a == TokType.Close;
-                bool bCanBeAfter = b == TokType.Char || b == TokType.CharClass || b == TokType.Open;
-                if (aCanBeBefore && bCanBeAfter)
-                {
-                    withConcat.Add(new Tok(TokType.Concat, null));
-                }
+                classChars.Add(escapedChar);
+                j += charsConsumed;
+                continue;
+            }
+
+            if (TryParseCharRange(s, j, out var rangeChars, out charsConsumed))
+            {
+                classChars.AddRange(rangeChars);
+                j += charsConsumed;
+                continue;
+            }
+
+            classChars.Add(s[j]);
+            j++;
+        }
+
+        ValidateCharacterClass(j, s.Length, classChars.Count, negated);
+
+        var val = new string([.. classChars.Distinct()]);
+        return (new Tok(TokType.CharClass, val), j);
+    }
+
+    private static bool TryParseEscapedChar(string s, int index, out char escapedChar, out int charsConsumed)
+    {
+        if (s[index] == '\\' && index + 1 < s.Length)
+        {
+            escapedChar = s[index + 1];
+            charsConsumed = 2;
+            return true;
+        }
+
+        escapedChar = default;
+        charsConsumed = 0;
+        return false;
+    }
+
+    private static bool TryParseCharRange(string s, int index, out List<char> rangeChars, out int charsConsumed)
+    {
+        rangeChars = [];
+        charsConsumed = 0;
+
+        if (index + 2 < s.Length && s[index + 1] == '-' && s[index + 2] != ']')
+        {
+            char start = s[index];
+            char end = s[index + 2];
+
+            if (start > end)
+                throw new ArgumentException($"Invalid range '{start}-{end}' in character class");
+
+            for (char cc = start; cc <= end; cc++)
+                rangeChars.Add(cc);
+
+            charsConsumed = 3;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static void ValidateCharacterClass(int endIndex, int stringLength, int charCount, bool negated)
+    {
+        if (endIndex >= stringLength || endIndex < 0)
+            throw new ArgumentException("Unterminated character class");
+
+        if (charCount == 0)
+            throw new ArgumentException("Empty character class");
+
+        if (negated)
+            throw new ArgumentException("Negated character classes are not supported");
+    }
+
+    private static Tok CreateOperatorToken(char c)
+    {
+        return c switch
+        {
+            '*' => new Tok(TokType.Star, null),
+            '+' => new Tok(TokType.Plus, null),
+            '?' => new Tok(TokType.Question, null),
+            '|' => new Tok(TokType.Or, null),
+            '(' => new Tok(TokType.Open, null),
+            ')' => new Tok(TokType.Close, null),
+            _ => new Tok(TokType.Char, c.ToString())
+        };
+    }
+
+    private static List<Tok> InsertConcatenationTokens(List<Tok> tokens)
+    {
+        var withConcat = new List<Tok>();
+
+        for (int i = 0; i < tokens.Count; i++)
+        {
+            withConcat.Add(tokens[i]);
+
+            if (i + 1 < tokens.Count && ShouldInsertConcat(tokens[i].Type, tokens[i + 1].Type))
+            {
+                withConcat.Add(new Tok(TokType.Concat, null));
             }
         }
 
         return withConcat;
+    }
+
+    private static bool ShouldInsertConcat(TokType current, TokType next)
+    {
+        bool currentCanBeBefore = current is TokType.Char or TokType.CharClass or TokType.Star
+            or TokType.Plus or TokType.Question or TokType.Close;
+
+        bool nextCanBeAfter = next is TokType.Char or TokType.CharClass or TokType.Open;
+
+        return currentCanBeBefore && nextCanBeAfter;
     }
 
     private static readonly Dictionary<TokType, int> Prec = new()
@@ -187,107 +267,138 @@ public sealed class RegexToAutomatonService(ILogger<RegexToAutomatonService> log
 
     private static EpsilonNFA BuildFromPostfix(List<Tok> postfix)
     {
-        var enfa = new EpsilonNFA();
-        int nextId = 1;
+        var context = new NfaBuildContext();
         var fragStack = new Stack<Fragment>();
-
-        int NewState()
-        {
-            var s = new State { Id = nextId++ };
-            enfa.AddState(s);
-            return s.Id;
-        }
 
         foreach (var t in postfix)
         {
-            switch (t.Type)
+            var fragment = t.Type switch
             {
-                case TokType.Char:
-                    {
-                        int s = NewState();
-                        int e = NewState();
-                        char ch = t.Value![0];
-                        enfa.AddTransition(s, e, ch);
-                        fragStack.Push(new Fragment { Start = s, End = e });
-                    }
-                    break;
-                case TokType.CharClass:
-                    {
-                        int s = NewState();
-                        int e = NewState();
-                        var chars = t.Value!.ToCharArray();
-                        foreach (var ch in chars.Distinct())
-                        {
-                            enfa.AddTransition(s, e, ch);
-                        }
-                        fragStack.Push(new Fragment { Start = s, End = e });
-                    }
-                    break;
-                case TokType.Concat:
-                    {
-                        var f2 = fragStack.Pop();
-                        var f1 = fragStack.Pop();
-                        enfa.AddEpsilonTransition(f1.End, f2.Start);
-                        fragStack.Push(new Fragment { Start = f1.Start, End = f2.End });
-                    }
-                    break;
-                case TokType.Or:
-                    {
-                        var f2 = fragStack.Pop();
-                        var f1 = fragStack.Pop();
-                        int s = NewState();
-                        int e = NewState();
-                        enfa.AddEpsilonTransition(s, f1.Start);
-                        enfa.AddEpsilonTransition(s, f2.Start);
-                        enfa.AddEpsilonTransition(f1.End, e);
-                        enfa.AddEpsilonTransition(f2.End, e);
-                        fragStack.Push(new Fragment { Start = s, End = e });
-                    }
-                    break;
-                case TokType.Star:
-                    {
-                        var f = fragStack.Pop();
-                        int s = NewState();
-                        int e = NewState();
-                        enfa.AddEpsilonTransition(s, f.Start);
-                        enfa.AddEpsilonTransition(s, e);
-                        enfa.AddEpsilonTransition(f.End, f.Start);
-                        enfa.AddEpsilonTransition(f.End, e);
-                        fragStack.Push(new Fragment { Start = s, End = e });
-                    }
-                    break;
-                case TokType.Plus:
-                    {
-                        var f = fragStack.Pop();
-                        int s = NewState();
-                        int e = NewState();
-                        enfa.AddEpsilonTransition(s, f.Start);
-                        enfa.AddEpsilonTransition(f.End, f.Start);
-                        enfa.AddEpsilonTransition(f.End, e);
-                        fragStack.Push(new Fragment { Start = s, End = e });
-                    }
-                    break;
-                case TokType.Question:
-                    {
-                        var f = fragStack.Pop();
-                        int s = NewState();
-                        int e = NewState();
-                        enfa.AddEpsilonTransition(s, f.Start);
-                        enfa.AddEpsilonTransition(s, e);
-                        enfa.AddEpsilonTransition(f.End, e);
-                        fragStack.Push(new Fragment { Start = s, End = e });
-                    }
-                    break;
-                default:
-                    throw new InvalidOperationException($"Unsupported token in postfix: {t}");
-            }
+                TokType.Char => BuildCharFragment(context, t),
+                TokType.CharClass => BuildCharClassFragment(context, t),
+                TokType.Concat => BuildConcatFragment(context, fragStack),
+                TokType.Or => BuildOrFragment(context, fragStack),
+                TokType.Star => BuildStarFragment(context, fragStack),
+                TokType.Plus => BuildPlusFragment(context, fragStack),
+                TokType.Question => BuildQuestionFragment(context, fragStack),
+                _ => throw new InvalidOperationException($"Unsupported token in postfix: {t}")
+            };
+
+            fragStack.Push(fragment);
         }
 
-        if (fragStack.Count != 1) throw new ArgumentException("Invalid regular expression");
+        return FinalizeNfa(context.Enfa, fragStack);
+    }
+
+    private sealed class NfaBuildContext
+    {
+        public EpsilonNFA Enfa { get; } = new();
+        private int nextId = 1;
+
+        public int NewState()
+        {
+            var s = new State { Id = nextId++ };
+            Enfa.AddState(s);
+            return s.Id;
+        }
+    }
+
+    private static Fragment BuildCharFragment(NfaBuildContext context, Tok token)
+    {
+        int start = context.NewState();
+        int end = context.NewState();
+        char ch = token.Value![0];
+        context.Enfa.AddTransition(start, end, ch);
+        return new Fragment { Start = start, End = end };
+    }
+
+    private static Fragment BuildCharClassFragment(NfaBuildContext context, Tok token)
+    {
+        int start = context.NewState();
+        int end = context.NewState();
+        var chars = token.Value!.ToCharArray();
+
+        foreach (var ch in chars.Distinct())
+        {
+            context.Enfa.AddTransition(start, end, ch);
+        }
+
+        return new Fragment { Start = start, End = end };
+    }
+
+    private static Fragment BuildConcatFragment(NfaBuildContext context, Stack<Fragment> fragStack)
+    {
+        var f2 = fragStack.Pop();
+        var f1 = fragStack.Pop();
+        context.Enfa.AddEpsilonTransition(f1.End, f2.Start);
+        return new Fragment { Start = f1.Start, End = f2.End };
+    }
+
+    private static Fragment BuildOrFragment(NfaBuildContext context, Stack<Fragment> fragStack)
+    {
+        var f2 = fragStack.Pop();
+        var f1 = fragStack.Pop();
+        int start = context.NewState();
+        int end = context.NewState();
+
+        context.Enfa.AddEpsilonTransition(start, f1.Start);
+        context.Enfa.AddEpsilonTransition(start, f2.Start);
+        context.Enfa.AddEpsilonTransition(f1.End, end);
+        context.Enfa.AddEpsilonTransition(f2.End, end);
+
+        return new Fragment { Start = start, End = end };
+    }
+
+    private static Fragment BuildStarFragment(NfaBuildContext context, Stack<Fragment> fragStack)
+    {
+        var f = fragStack.Pop();
+        int start = context.NewState();
+        int end = context.NewState();
+
+        context.Enfa.AddEpsilonTransition(start, f.Start);
+        context.Enfa.AddEpsilonTransition(start, end);
+        context.Enfa.AddEpsilonTransition(f.End, f.Start);
+        context.Enfa.AddEpsilonTransition(f.End, end);
+
+        return new Fragment { Start = start, End = end };
+    }
+
+    private static Fragment BuildPlusFragment(NfaBuildContext context, Stack<Fragment> fragStack)
+    {
+        var f = fragStack.Pop();
+        int start = context.NewState();
+        int end = context.NewState();
+
+        context.Enfa.AddEpsilonTransition(start, f.Start);
+        context.Enfa.AddEpsilonTransition(f.End, f.Start);
+        context.Enfa.AddEpsilonTransition(f.End, end);
+
+        return new Fragment { Start = start, End = end };
+    }
+
+    private static Fragment BuildQuestionFragment(NfaBuildContext context, Stack<Fragment> fragStack)
+    {
+        var f = fragStack.Pop();
+        int start = context.NewState();
+        int end = context.NewState();
+
+        context.Enfa.AddEpsilonTransition(start, f.Start);
+        context.Enfa.AddEpsilonTransition(start, end);
+        context.Enfa.AddEpsilonTransition(f.End, end);
+
+        return new Fragment { Start = start, End = end };
+    }
+
+    private static EpsilonNFA FinalizeNfa(EpsilonNFA enfa, Stack<Fragment> fragStack)
+    {
+        if (fragStack.Count != 1)
+            throw new ArgumentException("Invalid regular expression");
+
         var top = fragStack.Pop();
         enfa.SetStartState(top.Start);
         var endState = enfa.States.First(s => s.Id == top.End);
         endState.IsAccepting = true;
+
         return enfa;
     }
 

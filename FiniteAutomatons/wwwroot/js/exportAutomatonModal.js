@@ -1,4 +1,4 @@
-// Export Automaton Modal Handler
+﻿// Export Automaton Modal Handler
 document.addEventListener('DOMContentLoaded', () => {
     const exportModal = document.getElementById('exportAutomatonModal');
     if (!exportModal) return;
@@ -17,7 +17,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Handle export format selection
     const exportButtons = exportModal.querySelectorAll('[data-export-format]');
     exportButtons.forEach(button => {
         button.addEventListener('click', () => {
@@ -43,10 +42,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
             }
 
-            // Trigger download
             window.location.href = url;
 
-            // Close modal
             const modalInstance = bootstrap.Modal.getInstance(exportModal);
             if (modalInstance) {
                 modalInstance.hide();

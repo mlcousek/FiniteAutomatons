@@ -48,7 +48,7 @@
     const openModal = () => {
         modalEl.style.display = 'flex';
         document.body.style.overflow = 'hidden';
-        modalEl.offsetHeight; // trigger reflow
+        modalEl.offsetHeight; 
         modalEl.classList.add('modal-open');
     };
 
@@ -66,12 +66,10 @@
         closeBtn.addEventListener('click', closeModal);
     }
 
-    // Close on backdrop click
     window.addEventListener('click', (e) => { 
         if (e.target === modalEl) closeModal(); 
     });
-    
-    // Close on Escape key
+
     window.addEventListener('keydown', (e) => { 
         if (e.key === 'Escape' && modalEl.style.display === 'flex') closeModal(); 
     });

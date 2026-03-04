@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using FiniteAutomatons.Services.Interfaces;
+using System.Diagnostics;
 using System.Text.Json;
 
 namespace FiniteAutomatons.Services.Observability;

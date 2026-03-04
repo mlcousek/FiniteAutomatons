@@ -1,23 +1,5 @@
-﻿/**
- * LayoutEngine.js
- * Handles graph layout algorithms for automaton visualization
- * Supports multiple layout strategies optimized for different automaton sizes
- * 
- * @module LayoutEngine
- */
+﻿export class LayoutEngine {
 
-/**
- * Static class for applying graph layouts
- */
-export class LayoutEngine {
-    /**
-     * Apply layout to Cytoscape graph
-     * @param {Object} cy - Cytoscape instance
-     * @param {string} layoutName - Layout algorithm name
-     * @param {Object} options - Additional options
-     * @param {string} [options.automatonType] - Type of automaton
-     * @param {number} [options.stateCount] - Number of states
-     */
     static applyLayout(cy, layoutName = 'dagre', options = {}) {
         if (!cy) {
             console.error('Cytoscape instance is required');
@@ -25,8 +7,7 @@ export class LayoutEngine {
         }
 
         const nodeCount = cy.nodes().length;
-        
-        // Auto-select layout if 'auto' is specified
+
         if (layoutName === 'auto') {
             layoutName = this._selectOptimalLayout(nodeCount, options);
         }
@@ -54,7 +35,6 @@ export class LayoutEngine {
                 layoutConfig = this._getConcentricLayout(options);
                 break;
             case 'preset':
-                // Use existing positions
                 layoutConfig = { name: 'preset' };
                 break;
             default:
@@ -67,40 +47,26 @@ export class LayoutEngine {
             layout.run();
         } catch (error) {
             console.error('Layout failed:', error);
-            // Fallback to simple grid layout
             this._applyFallbackLayout(cy, nodeCount);
         }
     }
 
-    /**
-     * Dagre layout - Hierarchical, great for automatons
-     * @private
-     * @param {Object} options - Layout options
-     * @returns {Object} Cytoscape layout configuration
-     */
     static _getDagreLayout(options) {
         return {
             name: 'dagre',
-            nodeSep: 150,           // Increased horizontal spacing to avoid edge overlap
-            rankSep: 200,           // Increased vertical spacing between ranks
-            rankDir: 'LR',          // Left-to-right direction
+            nodeSep: 150,           
+            rankSep: 200,           
+            rankDir: 'LR',          
             animate: true,
             animationDuration: 500,
             animationEasing: 'ease-out',
             fit: true,
             padding: 50,
-            // Better edge routing
-            edgeSep: 20,            // Separation between edges
-            ranker: 'network-simplex' // Better ranking algorithm
+            edgeSep: 20,            
+            ranker: 'network-simplex' 
         };
     }
 
-    /**
-     * Circle layout - Good for small automatons
-     * @private
-     * @param {Object} options - Layout options
-     * @returns {Object} Cytoscape layout configuration
-     */
     static _getCircleLayout(options) {
         return {
             name: 'circle',
@@ -109,19 +75,13 @@ export class LayoutEngine {
             animationEasing: 'ease-out',
             fit: true,
             padding: 50,
-            radius: undefined,      // Auto-calculate radius
-            startAngle: 3 / 2 * Math.PI, // Start at top
-            sweep: 2 * Math.PI,     // Full circle
+            radius: undefined,     
+            startAngle: 3 / 2 * Math.PI, 
+            sweep: 2 * Math.PI,     
             clockwise: true
         };
     }
 
-    /**
-     * Grid layout - Simple grid arrangement
-     * @private
-     * @param {Object} options - Layout options
-     * @returns {Object} Cytoscape layout configuration
-     */
     static _getGridLayout(options) {
         return {
             name: 'grid',
@@ -130,20 +90,14 @@ export class LayoutEngine {
             animationEasing: 'ease-out',
             fit: true,
             padding: 50,
-            rows: undefined,        // Auto-calculate
-            cols: undefined,        // Auto-calculate
+            rows: undefined,        
+            cols: undefined,        
             condense: false,
             avoidOverlap: true,
             avoidOverlapPadding: 10
         };
     }
 
-    /**
-     * Breadth-first layout - Tree-like structure
-     * @private
-     * @param {Object} options - Layout options
-     * @returns {Object} Cytoscape layout configuration
-     */
     static _getBreadthFirstLayout(options) {
         return {
             name: 'breadthfirst',
@@ -159,12 +113,6 @@ export class LayoutEngine {
         };
     }
 
-    /**
-     * COSE layout - Force-directed (physics simulation)
-     * @private
-     * @param {Object} options - Layout options
-     * @returns {Object} Cytoscape layout configuration
-     */
     static _getCoseLayout(options) {
         return {
             name: 'cose',
@@ -185,12 +133,6 @@ export class LayoutEngine {
         };
     }
 
-    /**
-     * Concentric layout - Nodes in concentric circles
-     * @private
-     * @param {Object} options - Layout options
-     * @returns {Object} Cytoscape layout configuration
-     */
     static _getConcentricLayout(options) {
         return {
             name: 'concentric',
@@ -205,24 +147,14 @@ export class LayoutEngine {
             equidistant: false,
             minNodeSpacing: 50,
             concentric: (node) => {
-                // Place start state at center
                 if (node.data('isStart')) return 10;
-                // Then accepting states
                 if (node.data('isAccepting')) return 5;
-                // Others on outer rings
                 return 1;
             },
             levelWidth: () => 2
         };
     }
 
-    /**
-     * Select optimal layout based on automaton characteristics
-     * @private
-     * @param {number} nodeCount - Number of nodes
-     * @param {Object} options - Additional options
-     * @returns {string} Recommended layout name
-     */
     static _selectOptimalLayout(nodeCount, options) {
         if (nodeCount <= 5) {
             return 'circle';
@@ -231,16 +163,10 @@ export class LayoutEngine {
         } else if (nodeCount <= 30) {
             return 'breadthfirst';
         } else {
-            return 'cose'; // Force-directed works better for large graphs
+            return 'cose'; 
         }
     }
 
-    /**
-     * Fallback layout when primary layout fails
-     * @private
-     * @param {Object} cy - Cytoscape instance
-     * @param {number} nodeCount - Number of nodes
-     */
     static _applyFallbackLayout(cy, nodeCount) {
         console.warn('Applying fallback grid layout');
         
@@ -266,11 +192,6 @@ export class LayoutEngine {
         });
     }
 
-    /**
-     * Manually position states (for custom layouts)
-     * @param {Object} cy - Cytoscape instance
-     * @param {Array} positions - Array of {stateId, x, y}
-     */
     static applyCustomPositions(cy, positions) {
         if (!cy || !positions) return;
 
@@ -282,11 +203,6 @@ export class LayoutEngine {
         });
     }
 
-    /**
-     * Get current node positions (for saving layout)
-     * @param {Object} cy - Cytoscape instance
-     * @returns {Array} Array of {stateId, x, y}
-     */
     static getNodePositions(cy) {
         if (!cy) return [];
 
@@ -297,18 +213,13 @@ export class LayoutEngine {
         }));
     }
 
-    /**
-     * Arrange nodes to avoid overlaps
-     * @param {Object} cy - Cytoscape instance
-     */
     static avoidOverlaps(cy) {
         if (!cy) return;
 
         const nodes = cy.nodes();
-        const minDistance = 80; // Minimum distance between nodes
+        const minDistance = 80; 
 
-        // Simple overlap resolution using force-based approach
-        for (let i = 0; i < 50; i++) { // Max iterations
+        for (let i = 0; i < 50; i++) { 
             let hadOverlap = false;
 
             for (let j = 0; j < nodes.length; j++) {
@@ -325,8 +236,7 @@ export class LayoutEngine {
 
                     if (distance < minDistance) {
                         hadOverlap = true;
-                        
-                        // Push nodes apart
+  
                         const pushDistance = (minDistance - distance) / 2;
                         const angle = Math.atan2(dy, dx);
                         
@@ -347,10 +257,6 @@ export class LayoutEngine {
         }
     }
 
-    /**
-     * Get available layout names
-     * @returns {Array<string>} List of available layout names
-     */
     static getAvailableLayouts() {
         return [
             'auto',
@@ -364,11 +270,6 @@ export class LayoutEngine {
         ];
     }
 
-    /**
-     * Get layout description
-     * @param {string} layoutName - Layout name
-     * @returns {string} Human-readable description
-     */
     static getLayoutDescription(layoutName) {
         const descriptions = {
             auto: 'Automatically select optimal layout',
@@ -385,7 +286,6 @@ export class LayoutEngine {
     }
 }
 
-// Expose to window for non-module usage
 if (typeof window !== 'undefined') {
     window.LayoutEngine = LayoutEngine;
 }

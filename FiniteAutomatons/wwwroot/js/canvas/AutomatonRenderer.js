@@ -1,20 +1,4 @@
-﻿/**
- * AutomatonRenderer.js
- * Handles rendering logic for different automaton types (DFA, NFA, ε-NFA, PDA)
- * Provides Cytoscape stylesheets and element creation
- * 
- * @module AutomatonRenderer
- */
-
-/**
- * Static class for rendering automatons
- */
-export class AutomatonRenderer {
-    /**
-     * Main render method - dispatches to type-specific renderer
-     * @param {Object} cy - Cytoscape instance
-     * @param {Object} data - Automaton data
-     */
+﻿export class AutomatonRenderer {
     static render(cy, data) {
         if (!cy || !data) {
             throw new Error('Cytoscape instance and data are required');
@@ -43,67 +27,31 @@ export class AutomatonRenderer {
         }
     }
 
-    /**
-     * Render DFA (Deterministic Finite Automaton)
-     * @param {Object} cy - Cytoscape instance
-     * @param {Array} states - State objects
-     * @param {Array} transitions - Transition objects
-     */
     static renderDFA(cy, states, transitions) {
         this._renderStates(cy, states);
         this._renderTransitions(cy, transitions, false, false);
     }
 
-    /**
-     * Render NFA (Nondeterministic Finite Automaton)
-     * @param {Object} cy - Cytoscape instance
-     * @param {Array} states - State objects
-     * @param {Array} transitions - Transition objects
-     */
     static renderNFA(cy, states, transitions) {
         this._renderStates(cy, states);
         this._renderTransitions(cy, transitions, false, false);
     }
 
-    /**
-     * Render ε-NFA (Epsilon-Nondeterministic Finite Automaton)
-     * @param {Object} cy - Cytoscape instance
-     * @param {Array} states - State objects
-     * @param {Array} transitions - Transition objects
-     */
     static renderEpsilonNFA(cy, states, transitions) {
         this._renderStates(cy, states);
         this._renderTransitions(cy, transitions, true, false);
     }
 
-    /**
-     * Render PDA (Pushdown Automaton)
-     * @param {Object} cy - Cytoscape instance
-     * @param {Array} states - State objects
-     * @param {Array} transitions - Transition objects
-     */
     static renderPDA(cy, states, transitions) {
         this._renderStates(cy, states);
         this._renderTransitions(cy, transitions, true, true);
     }
 
-    /**
-     * Generic renderer (fallback)
-     * @param {Object} cy - Cytoscape instance
-     * @param {Array} states - State objects
-     * @param {Array} transitions - Transition objects
-     */
     static renderGeneric(cy, states, transitions) {
         this._renderStates(cy, states);
         this._renderTransitions(cy, transitions, true, false);
     }
 
-    /**
-     * Private: Render state nodes
-     * @private
-     * @param {Object} cy - Cytoscape instance
-     * @param {Array} states - State objects with {id, isStart, isAccepting}
-     */
     static _renderStates(cy, states) {
         if (!states || states.length === 0) return;
 
@@ -125,18 +73,9 @@ export class AutomatonRenderer {
         cy.add(nodes);
     }
 
-    /**
-     * Private: Render transition edges
-     * @private
-     * @param {Object} cy - Cytoscape instance
-     * @param {Array} transitions - Transition objects
-     * @param {boolean} allowEpsilon - Whether epsilon transitions are allowed
-     * @param {boolean} isPDA - Whether this is a PDA (includes stack operations)
-     */
     static _renderTransitions(cy, transitions, allowEpsilon, isPDA) {
         if (!transitions || transitions.length === 0) return;
 
-        // Group transitions by from-to pair to handle multiple symbols
         const transitionMap = new Map();
 
         transitions.forEach(trans => {
@@ -153,38 +92,31 @@ export class AutomatonRenderer {
             const [fromId, toId] = key.split('-').map(Number);
             const firstTrans = transList[0];
 
-            // Create label based on automaton type
             let label;
             let classes = [];
 
             if (isPDA) {
-                // PDA: Format as "symbol, pop/push" (deduplicated)
                 const pdaLabels = transList.map(t => {
                     const symbol = this._formatSymbol(t.symbol, allowEpsilon);
                     const pop = this._formatSymbol(t.stackPop, true) || 'ε';
                     const push = t.stackPush || 'ε';
                     return `${symbol}, ${pop}/${push}`;
                 });
-                // Remove duplicates using Set
                 const uniqueLabels = [...new Set(pdaLabels)];
                 label = uniqueLabels.join('\n');
                 classes.push('pda');
             } else {
-                // DFA/NFA/ε-NFA: Just list symbols (deduplicated)
                 const symbols = transList.map(t => 
                     this._formatSymbol(t.symbol, allowEpsilon)
                 );
-                // Remove duplicates using Set
                 const uniqueSymbols = [...new Set(symbols)];
                 label = uniqueSymbols.join(', ');
             }
 
-            // Check for self-loop
             if (fromId === toId) {
                 classes.push('self-loop');
             }
 
-            // Check for parallel edges (bidirectional)
             const reverseKey = `${toId}-${fromId}`;
             if (transitionMap.has(reverseKey)) {
                 classes.push('parallel');
@@ -197,7 +129,7 @@ export class AutomatonRenderer {
                     source: `state-${fromId}`,
                     target: `state-${toId}`,
                     label: label,
-                    symbol: label, // For tooltip
+                    symbol: label, 
                     isPDA: isPDA,
                     stackPop: isPDA ? firstTrans.stackPop : undefined,
                     stackPush: isPDA ? firstTrans.stackPush : undefined
@@ -209,13 +141,6 @@ export class AutomatonRenderer {
         cy.add(edges);
     }
 
-    /**
-     * Private: Format symbol for display
-     * @private
-     * @param {string|char} symbol - Symbol to format
-     * @param {boolean} allowEpsilon - Whether to display ε for null/empty
-     * @returns {string} Formatted symbol
-     */
     static _formatSymbol(symbol, allowEpsilon) {
         if (symbol === null || symbol === undefined || symbol === '') {
             return allowEpsilon ? 'ε' : '';
@@ -226,15 +151,8 @@ export class AutomatonRenderer {
         return symbol.toString();
     }
 
-    /**
-     * Get Cytoscape stylesheet for automaton visualization
-     * @param {string} automatonType - Type of automaton
-     * @param {Object} overrides - Style overrides
-     * @returns {Array} Cytoscape stylesheet array
-     */
     static getStylesheet(automatonType, overrides = {}) {
         const baseStyles = [
-            // ===== NODE STYLES =====
             {
                 selector: 'node',
                 style: {
@@ -254,7 +172,6 @@ export class AutomatonRenderer {
                     'transition-duration': '0.3s'
                 }
             },
-            // Active state (during execution)
             {
                 selector: 'node.active',
                 style: {
@@ -265,7 +182,6 @@ export class AutomatonRenderer {
                     'box-shadow': '0 0 20px rgba(176, 176, 176, 0.6)'
                 }
             },
-            // Start state (entry point)
             {
                 selector: 'node.start',
                 style: {
@@ -273,7 +189,6 @@ export class AutomatonRenderer {
                     'border-width': 3
                 }
             },
-            // Accepting state (double circle effect)
             {
                 selector: 'node.accepting',
                 style: {
@@ -282,7 +197,6 @@ export class AutomatonRenderer {
                     'border-color': overrides.acceptingStateColor || '#f4a261'
                 }
             },
-            // Both start and accepting
             {
                 selector: 'node.start.accepting',
                 style: {
@@ -291,7 +205,6 @@ export class AutomatonRenderer {
                     'border-color': overrides.startAcceptingColor || '#e76f51'
                 }
             },
-            // Hover effect
             {
                 selector: 'node:active',
                 style: {
@@ -300,7 +213,6 @@ export class AutomatonRenderer {
                 }
             },
 
-            // ===== EDGE STYLES =====
             {
                 selector: 'edge',
                 style: {
@@ -308,28 +220,27 @@ export class AutomatonRenderer {
                     'line-color': overrides.edgeColor || '#555555',
                     'target-arrow-color': overrides.edgeColor || '#555555',
                     'target-arrow-shape': 'triangle',
-                    'curve-style': 'bezier',           // Simple bezier curves (not too wavy)
-                    'control-point-step-size': 50,     // Moderate curve
+                    'curve-style': 'bezier',           
+                    'control-point-step-size': 50,     
                     'label': 'data(label)',
-                    'font-size': '13px',               // Slightly larger for visibility
-                    'font-weight': '600',              // Bolder text
+                    'font-size': '13px',               
+                    'font-weight': '600',              
                     'font-family': 'Arial, sans-serif',
                     'text-rotation': 'autorotate',
-                    'text-margin-y': -12,              // More space from edge
+                    'text-margin-y': -12,              
                     'text-background-color': '#ffffff',
-                    'text-background-opacity': 0.95,   // More opaque background
-                    'text-background-padding': '4px',  // More padding
+                    'text-background-opacity': 0.95,   
+                    'text-background-padding': '4px', 
                     'text-background-shape': 'roundrectangle',
                     'text-border-width': 1,
                     'text-border-color': '#cccccc',
                     'text-border-opacity': 0.5,
-                    'z-index': 10,                     // Ensure labels are on top
-                    'text-events': 'yes',              // Labels are interactive
+                    'z-index': 10,                     
+                    'text-events': 'yes',             
                     'transition-property': 'line-color, width, target-arrow-color',
                     'transition-duration': '0.3s'
                 }
             },
-            // Active transition (during execution)
             {
                 selector: 'edge.active',
                 style: {
@@ -339,8 +250,6 @@ export class AutomatonRenderer {
                     'z-index': 999
                 }
             },
-            // Branch-specific active styles (NFA nondeterministic paths)
-            // Extended palette: active-branch-0 .. active-branch-15 (16 colors)
             {
                 selector: 'edge.active-branch-0',
                 style: { 'line-color': '#e63946', 'target-arrow-color': '#e63946', 'width': 4 }
@@ -469,7 +378,6 @@ export class AutomatonRenderer {
                 selector: 'node.active-branch-15',
                 style: { 'background-color': '#ffd166', 'border-color': '#d9b154', 'color': '#000000' }
             },
-            // Self-loop edges
             {
                 selector: 'edge.self-loop',
                 style: {
@@ -480,16 +388,14 @@ export class AutomatonRenderer {
                     'text-margin-y': -20
                 }
             },
-            // Parallel edges (multiple transitions between same states)
             {
                 selector: 'edge.parallel',
                 style: {
                     'curve-style': 'bezier',
-                    'control-point-step-size': 70,     // Slightly more curved than normal
+                    'control-point-step-size': 70,     
                     'text-margin-y': -15
                 }
             },
-            // PDA-specific edge styling
             {
                 selector: 'edge.pda',
                 style: {
@@ -503,11 +409,6 @@ export class AutomatonRenderer {
         return baseStyles;
     }
 
-    /**
-     * Get color scheme for theming
-     * @param {string} theme - Theme name ('light', 'dark', 'high-contrast')
-     * @returns {Object} Color overrides for the theme
-     */
     static getThemeColors(theme) {
         const themes = {
             light: {
@@ -543,7 +444,6 @@ export class AutomatonRenderer {
     }
 }
 
-// Expose to window for non-module usage
 if (typeof window !== 'undefined') {
     window.AutomatonRenderer = AutomatonRenderer;
 }

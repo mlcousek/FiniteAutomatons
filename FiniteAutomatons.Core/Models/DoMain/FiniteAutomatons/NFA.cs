@@ -69,78 +69,138 @@ public class NFA : Automaton
     public DFA ToDFA()
     {
         var dfa = new DFA();
+        var symbols = GetNonEpsilonSymbols();
+        var conversionContext = InitializeConversionContext();
 
-        var symbols = Transitions
+        CreateInitialDfaState(dfa, conversionContext);
+        ProcessStateSetQueue(dfa, conversionContext, symbols);
+
+        return dfa;
+    }
+
+    private List<char> GetNonEpsilonSymbols()
+    {
+        return [.. Transitions
             .Select(t => t.Symbol)
             .Where(s => s != '\0')
-            .Distinct()
-            .ToList();
+            .Distinct()];
+    }
 
-        var stateSetToId = new Dictionary<string, int>();
-        var idToStateSet = new Dictionary<int, HashSet<int>>();
-        int nextDfaStateId = 1;
+    private static SubsetConstructionContext InitializeConversionContext()
+    {
+        return new SubsetConstructionContext
+        {
+            StateSetToId = [],
+            IdToStateSet = [],
+            NextDfaStateId = 1,
+            Queue = new Queue<HashSet<int>>()
+        };
+    }
 
-        static string SetKey(HashSet<int> set) => string.Join(",", set.OrderBy(x => x));
-
+    private void CreateInitialDfaState(DFA dfa, SubsetConstructionContext context)
+    {
         var initialSet = GetInitialStates();
-        var queue = new Queue<HashSet<int>>();
-        queue.Enqueue(initialSet);
+        context.Queue.Enqueue(initialSet);
 
-        var initialKey = SetKey(initialSet);
-        stateSetToId[initialKey] = nextDfaStateId;
-        idToStateSet[nextDfaStateId] = [.. initialSet];
+        var initialKey = CreateSetKey(initialSet);
+        context.StateSetToId[initialKey] = context.NextDfaStateId;
+        context.IdToStateSet[context.NextDfaStateId] = [.. initialSet];
 
         dfa.AddState(new State
         {
-            Id = nextDfaStateId,
+            Id = context.NextDfaStateId,
             IsStart = true,
-            IsAccepting = initialSet.Any(nfaId => States.First(s => s.Id == nfaId).IsAccepting)
+            IsAccepting = IsAcceptingStateSet(initialSet)
         });
-        dfa.SetStartState(nextDfaStateId);
-        nextDfaStateId++;
+        dfa.SetStartState(context.NextDfaStateId);
+        context.NextDfaStateId++;
+    }
 
-        while (queue.Count > 0)
+    private void ProcessStateSetQueue(DFA dfa, SubsetConstructionContext context, List<char> symbols)
+    {
+        while (context.Queue.Count > 0)
         {
-            var currentSet = queue.Dequeue();
-            var currentKey = SetKey(currentSet);
-            int currentDfaId = stateSetToId[currentKey];
+            var currentSet = context.Queue.Dequeue();
+            var currentKey = CreateSetKey(currentSet);
+            int currentDfaId = context.StateSetToId[currentKey];
 
-            foreach (var symbol in symbols)
+            ProcessTransitionsForStateSet(dfa, context, currentSet, currentDfaId, symbols);
+        }
+    }
+
+    private void ProcessTransitionsForStateSet(DFA dfa, SubsetConstructionContext context,
+        HashSet<int> currentSet, int currentDfaId, List<char> symbols)
+    {
+        foreach (var symbol in symbols)
+        {
+            var nextSet = ComputeNextStateSet(currentSet, symbol);
+
+            if (nextSet.Count == 0)
+                continue;
+
+            int targetDfaId = GetOrCreateDfaState(dfa, context, nextSet);
+            dfa.AddTransition(currentDfaId, targetDfaId, symbol);
+        }
+    }
+
+    private HashSet<int> ComputeNextStateSet(HashSet<int> currentSet, char symbol)
+    {
+        var nextSet = new HashSet<int>();
+
+        foreach (var nfaState in currentSet)
+        {
+            var transitions = Transitions.Where(t => t.FromStateId == nfaState && t.Symbol == symbol);
+            foreach (var transition in transitions)
             {
-                var nextSet = new HashSet<int>();
-                foreach (var nfaState in currentSet)
-                {
-                    foreach (var t in Transitions.Where(t => t.FromStateId == nfaState && t.Symbol == symbol))
-                    {
-                        nextSet.Add(t.ToStateId);
-                    }
-                }
-
-                if (nextSet.Count == 0)
-                    continue;
-
-                var nextKey = SetKey(nextSet);
-                if (!stateSetToId.TryGetValue(nextKey, out int value))
-                {
-                    value = nextDfaStateId;
-                    stateSetToId[nextKey] = value;
-                    idToStateSet[nextDfaStateId] = [.. nextSet];
-
-                    dfa.AddState(new State
-                    {
-                        Id = nextDfaStateId,
-                        IsStart = false,
-                        IsAccepting = nextSet.Any(nfaId => States.First(s => s.Id == nfaId).IsAccepting)
-                    });
-                    queue.Enqueue(nextSet);
-                    nextDfaStateId++;
-                }
-
-                dfa.AddTransition(currentDfaId, value, symbol);
+                nextSet.Add(transition.ToStateId);
             }
         }
 
-        return dfa;
+        return nextSet;
+    }
+
+    private int GetOrCreateDfaState(DFA dfa, SubsetConstructionContext context, HashSet<int> stateSet)
+    {
+        var key = CreateSetKey(stateSet);
+
+        if (context.StateSetToId.TryGetValue(key, out int existingId))
+        {
+            return existingId;
+        }
+
+        int newId = context.NextDfaStateId;
+        context.StateSetToId[key] = newId;
+        context.IdToStateSet[newId] = [.. stateSet];
+
+        dfa.AddState(new State
+        {
+            Id = newId,
+            IsStart = false,
+            IsAccepting = IsAcceptingStateSet(stateSet)
+        });
+
+        context.Queue.Enqueue(stateSet);
+        context.NextDfaStateId++;
+
+        return newId;
+    }
+
+    private bool IsAcceptingStateSet(HashSet<int> stateSet)
+    {
+        return stateSet.Any(nfaId => States.First(s => s.Id == nfaId).IsAccepting);
+    }
+
+    private static string CreateSetKey(HashSet<int> set)
+    {
+        return string.Join(",", set.OrderBy(x => x));
+    }
+
+    private class SubsetConstructionContext
+    {
+        public Dictionary<string, int> StateSetToId { get; init; } = null!;
+        public Dictionary<int, HashSet<int>> IdToStateSet { get; init; } = null!;
+        public int NextDfaStateId { get; set; }
+        public Queue<HashSet<int>> Queue { get; init; } = null!;
     }
 
     public override AutomatonExecutionState StartExecution(string input, Stack<char>? initialStack = null)
@@ -164,8 +224,6 @@ public class NFA : Automaton
     {
         return nextStates;
     }
-
-    // ---------------- Helper Methods ----------------
 
     private void FinalizeAcceptanceIfFinished(AutomatonExecutionState state)
     {

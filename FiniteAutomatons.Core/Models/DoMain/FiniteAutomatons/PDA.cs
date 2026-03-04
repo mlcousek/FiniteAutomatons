@@ -36,94 +36,143 @@ public class PDA : Automaton
 
     public override void StepForward(AutomatonExecutionState baseState)
     {
-        if (baseState is not PDAExecutionState state) throw new ArgumentException("State must be PDAExecutionState");
+        if (baseState is not PDAExecutionState state)
+            throw new ArgumentException("State must be PDAExecutionState");
 
         PushToHistory(state);
 
-        char currentInput = state.Position < state.Input.Length ? state.Input[state.Position] : '\0';
-        var stackTop = state.Stack.Count > 0 ? state.Stack.Peek() : (char?)null;
+        var (currentInput, stackTop) = GetCurrentInputAndStackTop(state);
+        LogStepForwardStart(state, currentInput, stackTop);
 
-        try
-        {
-            Console.WriteLine($"PDA: StepForward pos={state.Position} inputLen={state.Input.Length} cur='{currentInput}' top='{stackTop}' state={state.CurrentStateId}");
-        }
-        catch { }
-
-        var candidates = Transitions.Where(t => t.FromStateId == state.CurrentStateId).ToList();
-        Transition? transition = null;
-
-        if (state.Position < state.Input.Length)
-        {
-            transition = candidates.FirstOrDefault(t => t.Symbol == currentInput && StackMatches(t, stackTop));
-            transition ??= candidates.FirstOrDefault(t => t.Symbol == '\0' && StackMatches(t, stackTop));
-        }
-        else
-        {
-            transition = candidates.FirstOrDefault(t => t.Symbol == '\0' && StackMatches(t, stackTop));
-        }
-
-        try
-        {
-            Console.WriteLine(transition == null ? "PDA: no transition found" : $"PDA: selected transition {transition.FromStateId}->{transition.ToStateId} sym='{transition.Symbol}' pop='{transition.StackPop}' push='{transition.StackPush}'");
-        }
-        catch { }
+        var transition = FindApplicableTransition(state, currentInput, stackTop);
+        LogTransitionFound(transition);
 
         if (transition == null)
         {
-            if (state.Position < state.Input.Length)
-            {
-                state.Position = state.Input.Length;
-                state.IsAccepted = false;
-                return;
-            }
-
-            state.IsAccepted = CheckAcceptance(state.CurrentStateId, state.Stack);
+            HandleNoTransition(state);
             return;
         }
 
+        ApplyTransition(state, transition);
+        LogStepForwardEnd(state);
+
+        if (state.Position >= state.Input.Length)
+        {
+            FinalizeStepAtEndOfInput(state);
+        }
+    }
+
+    private static (char currentInput, char? stackTop) GetCurrentInputAndStackTop(PDAExecutionState state)
+    {
+        char currentInput = state.Position < state.Input.Length ? state.Input[state.Position] : '\0';
+        char? stackTop = state.Stack.Count > 0 ? state.Stack.Peek() : null;
+        return (currentInput, stackTop);
+    }
+
+    private Transition? FindApplicableTransition(PDAExecutionState state, char currentInput, char? stackTop)
+    {
+        var candidates = Transitions.Where(t => t.FromStateId == state.CurrentStateId).ToList();
+
+        if (state.Position < state.Input.Length)
+        {
+            var transition = candidates.FirstOrDefault(t => t.Symbol == currentInput && StackMatches(t, stackTop));
+            return transition ?? candidates.FirstOrDefault(t => t.Symbol == '\0' && StackMatches(t, stackTop));
+        }
+
+        return candidates.FirstOrDefault(t => t.Symbol == '\0' && StackMatches(t, stackTop));
+    }
+
+    private void HandleNoTransition(PDAExecutionState state)
+    {
+        if (state.Position < state.Input.Length)
+        {
+            state.Position = state.Input.Length;
+            state.IsAccepted = false;
+            return;
+        }
+
+        state.IsAccepted = CheckAcceptance(state.CurrentStateId, state.Stack);
+    }
+
+    private static void ApplyTransition(PDAExecutionState state, Transition transition)
+    {
         if (transition.Symbol != '\0')
         {
             state.Position++;
         }
 
-        if (transition.StackPop.HasValue && transition.StackPop.Value != '\0')
+        if (!TryPopStack(state, transition))
         {
-            if (state.Stack.Count == 0 || state.Stack.Peek() != transition.StackPop.Value)
-            {
-                state.Position = state.Input.Length;
-                state.IsAccepted = false;
-                return;
-            }
-            state.Stack.Pop();
+            state.Position = state.Input.Length;
+            state.IsAccepted = false;
+            return;
         }
 
-        if (!string.IsNullOrEmpty(transition.StackPush))
-        {
-            for (int i = transition.StackPush.Length - 1; i >= 0; i--)
-            {
-                state.Stack.Push(transition.StackPush[i]);
-            }
-        }
-
+        PushToStack(state, transition);
         state.CurrentStateId = transition.ToStateId;
+    }
 
+    private static bool TryPopStack(PDAExecutionState state, Transition transition)
+    {
+        if (!transition.StackPop.HasValue || transition.StackPop.Value == '\0')
+            return true;
+
+        if (state.Stack.Count == 0 || state.Stack.Peek() != transition.StackPop.Value)
+            return false;
+
+        state.Stack.Pop();
+        return true;
+    }
+
+    private static void PushToStack(PDAExecutionState state, Transition transition)
+    {
+        if (string.IsNullOrEmpty(transition.StackPush))
+            return;
+
+        for (int i = transition.StackPush.Length - 1; i >= 0; i--)
+        {
+            state.Stack.Push(transition.StackPush[i]);
+        }
+    }
+
+    private void FinalizeStepAtEndOfInput(PDAExecutionState state)
+    {
+        if (TryApplyEpsilonClosure(state))
+        {
+            state.IsAccepted = true;
+            return;
+        }
+
+        state.IsAccepted = CheckAcceptance(state.CurrentStateId, state.Stack);
+    }
+
+    private static void LogStepForwardStart(PDAExecutionState state, char currentInput, char? stackTop)
+    {
+        try
+        {
+            Console.WriteLine($"PDA: StepForward pos={state.Position} inputLen={state.Input.Length} cur='{currentInput}' top='{stackTop}' state={state.CurrentStateId}");
+        }
+        catch { }
+    }
+
+    private static void LogTransitionFound(Transition? transition)
+    {
+        try
+        {
+            Console.WriteLine(transition == null
+                ? "PDA: no transition found"
+                : $"PDA: selected transition {transition.FromStateId}->{transition.ToStateId} sym='{transition.Symbol}' pop='{transition.StackPop}' push='{transition.StackPush}'");
+        }
+        catch { }
+    }
+
+    private static void LogStepForwardEnd(PDAExecutionState state)
+    {
         try
         {
             Console.WriteLine($"PDA: after step pos={state.Position} top='{(state.Stack.Count > 0 ? state.Stack.Peek() : ' ')}' state={state.CurrentStateId} accepted={state.IsAccepted}");
         }
         catch { }
-
-        if (state.Position >= state.Input.Length)
-        {
-            if (TryApplyEpsilonClosure(state))
-            {
-                state.IsAccepted = true;
-                return;
-            }
-
-            state.IsAccepted = CheckAcceptance(state.CurrentStateId, state.Stack);
-            return;
-        }
     }
 
     public override void StepBackward(AutomatonExecutionState baseState)
@@ -139,33 +188,56 @@ public class PDA : Automaton
 
     public override void ExecuteAll(AutomatonExecutionState baseState)
     {
-        if (baseState is not PDAExecutionState state) throw new ArgumentException("State must be PDAExecutionState");
+        if (baseState is not PDAExecutionState state)
+            throw new ArgumentException("State must be PDAExecutionState");
 
-        try { Console.WriteLine($"PDA: ExecuteAll start pos={state.Position} len={state.Input.Length} state={state.CurrentStateId} top='{(state.Stack.Count > 0 ? state.Stack.Peek() : ' ')}'"); } catch { }
+        LogExecuteAllStart(state);
 
         if (state.Input.Length == 0)
         {
-            if (TryApplyEpsilonClosure(state))
-            {
-                state.IsAccepted = true;
-                return;
-            }
-
-            state.IsAccepted = CheckAcceptance(state.CurrentStateId, state.Stack);
+            HandleEmptyInput(state);
             return;
         }
 
-        while (true)
+        ProcessInputLoop(state);
+
+        if (state.IsAccepted != null)
+            return;
+
+        FinalizeExecution(state);
+    }
+
+    private void HandleEmptyInput(PDAExecutionState state)
+    {
+        if (TryApplyEpsilonClosure(state))
         {
-            var has = HasApplicableTransition(state);
-            try { Console.WriteLine($"PDA: ExecuteAll loop hasApplicable={has} pos={state.Position} state={state.CurrentStateId} top='{(state.Stack.Count > 0 ? state.Stack.Peek() : ' ')}'\n"); } catch { }
-            if (!has) break;
-            StepForward(state);
-            if (state.IsAccepted == false) return;
-            if (state.IsAccepted == true) return;
+            state.IsAccepted = true;
+            return;
         }
 
-        try { Console.WriteLine($"PDA: ExecuteAll end pos={state.Position} state={state.CurrentStateId} top='{(state.Stack.Count > 0 ? state.Stack.Peek() : ' ')}' IsAccepted={state.IsAccepted}\n"); } catch { }
+        state.IsAccepted = CheckAcceptance(state.CurrentStateId, state.Stack);
+    }
+
+    private void ProcessInputLoop(PDAExecutionState state)
+    {
+        while (true)
+        {
+            var hasApplicable = HasApplicableTransition(state);
+            LogExecuteAllLoop(state, hasApplicable);
+
+            if (!hasApplicable)
+                break;
+
+            StepForward(state);
+
+            if (state.IsAccepted == false || state.IsAccepted == true)
+                return;
+        }
+    }
+
+    private void FinalizeExecution(PDAExecutionState state)
+    {
+        LogExecuteAllEnd(state);
 
         if (state.Position < state.Input.Length)
         {
@@ -179,26 +251,70 @@ public class PDA : Automaton
             return;
         }
 
-        if (state.Position >= state.Input.Length && IsOnlyBottom(state.Stack))
+        if (TryImmediateAcceptingTransition(state))
         {
-            var immediate = Transitions.FirstOrDefault(t => t.FromStateId == state.CurrentStateId && t.Symbol == '\0' &&
-                                                            (t.StackPop == '\0' || !t.StackPop.HasValue) && string.IsNullOrEmpty(t.StackPush) &&
-                                                            IsAccepting(t.ToStateId));
-            if (immediate != null)
-            {
-                state.CurrentStateId = immediate.ToStateId;
-                state.IsAccepted = true;
-                return;
-            }
+            state.IsAccepted = true;
+            return;
         }
 
-        if (IsOnlyBottom(state.Stack) && CanReachAcceptingViaPureEpsilons(state.CurrentStateId))
+        if (CanReachAcceptingFromCurrentState(state))
         {
             state.IsAccepted = true;
             return;
         }
 
         state.IsAccepted = CheckAcceptance(state.CurrentStateId, state.Stack);
+    }
+
+    private bool TryImmediateAcceptingTransition(PDAExecutionState state)
+    {
+        if (!IsOnlyBottom(state.Stack))
+            return false;
+
+        var immediate = Transitions.FirstOrDefault(t =>
+            t.FromStateId == state.CurrentStateId &&
+            t.Symbol == '\0' &&
+            (t.StackPop == '\0' || !t.StackPop.HasValue) &&
+            string.IsNullOrEmpty(t.StackPush) &&
+            IsAccepting(t.ToStateId));
+
+        if (immediate == null)
+            return false;
+
+        state.CurrentStateId = immediate.ToStateId;
+        return true;
+    }
+
+    private bool CanReachAcceptingFromCurrentState(PDAExecutionState state)
+    {
+        return IsOnlyBottom(state.Stack) && CanReachAcceptingViaPureEpsilons(state.CurrentStateId);
+    }
+
+    private static void LogExecuteAllStart(PDAExecutionState state)
+    {
+        try
+        {
+            Console.WriteLine($"PDA: ExecuteAll start pos={state.Position} len={state.Input.Length} state={state.CurrentStateId} top='{(state.Stack.Count > 0 ? state.Stack.Peek() : ' ')}'");
+        }
+        catch { }
+    }
+
+    private static void LogExecuteAllLoop(PDAExecutionState state, bool hasApplicable)
+    {
+        try
+        {
+            Console.WriteLine($"PDA: ExecuteAll loop hasApplicable={hasApplicable} pos={state.Position} state={state.CurrentStateId} top='{(state.Stack.Count > 0 ? state.Stack.Peek() : ' ')}'\n");
+        }
+        catch { }
+    }
+
+    private static void LogExecuteAllEnd(PDAExecutionState state)
+    {
+        try
+        {
+            Console.WriteLine($"PDA: ExecuteAll end pos={state.Position} state={state.CurrentStateId} top='{(state.Stack.Count > 0 ? state.Stack.Peek() : ' ')}' IsAccepted={state.IsAccepted}\n");
+        }
+        catch { }
     }
 
     public override void BackToStart(AutomatonExecutionState baseState)
@@ -229,156 +345,216 @@ public class PDA : Automaton
     {
         var state = (PDAExecutionState)StartExecution(input);
 
-        static string StackToKey(Stack<char> s) => new([.. s.Reverse()]);
+        if (!ProcessInputWithEpsilonExpansion(state))
+            return false;
 
+        return CheckFinalAcceptanceWithEpsilonClosure(state);
+    }
+
+    private bool ProcessInputWithEpsilonExpansion(PDAExecutionState state)
+    {
         while (state.Position < state.Input.Length)
         {
-            char cur = state.Input[state.Position];
-            var top = state.Stack.Count > 0 ? state.Stack.Peek() : (char?)null;
+            char currentSymbol = state.Input[state.Position];
+            var stackTop = state.Stack.Count > 0 ? state.Stack.Peek() : (char?)null;
             var candidates = Transitions.Where(t => t.FromStateId == state.CurrentStateId).ToList();
 
-            var transition = candidates.FirstOrDefault(t => t.Symbol == cur && StackMatches(t, top));
+            var transition = candidates.FirstOrDefault(t => t.Symbol == currentSymbol && StackMatches(t, stackTop));
 
             if (transition == null)
             {
-                var q = new Queue<(int StateId, Stack<char> Stack)>();
-                var visited = new HashSet<string>();
-                var initKey = state.CurrentStateId!.Value + "|" + StackToKey(state.Stack);
-                q.Enqueue((state.CurrentStateId!.Value, new Stack<char>(state.Stack.Reverse())));
-                visited.Add(initKey);
-
-                int safety = 0;
-                bool found = false;
-                int foundState = 0;
-                Stack<char>? foundStack = null;
-                Transition? foundTransition = null;
-
-                var maxExpansion = Configuration.PdaExecutionSettings.MaxBfsExpansion;
-                while (q.Count > 0 && safety++ < maxExpansion)
-                {
-                    var (curState, stackCopy) = q.Dequeue();
-
-                    var topCopy = stackCopy.Count > 0 ? stackCopy.Peek() : (char?)null;
-                    var consuming = Transitions.FirstOrDefault(t => t.FromStateId == curState && t.Symbol == cur && StackMatches(t, topCopy));
-                    if (consuming != null)
-                    {
-                        found = true;
-                        foundState = curState;
-                        foundStack = stackCopy;
-                        foundTransition = consuming;
-                        break;
-                    }
-
-                    var eps = Transitions.Where(t => t.FromStateId == curState && t.Symbol == '\0' && StackMatches(t, topCopy));
-                    foreach (var t in eps)
-                    {
-                        var newStack = new Stack<char>(stackCopy.Reverse());
-                        if (t.StackPop.HasValue && t.StackPop.Value != '\0')
-                        {
-                            if (newStack.Count == 0 || newStack.Peek() != t.StackPop.Value)
-                                continue;
-                            newStack.Pop();
-                        }
-                        if (!string.IsNullOrEmpty(t.StackPush))
-                        {
-                            for (int i = t.StackPush.Length - 1; i >= 0; i--)
-                                newStack.Push(t.StackPush[i]);
-                        }
-
-                        var key = t.ToStateId + "|" + new string([.. newStack.Reverse()]);
-                        if (newStack.Count > Configuration.PdaExecutionSettings.MaxStackGrowthTolerance)
-                        {
-                            continue;
-                        }
-
-                        if (visited.Add(key))
-                        {
-                            q.Enqueue((t.ToStateId, newStack));
-                        }
-                    }
-                }
-
-                if (!found)
-                {
+                var bfsResult = FindTransitionViaEpsilonBfs(state, currentSymbol);
+                if (!bfsResult.Found)
                     return false;
-                }
 
-                state.CurrentStateId = foundState;
-                state.Stack = new Stack<char>(foundStack!.Reverse());
-                transition = foundTransition!;
+                state.CurrentStateId = bfsResult.StateId;
+                state.Stack = new Stack<char>(bfsResult.Stack!.Reverse());
+                transition = bfsResult.Transition!;
             }
 
-            if (transition.StackPop.HasValue && transition.StackPop.Value != '\0')
-            {
-                if (state.Stack.Count == 0 || state.Stack.Peek() != transition.StackPop.Value)
-                    return false;
-                state.Stack.Pop();
-            }
-            if (!string.IsNullOrEmpty(transition.StackPush))
-            {
-                for (int i = transition.StackPush.Length - 1; i >= 0; i--)
-                    state.Stack.Push(transition.StackPush[i]);
-            }
-            state.CurrentStateId = transition.ToStateId;
+            if (!ApplyTransitionToExecutionState(state, transition))
+                return false;
+
             state.Position++;
 
-            if (state.Position >= state.Input.Length)
-            {
-                if (TryApplyEpsilonClosure(state))
-                    return true;
-            }
+            if (state.Position >= state.Input.Length && TryApplyEpsilonClosure(state))
+                return true;
         }
 
-        var startKeyStack = state.Stack.ToArray();
+        return true;
+    }
 
-        var q2 = new Queue<(int StateId, string StackKey, Stack<char> Stack)>();
-        var visited2 = new HashSet<string>();
-        var initKey2 = state.CurrentStateId!.Value + "|" + StackToKey(state.Stack);
-        q2.Enqueue((state.CurrentStateId!.Value, StackToKey(state.Stack), new Stack<char>(state.Stack.Reverse())));
-        visited2.Add(initKey2);
+    private BfsSearchResult FindTransitionViaEpsilonBfs(PDAExecutionState state, char targetSymbol)
+    {
+        var queue = new Queue<(int StateId, Stack<char> Stack)>();
+        var visited = new HashSet<string>();
+        var initialKey = CreateStateStackKey(state.CurrentStateId!.Value, state.Stack);
 
-        int safety2 = 0;
-        var maxExpansion2 = Configuration.PdaExecutionSettings.MaxBfsExpansion;
-        while (q2.Count > 0 && safety2++ < maxExpansion2)
+        queue.Enqueue((state.CurrentStateId!.Value, new Stack<char>(state.Stack.Reverse())));
+        visited.Add(initialKey);
+
+        int iterations = 0;
+        var maxExpansion = Configuration.PdaExecutionSettings.MaxBfsExpansion;
+
+        while (queue.Count > 0 && iterations++ < maxExpansion)
         {
-            var (curState, stackKey, stackCopy) = q2.Dequeue();
-            if (CheckAcceptance(curState, stackCopy))
+            var (currentState, stackCopy) = queue.Dequeue();
+            var stackTop = stackCopy.Count > 0 ? stackCopy.Peek() : (char?)null;
+
+            var consumingTransition = Transitions.FirstOrDefault(t =>
+                t.FromStateId == currentState &&
+                t.Symbol == targetSymbol &&
+                StackMatches(t, stackTop));
+
+            if (consumingTransition != null)
+            {
+                return new BfsSearchResult
+                {
+                    Found = true,
+                    StateId = currentState,
+                    Stack = stackCopy,
+                    Transition = consumingTransition
+                };
+            }
+
+            ExpandEpsilonTransitions(queue, visited, currentState, stackCopy);
+        }
+
+        return new BfsSearchResult { Found = false };
+    }
+
+    private void ExpandEpsilonTransitions(Queue<(int StateId, Stack<char> Stack)> queue,
+        HashSet<string> visited, int currentState, Stack<char> stackCopy)
+    {
+        var stackTop = stackCopy.Count > 0 ? stackCopy.Peek() : (char?)null;
+        var epsilonTransitions = Transitions.Where(t =>
+            t.FromStateId == currentState &&
+            t.Symbol == '\0' &&
+            StackMatches(t, stackTop));
+
+        foreach (var transition in epsilonTransitions)
+        {
+            var newStack = ApplyStackOperations(stackCopy, transition);
+            if (newStack == null)
+                continue;
+
+            if (newStack.Count > Configuration.PdaExecutionSettings.MaxStackGrowthTolerance)
+                continue;
+
+            var key = CreateStateStackKey(transition.ToStateId, newStack);
+            if (visited.Add(key))
+            {
+                queue.Enqueue((transition.ToStateId, newStack));
+            }
+        }
+    }
+
+    private static Stack<char>? ApplyStackOperations(Stack<char> stack, Transition transition)
+    {
+        var newStack = new Stack<char>(stack.Reverse());
+
+        if (transition.StackPop.HasValue && transition.StackPop.Value != '\0')
+        {
+            if (newStack.Count == 0 || newStack.Peek() != transition.StackPop.Value)
+                return null;
+            newStack.Pop();
+        }
+
+        if (!string.IsNullOrEmpty(transition.StackPush))
+        {
+            for (int i = transition.StackPush.Length - 1; i >= 0; i--)
+                newStack.Push(transition.StackPush[i]);
+        }
+
+        return newStack;
+    }
+
+    private static bool ApplyTransitionToExecutionState(PDAExecutionState state, Transition transition)
+    {
+        if (transition.StackPop.HasValue && transition.StackPop.Value != '\0')
+        {
+            if (state.Stack.Count == 0 || state.Stack.Peek() != transition.StackPop.Value)
+                return false;
+            state.Stack.Pop();
+        }
+
+        if (!string.IsNullOrEmpty(transition.StackPush))
+        {
+            for (int i = transition.StackPush.Length - 1; i >= 0; i--)
+                state.Stack.Push(transition.StackPush[i]);
+        }
+
+        state.CurrentStateId = transition.ToStateId;
+        return true;
+    }
+
+    private bool CheckFinalAcceptanceWithEpsilonClosure(PDAExecutionState state)
+    {
+        var queue = new Queue<(int StateId, string StackKey, Stack<char> Stack)>();
+        var visited = new HashSet<string>();
+        var initialKey = CreateStateStackKey(state.CurrentStateId!.Value, state.Stack);
+
+        queue.Enqueue((state.CurrentStateId!.Value, CreateStackKey(state.Stack), new Stack<char>(state.Stack.Reverse())));
+        visited.Add(initialKey);
+
+        int iterations = 0;
+        var maxExpansion = Configuration.PdaExecutionSettings.MaxBfsExpansion;
+
+        while (queue.Count > 0 && iterations++ < maxExpansion)
+        {
+            var (currentState, _, stackCopy) = queue.Dequeue();
+
+            if (CheckAcceptance(currentState, stackCopy))
                 return true;
 
-            var top = stackCopy.Count > 0 ? stackCopy.Peek() : (char?)null;
-            var eps = Transitions.Where(t => t.FromStateId == curState && t.Symbol == '\0' && StackMatches(t, top));
-            foreach (var t in eps)
-            {
-                var newStack = new Stack<char>(stackCopy.Reverse());
-                // pop
-                if (t.StackPop.HasValue && t.StackPop.Value != '\0')
-                {
-                    if (newStack.Count == 0 || newStack.Peek() != t.StackPop.Value)
-                        continue; // cannot apply
-                    newStack.Pop();
-                }
-                // push
-                if (!string.IsNullOrEmpty(t.StackPush))
-                {
-                    for (int i = t.StackPush.Length - 1; i >= 0; i--)
-                        newStack.Push(t.StackPush[i]);
-                }
-
-                if (newStack.Count > Configuration.PdaExecutionSettings.MaxStackGrowthTolerance)
-                {
-                    // skip this expansion
-                    continue;
-                }
-
-                var newKey = t.ToStateId + "|" + new string([.. newStack.Reverse()]);
-                if (visited2.Add(newKey))
-                {
-                    q2.Enqueue((t.ToStateId, new string([.. newStack.Reverse()]), newStack));
-                }
-            }
+            ExpandEpsilonTransitionsForAcceptance(queue, visited, currentState, stackCopy);
         }
 
         return false;
+    }
+
+    private void ExpandEpsilonTransitionsForAcceptance(Queue<(int StateId, string StackKey, Stack<char> Stack)> queue,
+        HashSet<string> visited, int currentState, Stack<char> stackCopy)
+    {
+        var stackTop = stackCopy.Count > 0 ? stackCopy.Peek() : (char?)null;
+        var epsilonTransitions = Transitions.Where(t =>
+            t.FromStateId == currentState &&
+            t.Symbol == '\0' &&
+            StackMatches(t, stackTop));
+
+        foreach (var transition in epsilonTransitions)
+        {
+            var newStack = ApplyStackOperations(stackCopy, transition);
+            if (newStack == null)
+                continue;
+
+            if (newStack.Count > Configuration.PdaExecutionSettings.MaxStackGrowthTolerance)
+                continue;
+
+            var newKey = CreateStateStackKey(transition.ToStateId, newStack);
+            if (visited.Add(newKey))
+            {
+                queue.Enqueue((transition.ToStateId, CreateStackKey(newStack), newStack));
+            }
+        }
+    }
+
+    private static string CreateStateStackKey(int stateId, Stack<char> stack)
+    {
+        return stateId + "|" + CreateStackKey(stack);
+    }
+
+    private static string CreateStackKey(Stack<char> stack)
+    {
+        return new string([.. stack.Reverse()]);
+    }
+
+    private class BfsSearchResult
+    {
+        public bool Found { get; init; }
+        public int StateId { get; init; }
+        public Stack<char>? Stack { get; init; }
+        public Transition? Transition { get; init; }
     }
 
     private bool IsAccepting(int? stateId) => stateId != null && States.Any(s => s.Id == stateId && s.IsAccepting);
@@ -466,7 +642,6 @@ public class PDA : Automaton
             var transition = Transitions.FirstOrDefault(t => t.FromStateId == state.CurrentStateId && t.Symbol == '\0' && StackMatches(t, top));
             if (transition == null) break;
 
-            // apply transition
             try { Console.WriteLine($"PDA: applying epsilon {transition.FromStateId}->{transition.ToStateId} pop='{transition.StackPop}' push='{transition.StackPush}'"); } catch { }
 
             if (transition.StackPop.HasValue && transition.StackPop.Value != '\0')
