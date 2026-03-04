@@ -116,6 +116,10 @@ export class StateEditor {
         // Click empty space to add state
         this.clickHandler = (event) => {
             if (event.target === this.cy && !this._isShowingDialog) {
+                // If a node has the source-selected class, the blue overlay is showing —
+                // the TransitionEditor will handle cancelling it on this same click.
+                // Don't also create a new state on that click.
+                if (this.cy.$('.source-selected').length > 0) return;
                 this._handleCanvasClick(event);
             }
         };
