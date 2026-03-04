@@ -209,28 +209,28 @@ export class CanvasFormSync {
     _extractRawSymbols(edge) {
         const isPDA = edge.data('isPDA') || this.automatonType === 'PDA';
         const label = edge.data('label') || '';
-        const symbol = edge.data('symbol');
-        const rawSymbol = edge.data('rawSymbol');
-        const stackPop = edge.data('stackPop');
-        const stackPush = edge.data('stackPush');
 
-        // If edge only has one symbol stored (no multi-symbol), just use it directly
-        if (symbol !== undefined) {
-            const result = { symbol: this._normalizeSymbol(symbol) };
-            if (isPDA) {
-                result.stackPop = this._normalizeSymbol(stackPop || '\0');
-                result.stackPush = stackPush || '';
+        // The label is always the canonical source of truth for what symbols are displayed.
+        // Non-PDA edges: symbols joined by ', '  (e.g. "a, b, c")
+        // PDA edges:     entries joined by '\n'  (e.g. "a, ε/A\nb, A/ε")
+        if (!label) {
+            // Fallback: read raw edge data fields if label is somehow empty
+            const symbol = edge.data('symbol');
+            if (symbol !== undefined) {
+                const result = { symbol: this._normalizeSymbol(symbol) };
+                if (isPDA) {
+                    result.stackPop = this._normalizeSymbol(edge.data('stackPop') || '\0');
+                    result.stackPush = edge.data('stackPush') || '';
+                }
+                return [result];
             }
-            return [result];
+            return [];
         }
 
-        // Fallback: parse label string for symbol. Each line is a separate transition.
-        if (!label) return [];
-
-        const lines = label.split('\n').filter(l => l.trim());
-        return lines.map(line => {
-            if (isPDA) {
-                // Format: "symbol, pop/push"
+        if (isPDA) {
+            // PDA: each line is one transition entry "sym, pop/push"
+            const lines = label.split('\n').filter(l => l.trim());
+            return lines.map(line => {
                 const match = line.match(/^(.+?),\s*(.+?)\/(.*)$/);
                 if (match) {
                     return {
@@ -239,9 +239,13 @@ export class CanvasFormSync {
                         stackPush: match[3].trim()
                     };
                 }
-            }
-            return { symbol: this._normalizeSymbol(line.trim()) };
-        });
+                return { symbol: this._normalizeSymbol(line.trim()) };
+            });
+        } else {
+            // Non-PDA: symbols separated by ', '
+            const symbols = label.split(', ').map(s => s.trim()).filter(s => s);
+            return symbols.map(sym => ({ symbol: this._normalizeSymbol(sym) }));
+        }
     }
 
     /**

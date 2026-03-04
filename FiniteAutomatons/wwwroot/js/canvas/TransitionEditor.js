@@ -316,15 +316,18 @@ export class TransitionEditor {
             classes
         };
 
-        // If edge between this pair already exists, we need to merge labels or add separate
+        // If edge between this pair already exists, merge the new symbol into the label
         if (existingEdge && existingEdge.length > 0) {
-            // Append to existing edge label (multiple symbols on same edge)
-            const newLabel = existingEdge.data('label') + '\n' + label;
+            // Capture the previous label BEFORE mutating so undo can restore it correctly
+            const prevLabel = existingEdge.data('label');
+            // Use ', ' for non-PDA (matches how AutomatonRenderer joins symbols: join(', '))
+            // Use '\n' for PDA (each PDA entry already contains commas: "sym, pop/push")
+            const separator = isPDA ? '\n' : ', ';
+            const newLabel = prevLabel + separator + label;
             existingEdge.data('label', newLabel);
 
             // Record for undo
             if (this.actionHistory) {
-                const prevLabel = existingEdge.data('label').replace('\n' + label, '');
                 this.actionHistory.recordAction({
                     do: () => existingEdge.data('label', newLabel),
                     undo: () => existingEdge.data('label', prevLabel)

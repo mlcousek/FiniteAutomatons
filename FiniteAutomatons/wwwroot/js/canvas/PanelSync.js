@@ -166,52 +166,34 @@ export class PanelSync {
             const toId   = e.target().data('stateId');
             const edgePDA = e.data('isPDA') || isPDA;
 
-            // Try structured data attributes first (edges added interactively)
-            const rawSymbol = e.data('rawSymbol');
-            const symbol    = e.data('symbol');
-
-            if (rawSymbol !== undefined || (symbol !== undefined && !String(symbol).includes(','))) {
-                // Single-symbol edge with structured data (TransitionEditor-created)
-                const sym = rawSymbol ?? symbol ?? '';
-                const normalized = (sym === '\0' || sym === 'ε' || sym === '\\0') ? '\\0' : sym;
-                const entry = { fromStateId: fromId, toStateId: toId, symbol: normalized };
+            // Always derive transitions from the label — it is the canonical source of truth
+            // for what is displayed on the edge, and is updated whenever symbols are merged.
+            // rawSymbol/symbol edge-data fields are only the *first* symbol and must not be
+            // used as the sole source when multiple symbols share an edge.
+            const label = e.data('label');
+            if (label) {
                 if (edgePDA) {
-                    const sp  = e.data('stackPop');
-                    const spu = e.data('stackPush');
-                    entry.stackPop  = (sp  === '\0' || sp  === 'ε') ? '\\0' : (sp  ?? '\\0');
-                    entry.stackPush = spu ?? '';
-                }
-                transitions.push(entry);
-                return;
-            }
-
-            // Fallback: parse the edge label (server-rendered edges or multi-symbol edges)
-            const label = e.data('label') ?? String(symbol ?? '');
-            if (!label) return;
-
-            // Each line of the label is a separate transition record
-            const lines = label.split('\n').map(l => l.trim()).filter(Boolean);
-            for (const line of lines) {
-                if (edgePDA) {
-                    // PDA format: "symbol, pop/push"
-                    const m = line.match(/^(.+?),\s*(.+?)\/(.*)$/);
-                    if (m) {
-                        const sym  = this._normalizeSymbol(m[1].trim());
-                        const pop  = this._normalizeSymbol(m[2].trim());
-                        const push = m[3].trim();
-                        transitions.push({
-                            fromStateId: fromId, toStateId: toId,
-                            symbol: sym, stackPop: pop, stackPush: push
-                        });
-                    } else {
-                        transitions.push({
-                            fromStateId: fromId, toStateId: toId,
-                            symbol: this._normalizeSymbol(line), stackPop: '\\0', stackPush: ''
-                        });
+                    // PDA: each line is one entry "sym, pop/push"
+                    const lines = label.split('\n').map(l => l.trim()).filter(Boolean);
+                    for (const line of lines) {
+                        const m = line.match(/^(.+?),\s*(.+?)\/(.*)$/);
+                        if (m) {
+                            transitions.push({
+                                fromStateId: fromId, toStateId: toId,
+                                symbol:    this._normalizeSymbol(m[1].trim()),
+                                stackPop:  this._normalizeSymbol(m[2].trim()),
+                                stackPush: m[3].trim()
+                            });
+                        } else {
+                            transitions.push({
+                                fromStateId: fromId, toStateId: toId,
+                                symbol: this._normalizeSymbol(line), stackPop: '\\0', stackPush: ''
+                            });
+                        }
                     }
                 } else {
-                    // DFA/NFA/ε-NFA: label may be "a, b" (comma-separated symbols on one line)
-                    const syms = line.split(',').map(s => s.trim()).filter(Boolean);
+                    // DFA/NFA/ε-NFA: symbols separated by ', '
+                    const syms = label.split(', ').map(s => s.trim()).filter(Boolean);
                     for (const sym of syms) {
                         transitions.push({
                             fromStateId: fromId, toStateId: toId,
@@ -219,7 +201,23 @@ export class PanelSync {
                         });
                     }
                 }
+                return;
             }
+
+            // Fallback: label is empty — read from structured edge data fields
+            const rawSymbol = e.data('rawSymbol');
+            const symbol    = e.data('symbol');
+            const sym = rawSymbol ?? symbol ?? '';
+            if (!sym) return;
+            const normalized = (sym === '\0' || sym === 'ε' || sym === '\\0') ? '\\0' : sym;
+            const entry = { fromStateId: fromId, toStateId: toId, symbol: normalized };
+            if (edgePDA) {
+                const sp  = e.data('stackPop');
+                const spu = e.data('stackPush');
+                entry.stackPop  = (sp === '\0' || sp === 'ε') ? '\\0' : (sp ?? '\\0');
+                entry.stackPush = spu ?? '';
+            }
+            transitions.push(entry);
         });
 
         return { type, states, transitions };
