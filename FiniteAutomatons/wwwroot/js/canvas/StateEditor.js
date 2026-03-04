@@ -22,7 +22,7 @@ export class StateEditor {
     constructor(cy, options = {}) {
         this.cy = cy;
         this.options = options;
-        
+
         // Callbacks
         this.onStateAdded = options.onStateAdded || (() => {});
         this.onStateDeleted = options.onStateDeleted || (() => {});
@@ -30,17 +30,26 @@ export class StateEditor {
 
         // Action history for undo/redo
         this.actionHistory = options.actionHistory || null;
-        
+
         // Event handlers
         this.clickHandler = null;
         this.keyHandler = null;
         this.contextMenuHandler = null;
         this.domContextMenuHandler = null;
+        this.nodeClickHandler = null;
 
         // Dialog instance
         this._dialog = new TransitionDialog(cy.container());
         this._isShowingDialog = false;
-        
+
+        // Multi-click tracking for double/triple click detection
+        this._clickTracker = {
+            nodeId: null,
+            count: 0,
+            timer: null,
+            clickDelay: 300 // ms between clicks to count as multi-click
+        };
+
         // State
         this.isEnabled = false;
     }
@@ -112,6 +121,14 @@ export class StateEditor {
         };
         this.cy.on('tap', this.clickHandler);
 
+        // Click on node for multi-click detection (double/triple click)
+        this.nodeClickHandler = (event) => {
+            if (event.target.isNode() && !this._isShowingDialog) {
+                this._handleNodeClick(event);
+            }
+        };
+        this.cy.on('tap', 'node', this.nodeClickHandler);
+
         // Delete key to remove selected state
         this.keyHandler = (e) => {
             if ((e.key === 'Delete' || e.key === 'Backspace') && !this._isShowingDialog) {
@@ -162,6 +179,11 @@ export class StateEditor {
             this.clickHandler = null;
         }
 
+        if (this.nodeClickHandler) {
+            this.cy.off('tap', 'node', this.nodeClickHandler);
+            this.nodeClickHandler = null;
+        }
+
         if (this.keyHandler) {
             document.removeEventListener('keydown', this.keyHandler);
             this.keyHandler = null;
@@ -185,6 +207,12 @@ export class StateEditor {
             }
             this.domContextMenuHandler = null;
         }
+
+        // Clear click tracker
+        if (this._clickTracker.timer) {
+            clearTimeout(this._clickTracker.timer);
+            this._clickTracker.timer = null;
+        }
     }
 
     /**
@@ -195,6 +223,87 @@ export class StateEditor {
     _handleCanvasClick(event) {
         const position = event.position;
         this.addState(position.x, position.y);
+    }
+
+    /**
+     * Handle click on node - detect double/triple click for state property toggling
+     * Double-click: Toggle accepting state
+     * Triple-click: Toggle start state
+     * @private
+     * @param {Object} event - Cytoscape tap event
+     */
+    _handleNodeClick(event) {
+        const node = event.target;
+        const nodeId = node.id();
+        const tracker = this._clickTracker;
+
+        // If clicking a different node, reset counter
+        if (tracker.nodeId !== nodeId) {
+            tracker.nodeId = nodeId;
+            tracker.count = 1;
+
+            // Clear previous timer
+            if (tracker.timer) {
+                clearTimeout(tracker.timer);
+            }
+
+            // Start timer for click sequence
+            tracker.timer = setTimeout(() => {
+                // Single click - reset tracker
+                tracker.count = 0;
+                tracker.nodeId = null;
+                tracker.timer = null;
+            }, tracker.clickDelay);
+
+            return;
+        }
+
+        // Same node clicked again within delay - increment counter
+        tracker.count++;
+
+        // Clear previous timer
+        if (tracker.timer) {
+            clearTimeout(tracker.timer);
+        }
+
+        // Handle based on click count
+        if (tracker.count === 2) {
+            // Double-click: Toggle accepting state
+            console.log('Double-click detected: toggling accepting state');
+            this.toggleAcceptingState(node);
+
+            // Notify that a multi-click was handled (so TransitionEditor can cancel its timer)
+            window.dispatchEvent(new CustomEvent('stateMultiClickHandled', { 
+                detail: { nodeId: node.id(), clickCount: 2 } 
+            }));
+
+            // Reset after a delay to allow for triple-click
+            tracker.timer = setTimeout(() => {
+                tracker.count = 0;
+                tracker.nodeId = null;
+                tracker.timer = null;
+            }, tracker.clickDelay);
+
+        } else if (tracker.count === 3) {
+            // Triple-click: Toggle start state
+            console.log('Triple-click detected: toggling start state');
+            this.toggleStartState(node);
+
+            // Notify that a multi-click was handled
+            window.dispatchEvent(new CustomEvent('stateMultiClickHandled', { 
+                detail: { nodeId: node.id(), clickCount: 3 } 
+            }));
+
+            // Reset tracker
+            tracker.count = 0;
+            tracker.nodeId = null;
+            tracker.timer = null;
+
+        } else if (tracker.count > 3) {
+            // More than 3 clicks - reset
+            tracker.count = 0;
+            tracker.nodeId = null;
+        }
     }
 
     /**

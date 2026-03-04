@@ -55,6 +55,11 @@ export class TransitionEditor {
         // Hint overlay element
         this._hint = null;
 
+        // Click delay timer to detect double-clicks
+        this._clickTimer = null;
+        this._clickDelay = 320; // Slightly longer than StateEditor's 300ms to ensure double-click is detected first
+        this._multiClickHandler = null; // Listener for StateEditor multi-click events
+
         this.isEnabled = false;
         this._isShowingDialog = false;
     }
@@ -66,6 +71,16 @@ export class TransitionEditor {
         if (this.isEnabled) return;
         this.isEnabled = true;
         this._setupEventHandlers();
+
+        // Listen for multi-click events from StateEditor to cancel pending timers
+        this._multiClickHandler = (event) => {
+            if (this._clickTimer) {
+                clearTimeout(this._clickTimer);
+                this._clickTimer = null;
+                console.log('TransitionEditor: Cancelled pending timer due to StateEditor multi-click');
+            }
+        };
+        window.addEventListener('stateMultiClickHandled', this._multiClickHandler);
     }
 
     /**
@@ -76,6 +91,18 @@ export class TransitionEditor {
         this.isEnabled = false;
         this._cancelTransitionInProgress();
         this._removeEventHandlers();
+
+        // Clear click timer
+        if (this._clickTimer) {
+            clearTimeout(this._clickTimer);
+            this._clickTimer = null;
+        }
+
+        // Remove multi-click listener
+        if (this._multiClickHandler) {
+            window.removeEventListener('stateMultiClickHandled', this._multiClickHandler);
+            this._multiClickHandler = null;
+        }
     }
 
     /**
@@ -161,21 +188,43 @@ export class TransitionEditor {
 
     /**
      * Handle node click in two-click scheme
+     * Delays processing to detect if this is part of a double/triple-click sequence
      * @private
      * @param {Object} node - Clicked Cytoscape node
      */
     _handleNodeClick(node) {
-        if (!this._sourceNode) {
-            // First click: select source
-            this._selectSource(node);
-        } else if (this._sourceNode.id() === node.id()) {
-            // Clicked same node again — deselect (create self-loop after confirmation)
-            // For self-loops we treat it as a normal flow (same source & target)
-            this._createTransition(this._sourceNode, node);
-        } else {
-            // Second click: create transition to target
-            this._createTransition(this._sourceNode, node);
+        // If there's already a source selected, process immediately (second click of transition)
+        if (this._sourceNode) {
+            // Clear any pending timer
+            if (this._clickTimer) {
+                clearTimeout(this._clickTimer);
+                this._clickTimer = null;
+            }
+
+            if (this._sourceNode.id() === node.id()) {
+                // Clicked same node again — create self-loop
+                this._createTransition(this._sourceNode, node);
+            } else {
+                // Second click: create transition to target
+                this._createTransition(this._sourceNode, node);
+            }
+            return;
         }
+
+        // First click: wait to see if this is a double/triple-click
+        // Clear any existing timer
+        if (this._clickTimer) {
+            clearTimeout(this._clickTimer);
+        }
+
+        // Set a timer to delay the source selection
+        this._clickTimer = setTimeout(() => {
+            this._clickTimer = null;
+            // Only select source if still enabled and no dialog is showing
+            if (this.isEnabled && !this._isShowingDialog) {
+                this._selectSource(node);
+            }
+        }, this._clickDelay);
     }
 
     /**
@@ -195,6 +244,12 @@ export class TransitionEditor {
      * @private
      */
     _cancelTransitionInProgress() {
+        // Clear click timer
+        if (this._clickTimer) {
+            clearTimeout(this._clickTimer);
+            this._clickTimer = null;
+        }
+
         if (this._sourceNode) {
             this._sourceNode.removeClass('source-selected');
             this._sourceNode = null;

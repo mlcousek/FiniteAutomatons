@@ -230,8 +230,15 @@ export class CanvasInteractionHandler {
      * @private
      */
     _handleDoubleClick(evt) {
+        // Skip double-click zoom on nodes if they have a specific handler (like in edit mode)
+        // This prevents conflicts with StateEditor's multi-click feature
+        if (evt.target.isNode && evt.target.isNode()) {
+            // Node double-click - don't zoom, let StateEditor handle it
+            return;
+        }
+
         if (evt.target !== this.cy) {
-            // Zoom to clicked element
+            // Zoom to clicked element (edges, etc.)
             this.cy.animate({
                 fit: {
                     eles: evt.target,
