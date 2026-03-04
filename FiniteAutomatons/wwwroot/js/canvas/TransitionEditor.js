@@ -59,6 +59,7 @@ export class TransitionEditor {
         this._clickTimer = null;
         this._clickDelay = 320; // Slightly longer than StateEditor's 300ms to ensure double-click is detected first
         this._multiClickHandler = null; // Listener for StateEditor multi-click events
+        this._suppressUntil = 0; // Timestamp: suppress source-selection until this time (after multi-click)
 
         this.isEnabled = false;
         this._isShowingDialog = false;
@@ -72,13 +73,16 @@ export class TransitionEditor {
         this.isEnabled = true;
         this._setupEventHandlers();
 
-        // Listen for multi-click events from StateEditor to cancel pending timers
+        // Listen for multi-click events from StateEditor to cancel pending timers and suppress overlay
         this._multiClickHandler = (event) => {
             if (this._clickTimer) {
                 clearTimeout(this._clickTimer);
                 this._clickTimer = null;
-                console.log('TransitionEditor: Cancelled pending timer due to StateEditor multi-click');
             }
+            // Suppress source selection for a full click-delay window so that subsequent
+            // clicks in the double/triple-click sequence don't re-trigger the overlay.
+            this._suppressUntil = Date.now() + this._clickDelay + 50;
+            console.log('TransitionEditor: Suppressing source-selection due to StateEditor multi-click');
         };
         window.addEventListener('stateMultiClickHandled', this._multiClickHandler);
     }
@@ -220,8 +224,9 @@ export class TransitionEditor {
         // Set a timer to delay the source selection
         this._clickTimer = setTimeout(() => {
             this._clickTimer = null;
-            // Only select source if still enabled and no dialog is showing
-            if (this.isEnabled && !this._isShowingDialog) {
+            // Only select source if still enabled, no dialog is showing, and we are not in
+            // the suppression window that was set because a double/triple-click was detected.
+            if (this.isEnabled && !this._isShowingDialog && Date.now() >= this._suppressUntil) {
                 this._selectSource(node);
             }
         }, this._clickDelay);

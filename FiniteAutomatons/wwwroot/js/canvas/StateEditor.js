@@ -268,28 +268,34 @@ export class StateEditor {
 
         // Handle based on click count
         if (tracker.count === 2) {
-            // Double-click: Toggle accepting state
-            console.log('Double-click detected: toggling accepting state');
-            this.toggleAcceptingState(node);
+            // Double-click: Toggle accepting state — but delay to check if triple-click follows
+            console.log('Double-click detected: waiting for possible triple-click');
 
-            // Notify that a multi-click was handled (so TransitionEditor can cancel its timer)
+            // Notify TransitionEditor to suppress the blue overlay
             window.dispatchEvent(new CustomEvent('stateMultiClickHandled', { 
                 detail: { nodeId: node.id(), clickCount: 2 } 
             }));
 
-            // Reset after a delay to allow for triple-click
+            // Delay action: only toggle accepting state if no 3rd click arrives in time
             tracker.timer = setTimeout(() => {
+                console.log('Double-click confirmed: toggling accepting state');
+                this.toggleAcceptingState(node);
                 tracker.count = 0;
                 tracker.nodeId = null;
                 tracker.timer = null;
             }, tracker.clickDelay);
 
         } else if (tracker.count === 3) {
-            // Triple-click: Toggle start state
-            console.log('Triple-click detected: toggling start state');
+            // Triple-click: cancel pending double-click action, only toggle start state
+            if (tracker.timer) {
+                clearTimeout(tracker.timer);
+                tracker.timer = null;
+            }
+
+            console.log('Triple-click detected: toggling start state only');
             this.toggleStartState(node);
 
-            // Notify that a multi-click was handled
+            // Notify TransitionEditor to suppress the blue overlay
             window.dispatchEvent(new CustomEvent('stateMultiClickHandled', { 
                 detail: { nodeId: node.id(), clickCount: 3 } 
             }));
@@ -301,6 +307,10 @@ export class StateEditor {
 
         } else if (tracker.count > 3) {
             // More than 3 clicks - reset
+            if (tracker.timer) {
+                clearTimeout(tracker.timer);
+                tracker.timer = null;
+            }
             tracker.count = 0;
             tracker.nodeId = null;
         }
