@@ -2,9 +2,9 @@
 
 public class DFA : Automaton
 {
-    public Dictionary<int, int> StateMapping { get; private set; } = [];
+    public Dictionary<int, int> StateMapping { get; set; } = [];
 
-    public Dictionary<int, HashSet<int>> MergedStateGroups { get; private set; } = [];
+    public Dictionary<int, HashSet<int>> MergedStateGroups { get; set; } = [];
 
     public string GetMinimizationReport()
     {
@@ -21,6 +21,7 @@ public class DFA : Automaton
 
         return string.Join(Environment.NewLine, lines);
     }
+
     public override void StepForward(AutomatonExecutionState state)
     {
         ArgumentNullException.ThrowIfNull(state);
@@ -100,7 +101,17 @@ public class DFA : Automaton
         return PerformMinimization();
     }
 
-    // --- Private helpers ---
+    internal DFA PerformMinimization()
+    {
+        var startState = States.FirstOrDefault(s => s.IsStart)?.Id
+            ?? throw new InvalidOperationException("No start state defined.");
+
+        var (reachableStates, reachableTransitions) = ComputeReachable(startState);
+        var partitions = CreateInitialPartitions(reachableStates);
+        var symbols = reachableTransitions.Select(t => t.Symbol).Distinct().ToList();
+        partitions = RefinePartitions(partitions, reachableTransitions, symbols);
+        return BuildMinimizedDfa(partitions, reachableStates, reachableTransitions, startState, symbols);
+    }
 
     private Transition? GetTransition(int fromStateId, char symbol)
     {
@@ -160,20 +171,6 @@ public class DFA : Automaton
     }
 
     private static bool IsAtInputEnd(AutomatonExecutionState state) => state.Position >= state.Input.Length;
-
-    // ---------------- Minimization ----------------
-
-    private DFA PerformMinimization()
-    {
-        var startState = States.FirstOrDefault(s => s.IsStart)?.Id
-            ?? throw new InvalidOperationException("No start state defined.");
-
-        var (reachableStates, reachableTransitions) = ComputeReachable(startState);
-        var partitions = CreateInitialPartitions(reachableStates);
-        var symbols = reachableTransitions.Select(t => t.Symbol).Distinct().ToList();
-        partitions = RefinePartitions(partitions, reachableTransitions, symbols);
-        return BuildMinimizedDfa(partitions, reachableStates, reachableTransitions, startState, symbols);
-    }
 
     private (List<State> reachableStates, List<Transition> reachableTransitions) ComputeReachable(int startStateId)
     {
@@ -282,7 +279,6 @@ public class DFA : Automaton
             newId++;
         }
 
-        // Ensure start state is set
         minimizedDfa.SetStartState(stateMap[startStateId]);
 
         foreach (var group in partitions)

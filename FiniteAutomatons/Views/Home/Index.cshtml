@@ -232,7 +232,8 @@
     </div>
 
     <!-- Bottom Control Sections -->
-    <form asp-controller="Automaton" method="post" id="automatonForm">
+    <form asp-controller="Automaton" asp-action="Index" method="post" id="automatonForm">
+        @Html.AntiForgeryToken()
         @if (Model != null)
             {
                 <input type="hidden" asp-for="Type" />
@@ -376,7 +377,7 @@
                         @if (!hasExecuted)
                         {
                             <button type="submit" class="control-btn simulate-btn"
-                                    asp-controller="AutomatonExecution" asp-action="Start"
+                                    formaction="@Url.Action("Start", "AutomatonExecution")" formmethod="post"
                                     title="Start" data-sim-primary="start">
                                 <i class="fas fa-play-circle"></i>
                                 <span>Start</span>
@@ -385,7 +386,7 @@
                         @if (hasExecuted)
                         {
                             <button type="submit" class="control-btn simulate-btn"
-                                    asp-controller="AutomatonExecution" asp-action="Reset"
+                                    formaction="@Url.Action("Reset", "AutomatonExecution")" formmethod="post"
                                     title="Reset" data-sim-primary="reset">
                                 <i class="fas fa-undo"></i>
                                 <span>Reset</span>
@@ -395,14 +396,14 @@
                         @* BackToStart *@
                         @if (disableAllUntilStart || atStartPos)
                         {
-                            <button type="submit" class="control-btn simulate-btn" asp-controller="AutomatonExecution" asp-action="BackToStart" title="Back to start" data-sim-action="backToStart" disabled>
+                            <button type="submit" class="control-btn simulate-btn" formaction="@Url.Action("BackToStart", "AutomatonExecution")" formmethod="post" title="Back to start" data-sim-action="backToStart" disabled>
                                 <i class="fas fa-undo"></i>
                                 <span>To start</span>
                             </button>
                         }
                         else
                         {
-                            <button type="submit" class="control-btn simulate-btn" asp-controller="AutomatonExecution" asp-action="BackToStart" title="Back to start" data-sim-action="backToStart">
+                            <button type="submit" class="control-btn simulate-btn" formaction="@Url.Action("BackToStart", "AutomatonExecution")" formmethod="post" title="Back to start" data-sim-action="backToStart">
                                 <i class="fas fa-undo"></i>
                                 <span>To start</span>
                             </button>
@@ -411,14 +412,14 @@
                         @* StepBackward *@
                         @if (disableAllUntilStart || atStartPos)
                         {
-                            <button type="submit" class="control-btn simulate-btn" asp-controller="AutomatonExecution" asp-action="StepBackward" title="Step back" data-sim-action="stepBackward" disabled>
+                            <button type="submit" class="control-btn simulate-btn" formaction="@Url.Action("StepBackward", "AutomatonExecution")" formmethod="post" title="Step back" data-sim-action="stepBackward" disabled>
                                 <i class="fas fa-step-backward"></i>
                                 <span>Back</span>
                             </button>
                         }
                         else
                         {
-                            <button type="submit" class="control-btn simulate-btn" asp-controller="AutomatonExecution" asp-action="StepBackward" title="Step back" data-sim-action="stepBackward">
+                            <button type="submit" class="control-btn simulate-btn" formaction="@Url.Action("StepBackward", "AutomatonExecution")" formmethod="post" title="Step back" data-sim-action="stepBackward">
                                 <i class="fas fa-step-backward"></i>
                                 <span>Back</span>
                             </button>
@@ -427,14 +428,14 @@
                         @* StepForward *@
                         @if (disableAllUntilStart || atEndPos)
                         {
-                            <button type="submit" class="control-btn simulate-btn" asp-controller="AutomatonExecution" asp-action="StepForward" title="Read next" data-sim-action="stepForward" disabled>
+                            <button type="submit" class="control-btn simulate-btn" formaction="@Url.Action("StepForward", "AutomatonExecution")" formmethod="post" title="Read next" data-sim-action="stepForward" disabled>
                                 <i class="fas fa-step-forward"></i>
                                 <span>Next</span>
                             </button>
                         }
                         else
                         {
-                            <button type="submit" class="control-btn simulate-btn" asp-controller="AutomatonExecution" asp-action="StepForward" title="Read next" data-sim-action="stepForward">
+                            <button type="submit" class="control-btn simulate-btn" formaction="@Url.Action("StepForward", "AutomatonExecution")" formmethod="post" title="Read next" data-sim-action="stepForward">
                                 <i class="fas fa-step-forward"></i>
                                 <span>Next</span>
                             </button>
@@ -443,14 +444,14 @@
                         @* ExecuteAll *@
                         @if (disableAllUntilStart || atEndPos)
                         {
-                            <button type="submit" class="control-btn simulate-btn" asp-controller="AutomatonExecution" asp-action="ExecuteAll" title="Read all" data-sim-action="executeAll" disabled>
+                            <button type="submit" class="control-btn simulate-btn" formaction="@Url.Action("ExecuteAll", "AutomatonExecution")" formmethod="post" title="Read all" data-sim-action="executeAll" disabled>
                                 <i class="fas fa-forward"></i>
                                 <span>Read all</span>
                             </button>
                         }
                         else
                         {
-                            <button type="submit" class="control-btn simulate-btn" asp-controller="AutomatonExecution" asp-action="ExecuteAll" title="Read all" data-sim-action="executeAll">
+                            <button type="submit" class="control-btn simulate-btn" formaction="@Url.Action("ExecuteAll", "AutomatonExecution")" formmethod="post" title="Read all" data-sim-action="executeAll">
                                 <i class="fas fa-forward"></i>
                                 <span>Read all</span>
                             </button>
@@ -496,7 +497,7 @@
                             else
                             {
                                 <button type="submit" class="control-btn minimize-btn"
-                                        asp-controller="AutomatonExecution" asp-action="Minimalize" title="Minimalize DFA">
+                                        formaction="@Url.Action("Minimalize", "AutomatonExecution")" formmethod="post" title="Minimalize DFA">
                                     Minimalize (→ @analysis.MinimizedStateCount)
                                 </button>
                         }

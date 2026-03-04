@@ -7,37 +7,38 @@ namespace FiniteAutomatons.Controllers;
 
 [ApiController]
 [Route("api/canvas")]
-public class CanvasApiController(ILogger<CanvasApiController> logger, ICanvasMappingService mappingService) : ControllerBase
+public class CanvasApiController(
+    ILogger<CanvasApiController> logger, 
+    ICanvasMappingService canvasMappingService,
+    IAutomatonMinimizationService minimizationService) : ControllerBase
 {
     private readonly ILogger<CanvasApiController> logger = logger;
-    private readonly ICanvasMappingService mappingService = mappingService;
+    private readonly ICanvasMappingService canvasMappingService = canvasMappingService;
+    private readonly IAutomatonMinimizationService minimizationService = minimizationService;
 
     public const string SessionKey = "CanvasAutomaton";
 
     [HttpPost("sync")]
-    public IActionResult Sync([FromBody] CanvasSyncRequest? request, [FromServices] IAutomatonMinimizationService? minimizationService)
+    public IActionResult Sync([FromBody] CanvasSyncRequest? request)
     {
         if (request is null)
             return BadRequest("Request body is required.");
 
         try
         {
-            var vm = mappingService.BuildAutomatonViewModel(request);
-            var response = mappingService.BuildSyncResponse(request);
+            var vm = canvasMappingService.BuildAutomatonViewModel(request);
+            var response = canvasMappingService.BuildSyncResponse(request);
 
             try
             {
-                if (minimizationService != null)
-                {
-                    var analysis = minimizationService.AnalyzeAutomaton(vm);
-                    response.MinimizationAnalysis = new CanvasMinimizationDto(
-                        analysis.SupportsMinimization,
-                        analysis.IsMinimal,
-                        analysis.OriginalStateCount,
-                        analysis.ReachableStateCount,
-                        analysis.MinimizedStateCount
-                    );
-                }
+                var analysis = minimizationService.AnalyzeAutomaton(vm);
+                response.MinimizationAnalysis = new CanvasMinimizationDto(
+                    analysis.SupportsMinimization,
+                    analysis.IsMinimal,
+                    analysis.OriginalStateCount,
+                    analysis.ReachableStateCount,
+                    analysis.MinimizedStateCount
+                );
             }
             catch { /* ignore analysis errors */ }
             return Ok(response);
@@ -57,7 +58,7 @@ public class CanvasApiController(ILogger<CanvasApiController> logger, ICanvasMap
 
         try
         {
-            var model = mappingService.BuildAutomatonViewModel(request);
+            var model = canvasMappingService.BuildAutomatonViewModel(request);
             var json = JsonSerializer.Serialize(model);
             HttpContext.Session.SetString(SessionKey, json);
             if (logger.IsEnabled(LogLevel.Information))

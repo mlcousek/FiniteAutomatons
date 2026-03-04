@@ -269,6 +269,9 @@ export class PanelSync {
             if (!supports) {
                 btn.textContent = 'Minimalize (Unsupported)';
                 btn.disabled = true;
+                btn.type = 'button';
+                btn.removeAttribute('formaction');
+                btn.removeAttribute('formmethod');
                 return;
             }
 
@@ -277,13 +280,23 @@ export class PanelSync {
             if (isMinimal) {
                 btn.textContent = 'Minimalize (Already Minimal)';
                 btn.disabled = true;
+                btn.type = 'button';
+                btn.removeAttribute('formaction');
+                btn.removeAttribute('formmethod');
             } else if (executionStarted) {
                 btn.textContent = 'Minimalize (Disabled - Execution Started)';
                 btn.disabled = true;
+                btn.type = 'button';
+                btn.removeAttribute('formaction');
+                btn.removeAttribute('formmethod');
             } else {
                 // Enable button and update text to show target size
                 btn.textContent = `Minimalize (→ ${minimizedCount})`;
                 btn.disabled = false;
+                btn.type = 'submit';
+                btn.setAttribute('formaction', '/AutomatonExecution/Minimalize');
+                btn.setAttribute('formmethod', 'post');
+                btn.title = 'Minimalize DFA';
             }
         } catch (e) {
             // swallow - non-critical UI update

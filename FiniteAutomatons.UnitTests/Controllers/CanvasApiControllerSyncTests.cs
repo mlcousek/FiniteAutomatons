@@ -14,7 +14,7 @@ public class CanvasApiControllerSyncTests
     public CanvasApiControllerSyncTests()
     {
         var logger = new NoOpLogger<CanvasApiController>();
-        controller = new CanvasApiController(logger, new MockCanvasMappingService())
+        controller = new CanvasApiController(logger, new MockCanvasMappingService(), new MockAutomatonMinimizationService())
         {
             ControllerContext = new ControllerContext
             {
@@ -26,7 +26,7 @@ public class CanvasApiControllerSyncTests
     [Fact]
     public void Sync_NullRequest_ReturnsBadRequest()
     {
-        var result = controller.Sync(null, null);
+        var result = controller.Sync(null);
         result.ShouldBeOfType<BadRequestObjectResult>();
     }
 
@@ -34,7 +34,7 @@ public class CanvasApiControllerSyncTests
     public void Sync_EmptyRequest_ReturnsOkWithEmptyData()
     {
         var req = new CanvasSyncRequest { Type = "DFA", States = [], Transitions = [] };
-        var result = controller.Sync(req, null) as OkObjectResult;
+        var result = controller.Sync(req) as OkObjectResult;
         result.ShouldNotBeNull();
         var resp = result.Value as CanvasSyncResponse;
         resp.ShouldNotBeNull();
@@ -351,7 +351,7 @@ public class CanvasApiControllerSyncTests
             states: [new() { Id = 0, IsStart = true }],
             transitions: []);
 
-        var result = controller.Sync(req, null);
+        var result = controller.Sync(req);
         result.ShouldBeOfType<OkObjectResult>();
     }
 
@@ -442,7 +442,7 @@ public class CanvasApiControllerSyncTests
     {
         var req = BuildRequest("EpsilonNFA",
             states: [new() { Id = 0, IsStart = true }, new() { Id = 1 }],
-            transitions: [new() { FromStateId = 0, ToStateId = 1, Symbol = "ε" }]);
+            transitions: [new() { FromStateId = 0, ToStateId = 1, Symbol = "\\0" }]);
 
         var resp = GetResponse(req);
         resp.HasEpsilonTransitions.ShouldBeTrue();
@@ -558,7 +558,7 @@ public class CanvasApiControllerSyncTests
 
     private CanvasSyncResponse GetResponse(CanvasSyncRequest req)
     {
-        var result = controller.Sync(req, null) as OkObjectResult;
+        var result = controller.Sync(req) as OkObjectResult;
         result.ShouldNotBeNull();
         var resp = result.Value as CanvasSyncResponse;
         resp.ShouldNotBeNull();

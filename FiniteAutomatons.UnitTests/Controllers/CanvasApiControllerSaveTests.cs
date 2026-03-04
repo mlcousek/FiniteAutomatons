@@ -17,7 +17,7 @@ public class CanvasApiControllerSaveTests
 
     public CanvasApiControllerSaveTests()
     {
-        controller = new CanvasApiController(new NoOpLogger<CanvasApiController>(), new MockCanvasMappingService());
+        controller = new CanvasApiController(new NoOpLogger<CanvasApiController>(), new MockCanvasMappingService(), new MockAutomatonMinimizationService());
         session = new MockSession();
         var httpContext = new DefaultHttpContext { Session = session };
         controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
