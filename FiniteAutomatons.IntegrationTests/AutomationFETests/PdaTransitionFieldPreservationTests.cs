@@ -115,16 +115,13 @@ public class PdaTransitionFieldPreservationTests(IntegrationTestsFixture fixture
 
     private static void AssertTransitionFieldsPreserved(string html, AutomatonViewModel expectedModel)
     {
-        // Extract transitions from HTML and verify StackPop and StackPush are present
         for (int i = 0; i < expectedModel.Transitions.Count; i++)
         {
             var transition = expectedModel.Transitions[i];
 
-            // Check that the transition basic fields are present
             var fromMatch = Regex.Match(html, $@"name\s*=\s*""Transitions\[{i}\]\.FromStateId""[^>]*value\s*=\s*""{transition.FromStateId}""", RegexOptions.IgnoreCase);
             fromMatch.Success.ShouldBeTrue($"Transition {i} FromStateId should be present in HTML");
 
-            // For PDA transitions, verify StackPop is preserved
             if (transition.StackPop.HasValue)
             {
                 var stackPopValue = transition.StackPop.Value == '\0' ? @"\\0" : Regex.Escape(transition.StackPop.Value.ToString());
@@ -132,7 +129,6 @@ public class PdaTransitionFieldPreservationTests(IntegrationTestsFixture fixture
 
                 if (!stackPopMatch.Success)
                 {
-                    // Debug: show what's actually in the HTML
                     var anyMatch = Regex.Match(html, $@"name\s*=\s*""Transitions\[{i}\]\.StackPop""[^>]*value\s*=\s*""([^""]*)""", RegexOptions.IgnoreCase);
                     var actualValue = anyMatch.Success ? anyMatch.Groups[1].Value : "NOT FOUND";
                     var actualBytes = anyMatch.Success ? string.Join(" ", anyMatch.Groups[1].Value.Select(c => $"{(int)c:X2}")) : "";
@@ -140,7 +136,6 @@ public class PdaTransitionFieldPreservationTests(IntegrationTestsFixture fixture
                 }
             }
 
-            // For PDA transitions, verify StackPush is preserved
             if (!string.IsNullOrEmpty(transition.StackPush))
             {
                 var stackPushValue = Regex.Escape(transition.StackPush);
@@ -149,8 +144,6 @@ public class PdaTransitionFieldPreservationTests(IntegrationTestsFixture fixture
             }
         }
     }
-
-    #region Start Action Tests
 
     [Fact]
     public async Task Start_BalancedParentheses_PreservesStackPopAndStackPush()
@@ -209,10 +202,6 @@ public class PdaTransitionFieldPreservationTests(IntegrationTestsFixture fixture
         AssertTransitionFieldsPreserved(html, model);
     }
 
-    #endregion
-
-    #region StepForward Action Tests
-
     [Fact]
     public async Task StepForward_AfterStart_PreservesStackPopAndStackPush()
     {
@@ -260,10 +249,6 @@ public class PdaTransitionFieldPreservationTests(IntegrationTestsFixture fixture
         AssertTransitionFieldsPreserved(step2Html, model);
     }
 
-    #endregion
-
-    #region ExecuteAll Action Tests
-
     [Fact]
     public async Task ExecuteAll_BalancedParentheses_PreservesStackPopAndStackPush()
     {
@@ -290,10 +275,6 @@ public class PdaTransitionFieldPreservationTests(IntegrationTestsFixture fixture
         AssertTransitionFieldsPreserved(html, model);
     }
 
-    #endregion
-
-    #region BackToStart Action Tests
-
     [Fact]
     public async Task BackToStart_AfterExecution_PreservesStackPopAndStackPush()
     {
@@ -315,10 +296,6 @@ public class PdaTransitionFieldPreservationTests(IntegrationTestsFixture fixture
         backResp.StatusCode.ShouldBe(HttpStatusCode.OK);
         AssertTransitionFieldsPreserved(backHtml, model);
     }
-
-    #endregion
-
-    #region StepBackward Action Tests
 
     [Fact]
     public async Task StepBackward_AfterSteps_PreservesStackPopAndStackPush()
@@ -342,10 +319,6 @@ public class PdaTransitionFieldPreservationTests(IntegrationTestsFixture fixture
         AssertTransitionFieldsPreserved(backHtml, model);
     }
 
-    #endregion
-
-    #region Reset Action Tests
-
     [Fact]
     public async Task Reset_AfterExecution_PreservesStackPopAndStackPush()
     {
@@ -365,10 +338,6 @@ public class PdaTransitionFieldPreservationTests(IntegrationTestsFixture fixture
         AssertTransitionFieldsPreserved(resetHtml, model);
     }
 
-    #endregion
-
-    #region Edge Cases
-
     [Fact]
     public async Task Start_EpsilonStackOperations_PreservesEpsilonCorrectly()
     {
@@ -383,7 +352,6 @@ public class PdaTransitionFieldPreservationTests(IntegrationTestsFixture fixture
             ],
             Transitions =
             [
-                // Epsilon symbol with epsilon stack pop
                 new() { FromStateId = 1, ToStateId = 2, Symbol = '\0', StackPop = '\0', StackPush = null }
             ],
             Input = "",
@@ -396,8 +364,6 @@ public class PdaTransitionFieldPreservationTests(IntegrationTestsFixture fixture
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
-        // The view renders '\0' as "\\0" string, which outputs \0 in HTML
-        // In regex @"\\0" matches the pattern backslash+zero (one backslash in HTML)
         var stackPopMatch = Regex.Match(html, @"name\s*=\s*""Transitions\[0\]\.StackPop""[^>]*value\s*=\s*""\\0""", RegexOptions.IgnoreCase);
         stackPopMatch.Success.ShouldBeTrue("Epsilon stack pop should be preserved as \\0 in HTML");
     }
@@ -424,7 +390,6 @@ public class PdaTransitionFieldPreservationTests(IntegrationTestsFixture fixture
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
-        // Verify multi-character push is preserved
         var stackPushMatch = Regex.Match(html, @"name\s*=\s*""Transitions\[0\]\.StackPush""[^>]*value\s*=\s*""XYZ""", RegexOptions.IgnoreCase);
         stackPushMatch.Success.ShouldBeTrue("Multi-character stack push 'XYZ' should be preserved");
     }
@@ -439,7 +404,6 @@ public class PdaTransitionFieldPreservationTests(IntegrationTestsFixture fixture
             States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
             Transitions =
             [
-                // Transition with null StackPush (pop only)
                 new() { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = 'X', StackPush = null }
             ],
             Input = "a",
@@ -452,11 +416,8 @@ public class PdaTransitionFieldPreservationTests(IntegrationTestsFixture fixture
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
-        // Verify null StackPush doesn't create a hidden field (or creates empty one)
-        // The hidden field should either not exist or be empty
         var stackPushMatches = Regex.Matches(html, @"name\s*=\s*""Transitions\[0\]\.StackPush""", RegexOptions.IgnoreCase);
 
-        // If the field exists, it should have an empty value
         if (stackPushMatches.Count > 0)
         {
             var valueMatch = Regex.Match(html, @"name\s*=\s*""Transitions\[0\]\.StackPush""[^>]*value\s*=\s*""""", RegexOptions.IgnoreCase);
@@ -498,6 +459,4 @@ public class PdaTransitionFieldPreservationTests(IntegrationTestsFixture fixture
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         AssertTransitionFieldsPreserved(html, model);
     }
-
-    #endregion
 }

@@ -18,10 +18,8 @@ public class AutomatonFileEndpointsTests(IntegrationTestsFixture fixture) : Inte
             { new ByteArrayContent(Encoding.UTF8.GetBytes(json)), "upload", "dfa.json" }
         };
         var response = await client.PostAsync("/ImportExport/ImportAutomaton", content);
-        // Should redirect to Home/Index on success
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await response.Content.ReadAsStringAsync();
-        // Should have loaded the automaton
         html.ShouldContain("AUTOMATON");
     }
 
@@ -39,7 +37,6 @@ public class AutomatonFileEndpointsTests(IntegrationTestsFixture fixture) : Inte
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await response.Content.ReadAsStringAsync();
         html.ShouldContain("AUTOMATON");
-        // Epsilon transition should be visible in the rendered transitions list
         html.ShouldContain("ε");
     }
 
@@ -70,7 +67,6 @@ public class AutomatonFileEndpointsTests(IntegrationTestsFixture fixture) : Inte
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await response.Content.ReadAsStringAsync();
         html.ShouldContain("AUTOMATON");
-        // Execution state should be visible in the UI
         html.ShouldContain("Current Position");
     }
 

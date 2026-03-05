@@ -203,7 +203,6 @@ public class AutomatonMinimalizationButtonTests(IntegrationTestsFixture fixture)
             ? await (await client.GetAsync(response.Headers.Location)).Content.ReadAsStringAsync()
             : await response.Content.ReadAsStringAsync();
 
-        // Should have merged states 2 and 3
         html.ShouldContain("3");
         html.ShouldContain("2 states");
         html.ShouldContain("New state");

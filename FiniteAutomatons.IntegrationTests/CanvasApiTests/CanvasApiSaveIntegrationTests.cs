@@ -42,10 +42,8 @@ public class CanvasApiSaveIntegrationTests(IntegrationTestsFixture fixture) : In
     {
         var (client, _) = GetClientWithSession();
 
-        // Save a custom automaton
         await client.PostAsJsonAsync("/api/canvas/save", SimpleDfa(), json);
 
-        // Reload home page — should reflect session data
         var homeResp = await client.GetAsync("/");
         homeResp.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
@@ -62,7 +60,6 @@ public class CanvasApiSaveIntegrationTests(IntegrationTestsFixture fixture) : In
 
         var homeResp = await client.GetAsync("/");
         var html = await homeResp.Content.ReadAsStringAsync();
-        // The page should include state data (our automaton has states)
         homeResp.StatusCode.ShouldBe(HttpStatusCode.OK);
         html.ShouldNotBeNullOrEmpty();
     }
@@ -136,13 +133,9 @@ public class CanvasApiSaveIntegrationTests(IntegrationTestsFixture fixture) : In
     {
         var (client, _) = GetClientWithSession();
 
-        // Save a custom automaton
         await client.PostAsJsonAsync("/api/canvas/save", SimpleDfa(), json);
-
-        // Clear it
         await client.PostAsync("/api/canvas/clear", null);
 
-        // Home page should now use the default (no session data)
         var homeResp = await client.GetAsync("/");
         homeResp.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
@@ -198,7 +191,7 @@ public class CanvasApiSaveIntegrationTests(IntegrationTestsFixture fixture) : In
 
     // Helpers
 
-    private (HttpClient client, System.Net.CookieContainer cookies) GetClientWithSession()
+    private (HttpClient client, CookieContainer cookies) GetClientWithSession()
     {
         var cookies = new CookieContainer();
         var handler = new HttpClientHandler { CookieContainer = cookies };

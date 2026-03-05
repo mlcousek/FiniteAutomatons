@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.ViewModel;
+﻿using FiniteAutomatons.Core.Models.ViewModel;
 using Shouldly;
 using System.Net;
 using System.Text.RegularExpressions;
@@ -8,7 +8,6 @@ namespace FiniteAutomatons.IntegrationTests.AutomationExecution;
 [Collection("Integration Tests")]
 public class AutomatonExecutionDfaComprehensiveTests(IntegrationTestsFixture fixture) : IntegrationTestsBase(fixture)
 {
-    // DFA: q1 -- d -> q2 (accepting), q2 -- a -> q3 (accepting)
     private static AutomatonViewModel BuildThreeStateDfa(string input) => new()
     {
         Type = AutomatonType.DFA,
@@ -48,7 +47,6 @@ public class AutomatonExecutionDfaComprehensiveTests(IntegrationTestsFixture fix
         var step2Html = await (await PostAsync(client, "/AutomatonExecution/StepForward", step1Model)).Content.ReadAsStringAsync();
         ExtractInput(step2Html).ShouldBe("da");
         ExtractPosition(step2Html).pos.ShouldBe(2);
-        // End of input -> no next symbol highlight; expect placeholder text instead
         HasNextSymbol(step2Html).ShouldBeFalse();
     }
 
@@ -84,9 +82,8 @@ public class AutomatonExecutionDfaComprehensiveTests(IntegrationTestsFixture fix
     [Fact]
     public async Task ExecuteAll_RejectedScenario()
     {
-        // Modify DFA so second symbol mismatches (input "db")
         var client = GetHttpClient();
-        var model = BuildThreeStateDfa("db"); // transitions require d then a -> second char b should cause rejection
+        var model = BuildThreeStateDfa("db");
         var resp = await PostAsync(client, "/AutomatonExecution/ExecuteAll", model);
         resp.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await resp.Content.ReadAsStringAsync();
@@ -163,28 +160,27 @@ public class AutomatonExecutionDfaComprehensiveTests(IntegrationTestsFixture fix
     {
         var vm = new AutomatonViewModel
         {
-            States = new List<Core.Models.DoMain.State>(),
-            Transitions = new List<Core.Models.DoMain.Transition>()
+            States = [],
+            Transitions = [],
+            Type = (AutomatonType)ParseInt(html, "Type", (int)AutomatonType.DFA),
+            Position = ParseInt(html, "Position", 0),
+            CurrentStateId = ParseIntNullable(html, "CurrentStateId"),
+            HasExecuted = ParseBool(html, "HasExecuted") ?? false,
+            IsAccepted = ParseBool(html, "IsAccepted"),
+            Input = ExtractInput(html) ?? string.Empty,
+            StateHistorySerialized = ExtractInputValue(html, "StateHistorySerialized") ?? string.Empty
         };
-        vm.Type = (AutomatonType)ParseInt(html, "Type", (int)AutomatonType.DFA);
-        vm.Position = ParseInt(html, "Position", 0);
-        vm.CurrentStateId = ParseIntNullable(html, "CurrentStateId");
-        vm.HasExecuted = ParseBool(html, "HasExecuted") ?? false;
-        vm.IsAccepted = ParseBool(html, "IsAccepted");
-        vm.Input = ExtractInput(html) ?? string.Empty;
-        vm.StateHistorySerialized = ExtractInputValue(html, "StateHistorySerialized") ?? string.Empty;
 
         var stateIds = Regex.Matches(html, "States\\[(\\d+)\\]\\.Id\"[^>]*value=\"(\\d+)\"");
         var starts = Regex.Matches(html, "States\\[(\\d+)\\]\\.IsStart\"[^>]*value=\"(true|false)\"");
         var accepts = Regex.Matches(html, "States\\[(\\d+)\\]\\.IsAccepting\"[^>]*value=\"(true|false)\"");
-        
-        // Deduplicate by index (HTML contains multiple forms with same state indices)
+
         var processedIndices = new HashSet<int>();
         for (int i = 0; i < stateIds.Count; i++)
         {
             int index = int.Parse(stateIds[i].Groups[1].Value);
             if (!processedIndices.Add(index)) continue; // Skip duplicates
-            
+
             var id = int.Parse(stateIds[i].Groups[2].Value);
             bool isStart = i < starts.Count && bool.Parse(starts[i].Groups[2].Value);
             bool isAccept = i < accepts.Count && bool.Parse(accepts[i].Groups[2].Value);
@@ -193,14 +189,13 @@ public class AutomatonExecutionDfaComprehensiveTests(IntegrationTestsFixture fix
         var froms = Regex.Matches(html, "Transitions\\[(\\d+)\\]\\.FromStateId\"[^>]*value=\"(\\d+)\"");
         var tos = Regex.Matches(html, "Transitions\\[(\\d+)\\]\\.ToStateId\"[^>]*value=\"(\\d+)\"");
         var syms = Regex.Matches(html, "Transitions\\[(\\d+)\\]\\.Symbol\"[^>]*value=\"(.)\"");
-        
-        // Deduplicate by index (HTML contains multiple forms with same transition indices)
+
         processedIndices.Clear();
         for (int i = 0; i < froms.Count && i < tos.Count; i++)
         {
             int index = int.Parse(froms[i].Groups[1].Value);
             if (!processedIndices.Add(index)) continue; // Skip duplicates
-            
+
             var from = int.Parse(froms[i].Groups[2].Value);
             var to = int.Parse(tos[i].Groups[2].Value);
             var sym = i < syms.Count ? syms[i].Groups[2].Value[0] : '\0';

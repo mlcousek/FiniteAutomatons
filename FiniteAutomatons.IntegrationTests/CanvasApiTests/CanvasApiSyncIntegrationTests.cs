@@ -113,7 +113,7 @@ public class CanvasApiSyncIntegrationTests(IntegrationTestsFixture fixture) : In
             ]);
 
         var body = await ReadResponse(await PostSync(req));
-        body.Alphabet.ShouldBe(body.Alphabet.OrderBy(x => x).ToList());
+        body.Alphabet.ShouldBe([.. body.Alphabet.OrderBy(x => x)]);
     }
 
     [Fact]

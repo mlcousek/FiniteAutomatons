@@ -107,7 +107,6 @@ public class SimulateControlsDisableTests(IntegrationTestsFixture fixture) : Int
         var client = GetHttpClient();
         var model = BuildSimpleDfa("ab");
         _ = await (await PostAsync(client, "/AutomatonExecution/Start", model)).Content.ReadAsStringAsync();
-        // Build model for step forward
         var stepModel = BuildSimpleDfa("ab");
         stepModel.HasExecuted = true; stepModel.CurrentStateId = 1; // current state before consuming 'a'
         var stepResp = await PostAsync(client, "/AutomatonExecution/StepForward", stepModel);

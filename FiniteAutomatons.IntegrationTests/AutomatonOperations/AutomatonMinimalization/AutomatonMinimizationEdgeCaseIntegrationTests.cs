@@ -38,7 +38,6 @@ public class AutomatonMinimizationEdgeCaseIntegrationTests(IntegrationTestsFixtu
     }
     private static async Task<HttpResponseMessage> PostAsync(HttpClient c, string url, AutomatonViewModel m) => await c.PostAsync(url, new FormUrlEncodedContent(BuildForm(m)));
 
-    // Edge case: single-state DFA already minimal (non-accepting)
     [Fact]
     public async Task Index_SingleStateNonAcceptingDfa_AlreadyMinimal()
     {
@@ -54,19 +53,16 @@ public class AutomatonMinimizationEdgeCaseIntegrationTests(IntegrationTestsFixtu
         var createResp = await PostAsync(client, "/AutomatonCreation/CreateAutomaton", model);
         createResp.StatusCode.ShouldBeOneOf([HttpStatusCode.OK, HttpStatusCode.Found]);
 
-        // If validation failed, CreateAutomaton returns OK with the view; if successful, it redirects (Found)
         if (createResp.StatusCode == HttpStatusCode.OK)
         {
-            // Validation failed - skip the rest of test assertions
             var createHtml = await createResp.Content.ReadAsStringAsync();
-            createHtml.ShouldContain("Automaton"); // Just ensure we got a response
+            createHtml.ShouldContain("Automaton");
             return;
         }
 
         var indexResp = await client.GetAsync("/Home/Index");
         indexResp.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await indexResp.Content.ReadAsStringAsync();
-        // Button should indicate already minimal and be disabled
         html.IndexOf("Minimalize (Already Minimal)", StringComparison.OrdinalIgnoreCase).ShouldBeGreaterThanOrEqualTo(0);
         Regex.IsMatch(html, "<button[^>]*class=\"[^\"]*minimize-btn[^\"]*\"[^>]*disabled", RegexOptions.IgnoreCase).ShouldBeTrue();
     }

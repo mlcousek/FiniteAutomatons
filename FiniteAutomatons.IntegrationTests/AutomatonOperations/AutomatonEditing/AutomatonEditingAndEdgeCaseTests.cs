@@ -95,7 +95,6 @@ public class AutomatonEditingAndEdgeCaseTests(IntegrationTestsFixture fixture) :
         var model = BaseDfa("a");
         var startHtml = await (await PostAsync(client, "/AutomatonExecution/Start", model)).Content.ReadAsStringAsync();
         Regex.IsMatch(startHtml, "name=\"Position\"[^>]*value=\"0\"", RegexOptions.IgnoreCase).ShouldBeTrue();
-        // attempt backward
         var startModel = BaseDfa("a");
         startModel.HasExecuted = true; startModel.CurrentStateId = 1; // state after start
         var backResp = await PostAsync(client, "/AutomatonExecution/StepBackward", startModel);
@@ -108,14 +107,12 @@ public class AutomatonEditingAndEdgeCaseTests(IntegrationTestsFixture fixture) :
     {
         var client = GetHttpClient();
         var model = NfaMulti("a");
-        var startHtml = await (await PostAsync(client, "/AutomatonExecution/Start", model)).Content.ReadAsStringAsync();
-        // Execute one step
+        _ = await (await PostAsync(client, "/AutomatonExecution/Start", model)).Content.ReadAsStringAsync();
         var startModel = NfaMulti("a");
-        startModel.HasExecuted = true; // mark execution started
+        startModel.HasExecuted = true;
         var stepResp = await PostAsync(client, "/AutomatonExecution/StepForward", startModel);
         stepResp.StatusCode.ShouldBe(HttpStatusCode.OK);
         var stepHtml = await stepResp.Content.ReadAsStringAsync();
-        // Should contain hidden inputs for CurrentStates[0] and CurrentStates[1]
         Regex.Matches(stepHtml, "name=\"CurrentStates\\[\\d+\\]\"[^>]*value=\"(\\d+)\"", RegexOptions.IgnoreCase).Count.ShouldBeGreaterThan(1);
     }
 

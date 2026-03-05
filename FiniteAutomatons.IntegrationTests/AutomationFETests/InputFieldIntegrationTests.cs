@@ -98,11 +98,9 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
             list.Add(new("Transitions.Index", i.ToString()));
             list.Add(new($"Transitions[{i}].FromStateId", m.Transitions[i].FromStateId.ToString()));
             list.Add(new($"Transitions[{i}].ToStateId", m.Transitions[i].ToStateId.ToString()));
-            // Serialize '\0' as "\\0" for epsilon transitions, otherwise use ToString()
             list.Add(new($"Transitions[{i}].Symbol", m.Transitions[i].Symbol == '\0' ? "\\0" : m.Transitions[i].Symbol.ToString()));
             if (m.Transitions[i].StackPop.HasValue)
             {
-                // Serialize '\0' as "\\0" for epsilon stack pop, otherwise use ToString()
                 var stackPopValue = m.Transitions[i].StackPop!.Value == '\0' ? "\\0" : m.Transitions[i].StackPop!.Value.ToString();
                 list.Add(new($"Transitions[{i}].StackPop", stackPopValue));
             }
@@ -145,7 +143,6 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
     {
         var m = Regex.Match(html, @"name\s*=\s*""StackSerialized""[^>]*value\s*=\s*""([^""]*)""|value\s*=\s*""([^""]*)""[^>]*name\s*=\s*""StackSerialized""", RegexOptions.IgnoreCase);
         var value = m.Success ? (m.Groups[1].Success ? m.Groups[1].Value : m.Groups[2].Value) : string.Empty;
-        // HTML decode to handle &quot; etc.
         return WebUtility.HtmlDecode(value);
     }
 
@@ -153,7 +150,6 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
     {
         var m = Regex.Match(html, @"name\s*=\s*""StateHistorySerialized""[^>]*value\s*=\s*""([^""]*)""|value\s*=\s*""([^""]*)""[^>]*name\s*=\s*""StateHistorySerialized""", RegexOptions.IgnoreCase);
         var value = m.Success ? (m.Groups[1].Success ? m.Groups[1].Value : m.Groups[2].Value) : string.Empty;
-        // HTML decode to handle &quot; etc.
         return WebUtility.HtmlDecode(value);
     }
 
@@ -193,7 +189,6 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
         ExtractPosition(startModelHtml).ShouldBe(0);
         var startModel = BuildSimpleDfa("abba"); // reconstruct minimal for step forward
         startModel.HasExecuted = true;
-        // Provide execution state fields from html if needed (CurrentStateId)
         var csMatch = Regex.Match(startModelHtml, "name=\"CurrentStateId\"[^>]*value=\"(\\d+)\"", RegexOptions.IgnoreCase);
         if (csMatch.Success) startModel.CurrentStateId = int.Parse(csMatch.Groups[1].Value);
         var stepResp = await PostAsync(client, "/AutomatonExecution/StepForward", startModel);
@@ -274,7 +269,7 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
     public async Task Start_ShouldShowFullInputAndHighlightFirstChar_For_acb()
     {
         var client = GetHttpClient();
-        var model = BuildSimpleDfa("acb"); // transitions only cover 'a'/'b' but start does not consume yet
+        var model = BuildSimpleDfa("acb");
         var startResp = await PostAsync(client, "/AutomatonExecution/Start", model);
         startResp.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await startResp.Content.ReadAsStringAsync();
@@ -287,7 +282,6 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
     public async Task Start_ShouldShowFullInputAndHighlightFirstChar_For_cadc()
     {
         var client = GetHttpClient();
-        // custom DFA allowing c,a,d,c sequence
         var model = new AutomatonViewModel
         {
             Type = AutomatonType.DFA,
@@ -330,7 +324,6 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
         startResp.StatusCode.ShouldBe(HttpStatusCode.OK);
         var startHtml = await startResp.Content.ReadAsStringAsync();
         ExtractPosition(startHtml).ShouldBe(0);
-        // prepare step model
         var stepModel = new AutomatonViewModel
         {
             Type = AutomatonType.DFA,
@@ -339,7 +332,7 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
             Input = model.Input,
             IsCustomAutomaton = true,
             HasExecuted = true,
-            CurrentStateId = 2 // after consuming first 'c' per transition definition
+            CurrentStateId = 2
         };
         var stepResp = await PostAsync(client, "/AutomatonExecution/StepForward", stepModel);
         stepResp.StatusCode.ShouldBe(HttpStatusCode.OK);
@@ -359,10 +352,8 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
         var html = await resp.Content.ReadAsStringAsync();
         var value = ExtractInputValue(html);
         value.ShouldBe("acb");
-        // Only one highlight span expected
         CountSymbolHighlightSpans(html).ShouldBe(1);
         ExtractNextSymbolHighlight(html).ShouldBe('a');
-        // Ensure other characters still present in input (means they are shown; overlay JS not executed in test)
         value.Contains('c').ShouldBeTrue();
         value.Contains('b').ShouldBeTrue();
     }
@@ -374,7 +365,6 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
         var model = BuildSimpleDfa("acb");
         var start = await PostAsync(client, "/AutomatonExecution/Start", model);
         start.StatusCode.ShouldBe(HttpStatusCode.OK);
-        // Prepare step model (execution started)
         var stepModel = BuildSimpleDfa("acb");
         stepModel.HasExecuted = true;
         stepModel.CurrentStateId = 2; // after consuming 'a'
@@ -383,10 +373,8 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
         var html = await stepResp.Content.ReadAsStringAsync();
         var value = ExtractInputValue(html);
         value.ShouldBe("acb");
-        // Because 'c' is not part of the DFA's defined transition alphabet, no symbol highlight span is rendered.
         CountSymbolHighlightSpans(html).ShouldBe(0);
         ExtractNextSymbolHighlight(html).ShouldBeNull();
-        // Remaining chars appear in input string
         value.Contains('a').ShouldBeTrue();
         value.Contains('b').ShouldBeTrue();
     }
@@ -459,8 +447,6 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
         value.Contains('d').ShouldBeTrue();
         value.LastIndexOf('c').ShouldBeGreaterThan(0);
     }
-
-    #region PDA Input Field Tests
 
     private static AutomatonViewModel BuildBalancedParenthesesPda(string input) => new()
     {
@@ -695,7 +681,6 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
         var startResp = await PostAsync(client, "/AutomatonExecution/Start", model);
         var startHtml = await startResp.Content.ReadAsStringAsync();
         ExtractPosition(startHtml).ShouldBe(0);
-        // For empty input, no symbol should be highlighted
         var highlightSpans = CountSymbolHighlightSpans(startHtml);
         highlightSpans.ShouldBe(0);
     }
@@ -787,7 +772,6 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
         stepModel.HasExecuted = true;
         stepModel.CurrentStateId = 1;
 
-        // Step twice
         var step1Resp = await PostAsync(client, "/AutomatonExecution/StepForward", stepModel);
         var step1Html = await step1Resp.Content.ReadAsStringAsync();
         ExtractInputValue(step1Html).ShouldBe("(())");
@@ -827,7 +811,6 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
         var resetHtml = await resetResp.Content.ReadAsStringAsync();
         InputIsReadonly(resetHtml).ShouldBeFalse();
 
-        // Start new execution with new input
         var newModel = BuildBalancedParenthesesPda("(())");
         var startResp = await PostAsync(client, "/AutomatonExecution/Start", newModel);
         var startHtml = await startResp.Content.ReadAsStringAsync();
@@ -939,7 +922,4 @@ public class InputFieldIntegrationTests(IntegrationTestsFixture fixture) : Integ
         var step3Html = await step3.Content.ReadAsStringAsync();
         ExtractPosition(step3Html).ShouldBe(3);
     }
-
-    #endregion
 }
-

@@ -193,7 +193,6 @@ public class ExecutionAdditionalScenariosTests(IntegrationTestsFixture fixture) 
         };
         var backHtml = await (await PostAsync(client, "/AutomatonExecution/StepBackward", backModel)).Content.ReadAsStringAsync();
         ExtractPosition(backHtml).ShouldBe(1);
-        // Inspect history serialized hidden input presence
         Regex.IsMatch(step2Html, "name=\"StateHistorySerialized\"", RegexOptions.IgnoreCase).ShouldBeTrue();
         Regex.IsMatch(backHtml, "name=\"StateHistorySerialized\"", RegexOptions.IgnoreCase).ShouldBeTrue();
     }

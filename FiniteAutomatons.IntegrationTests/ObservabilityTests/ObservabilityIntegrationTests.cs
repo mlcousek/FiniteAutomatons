@@ -65,7 +65,7 @@ public class ObservabilityIntegrationTests(IntegrationTestsFixture fixture) : In
 
         using var scope = GetServiceScope();
 
-        var collector = scope.ServiceProvider.GetService<Services.Observability.InMemoryActivityCollector>();
+        var collector = scope.ServiceProvider.GetService<InMemoryActivityCollector>();
         if (collector != null)
         {
             await Task.Delay(100);
@@ -98,7 +98,7 @@ public class ObservabilityIntegrationTests(IntegrationTestsFixture fixture) : In
     public void AutomatonGeneratorService_GeneratesAcceptingStringCandidates()
     {
         using var scope = GetServiceScope();
-        var gen = scope.ServiceProvider.GetRequiredService<Services.Interfaces.IAutomatonGeneratorService>();
+        var gen = scope.ServiceProvider.GetRequiredService<IAutomatonGeneratorService>();
         gen.ShouldNotBeNull();
 
         var model = gen.GenerateRandomAutomaton(AutomatonType.DFA, 5, 12, alphabetSize: 3, acceptingStateRatio: 0.4, seed: 99);

@@ -51,24 +51,23 @@ public class AutomatonApiTests(IntegrationTestsFixture fixture) : IntegrationTes
             new("Position", model.Position.ToString()),
             new("IsAccepted", model.IsAccepted?.ToString().ToLower() ?? ""),
             new("StateHistorySerialized", model.StateHistorySerialized ?? ""),
-            new("HasExecuted", model.HasExecuted.ToString().ToLower()), // Add HasExecuted field
-            new("Type", ((int)model.Type).ToString()) // Add Type field
+            new("HasExecuted", model.HasExecuted.ToString().ToLower()),
+            new("Type", ((int)model.Type).ToString())
         };
         for (int i = 0; i < model.States.Count; i++)
         {
-            dict.Add(new($"States.Index", i.ToString())); // Add index for proper model binding
+            dict.Add(new($"States.Index", i.ToString()));
             dict.Add(new($"States[{i}].Id", model.States[i].Id.ToString()));
             dict.Add(new($"States[{i}].IsStart", model.States[i].IsStart.ToString().ToLower()));
             dict.Add(new($"States[{i}].IsAccepting", model.States[i].IsAccepting.ToString().ToLower()));
         }
         for (int i = 0; i < model.Transitions.Count; i++)
         {
-            dict.Add(new($"Transitions.Index", i.ToString())); // Add index for proper model binding
+            dict.Add(new($"Transitions.Index", i.ToString()));
             dict.Add(new($"Transitions[{i}].FromStateId", model.Transitions[i].FromStateId.ToString()));
             dict.Add(new($"Transitions[{i}].ToStateId", model.Transitions[i].ToStateId.ToString()));
             dict.Add(new($"Transitions[{i}].Symbol", model.Transitions[i].Symbol.ToString()));
         }
-        // Alphabet is a computed property, skip it or add it conditionally
         if (model.Alphabet != null && model.Alphabet.Count > 0)
         {
             for (int i = 0; i < model.Alphabet.Count; i++)
@@ -138,9 +137,7 @@ public class AutomatonApiTests(IntegrationTestsFixture fixture) : IntegrationTes
     public async Task ExecuteAll_RejectsInputNotLeadingToAccepting()
     {
         // Arrange
-        _ = GetDefaultDfaViewModel("ab"); // 1->2(a)->5(b), state 5 is accepting so this SHOULD accept
-        // Actually: 1->2(a)->5(b) - wait, let me trace: from state 2 with 'b' goes to state 5 which IS accepting
-        // So this test expectation is WRONG. Let's use different input that actually rejects
+        _ = GetDefaultDfaViewModel("ab");
         AutomatonViewModel? model = GetDefaultDfaViewModel("a");
 
         var client = GetHttpClient();
@@ -153,7 +150,6 @@ public class AutomatonApiTests(IntegrationTestsFixture fixture) : IntegrationTes
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
-        // Check that rejected appears somewhere (case insensitive)
         html.Contains("rejected", StringComparison.InvariantCultureIgnoreCase).ShouldBeTrue($"Expected 'rejected' to appear in HTML, but it didn't. HTML snippet: {html[..Math.Min(500, html.Length)]}");
     }
 
@@ -165,18 +161,14 @@ public class AutomatonApiTests(IntegrationTestsFixture fixture) : IntegrationTes
         var client = GetHttpClient();
         var form = ToFormContent(model);
 
-        // Step 1: StepForward (should move to state 2)
         var response = await client.PostAsync("/AutomatonExecution/StepForward", form);
         var html = await response.Content.ReadAsStringAsync();
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
-        // With StepForward, HasExecuted gets set automatically
-        // The execution state should show (even without explicit Start)
-        // But we need to verify it displays correctly
-        html.ShouldContain("q2"); // Should have moved to state 2
+
+        html.ShouldContain("q2");
 
         UpdateModelFromHtml(model, html);
 
-        // Step 2: StepForward again (with 'b' should move to state 5, not 3!)
         form = ToFormContent(model);
         response = await client.PostAsync("/AutomatonExecution/StepForward", form);
         html = await response.Content.ReadAsStringAsync();
@@ -184,7 +176,6 @@ public class AutomatonApiTests(IntegrationTestsFixture fixture) : IntegrationTes
 
         UpdateModelFromHtml(model, html);
 
-        // Step 3: StepBackward (should move back to state 2)
         form = ToFormContent(model);
         response = await client.PostAsync("/AutomatonExecution/StepBackward", form);
         html = await response.Content.ReadAsStringAsync();
@@ -220,7 +211,7 @@ public class AutomatonApiTests(IntegrationTestsFixture fixture) : IntegrationTes
         var model = GetDefaultDfaViewModel("abca");
         model.CurrentStateId = 3;
         model.Position = 2;
-        model.HasExecuted = true; // Set HasExecuted so execution state shows
+        model.HasExecuted = true;
         var client = GetHttpClient();
         var form = ToFormContent(model);
 
@@ -230,11 +221,8 @@ public class AutomatonApiTests(IntegrationTestsFixture fixture) : IntegrationTes
 
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
-        html.ShouldContain("INPUT"); // Input section header
-                                     // After reset, execution state section should not be shown since HasExecuted is now false
-                                     // But the comment "Execution State Section" might still be in HTML as a comment
-                                     // Check that there's no actual execution state item displayed
-        html.ShouldNotContain("execution-state-item"); // No execution state items rendered
+        html.ShouldContain("INPUT");
+        html.ShouldNotContain("execution-state-item");
     }
 
     [Fact]
@@ -279,7 +267,6 @@ public class AutomatonApiTests(IntegrationTestsFixture fixture) : IntegrationTes
         var html = await response.Content.ReadAsStringAsync();
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
-        // Could be accepted or rejected depending on DFA, just check for result
         (html.Contains("accepted", StringComparison.InvariantCultureIgnoreCase) || html.Contains("rejected", StringComparison.InvariantCultureIgnoreCase)).ShouldBeTrue();
     }
 
@@ -321,37 +308,32 @@ public class AutomatonApiTests(IntegrationTestsFixture fixture) : IntegrationTes
         var client = GetHttpClient();
         var form = ToFormContent(model);
 
-        // Step 1: StepForward (should move to state 2)
         var response = await client.PostAsync("/AutomatonExecution/StepForward", form);
         var html = await response.Content.ReadAsStringAsync();
         html.ShouldContain("q2");
         UpdateModelFromHtml(model, html);
 
-        // Step 2: StepForward (with 'b' should move to state 5, not 3!)
         form = ToFormContent(model);
         response = await client.PostAsync("/AutomatonExecution/StepForward", form);
         html = await response.Content.ReadAsStringAsync();
         html.ShouldContain("q5");
         UpdateModelFromHtml(model, html);
 
-        // Step 3: StepBackward (should move back to state 2)
         form = ToFormContent(model);
         response = await client.PostAsync("/AutomatonExecution/StepBackward", form);
         html = await response.Content.ReadAsStringAsync();
         html.ShouldContain("q2", Case.Insensitive);
         UpdateModelFromHtml(model, html);
 
-        // Step 4: ExecuteAll (should end in state 5)
         form = ToFormContent(model);
         response = await client.PostAsync("/AutomatonExecution/ExecuteAll", form);
         html = await response.Content.ReadAsStringAsync();
         var containsAccepted = html.Contains("accepted", StringComparison.InvariantCultureIgnoreCase);
         containsAccepted.ShouldBeTrue("Expected 'accepted' in HTML");
 
-        // Step 5: Reset
         response = await client.PostAsync("/AutomatonExecution/Reset", form);
         html = await response.Content.ReadAsStringAsync();
-        html.ShouldContain("INPUT"); // Input section header
-        html.ShouldNotContain("execution-state-item"); // No execution state items
+        html.ShouldContain("INPUT");
+        html.ShouldNotContain("execution-state-item");
     }
 }

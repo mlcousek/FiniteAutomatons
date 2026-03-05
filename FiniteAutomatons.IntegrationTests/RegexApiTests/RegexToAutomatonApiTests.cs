@@ -43,7 +43,6 @@ public class RegexToAutomatonApiTests(IntegrationTestsFixture fixture) : Integra
         var payload = await response.Content.ReadAsStringAsync();
         payload.ShouldContain("States");
 
-        // Use service directly via DI to validate acceptance for some strings
         using var scope = GetServiceScope();
         var services = scope.ServiceProvider;
         var regexService = services.GetRequiredService<FiniteAutomatons.Services.Interfaces.IRegexToAutomatonService>();

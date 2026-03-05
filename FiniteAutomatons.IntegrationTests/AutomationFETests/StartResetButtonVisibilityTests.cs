@@ -74,7 +74,7 @@ public class StartResetButtonVisibilityTests(IntegrationTestsFixture fixture) : 
     [Fact]
     public async Task StartVisible_BeforeAnyExecution_ResetHidden()
     {
-        // Arrange: simulate initial state by performing a Reset on a fresh model (HasExecuted false)
+        // Arrange
         var client = GetHttpClient();
         var model = BuildSimpleDfa("a", hasExecuted: false);
         var form = ToFormContent(model);
@@ -84,7 +84,7 @@ public class StartResetButtonVisibilityTests(IntegrationTestsFixture fixture) : 
         response.EnsureSuccessStatusCode();
         var html = await response.Content.ReadAsStringAsync();
 
-        // Assert: Start button rendered, Reset button not rendered
+        // Assert
         html.ShouldContain("title=\"Start\"");
         html.ShouldNotContain("title=\"Reset\"");
     }
@@ -97,7 +97,7 @@ public class StartResetButtonVisibilityTests(IntegrationTestsFixture fixture) : 
         var model = BuildSimpleDfa("a", hasExecuted: false);
         var form = ToFormContent(model);
 
-        // Act: StepForward marks HasExecuted true and view should switch buttons
+        // Act
         var response = await client.PostAsync("/AutomatonExecution/StepForward", form);
         response.EnsureSuccessStatusCode();
         var html = await response.Content.ReadAsStringAsync();
@@ -117,8 +117,8 @@ public class StartResetButtonVisibilityTests(IntegrationTestsFixture fixture) : 
         var execResponse = await client.PostAsync("/AutomatonExecution/StepForward", form);
         execResponse.EnsureSuccessStatusCode();
         _ = await execResponse.Content.ReadAsStringAsync();
-        var afterExecModel = model; // reuse
-        afterExecModel.HasExecuted = true; // ensure reset sees executed state
+        var afterExecModel = model;
+        afterExecModel.HasExecuted = true;
         var resetForm = ToFormContent(afterExecModel);
 
         // Act
@@ -143,7 +143,6 @@ public class StartResetButtonVisibilityTests(IntegrationTestsFixture fixture) : 
         var stepHtml = await stepResponse.Content.ReadAsStringAsync();
         stepHtml.ShouldContain("title=\"Reset\"");
 
-        // Build model with HasExecuted true for StepBackward
         model.HasExecuted = true;
         var backForm = ToFormContent(model);
 
@@ -152,7 +151,7 @@ public class StartResetButtonVisibilityTests(IntegrationTestsFixture fixture) : 
         backResponse.EnsureSuccessStatusCode();
         var html = await backResponse.Content.ReadAsStringAsync();
 
-        // Assert: still Reset visible, Start hidden
+        // Assert
         html.ShouldContain("title=\"Reset\"");
         html.ShouldNotContain("title=\"Start\"");
     }

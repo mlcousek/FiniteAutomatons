@@ -36,11 +36,8 @@ public class ResultDisplayTests(IntegrationTestsFixture fixture) : IntegrationTe
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
-        // Should show Result section with ACCEPTED
         html.ShouldContain("Result:");
         html.ShouldContain("ACCEPTED", Case.Insensitive);
-
-        // Should have result-accepted class
         var hasAcceptedBadge = Regex.IsMatch(html, @"result-badge.*result-accepted", RegexOptions.IgnoreCase | RegexOptions.Singleline);
         hasAcceptedBadge.ShouldBeTrue("Should display accepted badge");
     }
@@ -72,11 +69,9 @@ public class ResultDisplayTests(IntegrationTestsFixture fixture) : IntegrationTe
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
-        // Should show Result section with REJECTED
         html.ShouldContain("Result:");
         html.ShouldContain("REJECTED", Case.Insensitive);
 
-        // Should have result-rejected class
         var hasRejectedBadge = Regex.IsMatch(html, @"result-badge.*result-rejected", RegexOptions.IgnoreCase | RegexOptions.Singleline);
         hasRejectedBadge.ShouldBeTrue("Should display rejected badge");
     }
@@ -102,7 +97,7 @@ public class ResultDisplayTests(IntegrationTestsFixture fixture) : IntegrationTe
             Input = "ab"
         };
 
-        // Act - Only step once, not reading full input
+        // Act 
         var startResponse = await PostAutomatonAsync(client, "/AutomatonExecution/Start", model);
         var result = await DeserializeResponseAsync(startResponse);
 
@@ -115,7 +110,6 @@ public class ResultDisplayTests(IntegrationTestsFixture fixture) : IntegrationTe
         var parsedResult = await DeserializeResponseAsync(response);
         parsedResult.Position.ShouldBeLessThan(parsedResult.Input!.Length);
 
-        // Should NOT show Result badge yet (input not fully read)
         var hasResultBadge = Regex.IsMatch(html, @"<span[^>]*class=""[^""]*result-badge", RegexOptions.IgnoreCase);
         hasResultBadge.ShouldBeFalse("Should not display result badge until input is fully read");
     }
@@ -180,7 +174,6 @@ public class ResultDisplayTests(IntegrationTestsFixture fixture) : IntegrationTe
         // Assert
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
 
-        // Should show ACCEPTED badge (at least one path leads to accepting state)
         html.ShouldContain("Result:");
         html.ShouldContain("ACCEPTED", Case.Insensitive);
     }
@@ -194,13 +187,13 @@ public class ResultDisplayTests(IntegrationTestsFixture fixture) : IntegrationTe
         {
             Type = AutomatonType.DFA,
             States =
-     [
-   new() { Id = 1, IsStart = true, IsAccepting = false },
- new() { Id = 2, IsStart = false, IsAccepting = true }
-       ],
+            [
+                new() { Id = 1, IsStart = true, IsAccepting = false },
+                new() { Id = 2, IsStart = false, IsAccepting = true }
+            ],
             Transitions =
             [
-       new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' }
+                new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' }
             ],
             Input = "a"
         };
@@ -219,8 +212,6 @@ public class ResultDisplayTests(IntegrationTestsFixture fixture) : IntegrationTe
         var result = await DeserializeResponseAsync(response);
         result.Position.ShouldBe(0);
 
-        // Position is 0, input length is 1, so result badge should not show
-        // (Only shows when position >= input.length AND IsAccepted.HasValue)
         var hasResultBadge = Regex.IsMatch(html, @"result-badge", RegexOptions.IgnoreCase);
         hasResultBadge.ShouldBeFalse("Should not show result badge at start position");
     }
@@ -282,11 +273,9 @@ public class ResultDisplayTests(IntegrationTestsFixture fixture) : IntegrationTe
             formData.Add(new($"Transitions.Index", i.ToString()));
             formData.Add(new($"Transitions[{i}].FromStateId", model.Transitions[i].FromStateId.ToString()));
             formData.Add(new($"Transitions[{i}].ToStateId", model.Transitions[i].ToStateId.ToString()));
-            // Serialize '\0' as "\\0" for epsilon transitions, otherwise use ToString()
             formData.Add(new($"Transitions[{i}].Symbol", model.Transitions[i].Symbol == '\0' ? "\\0" : model.Transitions[i].Symbol.ToString()));
             if (model.Transitions[i].StackPop.HasValue)
             {
-                // Serialize '\0' as "\\0" for epsilon stack pop, otherwise use ToString()
                 var stackPopValue = model.Transitions[i].StackPop!.Value == '\0' ? "\\0" : model.Transitions[i].StackPop!.Value.ToString();
                 formData.Add(new($"Transitions[{i}].StackPop", stackPopValue));
             }
@@ -359,7 +348,6 @@ public class ResultDisplayTests(IntegrationTestsFixture fixture) : IntegrationTe
         var stateStartMatches = Regex.Matches(html, @"name\s*=\s*""States\[\d+\]\.IsStart""[^>]*value\s*=\s*""(true|false)""|value\s*=\s*""(true|false)""[^>]*name\s*=\s*""States\[\d+\]\.IsStart""", RegexOptions.IgnoreCase);
         var stateAcceptMatches = Regex.Matches(html, @"name\s*=\s*""States\[\d+\]\.IsAccepting""[^>]*value\s*=\s*""(true|false)""|value\s*=\s*""(true|false)""[^>]*name\s*=\s*""States\[\d+\]\.IsAccepting""", RegexOptions.IgnoreCase);
 
-        // Deduplicate by index (HTML contains multiple forms with same state indices)
         var processedIndices = new HashSet<int>();
         for (int i = 0; i < stateIdMatches.Count; i++)
         {
@@ -379,12 +367,10 @@ public class ResultDisplayTests(IntegrationTestsFixture fixture) : IntegrationTe
             });
         }
 
-        // Parse Transitions
         var transFromMatches = Regex.Matches(html, @"name\s*=\s*""Transitions\[(\d+)\]\.FromStateId""[^>]*value\s*=\s*""(\d+)""|value\s*=\s*""(\d+)""[^>]*name\s*=\s*""Transitions\[(\d+)\]\.FromStateId""", RegexOptions.IgnoreCase);
         var transToMatches = Regex.Matches(html, @"name\s*=\s*""Transitions\[\d+\]\.ToStateId""[^>]*value\s*=\s*""(\d+)""|value\s*=\s*""(\d+)""[^>]*name\s*=\s*""Transitions\[\d+\]\.ToStateId""", RegexOptions.IgnoreCase);
         var transSymbolMatches = Regex.Matches(html, @"name\s*=\s*""Transitions\[\d+\]\.Symbol""[^>]*value\s*=\s*""(.)""|value\s*=\s*""(.)""[^>]*name\s*=\s*""Transitions\[\d+\]\.Symbol""", RegexOptions.IgnoreCase);
 
-        // Deduplicate by index (HTML contains multiple forms with same transition indices)
         processedIndices.Clear();
         for (int i = 0; i < transFromMatches.Count && i < transToMatches.Count; i++)
         {
@@ -414,8 +400,6 @@ public class ResultDisplayTests(IntegrationTestsFixture fixture) : IntegrationTe
 
         return model;
     }
-
-    #region PDA Result Display Tests
 
     private static AutomatonViewModel BuildBalancedParenthesesPda(string input, PDAAcceptanceMode? acceptanceMode = null) => new()
     {
@@ -827,8 +811,6 @@ public class ResultDisplayTests(IntegrationTestsFixture fixture) : IntegrationTe
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         html.ShouldContain("REJECTED", Case.Insensitive);
 
-        // Since execution stops at position 2 (out of 4), the Result badge won't show.
-        // Instead, check for acceptance-status rejected in the "Is Accepted" section
         var hasRejectedStatus = Regex.IsMatch(html, @"acceptance-status.*rejected", RegexOptions.IgnoreCase | RegexOptions.Singleline);
         hasRejectedStatus.ShouldBeTrue("Should display rejected status");
     }
@@ -884,6 +866,4 @@ public class ResultDisplayTests(IntegrationTestsFixture fixture) : IntegrationTe
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         html.ShouldContain("REJECTED", Case.Insensitive);
     }
-
-    #endregion
 }

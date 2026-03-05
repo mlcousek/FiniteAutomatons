@@ -210,7 +210,6 @@ public class AutomatonExecutionDfaTests(IntegrationTestsFixture fixture) : Integ
         var starts = Regex.Matches(html, "States\\[(\\d+)\\]\\.IsStart\"[^>]*value=\"(true|false)\"");
         var accepts = Regex.Matches(html, "States\\[(\\d+)\\]\\.IsAccepting\"[^>]*value=\"(true|false)\"");
 
-        // Deduplicate by index (HTML contains multiple forms with same state indices)
         var processedIndices = new HashSet<int>();
         for (int i = 0; i < stateIds.Count; i++)
         {
@@ -226,7 +225,6 @@ public class AutomatonExecutionDfaTests(IntegrationTestsFixture fixture) : Integ
         var tos = Regex.Matches(html, "Transitions\\[(\\d+)\\]\\.ToStateId\"[^>]*value=\"(\\d+)\"");
         var syms = Regex.Matches(html, "Transitions\\[(\\d+)\\]\\.Symbol\"[^>]*value=\"(.)\"");
 
-        // Deduplicate by index (HTML contains multiple forms with same transition indices)
         processedIndices.Clear();
         for (int i = 0; i < froms.Count && i < tos.Count; i++)
         {

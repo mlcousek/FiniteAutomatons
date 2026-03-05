@@ -77,7 +77,6 @@ public class RegexToAutomatonEndToEndTests(IntegrationTestsFixture fixture) : In
             });
         }
 
-        // Post to ExecuteAll endpoint
         var form = ToFormContent(model);
         var executeResp = await client.PostAsync("/AutomatonExecution/ExecuteAll", form);
         var execBody = await executeResp.Content.ReadAsStringAsync();
@@ -102,14 +101,11 @@ public class RegexToAutomatonEndToEndTests(IntegrationTestsFixture fixture) : In
 
     private static JsonElement GetPropertyIgnoreCase(JsonElement parent, string name)
     {
-        // Try exact
         if (parent.TryGetProperty(name, out var e)) return e;
-        // try different casing
         foreach (var prop in parent.EnumerateObject())
         {
             if (string.Equals(prop.Name, name, StringComparison.OrdinalIgnoreCase)) return prop.Value;
         }
-        // helpful error
         throw new KeyNotFoundException($"Property '{name}' not found in JSON response. Available properties: {string.Join(",", parent.EnumerateObject().Select(p => p.Name))}");
     }
 

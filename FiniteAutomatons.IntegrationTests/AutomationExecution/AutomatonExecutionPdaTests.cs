@@ -9,7 +9,7 @@ namespace FiniteAutomatons.IntegrationTests.AutomationExecution;
 [Collection("Integration Tests")]
 public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : IntegrationTestsBase(fixture)
 {
-    #region Helper Methods
+    // Helper Methods
 
     private static AutomatonViewModel BuildBalancedParenthesesPda(string input, PDAAcceptanceMode? acceptanceMode = null) => new()
     {
@@ -46,13 +46,6 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
         IsCustomAutomaton = true,
         AcceptanceMode = acceptanceMode ?? PDAAcceptanceMode.FinalStateAndEmptyStack
     };
-
-    private static string SerializeStack(Stack<char> stack)
-    {
-        if (stack == null || stack.Count == 0) return string.Empty;
-        // Stack serialization expects JSON array format (top-first)
-        return System.Text.Json.JsonSerializer.Serialize(stack.ToArray());
-    }
 
     private static async Task<HttpResponseMessage> PostAsync(HttpClient client, string url, AutomatonViewModel model)
     {
@@ -98,11 +91,9 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
             list.Add(new("Transitions.Index", i.ToString()));
             list.Add(new($"Transitions[{i}].FromStateId", m.Transitions[i].FromStateId.ToString()));
             list.Add(new($"Transitions[{i}].ToStateId", m.Transitions[i].ToStateId.ToString()));
-            // Serialize '\0' as "\\0" for epsilon transitions, otherwise use ToString()
             list.Add(new($"Transitions[{i}].Symbol", m.Transitions[i].Symbol == '\0' ? "\\0" : m.Transitions[i].Symbol.ToString()));
             if (m.Transitions[i].StackPop.HasValue)
             {
-                // Serialize '\0' as "\\0" for epsilon stack pop, otherwise use ToString()
                 var stackPopValue = m.Transitions[i].StackPop!.Value == '\0' ? "\\0" : m.Transitions[i].StackPop!.Value.ToString();
                 list.Add(new($"Transitions[{i}].StackPop", stackPopValue));
             }
@@ -130,10 +121,6 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
         var m = Regex.Match(html, "name=\"IsAccepted\"[^>]*value=\"(true|false)\"", RegexOptions.IgnoreCase);
         return m.Success ? bool.Parse(m.Groups[1].Value) : null;
     }
-
-    #endregion
-
-    #region Basic Execution Tests - Balanced Parentheses
 
     [Fact]
     public async Task Start_BalancedParentheses_ShouldInitializeExecution()
@@ -237,10 +224,6 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
         inputMatch.Groups[1].Value.ShouldBe(string.Empty);
     }
 
-    #endregion
-
-    #region Basic Execution Tests - a^n b^n
-
     [Fact]
     public async Task Start_AnBn_ShouldInitializeExecution()
     {
@@ -297,10 +280,6 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
         html.ShouldContain("ACCEPTED", Case.Insensitive);
     }
 
-    #endregion
-
-    #region Acceptance Mode Tests - FinalStateOnly
-
     [Fact]
     public async Task ExecuteAll_FinalStateOnly_AcceptingStateWithNonEmptyStack_ShouldAccept()
     {
@@ -353,10 +332,6 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
         ExtractIsAccepted(html).ShouldBe(false);
         html.ShouldContain("REJECTED", Case.Insensitive);
     }
-
-    #endregion
-
-    #region Acceptance Mode Tests - EmptyStackOnly
 
     [Fact]
     public async Task ExecuteAll_EmptyStackOnly_EmptyStackInNonAcceptingState_ShouldAccept()
@@ -414,10 +389,6 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
         ExtractIsAccepted(html).ShouldBe(false);
         html.ShouldContain("REJECTED", Case.Insensitive);
     }
-
-    #endregion
-
-    #region Acceptance Mode Tests - FinalStateAndEmptyStack
 
     [Fact]
     public async Task ExecuteAll_FinalStateAndEmptyStack_BothConditionsMet_ShouldAccept()
@@ -487,10 +458,6 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
         ExtractIsAccepted(html).ShouldBe(false);
     }
 
-    #endregion
-
-    #region Stack Operations Tests
-
     [Fact]
     public async Task ExecuteAll_MultiCharacterPush_ShouldWorkCorrectly()
     {
@@ -547,10 +514,6 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
         ExtractIsAccepted(html).ShouldBe(false);
     }
 
-    #endregion
-
-    #region Epsilon Transition Tests
-
     [Fact]
     public async Task ExecuteAll_EpsilonToAcceptingState_ShouldAccept()
     {
@@ -606,10 +569,6 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
         var html = await response.Content.ReadAsStringAsync();
         ExtractIsAccepted(html).ShouldBe(true);
     }
-
-    #endregion
-
-    #region Edge Cases
 
     [Fact]
     public async Task ExecuteAll_EmptyInputAcceptingStartState_ShouldAccept()
@@ -685,6 +644,4 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
         var html = await response.Content.ReadAsStringAsync();
         ExtractIsAccepted(html).ShouldBe(true);
     }
-
-    #endregion
 }

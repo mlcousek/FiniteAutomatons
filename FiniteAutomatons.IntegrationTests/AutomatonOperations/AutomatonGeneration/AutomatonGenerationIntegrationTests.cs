@@ -18,7 +18,7 @@ public class AutomatonGenerationIntegrationTests(IntegrationTestsFixture fixture
 
         var formData = new List<KeyValuePair<string, string>>
         {
-            new("Type", "0"), // DFA enum value
+            new("Type", "0"),
             new("StateCount", "4"),
             new("TransitionCount", "6"),
             new("AlphabetSize", "2"),
@@ -26,13 +26,12 @@ public class AutomatonGenerationIntegrationTests(IntegrationTestsFixture fixture
             new("Seed", "12345")
         };
 
-        // Act - Submit the generation form (client follows redirects by default)
+        // Act
         var postResponse = await client.PostAsync("/AutomatonGeneration/GenerateRandomAutomaton", new FormUrlEncodedContent(formData));
 
-        // Assert - Should follow redirect and end up at Home/Index with 200 OK
+        // Assert 
         postResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await postResponse.Content.ReadAsStringAsync();
-        // Should have the automaton loaded
         html.ShouldContain("AUTOMATON");
         html.ShouldContain("States");
     }
@@ -45,7 +44,7 @@ public class AutomatonGenerationIntegrationTests(IntegrationTestsFixture fixture
 
         var formData = new List<KeyValuePair<string, string>>
         {
-            new("Type", "3"), // PDA enum value
+            new("Type", "3"),
             new("StateCount", "4"),
             new("TransitionCount", "8"),
             new("AlphabetSize", "3"),
@@ -56,7 +55,7 @@ public class AutomatonGenerationIntegrationTests(IntegrationTestsFixture fixture
         // Act
         var postResponse = await client.PostAsync("/AutomatonGeneration/GenerateRandomAutomaton", new FormUrlEncodedContent(formData));
 
-        // Assert - Should follow redirect and end up at Home/Index
+        // Assert 
         postResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await postResponse.Content.ReadAsStringAsync();
         html.ShouldContain("AUTOMATON");
@@ -160,7 +159,6 @@ public class AutomatonGenerationIntegrationTests(IntegrationTestsFixture fixture
         result.Alphabet.Count.ShouldBe(2);
         result.IsCustomAutomaton.ShouldBeTrue();
 
-        // PDA should have stack operations in transitions
         result.Transitions.ShouldNotBeEmpty();
     }
 
@@ -255,10 +253,6 @@ public class AutomatonGenerationIntegrationTests(IntegrationTestsFixture fixture
         result.AcceptanceMode.ShouldBeOneOf(Enum.GetValues<PDAAcceptanceMode>());
     }
 
-
-
-
-
     [Fact]
     public void AutomatonPresetService_GetAnBnPda_ShouldReturnWorkingPda()
     {
@@ -272,8 +266,6 @@ public class AutomatonGenerationIntegrationTests(IntegrationTestsFixture fixture
         result.Transitions.ShouldNotBeEmpty();
         result.AcceptanceMode.ShouldBeOneOf(Enum.GetValues<PDAAcceptanceMode>());
     }
-
-
 
     [Fact]
     public void AutomatonPresetService_GetPalindromePda_ShouldReturnWorkingPda()
@@ -289,8 +281,6 @@ public class AutomatonGenerationIntegrationTests(IntegrationTestsFixture fixture
         result.AcceptanceMode.ShouldBeOneOf(Enum.GetValues<PDAAcceptanceMode>());
     }
 
-
-
     [Fact]
     public void AutomatonPresetService_PdaPresetsHaveCorrectAcceptanceMode()
     {
@@ -299,7 +289,6 @@ public class AutomatonGenerationIntegrationTests(IntegrationTestsFixture fixture
 
 
         var balancedParens = service.GenerateBalancedParenthesesPda();
-        // AcceptanceMode is an enum (value type), it will always have a value
         balancedParens.AcceptanceMode.ShouldBeOneOf(Enum.GetValues<PDAAcceptanceMode>());
 
         var anbn = service.GenerateAnBnPda();

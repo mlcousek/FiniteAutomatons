@@ -534,6 +534,11 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
         if (!ValidateAutomatonForRejectingString(automaton, out var alphabet))
             return null;
 
+        if (automaton.Type == AutomatonType.PDA)
+        {
+            return GenerateRejectingStringForPda(automaton, alphabet!, maxLength);
+        }
+
         var result = SearchForRejectingString(automaton, alphabet!, maxLength);
         if (result != null)
             return result;
@@ -572,6 +577,112 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
         }
 
         return null;
+    }
+
+    private string? GenerateRejectingStringForPda(AutomatonViewModel automaton, List<char> alphabet, int maxLength)
+    {
+        logger.LogInformation("Generating rejecting string for PDA");
+
+        var pda = automatonBuilderService.CreatePDA(automaton);
+
+        var result = SearchPdaRejectingString(pda, alphabet, maxLength);
+        if (result != null)
+            return result;
+
+        return GenerateFallbackPdaRejectingString(pda, alphabet, maxLength);
+    }
+
+    private string? SearchPdaRejectingString(Core.Models.DoMain.FiniteAutomatons.PDA pda, List<char> alphabet, int maxLength)
+    {
+        var strategies = new List<Func<string>>
+        {
+            () => TryUnbalancedParenthesesPattern(alphabet, maxLength),
+            () => TryWrongOrderPattern(alphabet, maxLength),
+            () => TryExcessiveSymbolPattern(alphabet, maxLength),
+            () => TryMismatchedSymbolPattern(alphabet, maxLength)
+        };
+
+        foreach (var strategy in strategies)
+        {
+            var candidate = strategy();
+            if (TryRejectingCandidate(pda, candidate))
+                return candidate;
+        }
+
+        return null;
+    }
+
+    private static string TryUnbalancedParenthesesPattern(List<char> alphabet, int maxLength)
+    {
+        if (alphabet.Count < 2) return alphabet[0].ToString();
+        var length = Math.Min(5, maxLength);
+        return new string(alphabet[0], length);
+    }
+
+    private static string TryWrongOrderPattern(List<char> alphabet, int maxLength)
+    {
+        if (alphabet.Count < 2) return alphabet[0].ToString();
+        var length = Math.Min(4, maxLength / 2);
+        return new string(alphabet[1], length) + new string(alphabet[0], length);
+    }
+
+    private static string TryExcessiveSymbolPattern(List<char> alphabet, int maxLength)
+    {
+        if (alphabet.Count < 2) return new string(alphabet[0], maxLength);
+        var half = Math.Min(3, maxLength / 2);
+        return new string(alphabet[0], half) + new string(alphabet[1], half + 2);
+    }
+
+    private static string TryMismatchedSymbolPattern(List<char> alphabet, int maxLength)
+    {
+        if (alphabet.Count < 2) return alphabet[0].ToString();
+        var result = string.Empty;
+        var count = Math.Min(3, maxLength / alphabet.Count);
+        for (int i = 0; i < count; i++)
+        {
+            result += alphabet[i % alphabet.Count];
+        }
+        return result + alphabet[0];
+    }
+
+    private bool TryRejectingCandidate(Core.Models.DoMain.FiniteAutomatons.PDA pda, string candidate)
+    {
+        try
+        {
+            if (!pda.Execute(candidate))
+            {
+                if (logger.IsEnabled(LogLevel.Information))
+                {
+                    logger.LogInformation("Found rejecting PDA string: '{String}'", candidate);
+                }
+                return true;
+            }
+        }
+        catch (Exception ex)
+        {
+            if (logger.IsEnabled(LogLevel.Debug))
+            {
+                logger.LogDebug(ex, "PDA execution error for rejecting candidate '{Candidate}' - treating as rejecting", candidate);
+            }
+            return true;
+        }
+
+        return false;
+    }
+
+    private string? GenerateFallbackPdaRejectingString(Core.Models.DoMain.FiniteAutomatons.PDA pda, List<char> alphabet, int maxLength)
+    {
+        for (int len = 1; len <= Math.Min(maxLength, 10); len++)
+        {
+            foreach (var candidate in EnumerateStrings(alphabet, len))
+            {
+                if (TryRejectingCandidate(pda, candidate))
+                    return candidate;
+            }
+        }
+
+        logger.LogWarning("No rejecting PDA string found within length {MaxLength}", maxLength);
+        return alphabet[0].ToString();
     }
 
     private string? GenerateFallbackRejectingString(AutomatonViewModel automaton, List<char> alphabet, int maxLength)
