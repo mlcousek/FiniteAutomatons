@@ -9,7 +9,6 @@
     var analysis = ViewData["MinimizationAnalysis"] as FiniteAutomatons.Services.Interfaces.MinimizationAnalysis;
 }
 <div class="automaton-workspace">
-    <!-- Global messages (conversion / errors) -->
     @if (TempData["ErrorMessage"] is string err && !string.IsNullOrWhiteSpace(err))
     {
         <div class="alert alert-error minimization-alert" data-test="error-message">@err</div>
@@ -18,9 +17,7 @@
     {
         <div class="alert alert-info minimization-alert" data-test="conversion-message">@conv</div>
     }
-    <!-- Main Content Area -->
     <div class="workspace-grid">
-        <!-- Left Section - Create Automaton -->
         <div class="create-section">
             <div class="section-header">
                 <h2>AUTOMATON</h2>
@@ -30,8 +27,6 @@
             </div>
             <div class="create-content">
                 <style>
-                    /* Small styles for draggable panels */
-                    /* Place lock inline with header title */
                     .create-section > .section-header { display: flex; align-items: center; gap: 0.5rem; justify-content: center; white-space: nowrap; }
                     .create-section > .section-header h2 { margin: 0; }
                     .panel-lock-btn { background:transparent;border:0;color:var(--bs-body-color);cursor:pointer;font-size:0.95rem;padding:0 }
@@ -44,10 +39,8 @@
                 <div class="input-area" id="panelContainer">
                     @if (Model != null)
                     {
-                        @* Alphabet panel moved to partial *@
                         @await Html.PartialAsync("~/Views/Home/Partials/_Alphabet.cshtml", Model)
 
-                        <!-- Source Regex Section (if created from regex) -->
                         @if (!string.IsNullOrWhiteSpace(Model.SourceRegex))
                         {
                             <div class="automaton-detail-section" data-panel-id="source-regex">
@@ -58,16 +51,12 @@
                             </div>
                         }
 
-                        @* States panel moved to partial *@
                         @await Html.PartialAsync("~/Views/Home/Partials/_States.cshtml", Model)
 
-                        @* Transitions panel moved to partial *@
                         @await Html.PartialAsync("~/Views/Home/Partials/_Transitions.cshtml", Model)
 
-                        @* Minimization mapping moved to partial *@
                         @await Html.PartialAsync("~/Views/Home/Partials/_MinimizationReport.cshtml", Model)
 
-                        @* Execution state moved to partial *@
                         @await Html.PartialAsync("~/Views/Home/Partials/_ExecutionState.cshtml", Model)
                     }
                     else
@@ -78,13 +67,11 @@
             </div>
         </div>
 
-        <!-- Right Section - Graph Canvas -->
         <div class="graph-section">
             <div class="section-header">
                 <h2>GRAPH</h2>
             </div>
             <div class="graph-content">
-                <!-- Canvas controls -->
                 <div class="graph-controls">
                     <button id="zoomInBtn" title="Zoom In" type="button">
                         <i class="fas fa-search-plus"></i>
@@ -118,7 +105,6 @@
                     </button>
                     
                     @{ 
-                        // Helper to render the automaton fields into arbitrary forms
                         void RenderAutomatonHiddenFieldsForForm()
                         {
                             if (Model != null)
@@ -225,13 +211,11 @@
                         <i class="fas fa-redo"></i>
                     </button>
                 </div>
-                <!-- Canvas container (Cytoscape will render here) -->
                 <div id="automatonCanvasContainer"></div>
             </div>
         </div>
     </div>
 
-    <!-- Bottom Control Sections -->
     <form asp-controller="Automaton" asp-action="Index" method="post" id="automatonForm">
         @Html.AntiForgeryToken()
         @if (Model != null)
@@ -290,7 +274,6 @@
 
         <div class="control-sections">
             <div class="bottom-left-controls">
-                <!-- Input Section -->
                 <div class="control-section input-section">
                     <div class="section-header-custom">
                         <h2>INPUT</h2>
@@ -317,7 +300,6 @@
                 
                 @if (Model?.Type == AutomatonType.PDA)
                 {
-                <!-- Initial Stack Section (PDA only) -->
                 <div class="control-section input-section">
                     <div class="section-header-custom">
                         <h2>INITIAL STACK</h2>
@@ -367,13 +349,11 @@
             </div>
 
             <div class="bottom-right-controls">
-                <!-- Simulate Section -->
                 <div class="control-section simulate-section">
                     <div class="section-header-custom">
                         <h2>SIMULATE</h2>
                     </div>
                     <div class="control-content simulate-buttons">
-                        @* Start / Reset *@
                         @if (!hasExecuted)
                         {
                             <button type="submit" class="control-btn simulate-btn"
@@ -393,7 +373,6 @@
                             </button>
                         }
 
-                        @* BackToStart *@
                         @if (disableAllUntilStart || atStartPos)
                         {
                             <button type="submit" class="control-btn simulate-btn" formaction="@Url.Action("BackToStart", "AutomatonExecution")" formmethod="post" title="Back to start" data-sim-action="backToStart" disabled>
@@ -409,7 +388,6 @@
                             </button>
                         }
 
-                        @* StepBackward *@
                         @if (disableAllUntilStart || atStartPos)
                         {
                             <button type="submit" class="control-btn simulate-btn" formaction="@Url.Action("StepBackward", "AutomatonExecution")" formmethod="post" title="Step back" data-sim-action="stepBackward" disabled>
@@ -425,7 +403,6 @@
                             </button>
                         }
 
-                        @* StepForward *@
                         @if (disableAllUntilStart || atEndPos)
                         {
                             <button type="submit" class="control-btn simulate-btn" formaction="@Url.Action("StepForward", "AutomatonExecution")" formmethod="post" title="Read next" data-sim-action="stepForward" disabled>
@@ -441,7 +418,6 @@
                             </button>
                         }
 
-                        @* ExecuteAll *@
                         @if (disableAllUntilStart || atEndPos)
                         {
                             <button type="submit" class="control-btn simulate-btn" formaction="@Url.Action("ExecuteAll", "AutomatonExecution")" formmethod="post" title="Read all" data-sim-action="executeAll" disabled>
@@ -459,7 +435,6 @@
                     </div>
                 </div>
 
-                <!-- Automaton Type Section -->
                 <div class="control-section type-section">
                     <div class="section-header-custom">
                         <h2>AUTOMATON TYPE</h2>
@@ -479,7 +454,6 @@
                     </div>
                     <div class="control-content-right">
                             @{
-                                // Ensure this is evaluated as Razor code so the local variable is available to subsequent Razor logic.
                             var executionStarted = Model.HasExecuted || Model.Position > 0;
                             }
                             @if (analysis.IsMinimal)
@@ -520,18 +494,14 @@
             </div>
         </div>
     </form>
-    @* Input generation modal moved to partial *@
     @await Html.PartialAsync("~/Views/Home/Partials/_GenerateInputModal.cshtml", Model)
         </div>
-            @* Generate automaton modal moved to partial *@
             @await Html.PartialAsync("~/Views/Home/Partials/_GenerateModal.cshtml", Model)
         @if (User?.Identity?.IsAuthenticated ?? false)
         {
-                @* Save modal moved to partial *@
                 @await Html.PartialAsync("~/Views/Home/Partials/_SaveAutomatonModal.cshtml", Model)
         }
 
-@* New automaton modal moved to partial *@
 @await Html.PartialAsync("~/Views/Home/Partials/_NewAutomatonModal.cshtml", Model)
 
 @section Scripts {

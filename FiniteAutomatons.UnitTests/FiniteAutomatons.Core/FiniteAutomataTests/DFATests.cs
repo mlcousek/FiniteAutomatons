@@ -4,7 +4,7 @@ using Shouldly;
 
 namespace FiniteAutomatons.UnitTests.FiniteAutomatons.Core.FiniteAutomataTests;
 
-public class DFATests  //TODO implement this builder to other tests
+public class DFATests
 {
 
     [Fact]

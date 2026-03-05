@@ -31,7 +31,6 @@
                 <i class="fas fa-users-cog"></i> Manage Members
             </a>
         }
-        @* Export / Import group *@
         @if (group != null)
         {
             <a asp-controller="ImportExport" asp-action="ExportGroup" asp-route-groupId="@group.Id" class="btn btn-sm btn-outline-secondary ms-2">
@@ -61,7 +60,6 @@
             {
                 <div class="list-group-item">
                     <div class="d-flex justify-content-between align-items-start gap-3">
-                        @* Thumbnail *@
                         @if (!string.IsNullOrWhiteSpace(item.ThumbnailBase64))
                         {
                             <div class="flex-shrink-0" style="width:120px;">
@@ -100,12 +98,10 @@
                                 </a>
                             }
 
-                            @* Export options - available to all group members *@
                             <a asp-controller="ImportExport" asp-action="ExportShared" asp-route-id="@item.Id" asp-route-format="json" asp-route-mode="structure" class="btn btn-sm btn-outline-secondary mb-1 ms-1">
                                 <i class="fas fa-file-export"></i> Export
                             </a>
 
-                            @* Delete - allowed if owner or role >= Editor *@
                             @{ var canDelete = (userRole.HasValue && userRole.Value >= SharedGroupRole.Editor) || item.CreatedByUserId == currentUserId; }
                             @if (canDelete)
                             {
@@ -125,7 +121,6 @@
     }
 </div>
 
-<!-- Thumbnail Lightbox -->
 <div id="thumbLightbox" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;cursor:zoom-out;">
     <img id="thumbLightboxImg" src="" alt="" style="max-width:90vw;max-height:90vh;border:2px solid #000;border-radius:4px;background:#fff;box-shadow:0 8px 40px rgba(0,0,0,0.5);" />
 </div>

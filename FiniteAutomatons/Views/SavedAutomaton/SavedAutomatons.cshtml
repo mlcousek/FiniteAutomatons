@@ -22,7 +22,6 @@
         </div>
     }
 
-<!-- Create Group Modal (placed outside loop) -->
 <div class="modal fade" id="createGroupModal" tabindex="-1" aria-labelledby="createGroupModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
@@ -90,7 +89,6 @@
         </div>
     </div>
 
-    @* no error messages shown after create group *@
 
     @if (Model == null || Model.Count == 0)
     {
@@ -104,7 +102,6 @@
             {
                 <div class="list-group-item">
                     <div class="d-flex justify-content-between align-items-start gap-3">
-                        @* Thumbnail (if available) *@
                         @if (!string.IsNullOrWhiteSpace(item.ThumbnailBase64))
                         {
                             <div class="flex-shrink-0" style="width:120px;">
@@ -134,21 +131,17 @@
                         
                         <div class="text-end">
                             @{
-                                // Use SaveMode property for reliable button visibility
                                 var hasInput = item.SaveMode >= AutomatonSaveMode.WithInput;
                                 var hasState = item.SaveMode == AutomatonSaveMode.WithState;
                             }
 
-                            @* Always show Load (structure only) *@
                             <a asp-controller="SavedAutomaton" asp-action="Load" asp-route-id="@item.Id" asp-route-mode="structure" class="btn btn-sm btn-primary mb-1">Load</a>
                             
-                            @* Show "Load with Input" if input was saved *@
                             @if (hasInput)
                             {
                                 <a asp-controller="SavedAutomaton" asp-action="Load" asp-route-id="@item.Id" asp-route-mode="input" class="btn btn-sm btn-info mb-1">Load with Input</a>
                             }
                             
-                            @* Show "Load as State" if execution state was saved *@
                             @if (hasState)
                             {
                                 <a asp-controller="SavedAutomaton" asp-action="Load" asp-route-id="@item.Id" asp-route-mode="state" class="btn btn-sm btn-outline-primary mb-1">Load as State</a>
@@ -184,7 +177,6 @@
 
     }
 
-    <!-- Assign to Group Modal (single instance) -->
     <div class="modal fade" id="assignGroupModal" tabindex="-1" aria-labelledby="assignGroupModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -216,7 +208,6 @@
         </div>
     </div>
 
-    <!-- Export Modal (single instance) -->
     <div class="modal fade" id="exportModal" tabindex="-1" aria-labelledby="exportModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content">
@@ -270,7 +261,6 @@
         </div>
     </div>
 
-    <!-- Import Group Modal -->
     <div class="modal fade" id="importGroupModal" tabindex="-1" aria-labelledby="importGroupModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -303,7 +293,6 @@
         </div>
     </div>
 
-    <!-- Share Modal -->
     <div class="modal fade" id="shareModal" tabindex="-1" aria-labelledby="shareModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -359,13 +348,11 @@
 </div>
 
 
-<!-- Thumbnail Lightbox -->
 <div id="thumbLightbox" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center;cursor:zoom-out;">
     <img id="thumbLightboxImg" src="" alt="" style="max-width:90vw;max-height:90vh;border:2px solid #000;border-radius:4px;background:#fff;box-shadow:0 8px 40px rgba(0,0,0,0.5);" />
 </div>
 
 <script>
-    // Thumbnail lightbox
     (function(){
         var lightbox = document.getElementById('thumbLightbox');
         var lightboxImg = document.getElementById('thumbLightboxImg');
@@ -385,7 +372,6 @@
             }
         });
 
-        // Also close on Escape key
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape' && lightbox.style.display === 'flex') {
                 lightbox.style.display = 'none';
@@ -416,7 +402,6 @@
         });
     })();
 
-    // Handle export modal
     (function(){
         var exportModal = document.getElementById('exportModal');
         if (!exportModal) return;
@@ -431,7 +416,6 @@
         });
     })();
 
-    // Export function
     function exportSavedAutomaton(format, mode) {
         var automatonId = document.getElementById('exportAutomatonId').value;
         if (!automatonId) {
@@ -439,16 +423,13 @@
             return;
         }
         
-        // Close the modal
         var modal = bootstrap.Modal.getInstance(document.getElementById('exportModal'));
         if (modal) modal.hide();
         
-        // Redirect to export endpoint with the saved automaton ID, format, and mode
         var url = '@Url.Action("ExportSaved", "ImportExport")?id=' + automatonId + '&format=' + format + '&mode=' + mode;
         window.location.href = url;
     }
 
-    // Handle share modal
     (function(){
         var shareModal = document.getElementById('shareModal');
         if (!shareModal) return;

@@ -9,7 +9,7 @@ using Shouldly;
 
 namespace FiniteAutomatons.UnitTests.Controllers;
 
-public class AutomatonControllerAdvancedTests   //TODO refactore tests, introduce builders and edit mocks
+public class AutomatonControllerAdvancedTests
 {
     private readonly AutomatonCreationController controllerWithRealValidation;
     private readonly AutomatonCreationController controllerWithMocks;
