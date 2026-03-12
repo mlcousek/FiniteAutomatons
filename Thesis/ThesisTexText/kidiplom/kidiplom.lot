@@ -1,8 +1,19 @@
 \babel@toc {czech}{}\relax 
-\contentsline {table}{\numberline {1}{\ignorespaces Původní DFA před minimalizací}}{41}{table.1}%
-\contentsline {table}{\numberline {2}{\ignorespaces Minimální DFA (redukce z 5 na 3 stavy, úspora 40 procent)}}{42}{table.2}%
-\contentsline {table}{\numberline {3}{\ignorespaces Časové a prostorové složitosti implementovaných algoritmů. Symboly: $|Q|$ -- počet stavů, $|\Sigma |$ -- velikost abecedy, $|T|$ -- počet přechodů, $L$ -- maximální délka slova, $k$ -- počet pokusů, $|r|$ -- délka reg. výrazu, $n$, $m$ -- cílový počet stavů/přechodů.}}{50}{table.3}%
-\contentsline {table}{\numberline {4}{\ignorespaces Pokrytí zdrojového kódu automatizovanými testy}}{71}{table.4}%
+\contentsline {table}{\numberline {1}{\ignorespaces Původní DFA před minimalizací}}{50}{table.1}%
+\contentsline {table}{\numberline {2}{\ignorespaces Minimální DFA (redukce z 5 na 3 stavy, úspora 40 procent)}}{50}{table.2}%
+\contentsline {table}{\numberline {3}{\ignorespaces Časové a prostorové složitosti implementovaných algoritmů. Symboly: $|Q|$ -- počet stavů, $|\Sigma |$ -- velikost abecedy, $|T|$ -- počet přechodů, $L$ -- maximální délka slova, $k$ -- počet pokusů, $|r|$ -- délka reg. výrazu, $n$, $m$ -- cílový počet stavů/přechodů.}}{58}{table.3}%
+\contentsline {table}{\numberline {4}{\ignorespaces Pokrytí zdrojového kódu automatizovanými testy}}{77}{table.4}%
+\contentsline {table}{\numberline {5}{\ignorespaces Syntaxe regulárních výrazů}}{82}{table.5}%
+\contentsline {table}{\numberline {6}{\ignorespaces Klávesové zkratky}}{83}{table.6}%
+\contentsline {table}{\numberline {7}{\ignorespaces Testování PDA pro $a^n b^n$}}{86}{table.7}%
+\contentsline {table}{\numberline {8}{\ignorespaces Výkonnost algoritmu minimalizace DFA}}{87}{table.8}%
+\contentsline {table}{\numberline {9}{\ignorespaces Determinizace NFA -- průměrný vs. nejhorší případ}}{88}{table.9}%
+\contentsline {table}{\numberline {10}{\ignorespaces Thompsonova konstrukce -- vztah délky výrazu a výsledného automatu}}{88}{table.10}%
+\contentsline {table}{\numberline {11}{\ignorespaces Výkonnost frontendové vizualizace}}{89}{table.11}%
+\contentsline {table}{\numberline {12}{\ignorespaces Kvantitativní srovnání simulátorů automatů}}{90}{table.12}%
+\contentsline {table}{\numberline {13}{\ignorespaces Uživatelská spokojenost (1 = silně nesouhlasím, 5 = silně souhlasím)}}{92}{table.13}%
+\contentsline {table}{\numberline {14}{\ignorespaces Srovnání studijních výsledků}}{92}{table.14}%
+\contentsline {table}{\numberline {15}{\ignorespaces Matice priorit pro budoucí rozšíření}}{100}{table.15}%
 \babel@toc {czech}{}\relax 
 \babel@toc {czech}{}\relax 
 \babel@toc {english}{}\relax 
