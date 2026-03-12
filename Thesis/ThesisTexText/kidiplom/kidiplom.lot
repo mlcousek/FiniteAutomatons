@@ -1,8 +1,6 @@
 \babel@toc {czech}{}\relax 
-\contentsline {table}{\numberline {1}{\ignorespaces Původní DFA před minimalizací}}{41}{table.1}%
-\contentsline {table}{\numberline {2}{\ignorespaces Minimální DFA (redukce z 5 na 3 stavy, úspora 40 procent)}}{42}{table.2}%
-\contentsline {table}{\numberline {3}{\ignorespaces Časové a prostorové složitosti implementovaných algoritmů. Symboly: $|Q|$ -- počet stavů, $|\Sigma |$ -- velikost abecedy, $|T|$ -- počet přechodů, $L$ -- maximální délka slova, $k$ -- počet pokusů, $|r|$ -- délka reg. výrazu, $n$, $m$ -- cílový počet stavů/přechodů.}}{50}{table.3}%
-\contentsline {table}{\numberline {4}{\ignorespaces Pokrytí zdrojového kódu automatizovanými testy}}{71}{table.4}%
+\contentsline {table}{\numberline {1}{\ignorespaces Časové a prostorové složitosti implementovaných algoritmů. Symboly: $|Q|$ -- počet stavů, $|\Sigma |$ -- velikost abecedy, $|T|$ -- počet přechodů, $L$ -- maximální délka slova, $k$ -- počet pokusů, $|r|$ -- délka reg. výrazu, $n$, $m$ -- cílový počet stavů/přechodů.}}{46}{table.1}%
+\contentsline {table}{\numberline {2}{\ignorespaces Syntaxe regulárních výrazů}}{60}{table.2}%
 \babel@toc {czech}{}\relax 
 \babel@toc {czech}{}\relax 
 \babel@toc {english}{}\relax 
