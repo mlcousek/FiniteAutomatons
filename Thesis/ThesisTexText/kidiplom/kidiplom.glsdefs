@@ -1,14 +1,14 @@
-\glsdefs@newdocentry{UPOL}%
+\glsdefs@newdocentry{DKA}%
 {%
-name={UPOL},%
-sort={UPOL},%
+name={DKA},%
+sort={DKA},%
 type={acronym},%
-first={UPOL},%
-firstplural={UPOLs},%
-text={UPOL},%
-plural={UPOLs},%
-description={Univerzita Palack\'eho v~Olomouci},%
-descriptionplural={Univerzita Palack\'eho v~Olomouci},%
+first={DKA},%
+firstplural={DKAs},%
+text={DKA},%
+plural={DKAs},%
+description={Deterministický konečný automat},%
+descriptionplural={Deterministický konečný automat},%
 symbol={\relax },%
 symbolplural={\relax },%
 user1={},%
@@ -17,10 +17,122 @@ user3={},%
 user4={},%
 user5={},%
 user6={},%
-long={Univerzita Palack\'eho v~Olomouci},%
-longplural={Univerzita Palack\'eho v~Olomoucis},%
-short={UPOL},%
-shortplural={UPOLs},%
+long={Deterministický konečný automat},%
+longplural={Deterministický konečný automats},%
+short={DKA},%
+shortplural={DKAs},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{NKA}%
+{%
+name={NKA},%
+sort={NKA},%
+type={acronym},%
+first={NKA},%
+firstplural={NKAs},%
+text={NKA},%
+plural={NKAs},%
+description={Nedeterministický konečný automat},%
+descriptionplural={Nedeterministický konečný automat},%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={Nedeterministický konečný automat},%
+longplural={Nedeterministický konečný automats},%
+short={NKA},%
+shortplural={NKAs},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{eNKA}%
+{%
+name={$\varepsilon $-NKA},%
+sort={$\varepsilon $-NKA},%
+type={acronym},%
+first={$\varepsilon $-NKA},%
+firstplural={$\varepsilon $-NKAs},%
+text={$\varepsilon $-NKA},%
+plural={$\varepsilon $-NKAs},%
+description={Nedeterministický konečný automat s epsilon přechodama},%
+descriptionplural={Nedeterministický konečný automat s epsilon přechodama},%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={Nedeterministický konečný automat s epsilon přechodama},%
+longplural={Nedeterministický konečný automat s epsilon přechodamas},%
+short={$\varepsilon $-NKA},%
+shortplural={$\varepsilon $-NKAs},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{ZKA}%
+{%
+name={ZKA},%
+sort={ZKA},%
+type={acronym},%
+first={ZKA},%
+firstplural={ZKAs},%
+text={ZKA},%
+plural={ZKAs},%
+description={Zásobníkový konečný automat},%
+descriptionplural={Zásobníkový konečný automat},%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={Zásobníkový konečný automat},%
+longplural={Zásobníkový konečný automats},%
+short={ZKA},%
+shortplural={ZKAs},%
+counter={page},%
+parent={},%
+%
+}%
+
+\glsdefs@newdocentry{LIFO}%
+{%
+name={LIFO},%
+sort={LIFO},%
+type={acronym},%
+first={LIFO},%
+firstplural={LIFOs},%
+text={LIFO},%
+plural={LIFOs},%
+description={Last in first out},%
+descriptionplural={Last in first out},%
+symbol={\relax },%
+symbolplural={\relax },%
+user1={},%
+user2={},%
+user3={},%
+user4={},%
+user5={},%
+user6={},%
+long={Last in first out},%
+longplural={Last in first outs},%
+short={LIFO},%
+shortplural={LIFOs},%
 counter={page},%
 parent={},%
 %

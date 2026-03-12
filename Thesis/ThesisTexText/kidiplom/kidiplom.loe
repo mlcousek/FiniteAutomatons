@@ -1,0 +1,8 @@
+\contentsline {definition}{\ifthmt@listswap Definice~1\else \numberline {1}Definice\fi \thmtformatoptarg {Formální gramatika}}{11}{definition.1}%
+\contentsline {definition}{\ifthmt@listswap Definice~2\else \numberline {2}Definice\fi \thmtformatoptarg {Deterministický konečný automat}}{13}{definition.2}%
+\contentsline {definition}{\ifthmt@listswap Definice~3\else \numberline {3}Definice\fi \thmtformatoptarg {Nedeterministický konečný automat}}{13}{definition.3}%
+\contentsline {definition}{\ifthmt@listswap Definice~4\else \numberline {4}Definice\fi \thmtformatoptarg {Nedeterministický konečný automat s $\varepsilon $-přechody}}{14}{definition.4}%
+\contentsline {definition}{\ifthmt@listswap Definice~5\else \numberline {5}Definice\fi \thmtformatoptarg {Regulární výraz}}{15}{definition.5}%
+\contentsline {example}{\ifthmt@listswap P\v {r}\'{i}klad~6\else \numberline {6}P\v {r}\'{i}klad\fi \thmtformatoptarg {Minimalizace DKA}}{17}{example.6}%
+\contentsline {definition}{\ifthmt@listswap Definice~7\else \numberline {7}Definice\fi \thmtformatoptarg {Zásobníkový automat}}{19}{definition.7}%
+\contentsline {definition}{\ifthmt@listswap Definice~8\else \numberline {8}Definice\fi \thmtformatoptarg {Deterministický zásobníkový automat}}{20}{definition.8}%

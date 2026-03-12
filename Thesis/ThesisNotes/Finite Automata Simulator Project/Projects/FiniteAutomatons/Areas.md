@@ -1,1 +1,0 @@
-Here are all logic for [[User]] Login in Identity/pages and it is done by [[Razor Pages]].

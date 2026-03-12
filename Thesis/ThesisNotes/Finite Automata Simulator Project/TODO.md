@@ -1,4 +1,0 @@
-- [x] Edit epsilonNFAs - just an idea maybe it could inherit from NFA - maybe epsilon DFA and look at it
-- [ ] Set up right migrations and update database etc !! creating in [[ApplicationDbContext]] database creator 
-- [ ] Study the materials !!!
-- [ ] Now the execute method is to execute all proces but in future i will need to do step by step executing 
