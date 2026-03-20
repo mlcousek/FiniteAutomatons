@@ -68,6 +68,89 @@ export class TransitionEditor {
         this.automatonType = type;
     }
 
+    addTransitionDirect(sourceNode, targetNode, symbol, stackPop = null, stackPush = null) {
+        const fromId = sourceNode.data('stateId');
+        const toId   = targetNode.data('stateId');
+        const edgeId = this._generateEdgeId(fromId, toId);
+        const isSelfLoop = fromId === toId;
+        const isPDA = this.automatonType === 'PDA';
+
+        const rawSymbol = (symbol === '\0' || symbol === '\\0') ? 'ε' : String(symbol);
+        const rawPop    = (!stackPop  || stackPop  === '\0' || stackPop  === '\\0') ? 'ε' : String(stackPop);
+        const rawPush   = stackPush || 'ε';
+
+        const result = {
+            symbol:      symbol === '\0' ? '\0' : symbol,
+            rawSymbol,
+            stackPop:    stackPop  ?? '\0',
+            stackPush:   stackPush ?? '',
+            rawStackPop: rawPop
+        };
+
+        const label = this._buildEdgeLabel(result, isPDA);
+
+        const classes = [
+            isSelfLoop ? 'self-loop' : '',
+            isPDA ? 'pda' : ''
+        ].filter(Boolean).join(' ');
+
+        const existingEdge = this.cy.getElementById(edgeId);
+        const reverseEdge  = this.cy.getElementById(`edge-${toId}-${fromId}`);
+
+        if (existingEdge && existingEdge.length > 0) {
+            // Append symbol to existing edge label
+            const prevLabel = existingEdge.data('label');
+            const separator = isPDA ? '\n' : ', ';
+            const newLabel  = prevLabel + separator + label;
+            existingEdge.data('label', newLabel);
+
+            if (this.actionHistory) {
+                this.actionHistory.recordAction({
+                    do:   () => existingEdge.data('label', newLabel),
+                    undo: () => existingEdge.data('label', prevLabel)
+                });
+            }
+
+            const transition = this._buildTransitionData(fromId, toId, result, isPDA);
+            this.onTransitionAdded(transition);
+            return;
+        }
+
+        const edgeData = {
+            group: 'edges',
+            data: {
+                id: edgeId,
+                source: `state-${fromId}`,
+                target: `state-${toId}`,
+                label,
+                symbol:     result.symbol,
+                rawSymbol:  result.rawSymbol,
+                isPDA,
+                stackPop:   result.stackPop,
+                stackPush:  result.stackPush,
+                rawStackPop: result.rawStackPop
+            },
+            classes: classes + (reverseEdge?.length ? ' parallel' : '')
+        };
+
+        if (reverseEdge?.length) {
+            reverseEdge.addClass('parallel');
+        }
+
+        this.cy.add(edgeData);
+
+        if (this.actionHistory) {
+            this.actionHistory.recordAction({
+                do:   () => { if (!this.cy.getElementById(edgeId).length) this.cy.add(edgeData); },
+                undo: () => { this.cy.getElementById(edgeId).remove(); }
+            });
+        }
+
+        const transition = this._buildTransitionData(fromId, toId, result, isPDA);
+        this.onTransitionAdded(transition);
+        console.log(`Transition added (direct): ${sourceNode.data('label')} → ${targetNode.data('label')} [${label}]`);
+    }
+
     isTransitionInProgress() {
         return this._sourceNode !== null;
     }

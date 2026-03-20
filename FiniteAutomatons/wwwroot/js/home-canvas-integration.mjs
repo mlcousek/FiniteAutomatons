@@ -1,21 +1,16 @@
-﻿/**
- * home-canvas-integration.mjs
- * Integration module for connecting the new canvas with the existing Home page
- * Handles data parsing from form, state updates, and control button interactions
- * 
- * @module HomeCanvasIntegration
- */
-
-import { AutomatonCanvas } from './canvas/AutomatonCanvas.js';
+﻿import { AutomatonCanvas } from './canvas/AutomatonCanvas.js';
 import { CanvasFormSync } from './canvas/CanvasFormSync.js';
 import { PanelSync } from './canvas/PanelSync.js';
 import { CanvasLayoutCache } from './canvas/CanvasLayoutCache.js';
+import { AlgorithmPanelEditor } from './canvas/AlgorithmPanelEditor.js';
 
 let canvas = null;
 
 let formSync = null;
 
 let panelSync = null;
+
+let algorithmPanelEditor = null;
 
 export function initAutomatonCanvas() {
     try {
@@ -224,11 +219,17 @@ function highlightActiveStates() {
         if (editModeToggleBtn) {
             editModeToggleBtn.disabled = true;
         }
+        // Disable panel edit mode during simulation
+        const panelEditBtn = document.getElementById('panelEditModeToggleBtn');
+        if (panelEditBtn) panelEditBtn.disabled = true;
+        if (algorithmPanelEditor?.isEnabled) algorithmPanelEditor.disable();
     } else {
         const editModeToggleBtn = document.getElementById('editModeToggleBtn');
         if (editModeToggleBtn) {
             editModeToggleBtn.disabled = false;
         }
+        const panelEditBtn = document.getElementById('panelEditModeToggleBtn');
+        if (panelEditBtn) panelEditBtn.disabled = false;
     }
 }
 
@@ -394,12 +395,21 @@ function setupCanvasControls() {
         editModeToggleBtn.addEventListener('click', () => {
             if (!canvas) return;
 
+            // Mutual exclusion: disable panel edit when enabling canvas edit
+            if (!canvas.isEditModeActive() && algorithmPanelEditor?.isEnabled) {
+                algorithmPanelEditor.disable();
+                _updatePanelEditButton(false);
+            }
+
             const isActive = canvas.toggleEditMode();
             updateEditModeButton(isActive);
         });
 
         window.addEventListener('canvasEditModeChanged', (e) => {
             updateEditModeButton(e.detail.isEditMode);
+            // When canvas edit mode turns ON, disable panel edit button
+            const panelEditBtn = document.getElementById('panelEditModeToggleBtn');
+            if (panelEditBtn) panelEditBtn.disabled = e.detail.isEditMode;
         });
 
         function updateEditModeButton(isEditMode) {
@@ -474,16 +484,102 @@ function setupFormSync() {
     window.addEventListener('canvasTransitionModified', syncCanvas);
     window.addEventListener('canvasHistoryApplied', syncCanvas);
 
+    // — Algorithm Panel Editor setup —
+    algorithmPanelEditor = new AlgorithmPanelEditor({
+        statesContainerId:      'panel-states-list',
+        transitionsContainerId: 'panel-transitions-list',
+        automatonType,
+        isSimulating: () => (canvas?.activeStateIds ?? []).length > 0
+    });
+
     panelSync = new PanelSync({
-        getCanvasInstance: () => canvas
+        getCanvasInstance: () => canvas,
+        isPanelEditMode:   () => algorithmPanelEditor?.isEnabled ?? false
     });
     panelSync.init();
 
-    console.log('CanvasFormSync + PanelSync initialized');
+    // Wire panel edit button (in the AUTOMATON header)
+    _setupPanelEditButton(automatonType);
+
+    // Handle panel → canvas events
+    window.addEventListener('panelStateAdded', (e) => {
+        if (!canvas) return;
+        canvas.enableEditMode(); // ensure canvas is in edit mode so stateEditor is enabled
+        canvas.addStateFromPanel(e.detail.state ?? {});
+    });
+
+    window.addEventListener('panelStateDeleted', (e) => {
+        if (!canvas) return;
+        canvas.enableEditMode();
+        canvas.deleteStateFromPanel(e.detail.stateId);
+    });
+
+    window.addEventListener('panelStateModified', (e) => {
+        if (!canvas) return;
+        canvas.enableEditMode();
+        canvas.modifyStateFromPanel(e.detail.stateId, e.detail.prop, e.detail.value);
+    });
+
+    window.addEventListener('panelTransitionAdded', (e) => {
+        if (!canvas) return;
+        canvas.enableEditMode();
+        canvas.addTransitionFromPanel(e.detail.transition);
+    });
+
+    window.addEventListener('panelTransitionDeleted', (e) => {
+        if (!canvas) return;
+        canvas.enableEditMode();
+        canvas.deleteTransitionFromPanel(e.detail);
+    });
+
+    console.log('CanvasFormSync + PanelSync + AlgorithmPanelEditor initialized');
 }
 
 function observeFormChanges() {
     console.log('Canvas form sync active (Phase 2 interactive mode)');
+}
+
+function _setupPanelEditButton(automatonType) {
+    const btn = document.getElementById('panelEditModeToggleBtn');
+    if (!btn) return;
+
+    btn.addEventListener('click', () => {
+        if (!algorithmPanelEditor) return;
+
+        // Mutual exclusion: disable canvas edit when enabling panel edit
+        if (!algorithmPanelEditor.isEnabled && canvas?.isEditModeActive()) {
+            canvas.disableEditMode();
+            // Let canvasEditModeChanged handler update the canvas button UI
+        }
+
+        const nowEnabled = algorithmPanelEditor.toggle();
+        _updatePanelEditButton(nowEnabled);
+
+        if (panelSync) panelSync.setEditMode(nowEnabled);
+    });
+
+    _updatePanelEditButton(false);
+}
+
+function _updatePanelEditButton(isEnabled) {
+    const btn  = document.getElementById('panelEditModeToggleBtn');
+    const icon = document.getElementById('panelEditModeIcon');
+    const text = document.getElementById('panelEditModeText');
+    if (!btn) return;
+
+    document.body.classList.toggle('panel-editing', isEnabled);
+
+    if (isEnabled) {
+        if (icon) icon.className = 'fas fa-pen-alt';
+        if (text) text.textContent = 'Editing';
+        btn.classList.add('panel-edit-mode-active');
+        btn.title = 'Stop Editing Panel (Lock)';
+    } else {
+        if (icon) icon.className = 'fas fa-pen';
+        if (text) text.textContent = 'Edit';
+        btn.classList.remove('panel-edit-mode-active');
+        btn.title = 'Edit Automaton in Panel';
+    }
 }
 
 function reloadCanvas() {

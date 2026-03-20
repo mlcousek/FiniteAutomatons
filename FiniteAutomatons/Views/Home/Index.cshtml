@@ -1,4 +1,4 @@
-﻿@model AutomatonViewModel
+@model AutomatonViewModel
 @{
     ViewData["Title"] = "Home";
     var hasExecuted = Model != null && Model.HasExecuted;
@@ -24,6 +24,11 @@
                 <button id="panelsLockBtn" class="panel-lock-btn" title="Lock / unlock panels" aria-pressed="false" type="button">
                     <i class="fas fa-lock-open"></i>
                 </button>
+                <button id="panelEditModeToggleBtn" class="panel-lock-btn panel-edit-btn" title="Edit Automaton in Panel" type="button"
+                        @(Model == null ? "disabled" : "")>
+                    <i id="panelEditModeIcon" class="fas fa-pen"></i>
+                    <span id="panelEditModeText" style="font-size:0.75rem; margin-left:0.25rem;">Edit</span>
+                </button>
             </div>
             <div class="create-content">
                 <style>
@@ -31,9 +36,37 @@
                     .create-section > .section-header h2 { margin: 0; }
                     .panel-lock-btn { background:transparent;border:0;color:var(--bs-body-color);cursor:pointer;font-size:0.95rem;padding:0 }
                     .panel-lock-btn i { font-size:1.05rem; display:block }
+                    .panel-edit-btn { display:flex; align-items:center; gap:0.2rem; padding: 0.15rem 0.4rem; border-radius:4px; transition: background 0.15s; }
+                    .panel-edit-btn:hover:not(:disabled) { background: rgba(var(--bs-primary-rgb), 0.12); }
+                    .panel-edit-mode-active { background: rgba(var(--bs-warning-rgb), 0.18) !important; color: var(--bs-secondary-color, #6c757d) !important; }
                     .automaton-detail-section[draggable="true"] { cursor: move; }
                     .automaton-detail-section.dragging { opacity:0.6; }
                     .automaton-detail-section.locked { cursor: default; }
+                    /* Panel edit controls */
+                    .panel-add-btn { display:flex; align-items:center; gap:0.3rem; margin-top:0.5rem; padding:0.3rem 0.6rem;
+                        background: rgba(var(--bs-success-rgb),0.12); border:1px solid rgba(var(--bs-success-rgb),0.3);
+                        border-radius:4px; color: var(--bs-success); cursor:pointer; font-size:0.82rem; width:100%; justify-content:center;
+                        transition: background 0.15s; }
+                    .panel-add-btn:hover { background: rgba(var(--bs-success-rgb),0.25); }
+                    .panel-delete-btn { background:transparent; border:0; color: rgba(var(--bs-danger-rgb),0.7);
+                        cursor:pointer; padding:0 0.25rem; margin-left:auto; font-size:0.85rem; line-height:1;
+                        transition: color 0.15s; }
+                    .panel-delete-btn:hover { color: var(--bs-danger); }
+                    .state-item, .transition-item { display:flex; align-items:center; gap:0.3rem; }
+                    .panel-add-transition-form { margin-top:0.5rem; padding:0.5rem 0.3rem 0.3rem; border-top:1px solid rgba(var(--bs-border-color-rgb),0.4); }
+                    .panel-add-transition-fields { display:flex; flex-wrap:wrap; gap:0.3rem; align-items:center; }
+                    .panel-field { flex:1; min-width:55px; padding:0.2rem 0.4rem; font-size:0.78rem;
+                        border:1px solid var(--bs-border-color); border-radius:4px; background:var(--bs-body-bg); color:var(--bs-body-color); }
+                    .panel-validation-error { color: var(--bs-danger); font-size:0.78rem; margin-top:0.3rem; width:100%; }
+                    /* Badge states in edit mode */
+                    .panel-edit-mode-active ~ * .badge-clickable,
+                    .badge-clickable { cursor: pointer !important; transition: filter 0.15s, opacity 0.15s; }
+                    .badge-clickable:hover { filter: brightness(1.25); }
+                    /* Active = flag is set; muted = flag NOT set but visible in edit mode */
+                    .state-badge:not(.badge-active) { opacity: 0.32; }
+                    .badge-clickable.badge-active { opacity: 1; }
+                    /* When NOT in panel edit mode hide the muted inactive badges */
+                    body:not(.panel-editing) .state-badge:not(.badge-active) { display: none; }
                 </style>
 
                 <div class="input-area" id="panelContainer">

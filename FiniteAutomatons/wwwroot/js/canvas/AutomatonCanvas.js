@@ -552,6 +552,127 @@ export class AutomatonCanvas {
         window.dispatchEvent(event);
     }
 
+    // ─────────────────────────────────────────────
+    // Panel → Canvas bridge methods
+    // ─────────────────────────────────────────────
+
+    addStateFromPanel(options = {}) {
+        if (!this.stateEditor) return null;
+        // Choose a position that doesn't overlap existing nodes
+        const pos = this._findFreePosition();
+        const node = this.stateEditor.addState(pos.x, pos.y);
+        if (!node) return null;
+
+        // Apply optional flags
+        if (options.isStart) this.stateEditor.toggleStartState(node);
+        if (options.isAccepting) this.stateEditor.toggleAcceptingState(node);
+
+        return node;
+    }
+
+    deleteStateFromPanel(stateId) {
+        if (!this.stateEditor) return;
+        const nodeId = `state-${stateId}`;
+        this.stateEditor.deleteState(nodeId);
+    }
+
+    modifyStateFromPanel(stateId, prop, value) {
+        if (!this.stateEditor || !this.cy) return;
+        const node = this.cy.getElementById(`state-${stateId}`);
+        if (!node || !node.length) {
+            console.warn(`modifyStateFromPanel: state ${stateId} not found`);
+            return;
+        }
+        if (prop === 'isStart') {
+            const isCurrentlyStart = node.hasClass('start');
+            if (isCurrentlyStart !== value) {
+                this.stateEditor.toggleStartState(node);
+            }
+        } else if (prop === 'isAccepting') {
+            const isCurrentlyAccepting = node.hasClass('accepting');
+            if (isCurrentlyAccepting !== value) {
+                this.stateEditor.toggleAcceptingState(node);
+            }
+        }
+    }
+
+    addTransitionFromPanel(transition) {
+        if (!this.transitionEditor || !this.cy) return;
+
+        const sourceNode = this.cy.getElementById(`state-${transition.fromStateId}`);
+        const targetNode = this.cy.getElementById(`state-${transition.toStateId}`);
+
+        if (!sourceNode?.length || !targetNode?.length) {
+            console.warn('addTransitionFromPanel: source or target state not found', transition);
+            return;
+        }
+
+        const symbol   = transition.symbol ?? '\0';
+        const stackPop  = transition.stackPop  ?? null;
+        const stackPush = transition.stackPush ?? null;
+        const isPDA     = this.automatonType === 'PDA';
+
+        this.transitionEditor.addTransitionDirect(
+            sourceNode,
+            targetNode,
+            symbol,
+            isPDA ? stackPop : null,
+            isPDA ? stackPush : null
+        );
+    }
+
+    deleteTransitionFromPanel(transition) {
+        if (!this.stateEditor || !this.cy) return;
+
+        const edges = this.cy.edges().filter(e => {
+            if (e.source().data('stateId') !== transition.fromStateId) return false;
+            if (e.target().data('stateId') !== transition.toStateId)   return false;
+            // For multi-symbol edges we match by symbol in the label
+            const label = e.data('label') ?? '';
+            const sym   = transition.symbol ?? '';
+            const normalSym = (sym === '\0' || sym === 'ε' || sym === '\\0') ? 'ε' : sym;
+            if (label) {
+                const isPDA = this.automatonType === 'PDA';
+                if (isPDA) {
+                    return label.split('\n').some(l => l.trim().startsWith(normalSym + ','));
+                } else {
+                    return label.split(', ').some(s => s.trim() === normalSym);
+                }
+            }
+            const edgeSym = e.data('rawSymbol') ?? e.data('symbol') ?? '';
+            return String(edgeSym) === String(sym);
+        });
+
+        if (!edges.length) {
+            console.warn('deleteTransitionFromPanel: edge not found', transition);
+            return;
+        }
+
+        // Delete the first matching edge
+        this.stateEditor.deleteTransition(edges.first().id());
+    }
+
+    _findFreePosition() {
+        if (!this.cy || !this.cy.nodes().length) {
+            return { x: 150, y: 150 };
+        }
+        const existingPositions = this.cy.nodes().map(n => n.position());
+        const stepX = 120;
+        let candidate = { x: 150, y: 150 };
+        for (let attempt = 0; attempt < 30; attempt++) {
+            const overlaps = existingPositions.some(p =>
+                Math.abs(p.x - candidate.x) < 80 && Math.abs(p.y - candidate.y) < 80
+            );
+            if (!overlaps) return candidate;
+            candidate = { x: candidate.x + stepX, y: candidate.y };
+            // Wrap to next row after a while
+            if (attempt > 0 && attempt % 5 === 0) {
+                candidate = { x: 150, y: candidate.y + 120 };
+            }
+        }
+        return candidate;
+    }
+
     destroy() {
         if (this.interactionHandler) {
             this.interactionHandler.disable();

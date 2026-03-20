@@ -4,11 +4,13 @@
         this.syncUrl = options.syncUrl ?? '/api/canvas/sync';
         this.debounceMs = options.debounceMs ?? 250;
         this.getCanvasInstance = options.getCanvasInstance;
+        this.isPanelEditMode = options.isPanelEditMode ?? (() => false);
 
         this._debounceTimer = null;
         this._initialTimer = null;
         this._currentAbort = null;
         this._boundSync = this._debouncedSync.bind(this);
+        this._isEditMode = false;
 
         this._els = {};
     }
@@ -174,6 +176,10 @@
         return sym;
     }
 
+    setEditMode(editMode) {
+        this._isEditMode = !!editMode;
+    }
+
     _updatePanels(data) {
         this._updateAlphabet(data);
         this._updateStates(data);
@@ -181,6 +187,8 @@
         if (data?.minimizationAnalysis) {
             this._updateMinimizeButton(data.minimizationAnalysis);
         }
+        // Notify AlgorithmPanelEditor so it can re-inject edit controls.
+        window.dispatchEvent(new CustomEvent('panelSyncUpdated', { detail: { data } }));
     }
 
     _updateMinimizeButton(analysis) {
@@ -256,12 +264,15 @@
         }
 
         const items = data.states.map(s => {
-            const badges = [
-                s.isStart ? `<span class="state-badge badge-start">Start</span>` : '',
-                s.isAccepting ? `<span class="state-badge badge-accepting">Accepting</span>` : ''
-            ].join('');
-            return `<li class="state-item" data-state-id="${s.id}">
-                      <span class="state-id">q${s.id}</span>${badges}
+            const startActive    = s.isStart    ? ' badge-active' : '';
+            const acceptingActive = s.isAccepting ? ' badge-active' : '';
+            return `<li class="state-item"
+                        data-state-id="${s.id}"
+                        data-is-start="${s.isStart}"
+                        data-is-accepting="${s.isAccepting}">
+                      <span class="state-id">q${s.id}</span>
+                      <span class="state-badge badge-start${startActive}" title="Toggle Start">Start</span>
+                      <span class="state-badge badge-accepting${acceptingActive}" title="Toggle Accepting">Accepting</span>
                     </li>`;
         });
 
@@ -286,7 +297,14 @@
             } else {
                 text = `q${t.fromStateId} \u2014 ${t.symbolDisplay} \u2192 q${t.toStateId}`;
             }
-            return `<li class="transition-item" data-from="${t.fromStateId}" data-to="${t.toStateId}">
+            // Store raw symbol/stackPop for the editor's delete handler
+            const sym = t.symbolDisplay === 'ε' ? '\\0' : (t.symbolDisplay ?? '');
+            const spop = t.stackPopDisplay === 'ε' ? '\\0' : (t.stackPopDisplay ?? '');
+            return `<li class="transition-item"
+                        data-from="${t.fromStateId}"
+                        data-to="${t.toStateId}"
+                        data-symbol="${sym}"
+                        data-stack-pop="${spop}">
                       <span class="transition-text">${text}</span>
                     </li>`;
         });
