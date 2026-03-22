@@ -1,4 +1,4 @@
-﻿// Modal handling for Generate Automaton with modern animations
+// Modal handling for Generate Automaton with modern animations
 (function() {
     const modal = document.getElementById('generateModal');
     const btn = document.getElementById('generateModalBtn');
@@ -210,9 +210,16 @@
             optionSelect.appendChild(new Option('Random ε-NFA', 'random-enfa'));
             optionSelect.appendChild(new Option('ε-NFA (with ε transitions)', 'enfa-eps'));
             optionSelect.appendChild(new Option('ε-NFA nondeterministic', 'enfa-nondet'));
-        } else if (family === 'PDA') {
-            optionSelect.appendChild(new Option('Random PDA', 'random-pda'));
-            optionSelect.appendChild(new Option('PDA with push/pop pairs', 'pda-pushpop'));
+        } else if (family === 'DPDA') {
+            optionSelect.appendChild(new Option('Random DPDA', 'random-pda'));
+            optionSelect.appendChild(new Option('DPDA with push/pop pairs', 'pda-pushpop'));
+            optionSelect.appendChild(new Option('Balanced Parentheses', 'pda-balanced-parens'));
+            optionSelect.appendChild(new Option('a^n b^n', 'pda-anbn'));
+        } else if (family === 'NPDA') {
+            optionSelect.appendChild(new Option('Random NPDA', 'random-pda'));
+            optionSelect.appendChild(new Option('NPDA with push/pop pairs', 'pda-pushpop'));
+            optionSelect.appendChild(new Option('Even Palindrome', 'pda-palindrome'));
+            optionSelect.appendChild(new Option('CFG Demo', 'pda-cfg-demo'));
         }
     }
 

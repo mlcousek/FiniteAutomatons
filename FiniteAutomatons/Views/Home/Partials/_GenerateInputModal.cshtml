@@ -1,4 +1,4 @@
-﻿@model AutomatonViewModel
+@model AutomatonViewModel
 <div id="generateInputModal" class="modal modern-modal" style="display:none;">
     <div class="modal-content modern-modal-content">
         <div class="modal-header">
@@ -111,7 +111,7 @@
             </div>
 
             <!-- Special Test Cases -->
-            @if (Model?.Type == AutomatonType.NFA || Model?.Type == AutomatonType.EpsilonNFA)
+            @if (Model?.Type == AutomatonType.NFA || Model?.Type == AutomatonType.EpsilonNFA || Model?.Type == AutomatonType.NPDA)
             {
                 <div class="input-section-card card-special" data-section-id="special">
                     <div class="section-card-header">
@@ -119,7 +119,7 @@
                         <h4>Special Cases</h4>
                     </div>
                     <div class="button-grid-1">
-                        @if (Model?.Type == AutomatonType.NFA || Model?.Type == AutomatonType.EpsilonNFA)
+                        @if (Model?.Type == AutomatonType.NFA || Model?.Type == AutomatonType.EpsilonNFA || Model?.Type == AutomatonType.NPDA)
                         {
                                         <form asp-controller="InputGeneration" asp-action="GenerateNondeterministicCase" method="post">
                                             @await Html.PartialAsync("Partials/_AutomatonHiddenFields", Model)
@@ -129,7 +129,7 @@
                                 </button>
                             </form>
                         }
-                        @if (Model?.Type == AutomatonType.EpsilonNFA)
+                        @if (Model?.Type == AutomatonType.EpsilonNFA || Model?.Type == AutomatonType.DPDA || Model?.Type == AutomatonType.NPDA)
                         {
                                         <form asp-controller="InputGeneration" asp-action="GenerateEpsilonCase" method="post">
                                             @await Html.PartialAsync("Partials/_AutomatonHiddenFields", Model)

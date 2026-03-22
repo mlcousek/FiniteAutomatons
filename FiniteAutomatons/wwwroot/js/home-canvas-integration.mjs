@@ -1,4 +1,4 @@
-﻿import { AutomatonCanvas } from './canvas/AutomatonCanvas.js';
+import { AutomatonCanvas } from './canvas/AutomatonCanvas.js';
 import { CanvasFormSync } from './canvas/CanvasFormSync.js';
 import { PanelSync } from './canvas/PanelSync.js';
 import { CanvasLayoutCache } from './canvas/CanvasLayoutCache.js';
@@ -115,11 +115,13 @@ function parseAutomatonType(typeValue) {
         '0': 'DFA',
         '1': 'NFA',
         '2': 'EpsilonNFA',
-        '3': 'PDA',
+        '3': 'DPDA',
+        '4': 'NPDA',
         'DFA': 'DFA',
         'NFA': 'NFA',
         'EpsilonNFA': 'EpsilonNFA',
-        'PDA': 'PDA'
+        'DPDA': 'DPDA',
+        'NPDA': 'NPDA'
     };
 
     return typeMap[typeValue] || 'DFA';
@@ -164,7 +166,7 @@ function parseTransitions(automatonType) {
                 symbol: parseSymbol(symbolInput?.value)
             };
 
-            if (automatonType === 'PDA') {
+            if (automatonType === 'DPDA' || automatonType === 'NPDA') {
                 const stackPopInput = document.querySelector(`input[name="Transitions[${index}].StackPop"]`);
                 const stackPushInput = document.querySelector(`input[name="Transitions[${index}].StackPush"]`);
 

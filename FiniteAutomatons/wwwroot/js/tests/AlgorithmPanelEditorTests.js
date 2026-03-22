@@ -1,4 +1,4 @@
-﻿/**
+/**
  * AlgorithmPanelEditorTests.js
  */
 
@@ -260,8 +260,8 @@ test('_emitTransitionDeleted fires with correct fields', () => {
 
 test('setAutomatonType updates automatonType', () => {
     const editor = new AlgorithmPanelEditor({ automatonType: 'DFA' });
-    editor.setAutomatonType('PDA');
-    assertEqual(editor.automatonType, 'PDA');
+    editor.setAutomatonType('DPDA');
+    assertEqual(editor.automatonType, 'DPDA');
 });
 
 test('_suppressPanelSyncRender is true immediately after emit', () => {

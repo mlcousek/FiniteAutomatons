@@ -16,7 +16,7 @@ function initAutomatonTypeControls(){
     }
 
     function mapTypeToInt(t){
-        switch(t){case 'DFA': return 0; case 'NFA': return 1; case 'EpsilonNFA': return 2; case 'PDA': return 3; default: return 0;}
+        switch(t){case 'DFA': return 0; case 'NFA': return 1; case 'EpsilonNFA': return 2; case 'DPDA': return 3; case 'NPDA': return 4; default: return 0;}
     }
 
     function needServerConversion(from,to){
@@ -27,10 +27,11 @@ function initAutomatonTypeControls(){
     function applyDisableRules(active){
         buttons.forEach(b => b.removeAttribute('disabled'));
         switch(active){
-            case 'DFA': disable(['NFA','EpsilonNFA','PDA']); break;
-            case 'NFA': disable(['EpsilonNFA','PDA']); break;
-            case 'EpsilonNFA': disable(['PDA']); break;
-            case 'PDA': disable(['DFA','NFA','EpsilonNFA']); break;
+            case 'DFA': disable(['NFA','EpsilonNFA','DPDA','NPDA']); break;
+            case 'NFA': disable(['EpsilonNFA','DPDA','NPDA']); break;
+            case 'EpsilonNFA': disable(['DPDA','NPDA']); break;
+            case 'DPDA': disable(['DFA','NFA','EpsilonNFA','NPDA']); break;
+            case 'NPDA': disable(['DFA','NFA','EpsilonNFA','DPDA']); break;
         }
     }
     function disable(types){ types.forEach(t => { const b = buttons.find(x=>x.dataset.type===t); if (b) b.setAttribute('disabled','');}); }
