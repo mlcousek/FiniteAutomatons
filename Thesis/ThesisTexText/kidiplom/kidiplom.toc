@@ -103,39 +103,28 @@
 \contentsline {subsection}{\numberline {5.6}Role testů při práci s umělou inteligencí}{58}{subsection.5.6}%
 \contentsline {subsection}{\numberline {5.7}Závěr kapitoly}{58}{subsection.5.7}%
 \contentsline {section}{\numberline {6}Uživatelská dokumentace}{59}{section.6}%
-\contentsline {subsection}{\numberline {6.1}Rychlý start -- První kroky}{59}{subsection.6.1}%
-\contentsline {subsubsection}{\numberline {6.1.1}Vytvoření deterministického konečného automatu}{59}{subsubsection.6.1.1}%
-\contentsline {subsubsection}{\numberline {6.1.2}Testování vstupního slova}{60}{subsubsection.6.1.2}%
-\contentsline {subsubsection}{\numberline {6.1.3}Export a import automatů}{60}{subsubsection.6.1.3}%
-\contentsline {subsection}{\numberline {6.2}Pokročilé funkce}{60}{subsection.6.2}%
-\contentsline {subsubsection}{\numberline {6.2.1}Transformace automatů}{60}{subsubsection.6.2.1}%
-\contentsline {subsubsection}{\numberline {6.2.2}Regulární výrazy}{61}{subsubsection.6.2.2}%
-\contentsline {subsubsection}{\numberline {6.2.3}Generování testovacích slov}{62}{subsubsection.6.2.3}%
-\contentsline {subsubsection}{\numberline {6.2.4}Práce se zásobníkovými automaty (PDA)}{62}{subsubsection.6.2.4}%
-\contentsline {subsection}{\numberline {6.3}Referenční příručka}{63}{subsection.6.3}%
-\contentsline {subsubsection}{\numberline {6.3.1}Formát textového zápisu automatu}{63}{subsubsection.6.3.1}%
-\contentsline {section}{\numberline {7}Testování a experimenty}{63}{section.7}%
-\contentsline {section}{\numberline {8}Potenciální rozšíření a pokračování}{63}{section.8}%
-\contentsline {subsection}{\numberline {8.1}Funkční rozšíření}{63}{subsection.8.1}%
-\contentsline {subsubsection}{\numberline {8.1.1}Turingovy stroje}{63}{subsubsection.8.1.1}%
-\contentsline {subsubsection}{\numberline {8.1.2}Nedeterministické zásobníkové automaty}{63}{subsubsection.8.1.2}%
-\contentsline {subsubsection}{\numberline {8.1.3}Formální gramatiky}{64}{subsubsection.8.1.3}%
-\contentsline {subsubsection}{\numberline {8.1.4}Ekvivalence automatů}{64}{subsubsection.8.1.4}%
-\contentsline {subsection}{\numberline {8.2}Technická vylepšení}{64}{subsection.8.2}%
-\contentsline {subsubsection}{\numberline {8.2.1}Progressive Web App (PWA)}{64}{subsubsection.8.2.1}%
-\contentsline {subsubsection}{\numberline {8.2.2}Mobilní responsivita}{64}{subsubsection.8.2.2}%
-\contentsline {subsubsection}{\numberline {8.2.3}Collaborative Real-Time Editing}{65}{subsubsection.8.2.3}%
-\contentsline {subsection}{\numberline {8.3}AI asistence}{65}{subsection.8.3}%
-\contentsline {subsubsection}{\numberline {8.3.1}Návrh automatu pomocí přirozeného jazyka}{65}{subsubsection.8.3.1}%
-\contentsline {subsection}{\numberline {8.4}Výzkumný potenciál}{65}{subsection.8.4}%
-\contentsline {section}{Z\'av\v er}{66}{section*.4}%
+\contentsline {section}{\numberline {7}Testování a experimenty}{59}{section.7}%
+\contentsline {section}{\numberline {8}Potenciální rozšíření a pokračování}{59}{section.8}%
+\contentsline {subsection}{\numberline {8.1}Funkční rozšíření}{59}{subsection.8.1}%
+\contentsline {subsubsection}{\numberline {8.1.1}Turingovy stroje}{59}{subsubsection.8.1.1}%
+\contentsline {subsubsection}{\numberline {8.1.2}Nedeterministické zásobníkové automaty}{59}{subsubsection.8.1.2}%
+\contentsline {subsubsection}{\numberline {8.1.3}Formální gramatiky}{59}{subsubsection.8.1.3}%
+\contentsline {subsubsection}{\numberline {8.1.4}Ekvivalence automatů}{59}{subsubsection.8.1.4}%
+\contentsline {subsection}{\numberline {8.2}Technická vylepšení}{60}{subsection.8.2}%
+\contentsline {subsubsection}{\numberline {8.2.1}Progressive Web App (PWA)}{60}{subsubsection.8.2.1}%
+\contentsline {subsubsection}{\numberline {8.2.2}Mobilní responsivita}{60}{subsubsection.8.2.2}%
+\contentsline {subsubsection}{\numberline {8.2.3}Collaborative Real-Time Editing}{60}{subsubsection.8.2.3}%
+\contentsline {subsection}{\numberline {8.3}AI asistence}{60}{subsection.8.3}%
+\contentsline {subsubsection}{\numberline {8.3.1}Návrh automatu pomocí přirozeného jazyka}{60}{subsubsection.8.3.1}%
+\contentsline {subsection}{\numberline {8.4}Výzkumný potenciál}{60}{subsection.8.4}%
+\contentsline {section}{Z\'av\v er}{61}{section*.4}%
 \babel@toc {czech}{}\relax 
 \babel@toc {czech}{}\relax 
-\contentsline {section}{Conclusions}{67}{section*.6}%
+\contentsline {section}{Conclusions}{62}{section*.6}%
 \babel@toc {english}{}\relax 
 \babel@toc {czech}{}\relax 
-\contentsline {section}{\numberline {A}Návrh uživatelského rozhraní (HCI prezentace)}{68}{appendix.A}%
-\contentsline {section}{\numberline {B}Testování při vývoji softwaru (Integrační testy pomocí testcontainers)}{68}{appendix.B}%
-\contentsline {section}{\numberline {C}Obsah elektronických dat}{68}{appendix.C}%
-\contentsline {section}{Seznam zkratek}{70}{section*.8}%
-\contentsline {section}{Literatura}{71}{section*.9}%
+\contentsline {section}{\numberline {A}Návrh uživatelského rozhraní (HCI prezentace)}{63}{appendix.A}%
+\contentsline {section}{\numberline {B}Testování při vývoji softwaru (Integrační testy pomocí testcontainers)}{63}{appendix.B}%
+\contentsline {section}{\numberline {C}Obsah elektronických dat}{63}{appendix.C}%
+\contentsline {section}{Seznam zkratek}{65}{section*.8}%
+\contentsline {section}{Literatura}{66}{section*.9}%

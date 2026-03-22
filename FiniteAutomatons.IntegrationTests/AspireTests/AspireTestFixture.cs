@@ -1,6 +1,7 @@
 ﻿using Aspire.Hosting.Testing;
 using FiniteAutomatons.Data;
 using Microsoft.EntityFrameworkCore;
+using System.Net.Http;
 
 namespace FiniteAutomatons.IntegrationTests.AspireTests;
 
@@ -18,7 +19,21 @@ public class AspireTestFixture : IAsyncLifetime
         App = await appHost.BuildAsync();
         await App.StartAsync();
 
-        HttpClient = App.CreateHttpClient("finiteautomatons");
+        // Create an HttpClient that will accept the test host's development certificate used by Aspire in CI runners.
+        // We use a handler that accepts any server certificate only for test purposes.
+        // Acquire the configured base address from the app's client, then create a client with a handler
+        // that accepts the test certificate. Some Aspire hosts don't expose handler customization.
+        using (var tmp = App.CreateHttpClient("finiteautomatons"))
+        {
+            var baseAddress = tmp.BaseAddress;
+
+            var handler = new HttpClientHandler()
+            {
+                ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
+            };
+
+            HttpClient = new HttpClient(handler) { BaseAddress = baseAddress };
+        }
         ConnectionString = await App.GetConnectionStringAsync("finiteautomatonsdb");
 
         var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();

@@ -9,6 +9,7 @@ using FiniteAutomatons.Services.Observability;
 using FiniteAutomatons.Services.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using System.Diagnostics;
 using System.Text;
 
@@ -109,7 +110,11 @@ public partial class Program
     private static void ConfigureServices(WebApplicationBuilder builder, string connectionString, (string Traces, string Logs, string Audits) observabilityPaths)
     {
         // Database and Identity
-        builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(connectionString));
+        // Ignore PendingModelChangesWarning in environments where the model snapshot may differ (CI/runners).
+        // This prevents EF Core from throwing when Update/Migrate is executed in those environments.
+        builder.Services.AddDbContext<ApplicationDbContext>(options =>
+            options.UseSqlServer(connectionString)
+                   .ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning)));
         builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
         builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
