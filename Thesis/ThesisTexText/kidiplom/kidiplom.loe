@@ -4,4 +4,5 @@
 \contentsline {definition}{\ifthmt@listswap Definice~4\else \numberline {4}Definice\fi \thmtformatoptarg {Nedeterministický konečný automat s $\varepsilon $-přechody}}{14}{definition.4}%
 \contentsline {definition}{\ifthmt@listswap Definice~5\else \numberline {5}Definice\fi \thmtformatoptarg {Regulární výraz}}{14}{definition.5}%
 \contentsline {definition}{\ifthmt@listswap Definice~6\else \numberline {6}Definice\fi \thmtformatoptarg {Zásobníkový automat}}{17}{definition.6}%
-\contentsline {definition}{\ifthmt@listswap Definice~7\else \numberline {7}Definice\fi \thmtformatoptarg {Deterministický zásobníkový automat}}{18}{definition.7}%
+\contentsline {definition}{\ifthmt@listswap Definice~7\else \numberline {7}Definice\fi \thmtformatoptarg {Deterministický zásobníkový automat}}{19}{definition.7}%
+\contentsline {definition}{\ifthmt@listswap Definice~8\else \numberline {8}Definice\fi \thmtformatoptarg {Nedeterministický zásobníkový automat}}{19}{definition.8}%

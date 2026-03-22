@@ -1,6 +1,6 @@
 \babel@toc {czech}{}\relax 
-\contentsline {table}{\numberline {1}{\ignorespaces Časové a prostorové složitosti implementovaných algoritmů. Symboly: $|Q|$ -- počet stavů, $|\Sigma |$ -- velikost abecedy, $|T|$ -- počet přechodů, $L$ -- maximální délka slova, $k$ -- počet pokusů, $|r|$ -- délka reg. výrazu, $n$, $m$ -- cílový počet stavů/přechodů.}}{46}{table.1}%
-\contentsline {table}{\numberline {2}{\ignorespaces Syntaxe regulárních výrazů}}{60}{table.2}%
+\contentsline {table}{\numberline {1}{\ignorespaces Časové a prostorové složitosti implementovaných algoritmů. Symboly: $|Q|$ -- počet stavů, $|\Sigma |$ -- velikost abecedy, $|T|$ -- počet přechodů, $L$ -- maximální délka slova, $k$ -- počet pokusů, $|r|$ -- délka reg. výrazu, $n$, $m$ -- cílový počet stavů/přechodů.}}{48}{table.1}%
+\contentsline {table}{\numberline {2}{\ignorespaces Syntaxe regulárních výrazů}}{61}{table.2}%
 \babel@toc {czech}{}\relax 
 \babel@toc {czech}{}\relax 
 \babel@toc {english}{}\relax 

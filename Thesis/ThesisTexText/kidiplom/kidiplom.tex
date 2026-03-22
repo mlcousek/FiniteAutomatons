@@ -83,6 +83,7 @@
 \newacronym{eNKA}{$\varepsilon$-NKA}{Nedeterministický konečný automat s epsilon přechodama}
 \newacronym{ZKA}{ZKA}{Zásobníkový konečný automat}
 \newacronym{DZA}{DZA}{Deterministický zásobníkový automat}
+\newacronym{NZA}{NZA}{Nedeterministický zásobníkový automat}
 
 \newacronym{LIFO}{LIFO}{Last in first out}
 \newacronym{GUI}{GUI}{Grafické uživatelské rozhraní}
@@ -325,46 +326,154 @@ Pro zadaný deterministický konečný automat $M = (Q, \Sigma, \delta, q_0, F)$
 %\end{example}
 
 \subsection{Zásobníkové automaty a bezkontextové jazyky}
-Zatímco konečné automaty poskytují vysoce efektivní rámec pro zpracování regulárních výrazů, nedokážou si poradit se složitějšími syntaktickými rysy, jakými je například párování nebo počítání neomezeného počtu struktur (např. otevíracích a zavíracích závorek) \cite[kapitola~4]{jancar_ti}. Pro rozpoznávání bezkontextových jazyků (generovaných gramatikami typu 2) je k dispozici silnější abstraktní stroj: \gls{ZKA}. \begin{definition}[Zásobníkový automat]
-\gls{ZKA} $M$ je definován jako uspořádaná šestice $M = (Q, \Sigma, \Gamma, \delta, q_0, Z_0)$, kde:
+Zatímco konečné automaty poskytují vysoce efektivní rámec pro zpracování regulárních
+výrazů, nedokážou si poradit se složitějšími syntaktickými rysy, jakými je například
+párování nebo počítání neomezeného počtu struktur (např. otevíracích a zavíracích
+závorek) \cite[kapitola~4]{jancar_ti}. Pro rozpoznávání bezkontextových jazyků
+(generovaných gramatikami typu 2) je k dispozici silnější abstraktní stroj: \gls{ZKA}.
+
+\begin{definition}[Zásobníkový automat]
+\gls{ZKA} $M$ je definován jako uspořádaná šestice $M = (Q, \Sigma, \Gamma, \delta,
+q_0, Z_0)$, kde:
 \begin{itemize}
     \item $Q$ je konečná neprázdná množina stavů.
     \item $\Sigma$ je konečná neprázdná množina vstupních symbolů (vstupní abeceda).
-    \item $\Gamma$ je konečná neprázdná množina zásobníkových symbolů (zásobníková abeceda).
+    \item $\Gamma$ je konečná neprázdná množina zásobníkových symbolů
+          (zásobníková abeceda).
     \item $q_0 \in Q$ je počáteční stav.
     \item $Z_0 \in \Gamma$ je počáteční zásobníkový symbol.
-    \item $\delta$ je přechodová funkce, definovaná jako zobrazení množiny $Q \times (\Sigma \cup \{\varepsilon\}) \times \Gamma$ do množiny všech konečných podmnožin množiny $Q \times \Gamma^*$.
+    \item $\delta$ je přechodová funkce, definovaná jako zobrazení množiny
+          $Q \times (\Sigma \cup \{\varepsilon\}) \times \Gamma$ do množiny všech
+          konečných podmnožin množiny $Q \times \Gamma^*$.
 \end{itemize}
 \end{definition}
 
-
 \subsubsection{Princip fungování zásobníku}
-Zásobníkový automat si lze představit jako modifikaci konečného automatu obohacenou o dodatečnou potenciálně neomezenou datovou strukturu chovající se na principu \gls{LIFO} zásobník \cite{gfg_lifo}. Mechanika kroku tohoto stroje je závislá na aktuálním vnitřním stavu, načteném vstupním symbolu ze vstupní pásky (či $\varepsilon$-kroku) a symbolu umístěném na vrcholu zásobníku. 
+Zásobníkový automat si lze představit jako modifikaci konečného automatu obohacenou
+o dodatečnou potenciálně neomezenou datovou strukturu chovající se na principu
+\gls{LIFO} zásobník \cite{gfg_lifo}. Mechanika kroku tohoto stroje je závislá na
+aktuálním vnitřním stavu, načteném vstupním symbolu ze vstupní pásky (či
+$\varepsilon$-kroku) a symbolu umístěném na vrcholu zásobníku.
 
-Zásobníkový automat pro každý výpočetní krok z vrcholu zásobníku aktuální prvek odebere a nahradí ho předepsanou sekvencí (která může být i prázdná, čímž dojde k odmazání vrchního symbolu). Přijetí slova se odehrává buď přechodem do specifikovaného koncového stavu (po dočtení vstupního slova), nebo zcela běžně také tím, že se podaří kompletně vyprázdnit celý obsah zásobníku. Případně se používá kombinace obojího podle varianty \gls{ZKA}.
+Zásobníkový automat pro každý výpočetní krok z vrcholu zásobníku aktuální prvek
+odebere a nahradí ho předepsanou sekvencí (která může být i prázdná, čímž dojde
+k odmazání vrchního symbolu). Přijetí slova se odehrává v závislosti na zvoleném
+akceptačním módu, jehož varianty jsou popsány v následující podkapitole.
+
+\subsubsection{Akceptační módy zásobníkového automatu}
+Zásobníkový automat může přijímat vstupní slova třemi způsoby, které se vzájemně
+liší podmínkami kladenými na stav automatu a obsah zásobníku po dočtení celého
+vstupního řetězce \cite[kapitola~4]{jancar_ti}:
+
+\begin{enumerate}
+    \item \textbf{Přijetí koncovým stavem:} Slovo $w$ je přijato, pokud automat po
+    dočtení $w$ skončí v některém ze stavů $F \subseteq Q$ (množina přijímajících
+    stavů). Obsah zásobníku v tomto okamžiku není zohledněn.
+
+    \item \textbf{Přijetí prázdným zásobníkem:} Slovo $w$ je přijato, pokud automat
+    po dočtení $w$ kompletně vyprázdní zásobník (resp. zásobník obsahuje výhradně
+    iniciální symbol dna). Vnitřní stav automatu v tomto okamžiku není zohledněn.
+
+    \item \textbf{Přijetí kombinací:} Slovo $w$ je přijato, pokud jsou splněny
+    obě předchozí podmínky současně -- automat se nachází v přijímajícím stavu
+    a zásobník je prázdný.
+\end{enumerate}
+
+Pro \textbf{nedeterministické} zásobníkové automaty jsou všechny tři akceptační
+módy vzájemně ekvivalentní z hlediska vyjadřovací síly -- ke každému \gls{ZKA}
+přijímajícímu jedním způsobem lze sestrojit ekvivalentní \gls{ZKA} přijímající
+libovolným jiným způsobem, přičemž všechny tři třídy přesně popisují třídu
+bezkontextových jazyků (CFL) \cite[kapitola~4]{jancar_ti}.
 
 \subsubsection{Odlišná role nedeterminismu a deterministické automaty}
-Zásadním rozdílem vůči prostým konečným automatům je role nedeterminismu. Zatímco u konečných automatů nemá nedeterminismus vliv na vyjadřovací sílu (každý \gls{NKA} lze algoritmicky převést na ekvivalentní \gls{DKA} pomocí podmnožinové konstrukce), ve třídě zásobníkových automatů je situace fundamentálně odlišná \cite[kapitola~5.2]{jancar_ti}. 
+Zásadním rozdílem vůči prostým konečným automatům je role nedeterminismu. Zatímco
+u konečných automatů nemá nedeterminismus vliv na vyjadřovací sílu (každý \gls{NKA}
+lze algoritmicky převést na ekvivalentní \gls{DKA} pomocí podmnožinové konstrukce),
+ve třídě zásobníkových automatů je situace fundamentálně odlišná
+\cite[kapitola~5.2]{jancar_ti}.
 
-Zásobníkové automaty s nedeterminismem dokážou akceptovat striktně větší množinu jazyků (tzv. bezkontextové jazyky, CFL) než jejich deterministické protějšky, které akceptují pouze tzv. deterministické bezkontextové jazyky (DCFL). Příkladem jazyka, který nedeterministický \gls{ZKA} rozpozná, ale deterministický nikoliv, je jazyk palindromů (stroj nedokáže deterministicky uhodnout, kde se nachází střed slova a kdy má začít ze zásobníku znaky odebírat) \cite{cerna_fja}.
+Zásobníkové automaty s nedeterminismem dokážou akceptovat striktně větší množinu
+jazyků (bezkontextové jazyky, CFL) než jejich deterministické protějšky, které
+akceptují pouze tzv. deterministické bezkontextové jazyky (DCFL). Příkladem jazyka,
+který nedeterministický \gls{ZKA} rozpozná, ale deterministický nikoliv, je jazyk
+palindromů -- stroj nedokáže deterministicky uhodnout, kde se nachází střed slova
+a kdy má začít ze zásobníku znaky odebírat \cite{cerna_fja}.
 
-Abychom mohli o deterministickém chování hovořit formálně, zavedeme definici deterministického zásobníkového automatu (\gls{DZA}).
+Abychom mohli o deterministickém chování hovořit formálně, zavedeme definici
+deterministického zásobníkového automatu (\gls{DZA}).
 
 \begin{definition}[Deterministický zásobníkový automat]
-Deterministický zásobníkový automat (zkráceně \gls{DZA}) je zásobníkový automat $M = (Q, \Sigma, \Gamma, \delta, q_0, Z_0)$, pro jehož přechodovou funkci $\delta$ platí následující dvě omezující podmínky \cite[kapitola~5.2]{jancar_ti}:
+Deterministický zásobníkový automat (zkráceně \gls{DZA}) je zásobníkový automat
+$M = (Q, \Sigma, \Gamma, \delta, q_0, Z_0)$, pro jehož přechodovou funkci $\delta$
+platí následující dvě omezující podmínky \cite[kapitola~5.2]{jancar_ti}:
 \begin{enumerate}
-    \item Pro každé $q \in Q$, $a \in \Sigma \cup \{\varepsilon\}$ a $X \in \Gamma$ obsahuje množina $\delta(q, a, X)$ nejvýše jeden prvek. (Pro daný stav, vstupní symbol a vrchol zásobníku existuje nanejvýš jedna instrukce).
-    \item Pokud $\delta(q, \varepsilon, X) \neq \emptyset$, potom pro všechna $a \in \Sigma$ platí, že $\delta(q, a, X) = \emptyset$. (Pokud z dané konfigurace lze provést $\varepsilon$-krok, nesmí z ní existovat žádný krok čtoucí vstupní symbol).
+    \item Pro každé $q \in Q$, $a \in \Sigma \cup \{\varepsilon\}$ a $X \in \Gamma$
+    obsahuje množina $\delta(q, a, X)$ nejvýše jeden prvek. (Pro daný stav, vstupní
+    symbol a vrchol zásobníku existuje nanejvýš jedna instrukce.)
+    \item Pokud $\delta(q, \varepsilon, X) \neq \emptyset$, potom pro všechna
+    $a \in \Sigma$ platí, že $\delta(q, a, X) = \emptyset$. (Pokud z dané
+    konfigurace lze provést $\varepsilon$-krok, nesmí z ní existovat žádný krok
+    čtoucí vstupní symbol.)
 \end{enumerate}
 \end{definition}
 
-Tyto podmínky striktně zaručují, že v jakémkoliv okamžiku výpočtu (v jakékoliv konfiguraci automatu) existuje vždy nejvýše jedna aplikovatelná instrukce. Výpočet stroje je tedy lineární posloupností konfigurací a nedochází k žádnému větvení.
+Tyto podmínky striktně zaručují, že v jakémkoliv okamžiku výpočtu existuje vždy
+nejvýše jedna aplikovatelná instrukce. Výpočet stroje je tedy lineární posloupností
+konfigurací a nedochází k žádnému větvení.
 
-\paragraph{Omezení implementace na deterministické modely} \mbox{} \\
+Na rozdíl od nedeterministického případu nejsou pro \gls{DZA} všechny tři akceptační
+módy ekvivalentní. Lze ukázat, že třída DCFL přijímaná \gls{DZA} koncovým stavem
+je striktně větší než třída jazyků přijímaná \gls{DZA} prázdným zásobníkem
+\cite[kapitola~5.2]{jancar_ti}. Prakticky nejvýznamnější variantou je přijetí
+koncovým stavem, neboť deterministické zásobníkové automaty tvoří teoretický základ
+efektivních deterministických syntaktických analyzátorů používaných při kompilaci
+moderních programovacích jazyků.
 
-Z hlediska softwarové simulace a praktického využití v informatice představuje nedeterminismus u \gls{ZKA} značný výpočetní problém. Simulace všech možných větví výpočtu vyžaduje udržování a hluboké klonování potenciálně nekonečných datových struktur (zásobníků) pro každou aktivní větev, což vede k exponenciální časové i paměťové složitosti výpočtu. 
+\subsubsection{Nedeterministický zásobníkový automat}
 
-Vzhledem k primárně edukačnímu a vizualizačnímu účelu vytvářené aplikace byla proto implementace simulátoru omezena výhradně na deterministické modely (\gls{DZA}). Aplikace se tak soustředí na \gls{DZA}, které eliminují problém exponenciálního větvení a představují nejzásadnější využití těchto automatů v praxi – zejména při implementaci efektivních nástrojů pro deterministickou syntaktickou analýzu během kompilace moderních programovacích jazyků \cite[kapitola~5.2]{jancar_ti}.
+Nedeterministický zásobníkový automat (\gls{NZA}) zobecňuje \gls{DZA} tím, že
+uvolňuje podmínku jednoznačnosti přechodové funkce. Z jedné konfigurace tak může
+vést více různých kroků a automat zároveň \uv{sleduje} všechny možné větve
+výpočtu souběžně. Slovo je přijato, existuje-li \emph{alespoň jedna} větev
+vedoucí do přijímající konfigurace.
+
+\begin{definition}[Nedeterministický zásobníkový automat]
+Nedeterministický zásobníkový automat (\gls{NZA}) $M$ je uspořádaná šestice
+$M = (Q, \Sigma, \Gamma, \delta, q_0, Z_0)$ se stejnými složkami jako \gls{DZA},
+avšak přechodová funkce je zobecněna na
+\[
+\delta : Q \times (\Sigma \cup \{\varepsilon\}) \times \Gamma
+         \;\longrightarrow\; 2^{Q \times \Gamma^*},
+\]
+tj. každé trojici (stav, symbol nebo $\varepsilon$, vrchol zásobníku) přiřadí
+\emph{konečnou množinu} dvojic (nový stav, řetězec nahrazující vrchol zásobníku).
+Na přechodovou funkci nejsou kladena žádná omezení determinismu
+\cite[kapitola~4]{jancar_ti}.
+\end{definition}
+
+Definice konfigurace a relace $\vdash_M$ jsou totožné jako u \gls{DZA};
+pro \gls{NZA} je pouze jeden krok $(q, aw, X\gamma) \vdash_M (q', w, \beta\gamma)$
+podmíněn tím, že $(q', \beta) \in \delta(q, a, X)$.
+
+\paragraph{Akceptační módy \gls{NZA} a ekvivalence} \mbox{} \\
+\gls{NZA} podporuje tytéž tři akceptační módy jako \gls{DZA}. Na rozdíl od
+deterministického případu jsou však pro \gls{NZA} všechny tři módy vzájemně
+ekvivalentní z hlediska vyjadřovací síly -- ke každému \gls{NZA} přijímajícímu
+jedním způsobem lze algoritmicky sestrojit ekvivalentní \gls{NZA} přijímající
+libovolným jiným způsobem. Všechny tři třídy přesně popisují třídu
+bezkontextových jazyků (CFL) \cite[kapitola~4]{jancar_ti}.
+
+\paragraph{Výpočetní síla \gls{NZA} oproti \gls{DZA}} \mbox{} \\
+Zásobníkové automaty s nedeterminismem dokážou akceptovat striktně větší množinu
+jazyků než jejich deterministické protějšky:
+\[
+\mathrm{DCFL} \subsetneq \mathrm{CFL}.
+\]
+Příkladem jazyka, který \gls{NZA} rozpozná, ale \gls{DZA} nikoliv, je jazyk
+palindromů -- stroj nedokáže deterministicky uhodnout, kde se nachází střed slova
+a kdy má přejít ze zásobníkové fáze ukládání do fáze odebírání
+\cite{cerna_fja}. Tato skutečnost zásadně odlišuje zásobníkové automaty od
+konečných automatů, kde determinismus a nedeterminismus výpočetní sílu neovlivňují.
 
 \section{Návrh systému}
 Návrh uživatelského rozhraní a celkové architektury systému byl realizován s důrazem na pravidla přístupnosti a použitelnosti. Celý proces návrhu, od úvodní analýzy přes \gls{HTA} až po tvorbu prototypů, byl zpracován v rámci předmětu \gls{HCI}\footnote{Detailní informace a sylabus předmětu jsou dostupné v informačním systému \href{https://stag.upol.cz/portal/studium/prohlizeni.html?pc_pagenavigationalstate=AAAAAQAFMTM1MzkTAQAAAAEACHN0YXRlS2V5AAAAAQAULTkyMjMzNzIwMzY4NTQ3NzIyNzMAAAAA\#prohlizeniSearchResult}{STAG}.} pod vedením RNDr. Zdeňka Eichlera\footnote{Kompletní prezentace mapující tento proces je součástí příloh této práce.}.
