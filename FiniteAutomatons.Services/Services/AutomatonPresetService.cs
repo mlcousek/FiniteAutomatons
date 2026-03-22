@@ -47,14 +47,14 @@ public class AutomatonPresetService(
         {
             logger.LogInformation("Generating random PDA preset with {StateCount} states, AcceptanceMode: {Mode}", stateCount, acceptanceMode ?? PDAAcceptanceMode.FinalStateAndEmptyStack);
         }
-        return generatorService.GenerateRandomAutomaton(AutomatonType.PDA, stateCount, transitionCount, alphabetSize, acceptingRatio, seed, acceptanceMode, initialStack);
+        return generatorService.GenerateRandomAutomaton(AutomatonType.DPDA, stateCount, transitionCount, alphabetSize, acceptingRatio, seed, acceptanceMode, initialStack);
     }
 
     public AutomatonViewModel GeneratePdaWithPushPopPairs(int stateCount = 5, int transitionCount = 12, int alphabetSize = 3, double acceptingRatio = 0.3, int? seed = null, PDAAcceptanceMode? acceptanceMode = null, Stack<char>? initialStack = null)
     {
         LogPdaGenerationStart(stateCount, acceptanceMode);
 
-        var basePda = generatorService.GenerateRandomAutomaton(AutomatonType.PDA, stateCount, transitionCount,
+        var basePda = generatorService.GenerateRandomAutomaton(AutomatonType.DPDA, stateCount, transitionCount,
             alphabetSize, acceptingRatio, seed, acceptanceMode, initialStack);
 
         var random = seed.HasValue ? new Random(seed.Value) : new Random();
@@ -157,7 +157,7 @@ public class AutomatonPresetService(
         }
         var model = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
             Transitions = [],
             IsCustomAutomaton = true,
@@ -183,32 +183,26 @@ public class AutomatonPresetService(
     {
         if (logger.IsEnabled(LogLevel.Information))
         {
-            logger.LogInformation("Generating a^n b^n PDA with AcceptanceMode: {Mode}", acceptanceMode ?? PDAAcceptanceMode.EmptyStackOnly);
+            logger.LogInformation("Generating a^n b^n PDA with AcceptanceMode: {Mode}", acceptanceMode ?? PDAAcceptanceMode.FinalStateAndEmptyStack);
         }
         var model = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States =
             [
-                new() { Id = 1, IsStart = true, IsAccepting = false },  // q0
-                new() { Id = 2, IsStart = false, IsAccepting = false }, // q1
-                new() { Id = 3, IsStart = false, IsAccepting = true }   // q2
+                new() { Id = 1, IsStart = true, IsAccepting = true },  // q0: push a's
+                new() { Id = 2, IsStart = false, IsAccepting = true }  // q1: pop b's
             ],
             Transitions = [],
             IsCustomAutomaton = true,
-            AcceptanceMode = acceptanceMode ?? PDAAcceptanceMode.EmptyStackOnly,
+            AcceptanceMode = acceptanceMode ?? PDAAcceptanceMode.FinalStateAndEmptyStack,
             InitialStackSerialized = SerializeStack(initialStack)
         };
 
         model.Transitions.Add(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = null, StackPush = "X" });
-
         model.Transitions.Add(new Transition { FromStateId = 1, ToStateId = 2, Symbol = 'b', StackPop = 'X', StackPush = null });
-
         model.Transitions.Add(new Transition { FromStateId = 2, ToStateId = 2, Symbol = 'b', StackPop = 'X', StackPush = null });
 
-        model.Transitions.Add(new Transition { FromStateId = 2, ToStateId = 3, Symbol = '\0', StackPop = null, StackPush = null });
-
-        model.Transitions.Add(new Transition { FromStateId = 1, ToStateId = 3, Symbol = '\0', StackPop = null, StackPush = null });
         if (logger.IsEnabled(LogLevel.Information))
         {
             logger.LogInformation("Generated a^n b^n PDA with {States} states and {Transitions} transitions",
@@ -226,7 +220,7 @@ public class AutomatonPresetService(
         }
         var model = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.NPDA,
             States =
             [
                 new() { Id = 1, IsStart = true, IsAccepting = false },  // q0
@@ -263,7 +257,7 @@ public class AutomatonPresetService(
 
         var model = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.NPDA,
             States =
             [
                 new() { Id = 1, IsStart = true, IsAccepting = true }

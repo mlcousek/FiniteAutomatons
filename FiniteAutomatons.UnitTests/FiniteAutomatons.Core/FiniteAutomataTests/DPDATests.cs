@@ -1,4 +1,4 @@
-﻿using FiniteAutomatons.Core.Models.DoMain;
+using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.Serialization;
 using FiniteAutomatons.Core.Models.ViewModel;
@@ -8,11 +8,11 @@ using Shouldly;
 
 namespace FiniteAutomatons.UnitTests.FiniteAutomatons.Core.FiniteAutomataTests;
 
-public class PDATests
+public class DPDATests
 {
-    private static PDA SimpleParenthesesPDA()
+    private static DPDA SimpleParenthesesPDA()
     {
-        var pda = new PDA();
+        var pda = new DPDA();
         pda.AddState(new State { Id = 1, IsStart = true, IsAccepting = true });
         pda.AddTransition(new Transition { FromStateId = 1, ToStateId = 1, Symbol = '(', StackPop = '\0', StackPush = "(" });
         pda.AddTransition(new Transition { FromStateId = 1, ToStateId = 1, Symbol = ')', StackPop = '(', StackPush = null });
@@ -59,12 +59,15 @@ public class PDATests
     [Fact]
     public void PDA_PushAndPopSequence()
     {
-        var pda = new PDA();
+        var pda = new DPDA();
         pda.AddState(new State { Id = 1, IsStart = true, IsAccepting = false });
-        pda.AddState(new State { Id = 2, IsStart = false, IsAccepting = true });
+        pda.AddState(new State { Id = 2, IsStart = false, IsAccepting = false });
+        pda.AddState(new State { Id = 3, IsStart = false, IsAccepting = true });
+        
         pda.AddTransition(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '\0', StackPush = "X" });
-        pda.AddTransition(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'b', StackPop = 'X', StackPush = null });
-        pda.AddTransition(new Transition { FromStateId = 1, ToStateId = 2, Symbol = '\0', StackPop = '\0', StackPush = null });
+        pda.AddTransition(new Transition { FromStateId = 1, ToStateId = 2, Symbol = 'b', StackPop = 'X', StackPush = null });
+        pda.AddTransition(new Transition { FromStateId = 2, ToStateId = 2, Symbol = 'b', StackPop = 'X', StackPush = null });
+        pda.AddTransition(new Transition { FromStateId = 2, ToStateId = 3, Symbol = '\0', StackPop = '#', StackPush = "#" });
 
         pda.Execute("aabb").ShouldBeTrue();
         pda.Execute("aaabbb").ShouldBeTrue();
@@ -122,30 +125,34 @@ public class PDATests
     [Fact]
     public void EpsilonPopSequence_AllowsAcceptanceAfterPoppingStack()
     {
-        // Start non-accepting, consuming 'a' pushes X; after input consumed epsilon transitions pop all X and move to accepting
-        var pda = new PDA();
+        // Start non-accepting, consuming 'a' pushes X; 'b' transitions to state 2,
+        // then epsilon transitions pop all X and move to accepting state 3.
+        var pda = new DPDA();
         pda.AddState(new State { Id = 1, IsStart = true, IsAccepting = false });
-        pda.AddState(new State { Id = 2, IsStart = false, IsAccepting = true });
+        pda.AddState(new State { Id = 2, IsStart = false, IsAccepting = false });
+        pda.AddState(new State { Id = 3, IsStart = false, IsAccepting = true });
+        
         pda.AddTransition(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '\0', StackPush = "X" });
+        pda.AddTransition(new Transition { FromStateId = 1, ToStateId = 2, Symbol = 'b', StackPop = '\0', StackPush = null });
         // epsilon that pops X repeatedly
-        pda.AddTransition(new Transition { FromStateId = 1, ToStateId = 1, Symbol = '\0', StackPop = 'X', StackPush = null });
-        // pure epsilon to accepting (only reachable once stack reduced to bottom)
-        pda.AddTransition(new Transition { FromStateId = 1, ToStateId = 2, Symbol = '\0', StackPop = '\0', StackPush = null });
+        pda.AddTransition(new Transition { FromStateId = 2, ToStateId = 2, Symbol = '\0', StackPop = 'X', StackPush = null });
+        // pure epsilon to accepting upon reaching bottom
+        pda.AddTransition(new Transition { FromStateId = 2, ToStateId = 3, Symbol = '\0', StackPop = '#', StackPush = "#" });
 
         // Use StartExecution + ExecuteAll to examine final state and stack
-        var state = pda.StartExecution("aa");
+        var state = pda.StartExecution("aab");
         pda.ExecuteAll(state);
         (state.IsAccepted ?? false).ShouldBeTrue();
         var pdaState = state as PDAExecutionState;
         pdaState.ShouldNotBeNull();
-        // after acceptance only bottom marker should remain
+        // after acceptance stack only has bottom marker
         pdaState.Stack.Count.ShouldBe(1);
     }
 
     [Fact]
     public void Stepwise_StackBehavior_PushAndPopVerified()
     {
-        var pda = new PDA();
+        var pda = new DPDA();
         pda.AddState(new State { Id = 1, IsStart = true, IsAccepting = false });
         pda.AddTransition(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '\0', StackPush = "X" });
         pda.AddTransition(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'b', StackPop = 'X', StackPush = null });
@@ -167,7 +174,7 @@ public class PDATests
     [Fact]
     public void Reject_On_Pop_Mismatch_MidInput()
     {
-        var pda = new PDA();
+        var pda = new DPDA();
         pda.AddState(new State { Id = 1, IsStart = true, IsAccepting = true });
         // transition expects to pop 'X' when reading 'b' but stack only has bottom
         pda.AddTransition(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'b', StackPop = 'X', StackPush = null });
@@ -178,7 +185,7 @@ public class PDATests
     [Fact]
     public void StepBackward_RestoresStackAndPosition()
     {
-        var pda = new PDA();
+        var pda = new DPDA();
         pda.AddState(new State { Id = 1, IsStart = true, IsAccepting = false });
         pda.AddTransition(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '\0', StackPush = "X" });
 
@@ -201,7 +208,7 @@ public class PDATests
     public void EpsilonLoopSafety_NoInfiniteLoop()
     {
         // PDA with a pure-epsilon self-loop that doesn't change the stack should not infinite loop
-        var pda = new PDA();
+        var pda = new DPDA();
         pda.AddState(new State { Id = 1, IsStart = true, IsAccepting = false });
         // epsilon self-loop that does not pop/push
         pda.AddTransition(new Transition { FromStateId = 1, ToStateId = 1, Symbol = '\0', StackPop = '\0', StackPush = null });
@@ -219,7 +226,7 @@ public class PDATests
     public void PopFromBottom_LeadsToRejection()
     {
         // popping the bottom marker should result in non-acceptance (stack not only-bottom)
-        var pda = new PDA();
+        var pda = new DPDA();
         pda.AddState(new State { Id = 1, IsStart = true, IsAccepting = true });
         // transition consumes 'a' and pops bottom marker explicitly
         pda.AddTransition(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '#', StackPush = null });
@@ -231,7 +238,7 @@ public class PDATests
     [Fact]
     public void MultiCharacterPush_PushesInCorrectOrder()
     {
-        var pda = new PDA();
+        var pda = new DPDA();
         pda.AddState(new State { Id = 1, IsStart = true, IsAccepting = false });
         // push two characters 'X' then 'Y' as a single push string
         pda.AddTransition(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '\0', StackPush = "XY" });
@@ -252,13 +259,13 @@ public class PDATests
     public void Acceptance_ByStateAndStack_CombinedChecks()
     {
         // Accepting state but non-empty stack (beyond bottom) -> should be rejected
-        var pda = new PDA();
+        var pda = new DPDA();
         pda.AddState(new State { Id = 1, IsStart = true, IsAccepting = true });
         pda.AddTransition(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '\0', StackPush = "X" });
         pda.Execute("a").ShouldBeFalse();
 
         // Non-accepting state but pure epsilon path to accepting state without stack change -> should accept
-        var pda2 = new PDA();
+        var pda2 = new DPDA();
         pda2.AddState(new State { Id = 1, IsStart = true, IsAccepting = false });
         pda2.AddState(new State { Id = 2, IsStart = false, IsAccepting = true });
         pda2.AddTransition(new Transition { FromStateId = 1, ToStateId = 2, Symbol = '\0', StackPop = '\0', StackPush = null });
@@ -268,24 +275,25 @@ public class PDATests
     [Fact]
     public void InterleavedEpsilonAndConsumingMoves_WorkMidInput()
     {
-        var pda = new PDA();
+        var pda = new DPDA();
         pda.AddState(new State { Id = 1, IsStart = true, IsAccepting = false });
-        pda.AddState(new State { Id = 2, IsStart = false, IsAccepting = true });
+        pda.AddState(new State { Id = 2, IsStart = false, IsAccepting = false });
+        pda.AddState(new State { Id = 3, IsStart = false, IsAccepting = true });
         // consume 'a' push X
-        pda.AddTransition(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '\0', StackPush = "X" });
-        // epsilon move to state 2 (no stack change)
-        pda.AddTransition(new Transition { FromStateId = 1, ToStateId = 2, Symbol = '\0', StackPop = '\0', StackPush = null });
-        // in state 2 consume 'b' and pop X
-        pda.AddTransition(new Transition { FromStateId = 2, ToStateId = 2, Symbol = 'b', StackPop = 'X', StackPush = null });
+        pda.AddTransition(new Transition { FromStateId = 1, ToStateId = 2, Symbol = 'a', StackPop = '\0', StackPush = "X" });
+        // deterministic epsilon move to state 3
+        pda.AddTransition(new Transition { FromStateId = 2, ToStateId = 3, Symbol = '\0', StackPop = 'X', StackPush = "X" });
+        // in state 3 consume 'b' and pop X
+        pda.AddTransition(new Transition { FromStateId = 3, ToStateId = 3, Symbol = 'b', StackPop = 'X', StackPush = null });
 
-        // input "ab" should be accepted: 'a' pushes X, epsilon switches to state2, 'b' pops X and state2 is accepting
+        // input "ab" should be accepted: 'a' pushes X, epsilon switches to state3, 'b' pops X and state3 is accepting
         pda.Execute("ab").ShouldBeTrue();
     }
 
     [Fact]
     public void HistoryIntegrity_ManySteps_StepBackwardToStart()
     {
-        var pda = new PDA();
+        var pda = new DPDA();
         pda.AddState(new State { Id = 1, IsStart = true, IsAccepting = false });
         pda.AddTransition(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '\0', StackPush = "X" });
         pda.AddTransition(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'b', StackPop = 'X', StackPush = null });
@@ -319,7 +327,7 @@ public class PDATests
         var validator = new AutomatonValidationService(new NullLogger<AutomatonValidationService>());
         var model = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States = [new() { Id = 1, IsStart = true, IsAccepting = false }],
             Transitions =
             [
@@ -343,7 +351,7 @@ public class PDATests
 
         var deserialized = AutomatonJsonSerializer.Deserialize(json);
         deserialized.ShouldNotBeNull();
-        deserialized.ShouldBeOfType<PDA>();
+        deserialized.ShouldBeOfType<DPDA>();
 
         // preserve transitions and stack info
         deserialized.Transitions.Count.ShouldBe(pda.Transitions.Count);
@@ -358,12 +366,12 @@ public class PDATests
     [Fact]
     public void Serialize_And_Deserialize_PDA_MultiCharPush_PreservesOrder()
     {
-        var pda = new PDA();
+        var pda = new DPDA();
         pda.AddState(new State { Id = 1, IsStart = true, IsAccepting = false });
         pda.AddTransition(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '\0', StackPush = "XY" });
 
         var json = AutomatonJsonSerializer.Serialize(pda);
-        var deserialized = AutomatonJsonSerializer.Deserialize(json) as PDA;
+        var deserialized = AutomatonJsonSerializer.Deserialize(json) as DPDA;
         deserialized.ShouldNotBeNull();
 
         var state = deserialized.StartExecution("a");
@@ -381,7 +389,7 @@ public class PDATests
     [Fact]
     public void CustomInitialStack_IsUsedOnStartExecution()
     {
-        var pda = new PDA();
+        var pda = new DPDA();
         pda.AddState(new State { Id = 1, IsStart = true, IsAccepting = false });
         pda.AddTransition(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = 'X', StackPush = null });
 
@@ -405,7 +413,7 @@ public class PDATests
     [Fact]
     public void BackToStart_RestoresCustomInitialStack()
     {
-        var pda = new PDA();
+        var pda = new DPDA();
         pda.AddState(new State { Id = 1, IsStart = true, IsAccepting = false });
         pda.AddTransition(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = 'Y', StackPush = null });
 
@@ -432,7 +440,7 @@ public class PDATests
     [Fact]
     public void AcceptanceMode_FinalStateOnly_AcceptsWithNonEmptyStack()
     {
-        var pda = new PDA
+        var pda = new DPDA
         {
             AcceptanceMode = PDAAcceptanceMode.FinalStateOnly
         };
@@ -447,7 +455,7 @@ public class PDATests
     [Fact]
     public void AcceptanceMode_EmptyStackOnly_AcceptsWithNonAcceptingState()
     {
-        var pda = new PDA
+        var pda = new DPDA
         {
             AcceptanceMode = PDAAcceptanceMode.EmptyStackOnly
         };
@@ -464,7 +472,7 @@ public class PDATests
     [Fact]
     public void AcceptanceMode_FinalStateAndEmptyStack_RequiresBoth()
     {
-        var pda = new PDA
+        var pda = new DPDA
         {
             AcceptanceMode = PDAAcceptanceMode.FinalStateAndEmptyStack // default, but explicit
         };
@@ -481,7 +489,7 @@ public class PDATests
     [Fact]
     public void AcceptanceMode_FinalStateOnly_RejectsNonAcceptingState()
     {
-        var pda = new PDA
+        var pda = new DPDA
         {
             AcceptanceMode = PDAAcceptanceMode.FinalStateOnly
         };
@@ -494,7 +502,7 @@ public class PDATests
     [Fact]
     public void AcceptanceMode_EmptyStackOnly_RejectsNonEmptyStack()
     {
-        var pda = new PDA
+        var pda = new DPDA
         {
             AcceptanceMode = PDAAcceptanceMode.EmptyStackOnly
         };
@@ -505,3 +513,4 @@ public class PDATests
         pda.Execute("a").ShouldBeFalse();
     }
 }
+

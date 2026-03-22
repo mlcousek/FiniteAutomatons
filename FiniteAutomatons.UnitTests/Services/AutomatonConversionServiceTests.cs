@@ -1,4 +1,4 @@
-﻿using FiniteAutomatons.Core.Models.DoMain;
+using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Interfaces;
@@ -109,7 +109,7 @@ public class MockAutomatonBuilderService : IAutomatonBuilderService
             AutomatonType.EpsilonNFA => CreateEpsilonNFA(model),
             AutomatonType.NFA => CreateNFA(model),
             AutomatonType.DFA => CreateDFA(model),
-            AutomatonType.PDA => CreatePDA(model),
+            AutomatonType.DPDA => CreateDPDA(model),
             _ => CreateDFA(model)
         };
     }
@@ -144,13 +144,24 @@ public class MockAutomatonBuilderService : IAutomatonBuilderService
         return enfa;
     }
 
-    public PDA CreatePDA(AutomatonViewModel model)
+    public DPDA CreateDPDA(AutomatonViewModel model)
     {
-        var pda = new PDA();
+        var pda = new DPDA();
         foreach (var state in model.States ?? []) pda.States.Add(state);
         foreach (var transition in model.Transitions ?? []) pda.Transitions.Add(transition);
         var start = model.States?.FirstOrDefault(s => s.IsStart);
         if (start != null) pda.SetStartState(start.Id);
         return pda;
     }
+
+    public NPDA CreateNPDA(AutomatonViewModel model)
+    {
+        var npda = new NPDA();
+        foreach (var state in model.States ?? []) npda.States.Add(state);
+        foreach (var transition in model.Transitions ?? []) npda.Transitions.Add(transition);
+        var start = model.States?.FirstOrDefault(s => s.IsStart);
+        if (start != null) npda.SetStartState(start.Id);
+        return npda;
+    }
 }
+

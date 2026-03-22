@@ -507,7 +507,7 @@ public class AutomatonMinimizationServiceTests
         // Arrange
         var model = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States = [new State { Id = 1, IsStart = true, IsAccepting = true }],
             Transitions = []
         };

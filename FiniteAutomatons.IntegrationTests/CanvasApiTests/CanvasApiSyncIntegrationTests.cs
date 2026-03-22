@@ -237,7 +237,7 @@ public class CanvasApiSyncIntegrationTests(IntegrationTestsFixture fixture) : In
     [InlineData("DFA", false)]
     [InlineData("NFA", false)]
     [InlineData("EpsilonNFA", false)]
-    [InlineData("PDA", true)]
+    [InlineData("DPDA", true)]
     public async Task Sync_IsPDA_CorrectForType(string type, bool expectedIsPDA)
     {
         var req = Req(type, [new() { Id = 0, IsStart = true }], []);
@@ -248,7 +248,7 @@ public class CanvasApiSyncIntegrationTests(IntegrationTestsFixture fixture) : In
     [Fact]
     public async Task Sync_PDA_StackPopDisplayed()
     {
-        var req = Req("PDA",
+        var req = Req("DPDA",
             [new() { Id = 0, IsStart = true }, new() { Id = 1 }],
             [new() { FromStateId = 0, ToStateId = 1, Symbol = "a", StackPop = "Z", StackPush = "AZ" }]);
 
@@ -260,7 +260,7 @@ public class CanvasApiSyncIntegrationTests(IntegrationTestsFixture fixture) : In
     [Fact]
     public async Task Sync_PDA_EpsilonStackPopDisplayedAsEpsilonChar()
     {
-        var req = Req("PDA",
+        var req = Req("DPDA",
             [new() { Id = 0, IsStart = true }, new() { Id = 1 }],
             [new() { FromStateId = 0, ToStateId = 1, Symbol = "a", StackPop = "\\0", StackPush = "Z" }]);
 

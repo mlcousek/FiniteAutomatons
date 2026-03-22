@@ -1,4 +1,4 @@
-﻿using FiniteAutomatons.Core.Models.Database;
+using FiniteAutomatons.Core.Models.Database;
 using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.DTOs;
@@ -120,7 +120,8 @@ public class AutomatonFileService(ILogger<AutomatonFileService> logger) : IAutom
             EpsilonNFA => AutomatonType.EpsilonNFA,
             NFA => AutomatonType.NFA,
             DFA => AutomatonType.DFA,
-            PDA => AutomatonType.PDA,
+            DPDA => AutomatonType.DPDA,
+            NPDA => AutomatonType.NPDA,
             _ => AutomatonType.DFA
         };
     }
@@ -487,7 +488,8 @@ public class AutomatonFileService(ILogger<AutomatonFileService> logger) : IAutom
             AutomatonType.DFA => new DFA(),
             AutomatonType.NFA => new NFA(),
             AutomatonType.EpsilonNFA => new EpsilonNFA(),
-            AutomatonType.PDA => new PDA(),
+            AutomatonType.DPDA => new DPDA(),
+            AutomatonType.NPDA => new NPDA(),
             _ => new DFA()
         };
         foreach (var s in model.States)

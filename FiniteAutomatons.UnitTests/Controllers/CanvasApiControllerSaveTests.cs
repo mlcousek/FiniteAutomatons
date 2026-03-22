@@ -1,4 +1,4 @@
-﻿using FiniteAutomatons.Controllers;
+using FiniteAutomatons.Controllers;
 using FiniteAutomatons.Core.Models.Api;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.UnitTests.TestHelpers;
@@ -65,11 +65,11 @@ public class CanvasApiControllerSaveTests
     [InlineData("DFA", AutomatonType.DFA)]
     [InlineData("NFA", AutomatonType.NFA)]
     [InlineData("EpsilonNFA", AutomatonType.EpsilonNFA)]
-    [InlineData("PDA", AutomatonType.PDA)]
+    [InlineData("PDA", AutomatonType.DPDA)]
     [InlineData("EPSILONNFA", AutomatonType.EpsilonNFA)]
     [InlineData("dfa", AutomatonType.DFA)]
     [InlineData("nfa", AutomatonType.NFA)]
-    [InlineData("pda", AutomatonType.PDA)]
+    [InlineData("pda", AutomatonType.DPDA)]
     [InlineData("unknown", AutomatonType.DFA)]
     [InlineData("", AutomatonType.DFA)]
     public void Save_TypeMapping_Correct(string rawType, AutomatonType expected)
@@ -232,3 +232,4 @@ public class CanvasApiControllerSaveTests
         List<CanvasSyncState> states, List<CanvasSyncTransition> transitions)
         => new() { Type = type, States = states, Transitions = transitions };
 }
+

@@ -1,4 +1,4 @@
-﻿using FiniteAutomatons.Controllers;
+using FiniteAutomatons.Controllers;
 using FiniteAutomatons.Core.Models.Api;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.UnitTests.TestHelpers;
@@ -36,8 +36,8 @@ public class CanvasApiControllerBuildViewModelTests
     [InlineData("nfa", AutomatonType.NFA)]
     [InlineData("EpsilonNFA", AutomatonType.EpsilonNFA)]
     [InlineData("EPSILONNFA", AutomatonType.EpsilonNFA)]
-    [InlineData("PDA", AutomatonType.PDA)]
-    [InlineData("pda", AutomatonType.PDA)]
+    [InlineData("PDA", AutomatonType.DPDA)]
+    [InlineData("pda", AutomatonType.DPDA)]
     [InlineData("unknown_type", AutomatonType.DFA)]
     [InlineData("", AutomatonType.DFA)]
     public void BuildViewModel_TypeMapping_AllCases(string rawType, AutomatonType expected)
@@ -246,3 +246,4 @@ public class CanvasApiControllerBuildViewModelTests
             Transitions = [new() { FromStateId = 0, ToStateId = 1, Symbol = symbol }]
         };
 }
+

@@ -41,7 +41,7 @@ public class AutomatonPresetPdaTests
 
             var model = new AutomatonViewModel { Type = type, States = states, Transitions = transitions, IsCustomAutomaton = true };
 
-            if (type == AutomatonType.PDA)
+            if (type == AutomatonType.DPDA)
             {
                 model.AcceptanceMode = acceptanceMode ?? PDAAcceptanceMode.FinalStateAndEmptyStack;
                 model.InitialStackSerialized = initialStack != null ? System.Text.Json.JsonSerializer.Serialize(initialStack.ToList()) : string.Empty;
@@ -76,7 +76,7 @@ public class AutomatonPresetPdaTests
     {
         var result = service.GenerateRandomPda(4, 8, 3, 0.4, 42);
         result.ShouldNotBeNull();
-        result.Type.ShouldBe(AutomatonType.PDA);
+        result.Type.ShouldBe(AutomatonType.DPDA);
         result.States.ShouldNotBeEmpty();
     }
 
@@ -85,7 +85,7 @@ public class AutomatonPresetPdaTests
     {
         var result = service.GeneratePdaWithPushPopPairs(5, 12, 3, 0.3, 7);
         result.ShouldNotBeNull();
-        result.Type.ShouldBe(AutomatonType.PDA);
+        result.Type.ShouldBe(AutomatonType.DPDA);
         result.Transitions.ShouldNotBeNull();
         // At least one transition should have either StackPush or StackPop set
         result.Transitions.Any(t => !string.IsNullOrEmpty(t.StackPush) || t.StackPop.HasValue).ShouldBeTrue();
@@ -96,7 +96,7 @@ public class AutomatonPresetPdaTests
     {
         var result = service.GenerateBalancedParenthesesPda();
         result.ShouldNotBeNull();
-        result.Type.ShouldBe(AutomatonType.PDA);
+        result.Type.ShouldBe(AutomatonType.DPDA);
         // Expect a push on '(' and a pop on ')'
         result.Transitions.Any(t => t.Symbol == '(' && !string.IsNullOrEmpty(t.StackPush)).ShouldBeTrue();
         result.Transitions.Any(t => t.Symbol == ')' && t.StackPop.HasValue).ShouldBeTrue();

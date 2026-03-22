@@ -56,51 +56,51 @@ public sealed class MockCanvasMappingService : ICanvasMappingService
         var vm = BuildAutomatonViewModel(request);
         return new CanvasSyncResponse
         {
-            Alphabet = vm.Alphabet.Select(c => c == '\0' ? "ε" : c.ToString()).OrderBy(s => s).ToList(),
+            Alphabet = [.. vm.Alphabet.Select(c => c == '\0' ? "ε" : c.ToString()).OrderBy(s => s)],
             HasEpsilonTransitions = vm.Transitions.Any(t => t.Symbol == '\0'),
-            IsPDA = vm.Type == AutomatonType.PDA,
+            IsPDA = vm.Type == AutomatonType.DPDA,
             StateCount = vm.States.Count,
             TransitionCount = vm.Transitions.Count,
-            States = vm.States.OrderBy(s => s.Id).Select(s => new CanvasSyncStateDto
+            States = [.. vm.States.OrderBy(s => s.Id).Select(s => new CanvasSyncStateDto
             {
                 Id = s.Id,
                 IsStart = s.IsStart,
                 IsAccepting = s.IsAccepting
-            }).ToList(),
-            Transitions = vm.Transitions.OrderBy(t => t.FromStateId).Select(t => new CanvasSyncTransitionDto
+            })],
+            Transitions = [.. vm.Transitions.OrderBy(t => t.FromStateId).Select(t => new CanvasSyncTransitionDto
             {
                 FromStateId = t.FromStateId,
                 ToStateId = t.ToStateId,
                 SymbolDisplay = t.Symbol == '\0' ? "ε" : t.Symbol.ToString(),
                 StackPopDisplay = t.StackPop == '\0' ? "ε" : t.StackPop?.ToString(),
                 StackPush = t.StackPush,
-                IsPDA = vm.Type == AutomatonType.PDA
-            }).ToList()
+                IsPDA = vm.Type == AutomatonType.DPDA
+            })]
         };
     }
 
     public AutomatonViewModel BuildAutomatonViewModel(CanvasSyncRequest request)
     {
         var type = ParseType(request.Type);
-        var isPDA = type == AutomatonType.PDA;
+        var isPDA = type == AutomatonType.DPDA;
 
         return new AutomatonViewModel
         {
             Type = type,
-            States = request.States.Select(s => new Core.Models.DoMain.State
+            States = [.. request.States.Select(s => new Core.Models.DoMain.State
             {
                 Id = s.Id,
                 IsStart = s.IsStart,
                 IsAccepting = s.IsAccepting
-            }).ToList(),
-            Transitions = request.Transitions.Select(t => new Core.Models.DoMain.Transition
+            })],
+            Transitions = [.. request.Transitions.Select(t => new Core.Models.DoMain.Transition
             {
                 FromStateId = t.FromStateId,
                 ToStateId = t.ToStateId,
                 Symbol = ParseSymbol(t.Symbol),
                 StackPop = isPDA ? ParseStackPop(t.StackPop) : null,
                 StackPush = isPDA ? (string.IsNullOrEmpty(t.StackPush) ? "" : t.StackPush) : null
-            }).ToList(),
+            })],
             IsCustomAutomaton = true
         };
     }
@@ -112,7 +112,7 @@ public sealed class MockCanvasMappingService : ICanvasMappingService
             "DFA" => AutomatonType.DFA,
             "NFA" => AutomatonType.NFA,
             "EPSILONNFA" => AutomatonType.EpsilonNFA,
-            "PDA" => AutomatonType.PDA,
+            "PDA" => AutomatonType.DPDA,
             _ => AutomatonType.DFA
         };
     }

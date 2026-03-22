@@ -1,4 +1,4 @@
-﻿@model AutomatonViewModel
+@model AutomatonViewModel
 <!-- Hidden opener kept for compatibility with the canvas save button -->
 <button id="openSaveModalBtn" type="button" style="display:none;" aria-hidden="true"></button>
 <div id="saveAutomatonModal" class="modal modern-modal" style="display:none;">
@@ -79,7 +79,7 @@
                                     <input type="hidden" name="Transitions[@i].FromStateId" value="@Model.Transitions[i].FromStateId" />
                                     <input type="hidden" name="Transitions[@i].ToStateId" value="@Model.Transitions[i].ToStateId" />
                                     <input type="hidden" name="Transitions[@i].Symbol" value="@(Model.Transitions[i].Symbol == '\0' ? "\\0" : Model.Transitions[i].Symbol.ToString())" />
-                                    if (Model.Type == AutomatonType.PDA)
+                                    if (Model.Type == AutomatonType.DPDA || Model.Type == AutomatonType.NPDA)
                                     {
                                         if (Model.Transitions[i].StackPop.HasValue)
                                         {

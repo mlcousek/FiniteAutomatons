@@ -151,9 +151,9 @@ public class AutomatonGenerationIntegrationTests(IntegrationTestsFixture fixture
         using var scope = GetServiceScope();
         var service = scope.ServiceProvider.GetRequiredService<IAutomatonGeneratorService>();
 
-        var result = service.GenerateRandomAutomaton(AutomatonType.PDA, 4, 8, 2, 0.5, 444);
+        var result = service.GenerateRandomAutomaton(AutomatonType.DPDA, 4, 8, 2, 0.5, 444);
 
-        result.Type.ShouldBe(AutomatonType.PDA);
+        result.Type.ShouldBe(AutomatonType.DPDA);
         result.States.Count.ShouldBe(4);
         result.States.Count(s => s.IsStart).ShouldBe(1);
         result.Alphabet.Count.ShouldBe(2);
@@ -168,8 +168,8 @@ public class AutomatonGenerationIntegrationTests(IntegrationTestsFixture fixture
         using var scope = GetServiceScope();
         var service = scope.ServiceProvider.GetRequiredService<IAutomatonGeneratorService>();
 
-        var result1 = service.GenerateRandomAutomaton(AutomatonType.PDA, 5, 10, 3, 0.4, 555);
-        var result2 = service.GenerateRandomAutomaton(AutomatonType.PDA, 5, 10, 3, 0.4, 555);
+        var result1 = service.GenerateRandomAutomaton(AutomatonType.DPDA, 5, 10, 3, 0.4, 555);
+        var result2 = service.GenerateRandomAutomaton(AutomatonType.DPDA, 5, 10, 3, 0.4, 555);
 
         result1.States.Count.ShouldBe(result2.States.Count);
         result1.Transitions.Count.ShouldBe(result2.Transitions.Count);
@@ -207,7 +207,7 @@ public class AutomatonGenerationIntegrationTests(IntegrationTestsFixture fixture
         using var scope = GetServiceScope();
         var service = scope.ServiceProvider.GetRequiredService<IAutomatonGeneratorService>();
 
-        var result = service.GenerateRandomAutomaton(AutomatonType.PDA, 3, 5, 2, 0.5, 777, PDAAcceptanceMode.FinalStateOnly);
+        var result = service.GenerateRandomAutomaton(AutomatonType.DPDA, 3, 5, 2, 0.5, 777, PDAAcceptanceMode.FinalStateOnly);
 
         result.AcceptanceMode.ShouldBe(PDAAcceptanceMode.FinalStateOnly);
     }
@@ -218,7 +218,7 @@ public class AutomatonGenerationIntegrationTests(IntegrationTestsFixture fixture
         using var scope = GetServiceScope();
         var service = scope.ServiceProvider.GetRequiredService<IAutomatonGeneratorService>();
 
-        var result = service.GenerateRandomAutomaton(AutomatonType.PDA, 3, 5, 2, 0.5, 888, PDAAcceptanceMode.EmptyStackOnly);
+        var result = service.GenerateRandomAutomaton(AutomatonType.DPDA, 3, 5, 2, 0.5, 888, PDAAcceptanceMode.EmptyStackOnly);
 
         result.AcceptanceMode.ShouldBe(PDAAcceptanceMode.EmptyStackOnly);
     }
@@ -229,7 +229,7 @@ public class AutomatonGenerationIntegrationTests(IntegrationTestsFixture fixture
         using var scope = GetServiceScope();
         var service = scope.ServiceProvider.GetRequiredService<IAutomatonGeneratorService>();
 
-        var result = service.GenerateRandomAutomaton(AutomatonType.PDA, 3, 5, 2, 0.5, 999, PDAAcceptanceMode.FinalStateAndEmptyStack);
+        var result = service.GenerateRandomAutomaton(AutomatonType.DPDA, 3, 5, 2, 0.5, 999, PDAAcceptanceMode.FinalStateAndEmptyStack);
 
         result.AcceptanceMode.ShouldBe(PDAAcceptanceMode.FinalStateAndEmptyStack);
     }
@@ -246,7 +246,7 @@ public class AutomatonGenerationIntegrationTests(IntegrationTestsFixture fixture
 
         var result = service.GenerateBalancedParenthesesPda();
 
-        result.Type.ShouldBe(AutomatonType.PDA);
+        result.Type.ShouldBe(AutomatonType.DPDA);
         result.States.ShouldNotBeEmpty();
         result.Transitions.ShouldNotBeEmpty();
         result.States.Count(s => s.IsStart).ShouldBe(1);
@@ -261,7 +261,7 @@ public class AutomatonGenerationIntegrationTests(IntegrationTestsFixture fixture
 
         var result = service.GenerateAnBnPda();
 
-        result.Type.ShouldBe(AutomatonType.PDA);
+        result.Type.ShouldBe(AutomatonType.DPDA);
         result.States.ShouldNotBeEmpty();
         result.Transitions.ShouldNotBeEmpty();
         result.AcceptanceMode.ShouldBeOneOf(Enum.GetValues<PDAAcceptanceMode>());
@@ -275,7 +275,7 @@ public class AutomatonGenerationIntegrationTests(IntegrationTestsFixture fixture
 
         var result = service.GenerateEvenPalindromePda();
 
-        result.Type.ShouldBe(AutomatonType.PDA);
+        result.Type.ShouldBe(AutomatonType.NPDA);
         result.States.ShouldNotBeEmpty();
         result.Transitions.ShouldNotBeEmpty();
         result.AcceptanceMode.ShouldBeOneOf(Enum.GetValues<PDAAcceptanceMode>());
@@ -300,3 +300,4 @@ public class AutomatonGenerationIntegrationTests(IntegrationTestsFixture fixture
 
     #endregion
 }
+

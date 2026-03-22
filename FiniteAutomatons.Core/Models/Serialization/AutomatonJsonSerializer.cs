@@ -48,7 +48,8 @@ public static class AutomatonJsonSerializer
             EpsilonNFA => nameof(AutomatonType.EpsilonNFA),
             NFA => nameof(AutomatonType.NFA),
             DFA => nameof(AutomatonType.DFA),
-            PDA => nameof(AutomatonType.PDA),
+            NPDA => nameof(AutomatonType.NPDA),
+            DPDA => nameof(AutomatonType.DPDA),
             _ => automaton.GetType().Name
         };
 
@@ -112,7 +113,8 @@ public static class AutomatonJsonSerializer
             nameof(AutomatonType.EpsilonNFA) => BuildAutomaton<EpsilonNFA>(dto),
             nameof(AutomatonType.NFA) => BuildAutomaton<NFA>(dto),
             nameof(AutomatonType.DFA) => BuildAutomaton<DFA>(dto),
-            nameof(AutomatonType.PDA) => BuildAutomaton<PDA>(dto),
+            nameof(AutomatonType.DPDA) => BuildAutomaton<DPDA>(dto),
+            nameof(AutomatonType.NPDA) => BuildAutomaton<NPDA>(dto),
             _ => BuildAutomaton<DFA>(dto)
         };
         return true;
@@ -120,15 +122,16 @@ public static class AutomatonJsonSerializer
 
     private static string ResolveTypeHeuristically(AutomatonDto dto)
     {
+        bool nondeterministic = dto.Transitions
+            .GroupBy(t => (t.FromStateId, t.Symbol))
+            .Any(g => g.Count() > 1);
+
         bool hasStackInfo = dto.Transitions.Any(t => t.StackPop != null || t.StackPush != null);
-        if (hasStackInfo) return nameof(AutomatonType.PDA);
+        if (hasStackInfo) return nondeterministic ? nameof(AutomatonType.NPDA) : nameof(AutomatonType.DPDA);
 
         bool hasEpsilon = dto.Transitions.Any(t => EpsilonTokens.Contains(t.Symbol));
         if (hasEpsilon) return nameof(AutomatonType.EpsilonNFA);
 
-        bool nondeterministic = dto.Transitions
-            .GroupBy(t => (t.FromStateId, t.Symbol))
-            .Any(g => g.Count() > 1);
         return nondeterministic ? nameof(AutomatonType.NFA) : nameof(AutomatonType.DFA);
     }
 

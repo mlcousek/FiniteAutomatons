@@ -10,7 +10,8 @@ public enum AutomatonType
     DFA,
     NFA,
     EpsilonNFA,
-    PDA // Pushdown Automaton (deterministic for initial implementation)
+    DPDA,
+    NPDA
 }
 
 public class AutomatonViewModel
@@ -35,6 +36,7 @@ public class AutomatonViewModel
     public string StateHistorySerialized { get; set; } = string.Empty;
     public string? StackSerialized { get; set; }
     public string? InitialStackSerialized { get; set; }
+    public string? NPDAConfigurationsSerialized { get; set; }
     public PDAAcceptanceMode AcceptanceMode { get; set; } = PDAAcceptanceMode.FinalStateAndEmptyStack;
     public bool IsCustomAutomaton { get; set; } = false;
     public string? SourceRegex { get; set; }
@@ -47,13 +49,14 @@ public class AutomatonViewModel
     public string CurrentStatesDisplay => CurrentStates != null && CurrentStates.Count != 0
         ? string.Join(", ", CurrentStates.OrderBy(x => x))
         : CurrentStateId?.ToString() ?? "";
-    public bool SupportsEpsilonTransitions => Type == AutomatonType.EpsilonNFA || Type == AutomatonType.PDA;
+    public bool SupportsEpsilonTransitions => Type == AutomatonType.EpsilonNFA || Type == AutomatonType.DPDA || Type == AutomatonType.NPDA;
     public string TypeDisplayName => Type switch
     {
         AutomatonType.DFA => "Deterministic Finite Automaton (DFA)",
         AutomatonType.NFA => "Nondeterministic Finite Automaton (NFA)",
         AutomatonType.EpsilonNFA => "Epsilon Nondeterministic Finite Automaton (ε-NFA)",
-        AutomatonType.PDA => "Pushdown Automaton (PDA)",
+        AutomatonType.DPDA => "Deterministic Pushdown Automaton (DPDA)",
+        AutomatonType.NPDA => "Nondeterministic Pushdown Automaton (NPDA)",
         _ => Type.ToString()
     };
 }

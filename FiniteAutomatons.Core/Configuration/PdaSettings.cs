@@ -1,10 +1,12 @@
 ﻿namespace FiniteAutomatons.Core.Configuration;
 
-public static class PdaExecutionSettings
+public static class PdaSettings
 {
     public static int MaxBfsExpansion { get; set; } = 10_000;
 
     public static int MaxEpsilonIterations { get; set; } = 1_000;
 
     public static int MaxStackGrowthTolerance { get; set; } = 1_100;
+
+    public static int MaxNpdaConfigurations { get; set; } = 10_000;
 }

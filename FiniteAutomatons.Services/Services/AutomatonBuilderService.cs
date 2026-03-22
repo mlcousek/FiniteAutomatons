@@ -31,7 +31,8 @@ public class AutomatonBuilderService(ILogger<AutomatonBuilderService> logger) : 
             AutomatonType.DFA => CreateDFA(model),
             AutomatonType.NFA => CreateNFA(model),
             AutomatonType.EpsilonNFA => CreateEpsilonNFA(model),
-            AutomatonType.PDA => CreatePDA(model),
+            AutomatonType.DPDA => CreateDPDA(model),
+            AutomatonType.NPDA => CreateNPDA(model),
             _ => throw new ArgumentException($"Unsupported automaton type: {model.Type}")
         };
     }
@@ -123,35 +124,58 @@ public class AutomatonBuilderService(ILogger<AutomatonBuilderService> logger) : 
         return enfa;
     }
 
-    public PDA CreatePDA(AutomatonViewModel model)
+    public DPDA CreateDPDA(AutomatonViewModel model)
     {
-        var pda = new PDA
+        var dpda = new DPDA
         {
             AcceptanceMode = model.AcceptanceMode
         };
 
+        PopulateAutomaton(dpda, model);
+
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Created DPDA with {StateCount} states and {TransitionCount} transitions, AcceptanceMode: {AcceptanceMode}",
+                dpda.States.Count, dpda.Transitions.Count, dpda.AcceptanceMode);
+        }
+
+        return dpda;
+    }
+
+    public NPDA CreateNPDA(AutomatonViewModel model)
+    {
+        var npda = new NPDA
+        {
+            AcceptanceMode = model.AcceptanceMode
+        };
+
+        PopulateAutomaton(npda, model);
+
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Created NPDA with {StateCount} states and {TransitionCount} transitions, AcceptanceMode: {AcceptanceMode}",
+                npda.States.Count, npda.Transitions.Count, npda.AcceptanceMode);
+        }
+
+        return npda;
+    }
+
+    private static void PopulateAutomaton(Automaton automaton, AutomatonViewModel model)
+    {
         foreach (var state in model.States ?? [])
         {
-            pda.States.Add(state);
+            automaton.States.Add(state);
         }
 
         foreach (var transition in model.Transitions ?? [])
         {
-            pda.Transitions.Add(transition);
+            automaton.Transitions.Add(transition);
         }
 
         var startState = model.States?.FirstOrDefault(s => s.IsStart);
         if (startState != null)
         {
-            pda.SetStartState(startState.Id);
+            automaton.SetStartState(startState.Id);
         }
-
-        if (logger.IsEnabled(LogLevel.Information))
-        {
-            logger.LogInformation("Created PDA with {StateCount} states and {TransitionCount} transitions, AcceptanceMode: {AcceptanceMode}",
-                pda.States.Count, pda.Transitions.Count, pda.AcceptanceMode);
-        }
-
-        return pda;
     }
 }

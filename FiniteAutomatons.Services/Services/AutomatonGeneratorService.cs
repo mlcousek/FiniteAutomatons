@@ -1,4 +1,4 @@
-﻿using FiniteAutomatons.Core.Models.DoMain;
+using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Interfaces;
@@ -44,7 +44,7 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
             IsCustomAutomaton = true
         };
 
-        if (type == AutomatonType.PDA)
+        if (type == AutomatonType.DPDA || type == AutomatonType.NPDA)
         {
             viewModel.AcceptanceMode = acceptanceMode ?? PDAAcceptanceMode.FinalStateAndEmptyStack;
             viewModel.InitialStackSerialized = SerializeStack(initialStack);
@@ -263,7 +263,7 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
             Symbol = symbol
         };
 
-        if (context.Type == AutomatonType.PDA)
+        if (context.Type == AutomatonType.DPDA || context.Type == AutomatonType.NPDA)
         {
             newCandidate.StackPop = null;
             newCandidate.StackPush = symbol.ToString();
@@ -292,7 +292,7 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
             Symbol = symbol
         };
 
-        if (context.Type == AutomatonType.PDA)
+        if (context.Type == AutomatonType.DPDA || context.Type == AutomatonType.NPDA)
         {
             candidate.StackPop = null;
             candidate.StackPush = symbol.ToString();
@@ -335,7 +335,7 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
                 Symbol = symbol
             };
 
-            if (type == AutomatonType.PDA)
+            if (type == AutomatonType.DPDA || type == AutomatonType.NPDA)
             {
                 transition.StackPop = null;
                 transition.StackPush = symbol.ToString();
@@ -350,7 +350,7 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
             }
         }
 
-        if (type == AutomatonType.PDA && added < maxToAdd)
+        if ((type == AutomatonType.DPDA || type == AutomatonType.NPDA) && added < maxToAdd)
         {
             int addedPairs = CreateMatchingPushPopPairs(states, alphabet, transitions, addedTransitions, random, maxToAdd - added);
             added += addedPairs;
@@ -487,7 +487,7 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
                 var toState = states[random.Next(states.Count)].Id;
                 var candidate = new Transition { FromStateId = fromState, ToStateId = toState, Symbol = symbol };
 
-                if (type == AutomatonType.PDA)
+                if (type == AutomatonType.DPDA || type == AutomatonType.NPDA)
                 {
                     candidate.StackPop = null;
                     candidate.StackPush = symbol.ToString();
@@ -552,7 +552,7 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
             Symbol = symbol
         };
 
-        if (type == AutomatonType.PDA)
+        if (type == AutomatonType.DPDA || type == AutomatonType.NPDA)
         {
             AssignPdaStackOperations(transition, alphabet, random);
         }

@@ -22,7 +22,7 @@ public class InputGenerationServicePdaAcceptanceTests
     {
         var model = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
             Transitions =
             [
@@ -35,7 +35,7 @@ public class InputGenerationServicePdaAcceptanceTests
         var result = service.GenerateAcceptingString(model, 10);
 
         result.ShouldNotBeNull();
-        var pda = builderService.CreatePDA(model);
+        var pda = builderService.CreateDPDA(model);
         pda.Execute(result).ShouldBeTrue($"Generated string '{result}' should be accepted");
     }
 
@@ -44,7 +44,7 @@ public class InputGenerationServicePdaAcceptanceTests
     {
         var model = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
             Transitions =
             [
@@ -56,7 +56,7 @@ public class InputGenerationServicePdaAcceptanceTests
         var result = service.GenerateAcceptingString(model, 5);
 
         result.ShouldNotBeNull();
-        var pda = builderService.CreatePDA(model);
+        var pda = builderService.CreateDPDA(model);
         pda.Execute(result).ShouldBeTrue($"Generated string '{result}' should be accepted in FinalStateOnly mode");
     }
 
@@ -66,7 +66,7 @@ public class InputGenerationServicePdaAcceptanceTests
         // This PDA accepts a^n b^n by EmptyStackOnly mode (no accepting states needed)
         var model = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States = [new() { Id = 1, IsStart = true, IsAccepting = false }],
             Transitions =
             [
@@ -80,7 +80,7 @@ public class InputGenerationServicePdaAcceptanceTests
 
         if (result != null)
         {
-            var pda = builderService.CreatePDA(model);
+            var pda = builderService.CreateDPDA(model);
             pda.Execute(result).ShouldBeTrue($"Generated string '{result}' should be accepted in EmptyStackOnly mode");
         }
         else
@@ -94,7 +94,7 @@ public class InputGenerationServicePdaAcceptanceTests
     {
         var model = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
             Transitions =
             [
@@ -107,7 +107,7 @@ public class InputGenerationServicePdaAcceptanceTests
         var result = service.GenerateRandomAcceptingString(model, minLength: 0, maxLength: 10, maxAttempts: 100);
 
         result.ShouldNotBeNull();
-        var pda = builderService.CreatePDA(model);
+        var pda = builderService.CreateDPDA(model);
         pda.Execute(result).ShouldBeTrue($"Generated string '{result}' should be accepted");
     }
 
@@ -116,7 +116,7 @@ public class InputGenerationServicePdaAcceptanceTests
     {
         var model = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
             Transitions =
             [
@@ -128,7 +128,7 @@ public class InputGenerationServicePdaAcceptanceTests
         var result = service.GenerateRandomAcceptingString(model, minLength: 1, maxLength: 5, maxAttempts: 50);
 
         result.ShouldNotBeNull();
-        var pda = builderService.CreatePDA(model);
+        var pda = builderService.CreateDPDA(model);
         pda.Execute(result).ShouldBeTrue($"Generated string '{result}' should be accepted in FinalStateOnly mode");
     }
 
@@ -137,7 +137,7 @@ public class InputGenerationServicePdaAcceptanceTests
     {
         var model = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States = [new() { Id = 1, IsStart = true, IsAccepting = false }],
             Transitions =
             [
@@ -152,7 +152,7 @@ public class InputGenerationServicePdaAcceptanceTests
 
         if (result != null)
         {
-            var pda = builderService.CreatePDA(model);
+            var pda = builderService.CreateDPDA(model);
             pda.Execute(result).ShouldBeTrue($"Generated string '{result}' should be accepted in EmptyStackOnly mode");
         }
         else
@@ -166,7 +166,7 @@ public class InputGenerationServicePdaAcceptanceTests
     {
         var model = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
             Transitions =
             [

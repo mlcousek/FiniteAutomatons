@@ -301,7 +301,7 @@ public class InputGenerationServiceComprehensiveTests
     {
         var automaton = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
             Transitions =
             [
@@ -314,7 +314,7 @@ public class InputGenerationServiceComprehensiveTests
         var result = service.GenerateAcceptingString(automaton, 10);
 
         result.ShouldNotBeNull();
-        var pda = builderService.CreatePDA(automaton);
+        var pda = builderService.CreateDPDA(automaton);
         pda.Execute(result).ShouldBeTrue($"Generated string '{result}' should be accepted");
     }
 
@@ -323,7 +323,7 @@ public class InputGenerationServiceComprehensiveTests
     {
         var automaton = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
             Transitions = [],
             AcceptanceMode = PDAAcceptanceMode.FinalStateAndEmptyStack
@@ -340,7 +340,7 @@ public class InputGenerationServiceComprehensiveTests
     {
         var automaton = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
             Transitions =
             [
@@ -352,7 +352,7 @@ public class InputGenerationServiceComprehensiveTests
         var result = service.GenerateAcceptingString(automaton, 5);
 
         result.ShouldNotBeNull();
-        var pda = builderService.CreatePDA(automaton);
+        var pda = builderService.CreateDPDA(automaton);
         pda.Execute(result).ShouldBeTrue();
     }
 
@@ -361,7 +361,7 @@ public class InputGenerationServiceComprehensiveTests
     {
         var automaton = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
             Transitions =
             [
@@ -377,7 +377,7 @@ public class InputGenerationServiceComprehensiveTests
         {
             result.Length.ShouldBeGreaterThanOrEqualTo(2);
             result.Length.ShouldBeLessThanOrEqualTo(10);
-            var pda = builderService.CreatePDA(automaton);
+            var pda = builderService.CreateDPDA(automaton);
             pda.Execute(result).ShouldBeTrue();
         }
     }
@@ -391,7 +391,7 @@ public class InputGenerationServiceComprehensiveTests
     {
         var automaton = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
             Transitions =
             [
@@ -404,7 +404,7 @@ public class InputGenerationServiceComprehensiveTests
         var result = service.GenerateRejectingString(automaton, 10);
 
         result.ShouldNotBeNull();
-        var pda = builderService.CreatePDA(automaton);
+        var pda = builderService.CreateDPDA(automaton);
 
         bool isRejected;
         try
@@ -424,7 +424,7 @@ public class InputGenerationServiceComprehensiveTests
     {
         var automaton = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
             Transitions =
             [
@@ -437,7 +437,7 @@ public class InputGenerationServiceComprehensiveTests
         var result = service.GenerateRejectingString(automaton, 10);
 
         result.ShouldNotBeNull();
-        var pda = builderService.CreatePDA(automaton);
+        var pda = builderService.CreateDPDA(automaton);
 
         bool isRejected;
         try
@@ -457,7 +457,7 @@ public class InputGenerationServiceComprehensiveTests
     {
         var automaton = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States = [new() { Id = 1, IsStart = true, IsAccepting = false }],
             Transitions =
             [
@@ -470,7 +470,7 @@ public class InputGenerationServiceComprehensiveTests
         var result = service.GenerateRejectingString(automaton, 10);
 
         result.ShouldNotBeNull();
-        var pda = builderService.CreatePDA(automaton);
+        var pda = builderService.CreateDPDA(automaton);
 
         bool isRejected;
         try
@@ -490,7 +490,7 @@ public class InputGenerationServiceComprehensiveTests
     {
         var automaton = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States =
             [
                 new() { Id = 1, IsStart = true, IsAccepting = false },
@@ -517,7 +517,7 @@ public class InputGenerationServiceComprehensiveTests
     {
         var automaton = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
             Transitions =
             [
@@ -538,7 +538,7 @@ public class InputGenerationServiceComprehensiveTests
     {
         var automaton = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
             Transitions =
             [
@@ -557,7 +557,7 @@ public class InputGenerationServiceComprehensiveTests
     {
         var automaton = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
             Transitions =
             [
@@ -736,7 +736,7 @@ public class InputGenerationServiceComprehensiveTests
     {
         var automaton = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States =
             [
                 new() { Id = 1, IsStart = true, IsAccepting = false },
@@ -755,7 +755,7 @@ public class InputGenerationServiceComprehensiveTests
 
         if (accepting != null)
         {
-            var pda = builderService.CreatePDA(automaton);
+            var pda = builderService.CreateDPDA(automaton);
             pda.Execute(accepting).ShouldBeTrue($"Generated '{accepting}' should be accepted for a^nb^n");
         }
     }

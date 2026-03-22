@@ -1,4 +1,4 @@
-﻿using FiniteAutomatons.Controllers;
+using FiniteAutomatons.Controllers;
 using FiniteAutomatons.Core.Models.Database;
 using FiniteAutomatons.Core.Models.DTOs;
 using FiniteAutomatons.Core.Models.ViewModel;
@@ -492,7 +492,7 @@ public class ImportExportControllerTests
 
         var payload = new
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States = new[] { new { Id = 1, IsStart = true, IsAccepting = true } },
             Transitions = Array.Empty<object>()
         };
@@ -885,3 +885,4 @@ public class ImportExportControllerTests
 
     #endregion
 }
+

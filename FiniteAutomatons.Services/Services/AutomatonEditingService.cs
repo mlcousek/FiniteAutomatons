@@ -1,4 +1,4 @@
-﻿using FiniteAutomatons.Core.Models.DoMain;
+using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Core.Utilities;
 using FiniteAutomatons.Services.Interfaces;
@@ -51,7 +51,7 @@ public class AutomatonEditingService(IAutomatonValidationService validationServi
         if (!ok) return (false, '\0', error);
 
         char? stackPopChar = null;
-        if (model.Type == AutomatonType.PDA)
+        if (model.Type == AutomatonType.DPDA || model.Type == AutomatonType.NPDA)
         {
             if (!string.IsNullOrEmpty(stackPop))
             {

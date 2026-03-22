@@ -815,7 +815,7 @@ public class SavedAutomatonServiceTests
 
         var model = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
             Transitions = [],
             Input = string.Empty
@@ -886,7 +886,7 @@ public class SavedAutomatonServiceTests
 
         var model = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
             Transitions = [],
             Input = "xyz",

@@ -413,7 +413,7 @@ public class AutomatonFileServiceTests
         var svc = Create();
         var model = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
             Transitions = [new() { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = 'Z', StackPush = "ZA" }],
             Input = "aaa",
@@ -425,7 +425,7 @@ public class AutomatonFileServiceTests
         var (_, content) = svc.ExportWithInput(model);
 
         var exported = JsonSerializer.Deserialize<AutomatonViewModel>(content);
-        exported!.Type.ShouldBe(AutomatonType.PDA);
+        exported!.Type.ShouldBe(AutomatonType.DPDA);
         exported.Transitions[0].StackPop.ShouldBe('Z');
         exported.Transitions[0].StackPush.ShouldBe("ZA");
         exported.StackSerialized.ShouldBeNull();
@@ -666,7 +666,7 @@ public class AutomatonFileServiceTests
         var svc = Create();
         var model = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
             Transitions = [new() { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = 'Z', StackPush = "ZA" }],
             Input = "aaa",
@@ -772,7 +772,7 @@ public class AutomatonFileServiceTests
     {
         var svc = Create();
 
-        foreach (var type in new[] { AutomatonType.DFA, AutomatonType.NFA, AutomatonType.EpsilonNFA, AutomatonType.PDA })
+        foreach (var type in new[] { AutomatonType.DFA, AutomatonType.NFA, AutomatonType.EpsilonNFA, AutomatonType.DPDA })
         {
             var model = new AutomatonViewModel
             {
@@ -862,7 +862,7 @@ public class AutomatonFileServiceTests
         var svc = Create();
         var original = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
             Transitions = [new() { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = 'Z', StackPush = "AZ" }],
             Input = "aaa",
@@ -879,7 +879,7 @@ public class AutomatonFileServiceTests
         var (ok, loaded, error) = await svc.LoadViewModelWithStateAsync(file);
 
         ok.ShouldBeTrue(error);
-        loaded!.Type.ShouldBe(AutomatonType.PDA);
+        loaded!.Type.ShouldBe(AutomatonType.DPDA);
         loaded.StackSerialized.ShouldBe("[\"A\",\"A\",\"Z\"]");
         loaded.Position.ShouldBe(2);
     }

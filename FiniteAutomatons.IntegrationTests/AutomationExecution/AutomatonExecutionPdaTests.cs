@@ -13,7 +13,7 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
 
     private static AutomatonViewModel BuildBalancedParenthesesPda(string input, PDAAcceptanceMode? acceptanceMode = null) => new()
     {
-        Type = AutomatonType.PDA,
+        Type = AutomatonType.DPDA,
         States =
         [
             new() { Id = 1, IsStart = true, IsAccepting = true }
@@ -30,17 +30,17 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
 
     private static AutomatonViewModel BuildAnBnPda(string input, PDAAcceptanceMode? acceptanceMode = null) => new()
     {
-        Type = AutomatonType.PDA,
+        Type = AutomatonType.DPDA,
         States =
         [
-            new() { Id = 1, IsStart = true, IsAccepting = false },
+            new() { Id = 1, IsStart = true, IsAccepting = true },
             new() { Id = 2, IsStart = false, IsAccepting = true }
         ],
         Transitions =
         [
             new() { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '\0', StackPush = "X" },
-            new() { FromStateId = 1, ToStateId = 1, Symbol = 'b', StackPop = 'X', StackPush = null },
-            new() { FromStateId = 1, ToStateId = 2, Symbol = '\0', StackPop = '\0', StackPush = null }
+            new() { FromStateId = 1, ToStateId = 2, Symbol = 'b', StackPop = 'X', StackPush = null },
+            new() { FromStateId = 2, ToStateId = 2, Symbol = 'b', StackPop = 'X', StackPush = null }
         ],
         Input = input,
         IsCustomAutomaton = true,
@@ -286,7 +286,7 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
         var client = GetHttpClient();
         var model = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States =
             [
                 new() { Id = 1, IsStart = true, IsAccepting = true }
@@ -314,7 +314,7 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
         var client = GetHttpClient();
         var model = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States =
             [
                 new() { Id = 1, IsStart = true, IsAccepting = false }
@@ -339,7 +339,7 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
         var client = GetHttpClient();
         var model = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States =
             [
                 new() { Id = 1, IsStart = true, IsAccepting = false }
@@ -368,7 +368,7 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
         var client = GetHttpClient();
         var model = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States =
             [
                 new() { Id = 1, IsStart = true, IsAccepting = true }
@@ -409,7 +409,7 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
         var client = GetHttpClient();
         var model = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States =
             [
                 new() { Id = 1, IsStart = true, IsAccepting = true }
@@ -436,7 +436,7 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
         var client = GetHttpClient();
         var model = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States =
             [
                 new() { Id = 1, IsStart = true, IsAccepting = false }
@@ -464,7 +464,7 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
         var client = GetHttpClient();
         var model = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.NPDA,
             States =
             [
                 new() { Id = 1, IsStart = true, IsAccepting = false },
@@ -494,7 +494,7 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
         var client = GetHttpClient();
         var model = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States =
             [
                 new() { Id = 1, IsStart = true, IsAccepting = true }
@@ -520,7 +520,7 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
         var client = GetHttpClient();
         var model = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States =
             [
                 new() { Id = 1, IsStart = true, IsAccepting = false },
@@ -547,7 +547,7 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
         var client = GetHttpClient();
         var model = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.NPDA,
             States =
             [
                 new() { Id = 1, IsStart = true, IsAccepting = false },
@@ -576,7 +576,7 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
         var client = GetHttpClient();
         var model = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States =
             [
                 new() { Id = 1, IsStart = true, IsAccepting = true }
@@ -599,7 +599,7 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
         var client = GetHttpClient();
         var model = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States =
             [
                 new() { Id = 1, IsStart = true, IsAccepting = false }
@@ -645,3 +645,4 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
         ExtractIsAccepted(html).ShouldBe(true);
     }
 }
+

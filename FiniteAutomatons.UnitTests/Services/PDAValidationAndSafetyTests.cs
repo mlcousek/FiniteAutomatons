@@ -16,7 +16,7 @@ public class PDAValidationAndSafetyTests
         var validator = new AutomatonValidationService(NullLogger<AutomatonValidationService>.Instance);
         var model = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States = [new() { Id = 1, IsStart = true, IsAccepting = false }],
             Transitions =
             [
@@ -34,26 +34,26 @@ public class PDAValidationAndSafetyTests
     public void PDA_EpsilonPushLoop_IsBounded_By_Settings()
     {
         // temporarily lower safety settings for test
-        var oldMaxEps = PdaExecutionSettings.MaxEpsilonIterations;
-        var oldStackTol = PdaExecutionSettings.MaxStackGrowthTolerance;
+        var oldMaxEps = PdaSettings.MaxEpsilonIterations;
+        var oldStackTol = PdaSettings.MaxStackGrowthTolerance;
         try
         {
-            PdaExecutionSettings.MaxEpsilonIterations = 50;
-            PdaExecutionSettings.MaxStackGrowthTolerance = 200;
+            PdaSettings.MaxEpsilonIterations = 50;
+            PdaSettings.MaxStackGrowthTolerance = 200;
 
-            var pda = new PDA();
+            var pda = new DPDA();
             pda.AddState(new State { Id = 1, IsStart = true, IsAccepting = false });
             pda.AddTransition(new Transition { FromStateId = 1, ToStateId = 1, Symbol = '\0', StackPop = '\0', StackPush = "A" });
 
             var state = (PDAExecutionState)pda.StartExecution("");
             pda.ExecuteAll(state);
             // stack should be bounded by the tolerance
-            state.Stack.Count.ShouldBeLessThanOrEqualTo(PdaExecutionSettings.MaxStackGrowthTolerance);
+            state.Stack.Count.ShouldBeLessThanOrEqualTo(PdaSettings.MaxStackGrowthTolerance);
         }
         finally
         {
-            PdaExecutionSettings.MaxEpsilonIterations = oldMaxEps;
-            PdaExecutionSettings.MaxStackGrowthTolerance = oldStackTol;
+            PdaSettings.MaxEpsilonIterations = oldMaxEps;
+            PdaSettings.MaxStackGrowthTolerance = oldStackTol;
         }
     }
 }

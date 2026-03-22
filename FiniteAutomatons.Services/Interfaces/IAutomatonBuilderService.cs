@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.DoMain;
+﻿using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.ViewModel;
 
@@ -10,5 +10,6 @@ public interface IAutomatonBuilderService
     DFA CreateDFA(AutomatonViewModel model);
     NFA CreateNFA(AutomatonViewModel model);
     EpsilonNFA CreateEpsilonNFA(AutomatonViewModel model);
-    PDA CreatePDA(AutomatonViewModel model);
+    DPDA CreateDPDA(AutomatonViewModel model);
+    NPDA CreateNPDA(AutomatonViewModel model);
 }

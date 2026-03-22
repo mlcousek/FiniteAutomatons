@@ -19,57 +19,114 @@ public class AutomatonExecutionService(IAutomatonBuilderService builderService, 
 
         AutomatonExecutionState state;
 
-        if (model.Type == AutomatonType.DFA || model.Type == AutomatonType.PDA)
+        if (model.Type == AutomatonType.DPDA)
         {
-            if (model.Type == AutomatonType.PDA)
+            var dpdaState = new PDAExecutionState(model.Input ?? string.Empty, model.CurrentStateId)
             {
-                var pdaState = new PDAExecutionState(model.Input ?? string.Empty, model.CurrentStateId)
+                Position = model.Position,
+                IsAccepted = model.IsAccepted
+            };
+            if (!string.IsNullOrEmpty(model.StackSerialized))
+            {
+                try
                 {
-                    Position = model.Position,
-                    IsAccepted = model.IsAccepted
-                };
-                if (!string.IsNullOrEmpty(model.StackSerialized))
-                {
-                    try
-                    {
-                        var stackArray = JsonSerializer.Deserialize<List<char>>(model.StackSerialized) ?? [];
-                        pdaState.Stack = new Stack<char>(Enumerable.Reverse(stackArray));
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.LogWarning(ex, "Failed to deserialize PDA stack; initializing empty.");
-                    }
+                    var stackArray = JsonSerializer.Deserialize<List<char>>(model.StackSerialized) ?? [];
+                    dpdaState.Stack = new Stack<char>(stackArray.AsEnumerable().Reverse());
                 }
-                else
+                catch (Exception ex)
                 {
-                    pdaState.Stack = new Stack<char>();
-                    pdaState.Stack.Push('#');
+                    logger.LogWarning(ex, "Failed to deserialize DPDA stack; initializing empty.");
                 }
-                if (!string.IsNullOrEmpty(model.StateHistorySerialized))
-                {
-                    try
-                    {
-                        var snaps = JsonSerializer.Deserialize<List<PDAExecutionState.Snapshot>>(model.StateHistorySerialized) ?? [];
-                        for (int i = snaps.Count - 1; i >= 0; i--)
-                        {
-                            pdaState.History.Push(snaps[i]);
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.LogWarning(ex, "Failed to deserialize PDA history");
-                    }
-                }
-                state = pdaState;
             }
             else
             {
-                state = new AutomatonExecutionState(model.Input ?? "", model.CurrentStateId)
-                {
-                    Position = model.Position,
-                    IsAccepted = model.IsAccepted
-                };
+                dpdaState.Stack = new Stack<char>();
+                dpdaState.Stack.Push('#');
             }
+            if (!string.IsNullOrEmpty(model.StateHistorySerialized))
+            {
+                try
+                {
+                    var snaps = JsonSerializer.Deserialize<List<PDAExecutionState.Snapshot>>(model.StateHistorySerialized) ?? [];
+                    for (int i = snaps.Count - 1; i >= 0; i--)
+                    {
+                        dpdaState.History.Push(snaps[i]);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "Failed to deserialize DPDA history");
+                }
+            }
+            state = dpdaState;
+        }
+        else if (model.Type == AutomatonType.NPDA)
+        {
+            var npdaState = new NPDAExecutionState(model.Input ?? string.Empty, model.States?.FirstOrDefault(s => s.IsStart)?.Id ?? 0, '#')
+            {
+                Position = model.Position,
+                IsAccepted = model.IsAccepted
+            };
+
+            if (!string.IsNullOrEmpty(model.NPDAConfigurationsSerialized))
+            {
+                try
+                {
+                    var configDtos = JsonSerializer.Deserialize<List<PDAConfigurationDto>>(model.NPDAConfigurationsSerialized) ?? [];
+                    var configs = new HashSet<PDAConfiguration>();
+                    foreach (var dto in configDtos)
+                    {
+                        var stack = System.Collections.Immutable.ImmutableStack<char>.Empty;
+                        if (dto.Stack != null)
+                        {
+                            foreach (char c in dto.Stack)
+                                stack = stack.Push(c);
+                        }
+                        configs.Add(new PDAConfiguration(dto.StateId, stack));
+                    }
+                    npdaState.Configurations = configs;
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "Failed to deserialize NPDA configurations");
+                }
+            }
+
+            if (!string.IsNullOrEmpty(model.StateHistorySerialized))
+            {
+                try
+                {
+                    var historyDtos = JsonSerializer.Deserialize<List<List<PDAConfigurationDto>>>(model.StateHistorySerialized) ?? [];
+                    for (int i = historyDtos.Count - 1; i >= 0; i--)
+                    {
+                        var configs = new HashSet<PDAConfiguration>();
+                        foreach (var dto in historyDtos[i])
+                        {
+                            var stack = System.Collections.Immutable.ImmutableStack<char>.Empty;
+                            if (dto.Stack != null)
+                            {
+                                foreach (char c in dto.Stack)
+                                    stack = stack.Push(c);
+                            }
+                            configs.Add(new PDAConfiguration(dto.StateId, stack));
+                        }
+                        npdaState.History.Push(configs);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "Failed to deserialize NPDA history");
+                }
+            }
+            state = npdaState;
+        }
+        else if (model.Type == AutomatonType.DFA)
+        {
+            state = new AutomatonExecutionState(model.Input ?? "", model.CurrentStateId)
+            {
+                Position = model.Position,
+                IsAccepted = model.IsAccepted
+            };
         }
         else
         {
@@ -80,7 +137,7 @@ public class AutomatonExecutionService(IAutomatonBuilderService builderService, 
             };
         }
 
-        if (model.Type != AutomatonType.PDA && !string.IsNullOrEmpty(model.StateHistorySerialized))
+        if (model.Type != AutomatonType.DPDA && model.Type != AutomatonType.NPDA && !string.IsNullOrEmpty(model.StateHistorySerialized))
         {
             try
             {
@@ -116,9 +173,14 @@ public class AutomatonExecutionService(IAutomatonBuilderService builderService, 
         model.Position = state.Position;
         model.IsAccepted = state.IsAccepted;
 
-        if (model.Type == AutomatonType.DFA || model.Type == AutomatonType.PDA)
+        if (model.Type == AutomatonType.DFA || model.Type == AutomatonType.DPDA)
         {
             model.CurrentStateId = state.CurrentStateId;
+            model.CurrentStates = null;
+        }
+        else if (model.Type == AutomatonType.NPDA)
+        {
+            model.CurrentStateId = null;
             model.CurrentStates = null;
         }
         else
@@ -127,10 +189,20 @@ public class AutomatonExecutionService(IAutomatonBuilderService builderService, 
             model.CurrentStates = state.CurrentStates ?? [];
         }
 
-        if (model.Type == AutomatonType.PDA && state is PDAExecutionState pdaState)
+        if (model.Type == AutomatonType.DPDA && state is PDAExecutionState dpdaState)
         {
-            model.StackSerialized = JsonSerializer.Serialize(pdaState.Stack.ToArray());
-            model.StateHistorySerialized = JsonSerializer.Serialize(pdaState.History.ToArray());
+            model.StackSerialized = JsonSerializer.Serialize(dpdaState.Stack.ToArray());
+            model.StateHistorySerialized = JsonSerializer.Serialize(dpdaState.History.ToArray());
+        }
+        else if (model.Type == AutomatonType.NPDA && state is NPDAExecutionState npdaState)
+        {
+            var configDtos = npdaState.Configurations.Select(c => new PDAConfigurationDto { StateId = c.StateId, Stack = SerializeImmutableStack(c.Stack) }).ToList();
+            model.NPDAConfigurationsSerialized = JsonSerializer.Serialize(configDtos);
+
+            var historyDtos = npdaState.History.Select(hs =>
+                hs.Select(c => new PDAConfigurationDto { StateId = c.StateId, Stack = SerializeImmutableStack(c.Stack) }).ToList()
+            ).ToList();
+            model.StateHistorySerialized = JsonSerializer.Serialize(historyDtos);
         }
         else
         {
@@ -142,9 +214,31 @@ public class AutomatonExecutionService(IAutomatonBuilderService builderService, 
 
     public void EnsureProperStateInitialization(AutomatonViewModel model, Automaton automaton)
     {
-        if (model.Type == AutomatonType.DFA || model.Type == AutomatonType.PDA)
+        if (model.Type == AutomatonType.DFA || model.Type == AutomatonType.DPDA)
         {
             model.CurrentStateId ??= model.States?.FirstOrDefault(s => s.IsStart)?.Id;
+            model.CurrentStates = null;
+        }
+        else if (model.Type == AutomatonType.NPDA)
+        {
+            if (string.IsNullOrEmpty(model.NPDAConfigurationsSerialized))
+            {
+                var startState = model.States?.FirstOrDefault(s => s.IsStart);
+                if (startState != null)
+                {
+                    try
+                    {
+                        var tempState = (NPDAExecutionState)automaton.StartExecution("");
+                        var configDtos = tempState.Configurations.Select(c => new PDAConfigurationDto { StateId = c.StateId, Stack = SerializeImmutableStack(c.Stack) }).ToList();
+                        model.NPDAConfigurationsSerialized = JsonSerializer.Serialize(configDtos);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogWarning(ex, "Failed to initialize NPDA state");
+                    }
+                }
+            }
+            model.CurrentStateId = null;
             model.CurrentStates = null;
         }
         else
@@ -242,12 +336,12 @@ public class AutomatonExecutionService(IAutomatonBuilderService builderService, 
         var automaton = builderService.CreateAutomatonFromModel(model);
 
         Stack<char>? initialStack = null;
-        if (model.Type == AutomatonType.PDA && !string.IsNullOrEmpty(model.InitialStackSerialized))
+        if ((model.Type == AutomatonType.DPDA || model.Type == AutomatonType.NPDA) && !string.IsNullOrEmpty(model.InitialStackSerialized))
         {
             try
             {
                 var stackArray = JsonSerializer.Deserialize<List<char>>(model.InitialStackSerialized) ?? [];
-                initialStack = new Stack<char>(Enumerable.Reverse(stackArray));
+                initialStack = new Stack<char>(stackArray.AsEnumerable().Reverse());
             }
             catch (Exception ex)
             {
@@ -278,9 +372,21 @@ public class AutomatonExecutionService(IAutomatonBuilderService builderService, 
         model.StateHistorySerialized = string.Empty;
         model.StackSerialized = null;
         model.InitialStackSerialized = null;
+        model.NPDAConfigurationsSerialized = null;
 
         logger.LogInformation("Reset execution state while preserving automaton structure");
 
         return model;
+    }
+
+    private class PDAConfigurationDto
+    {
+        public int StateId { get; set; }
+        public char[] Stack { get; set; } = [];
+    }
+
+    private static char[] SerializeImmutableStack(System.Collections.Immutable.ImmutableStack<char> stack)
+    {
+        return [.. stack.Reverse()];
     }
 }

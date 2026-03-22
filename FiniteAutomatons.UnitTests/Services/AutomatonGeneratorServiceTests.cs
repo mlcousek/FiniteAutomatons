@@ -190,10 +190,10 @@ public class AutomatonGeneratorServiceTests
     public void GenerateRandomAutomaton_PDA_CreatesValidPDA()
     {
         var seed = 4242;
-        var result = service.GenerateRandomAutomaton(AutomatonType.PDA, 4, 10, 3, 0.3, seed);
+        var result = service.GenerateRandomAutomaton(AutomatonType.DPDA, 4, 10, 3, 0.3, seed);
 
         result.ShouldNotBeNull();
-        result.Type.ShouldBe(AutomatonType.PDA);
+        result.Type.ShouldBe(AutomatonType.DPDA);
         result.States.Count.ShouldBe(4);
         result.Alphabet.Count.ShouldBe(3);
         result.Transitions.Count.ShouldBeLessThanOrEqualTo(10);

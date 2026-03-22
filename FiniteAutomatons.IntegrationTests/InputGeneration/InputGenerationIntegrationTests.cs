@@ -105,7 +105,7 @@ public class InputGenerationIntegrationTests(IntegrationTestsFixture fixture) : 
 
     private static AutomatonViewModel BuildBalancedParenthesesPda() => new()
     {
-        Type = AutomatonType.PDA,
+        Type = AutomatonType.DPDA,
         States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
         Transitions =
         [
@@ -118,7 +118,7 @@ public class InputGenerationIntegrationTests(IntegrationTestsFixture fixture) : 
 
     private static AutomatonViewModel BuildAnBnPda() => new()
     {
-        Type = AutomatonType.PDA,
+        Type = AutomatonType.DPDA,
         States =
         [
             new() { Id = 1, IsStart = true, IsAccepting = false },
@@ -530,7 +530,7 @@ public class InputGenerationIntegrationTests(IntegrationTestsFixture fixture) : 
         var client = GetHttpClient();
         var model = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States = [new() { Id = 1, IsStart = true, IsAccepting = false }],
             Transitions =
             [

@@ -18,15 +18,15 @@ public class PDAAdditionalTests
         var execSvc = new AutomatonExecutionService(builder, new NullLogger<AutomatonExecutionService>());
 
         // Build PDA model and runtime PDA
-        var pda = new PDA();
+        var pda = new DPDA();
         pda.AddState(new State { Id = 1, IsStart = true, IsAccepting = true });
         pda.AddTransition(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '\0', StackPush = "X" });
-        pda.AddTransition(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = 'X', StackPush = null });
+        pda.AddTransition(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'b', StackPop = 'X', StackPush = null });
 
         // Build matching view model
         var model = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States = [.. pda.States.Select(s => new State { Id = s.Id, IsStart = s.IsStart, IsAccepting = s.IsAccepting })],
             Transitions = [.. pda.Transitions.Select(t => new Transition { FromStateId = t.FromStateId, ToStateId = t.ToStateId, Symbol = t.Symbol, StackPop = t.StackPop, StackPush = t.StackPush })]
         };
@@ -71,7 +71,7 @@ public class PDAAdditionalTests
 
         var model = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States = [new() { Id = 1, IsStart = true, IsAccepting = false }],
             Transitions =
             [
@@ -91,7 +91,7 @@ public class PDAAdditionalTests
         var (ok, imported, error) = await fileSvc.LoadFromFileAsync(formFile);
         ok.ShouldBeTrue(error);
         imported.ShouldNotBeNull();
-        imported!.Type.ShouldBe(AutomatonType.PDA);
+        imported!.Type.ShouldBe(AutomatonType.DPDA);
         imported.Transitions.ShouldContain(t => t.StackPush == "XY");
         imported.Transitions.ShouldContain(t => t.StackPop.HasValue && t.StackPop.Value == 'X');
     }
@@ -100,12 +100,12 @@ public class PDAAdditionalTests
     public void StackPop_Null_And_Epsilon_Are_Equivalent_At_Runtime()
     {
         // Build two PDAs with identical behavior except StackPop null vs '\0'
-        var pdaNull = new PDA();
+        var pdaNull = new DPDA();
         pdaNull.AddState(new State { Id = 1, IsStart = true, IsAccepting = true });
         pdaNull.AddTransition(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '\0', StackPush = "X" });
         pdaNull.AddTransition(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'b', StackPop = null, StackPush = null });
 
-        var pdaEps = new PDA();
+        var pdaEps = new DPDA();
         pdaEps.AddState(new State { Id = 1, IsStart = true, IsAccepting = true });
         pdaEps.AddTransition(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '\0', StackPush = "X" });
         pdaEps.AddTransition(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'b', StackPop = '\0', StackPush = null });
@@ -123,7 +123,7 @@ public class PDAAdditionalTests
     public void EpsilonPushLoop_Safety_Limits_Growth()
     {
         // Epsilon loop that always pushes 'A' should not cause infinite loop thanks to safety bounds
-        var pda = new PDA();
+        var pda = new DPDA();
         pda.AddState(new State { Id = 1, IsStart = true, IsAccepting = false });
         // epsilon that pushes 'A' repeatedly
         pda.AddTransition(new Transition { FromStateId = 1, ToStateId = 1, Symbol = '\0', StackPop = '\0', StackPush = "A" });
@@ -144,7 +144,7 @@ public class PDAAdditionalTests
     [Fact]
     public void StepBackward_RestoresExactStackSequence()
     {
-        var pda = new PDA();
+        var pda = new DPDA();
         pda.AddState(new State { Id = 1, IsStart = true, IsAccepting = false });
         pda.AddTransition(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '\0', StackPush = "X" });
 
@@ -179,7 +179,7 @@ public class PDAAdditionalTests
         var validator = new AutomatonValidationService(new NullLogger<AutomatonValidationService>());
         var model = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States = new List<State> { new() { Id = 1, IsStart = true, IsAccepting = false } },
             Transitions = new List<Transition>
             {
@@ -193,3 +193,4 @@ public class PDAAdditionalTests
         errors.Any(e => e.Contains("PDA must be deterministic")).ShouldBeTrue();
     }
 }
+

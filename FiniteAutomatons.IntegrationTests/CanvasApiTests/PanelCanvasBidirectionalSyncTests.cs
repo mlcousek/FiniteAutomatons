@@ -141,7 +141,7 @@ public class PanelCanvasBidirectionalSyncTests(IntegrationTestsFixture fixture)
     [Fact]
     public async Task PanelPdaTransitionAdded_SyncReturns_StackOpDisplay()
     {
-        var req = Req("PDA",
+        var req = Req("DPDA",
             [new() { Id = 0, IsStart = true }, new() { Id = 1, IsAccepting = true }],
             [new() { FromStateId = 0, ToStateId = 1, Symbol = "a", StackPop = "Z", StackPush = "AZ" }]);
 
@@ -156,7 +156,7 @@ public class PanelCanvasBidirectionalSyncTests(IntegrationTestsFixture fixture)
     [Fact]
     public async Task PanelPdaTransitionAdded_EpsilonStackPop_SyncReturnsEpsilonDisplay()
     {
-        var req = Req("PDA",
+        var req = Req("DPDA",
             [new() { Id = 0, IsStart = true }, new() { Id = 1 }],
             [new() { FromStateId = 0, ToStateId = 1, Symbol = "(", StackPop = "\\0", StackPush = "(" }]);
 
@@ -168,7 +168,7 @@ public class PanelCanvasBidirectionalSyncTests(IntegrationTestsFixture fixture)
     [Fact]
     public async Task PanelPdaStateAdded_SyncReturns_CorrectStateCount()
     {
-        var req = Req("PDA",
+        var req = Req("DPDA",
             [
                 new() { Id = 0, IsStart = true },
                 new() { Id = 1, IsAccepting = true },

@@ -1,4 +1,4 @@
-﻿using FiniteAutomatons.Controllers;
+using FiniteAutomatons.Controllers;
 using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Interfaces;
@@ -74,11 +74,11 @@ public class HomeControllerSessionTests
         var (controller, session, tempDataService) = CreateController();
 
         WriteToSession(session, BuildModel(AutomatonType.NFA, 2, true));
-        tempDataService.SetupReturn(BuildModel(AutomatonType.PDA, 4, true));
+        tempDataService.SetupReturn(BuildModel(AutomatonType.DPDA, 4, true));
 
         var result = controller.Index() as ViewResult;
         var model = (result!.Model as AutomatonViewModel)!;
-        model.Type.ShouldBe(AutomatonType.PDA);
+        model.Type.ShouldBe(AutomatonType.DPDA);
     }
 
     [Fact]
@@ -122,10 +122,10 @@ public class HomeControllerSessionTests
     public void Index_SessionAutomaton_PDAType_Preserved()
     {
         var (controller, session, _) = CreateController();
-        WriteToSession(session, BuildModel(AutomatonType.PDA, 3, true));
+        WriteToSession(session, BuildModel(AutomatonType.DPDA, 3, true));
 
         var model = ((controller.Index() as ViewResult)!.Model as AutomatonViewModel)!;
-        model.Type.ShouldBe(AutomatonType.PDA);
+        model.Type.ShouldBe(AutomatonType.DPDA);
     }
 
     [Fact]
@@ -275,3 +275,4 @@ public class ConfigurableMockTempDataService : IAutomatonTempDataService
         }
     }
 }
+

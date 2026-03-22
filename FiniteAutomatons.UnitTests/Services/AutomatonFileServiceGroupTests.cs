@@ -237,7 +237,7 @@ public class AutomatonFileServiceGroupTests
             CreateSavedAutomaton(1, "DFA", AutomatonType.DFA),
             CreateSavedAutomaton(2, "NFA", AutomatonType.NFA),
             CreateSavedAutomaton(3, "EpsilonNFA", AutomatonType.EpsilonNFA),
-            CreateSavedAutomaton(4, "PDA", AutomatonType.PDA)
+            CreateSavedAutomaton(4, "PDA", AutomatonType.DPDA)
         };
 
         var (_, content) = svc.ExportGroup("All Types", null, automatons);
@@ -247,7 +247,7 @@ public class AutomatonFileServiceGroupTests
         exported.Automatons[0].Content.Type.ShouldBe(AutomatonType.DFA);
         exported.Automatons[1].Content.Type.ShouldBe(AutomatonType.NFA);
         exported.Automatons[2].Content.Type.ShouldBe(AutomatonType.EpsilonNFA);
-        exported.Automatons[3].Content.Type.ShouldBe(AutomatonType.PDA);
+        exported.Automatons[3].Content.Type.ShouldBe(AutomatonType.DPDA);
     }
 
     #endregion
@@ -444,7 +444,7 @@ public class AutomatonFileServiceGroupTests
             Automatons = [
                 new AutomatonExportItemDto { Name = "First", Content = new AutomatonPayloadDto { Type = AutomatonType.DFA, States = [], Transitions = [] } },
                 new AutomatonExportItemDto { Name = "Second", Content = new AutomatonPayloadDto { Type = AutomatonType.NFA, States = [], Transitions = [] } },
-                new AutomatonExportItemDto { Name = "Third", Content = new AutomatonPayloadDto { Type = AutomatonType.PDA, States = [], Transitions = [] } }
+                new AutomatonExportItemDto { Name = "Third", Content = new AutomatonPayloadDto { Type = AutomatonType.DPDA, States = [], Transitions = [] } }
             ]
         };
 
@@ -796,7 +796,7 @@ public class AutomatonFileServiceGroupTests
                 Name = "State2",
                 ContentJson = JsonSerializer.Serialize(new AutomatonPayloadDto
                 {
-                    Type = AutomatonType.PDA,
+                    Type = AutomatonType.DPDA,
                     States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
                     Transitions = []
                 }),
@@ -844,7 +844,7 @@ public class AutomatonFileServiceGroupTests
                 Name = "ClearState",
                 ContentJson = JsonSerializer.Serialize(new AutomatonPayloadDto
                 {
-                    Type = AutomatonType.PDA,
+                    Type = AutomatonType.DPDA,
                     States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
                     Transitions = []
                 }),

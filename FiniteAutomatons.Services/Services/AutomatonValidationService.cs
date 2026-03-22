@@ -60,8 +60,11 @@ public class AutomatonValidationService(ILogger<AutomatonValidationService> logg
             case AutomatonType.DFA:
                 ValidateDfaRules(model, errors);
                 break;
-            case AutomatonType.PDA:
-                ValidatePdaRules(model, errors);
+            case AutomatonType.DPDA:
+                ValidateDpdaRules(model, errors);
+                break;
+            case AutomatonType.NPDA:
+                ValidateNpdaRules(model, errors);
                 break;
         }
     }
@@ -96,7 +99,7 @@ public class AutomatonValidationService(ILogger<AutomatonValidationService> logg
         }
     }
 
-    private static void ValidatePdaRules(AutomatonViewModel model, List<string> errors)
+    private static void ValidateDpdaRules(AutomatonViewModel model, List<string> errors)
     {
         var grouped = model.Transitions
             .GroupBy(t => new { t.FromStateId, t.Symbol, Stack = t.StackPop ?? '\0' })
@@ -105,8 +108,28 @@ public class AutomatonValidationService(ILogger<AutomatonValidationService> logg
 
         if (grouped.Count > 0)
         {
-            errors.Add("PDA must be deterministic: multiple transitions with same (state, input symbol, stack pop) detected.");
+            errors.Add("DPDA must be deterministic: multiple transitions with same (state, input symbol, stack pop) detected.");
         }
+
+        var epsilonTransitions = model.Transitions.Where(t => t.Symbol == AutomatonSymbolHelper.EpsilonInternal);
+        foreach (var eps in epsilonTransitions)
+        {
+            var conflicts = model.Transitions.Where(t =>
+                t.FromStateId == eps.FromStateId &&
+                t.Symbol != AutomatonSymbolHelper.EpsilonInternal &&
+                (t.StackPop ?? '\0') == (eps.StackPop ?? '\0'));
+
+            if (conflicts.Any())
+            {
+                errors.Add($"DPDA determinism conflict: State {eps.FromStateId} has both an epsilon transition and symbol transitions for stack pop '{eps.StackPop ?? '\0'}'.");
+            }
+        }
+    }
+
+    private static void ValidateNpdaRules(AutomatonViewModel model, List<string> errors)
+    {
+        // NPDA allows nondeterminism, so we only check for identical duplicate transitions
+        // which is already handled by CheckDuplicateTransition during addition.
     }
 
     private static string FormatSymbol(char symbol)
@@ -198,10 +221,10 @@ public class AutomatonValidationService(ILogger<AutomatonValidationService> logg
     {
         logger.LogInformation("Epsilon transition detected");
 
-        if (model.Type != AutomatonType.EpsilonNFA && model.Type != AutomatonType.PDA)
+        if (model.Type != AutomatonType.EpsilonNFA && model.Type != AutomatonType.DPDA && model.Type != AutomatonType.NPDA)
         {
             return (false, AutomatonSymbolHelper.EpsilonInternal,
-                $"Epsilon transitions (ε) are only allowed in Epsilon NFAs or PDAs. Please change the automaton type or use a different symbol.");
+                $"Epsilon transitions (ε) are only allowed in Epsilon NFAs, DPDAs, or NPDAs. Please change the automaton type or use a different symbol.");
         }
 
         return (true, AutomatonSymbolHelper.EpsilonInternal, null);

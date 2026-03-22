@@ -11,7 +11,7 @@ public class PdaTransitionFieldPreservationTests(IntegrationTestsFixture fixture
 {
     private static AutomatonViewModel BuildBalancedParenthesesPda(string input) => new()
     {
-        Type = AutomatonType.PDA,
+        Type = AutomatonType.DPDA,
         States =
         [
             new() { Id = 1, IsStart = true, IsAccepting = true }
@@ -28,17 +28,17 @@ public class PdaTransitionFieldPreservationTests(IntegrationTestsFixture fixture
 
     private static AutomatonViewModel BuildAnBnPda(string input) => new()
     {
-        Type = AutomatonType.PDA,
+        Type = AutomatonType.DPDA,
         States =
         [
-            new() { Id = 1, IsStart = true, IsAccepting = false },
+            new() { Id = 1, IsStart = true, IsAccepting = true },
             new() { Id = 2, IsStart = false, IsAccepting = true }
         ],
         Transitions =
         [
-            new() { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '\0', StackPush = "X" },
-            new() { FromStateId = 1, ToStateId = 1, Symbol = 'b', StackPop = 'X', StackPush = null },
-            new() { FromStateId = 1, ToStateId = 2, Symbol = '\0', StackPop = '\0', StackPush = null }
+            new() { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = null, StackPush = "X" },
+            new() { FromStateId = 1, ToStateId = 2, Symbol = 'b', StackPop = 'X', StackPush = null },
+            new() { FromStateId = 2, ToStateId = 2, Symbol = 'b', StackPop = 'X', StackPush = null }
         ],
         Input = input,
         IsCustomAutomaton = true,
@@ -177,7 +177,7 @@ public class PdaTransitionFieldPreservationTests(IntegrationTestsFixture fixture
         var client = GetHttpClient();
         var model = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States =
             [
                 new() { Id = 1, IsStart = true, IsAccepting = false },
@@ -344,7 +344,7 @@ public class PdaTransitionFieldPreservationTests(IntegrationTestsFixture fixture
         var client = GetHttpClient();
         var model = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States =
             [
                 new() { Id = 1, IsStart = true, IsAccepting = false },
@@ -374,7 +374,7 @@ public class PdaTransitionFieldPreservationTests(IntegrationTestsFixture fixture
         var client = GetHttpClient();
         var model = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
             Transitions =
             [
@@ -400,7 +400,7 @@ public class PdaTransitionFieldPreservationTests(IntegrationTestsFixture fixture
         var client = GetHttpClient();
         var model = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
             Transitions =
             [
@@ -431,11 +431,12 @@ public class PdaTransitionFieldPreservationTests(IntegrationTestsFixture fixture
         var client = GetHttpClient();
         var model = new AutomatonViewModel
         {
-            Type = AutomatonType.PDA,
+            Type = AutomatonType.DPDA,
             States =
             [
                 new() { Id = 1, IsStart = true, IsAccepting = false },
-                new() { Id = 2, IsStart = false, IsAccepting = true }
+                new() { Id = 2, IsStart = false, IsAccepting = false },
+                new() { Id = 3, IsStart = false, IsAccepting = true }
             ],
             Transitions =
             [
@@ -444,9 +445,9 @@ public class PdaTransitionFieldPreservationTests(IntegrationTestsFixture fixture
                 // Multi-char push
                 new() { FromStateId = 1, ToStateId = 1, Symbol = 'b', StackPop = '\0', StackPush = "BC" },
                 // Pop only (null push)
-                new() { FromStateId = 1, ToStateId = 1, Symbol = 'c', StackPop = 'A', StackPush = null },
-                // Epsilon transition with epsilon pop
-                new() { FromStateId = 1, ToStateId = 2, Symbol = '\0', StackPop = '\0', StackPush = null }
+                new() { FromStateId = 1, ToStateId = 2, Symbol = 'c', StackPop = 'A', StackPush = null },
+                // Epsilon transition with epsilon pop (state 2 has no consuming transitions)
+                new() { FromStateId = 2, ToStateId = 3, Symbol = '\0', StackPop = '\0', StackPush = null }
             ],
             Input = "abc",
             IsCustomAutomaton = true,
@@ -460,3 +461,4 @@ public class PdaTransitionFieldPreservationTests(IntegrationTestsFixture fixture
         AssertTransitionFieldsPreserved(html, model);
     }
 }
+

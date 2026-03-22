@@ -50,7 +50,7 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
         if (!IsValid)
             return null;
 
-        if (automaton.Type == AutomatonType.PDA)
+        if (automaton.Type == AutomatonType.DPDA || automaton.Type == AutomatonType.NPDA)
         {
             return GenerateAcceptingStringForPda(automaton, maxLength);
         }
@@ -86,7 +86,9 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
     private string? GenerateAcceptingStringForPda(AutomatonViewModel automaton, int maxLength)
     {
         var alphabet = automaton.Alphabet?.Where(c => c != '\0').ToList() ?? [];
-        var pda = automatonBuilderService.CreatePDA(automaton);
+        var pda = automaton.Type == AutomatonType.DPDA
+            ? (Automaton)automatonBuilderService.CreateDPDA(automaton)
+            : automatonBuilderService.CreateNPDA(automaton);
 
         if (TryEmptyStringForPda(pda))
             return string.Empty;
@@ -94,7 +96,7 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
         return SearchPdaAcceptingString(pda, alphabet, maxLength);
     }
 
-    private bool TryEmptyStringForPda(Core.Models.DoMain.FiniteAutomatons.PDA pda)
+    private bool TryEmptyStringForPda(Automaton pda)
     {
         try
         {
@@ -112,7 +114,7 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
         return false;
     }
 
-    private string? SearchPdaAcceptingString(Core.Models.DoMain.FiniteAutomatons.PDA pda, List<char> alphabet, int maxLength)
+    private string? SearchPdaAcceptingString(Automaton pda, List<char> alphabet, int maxLength)
     {
         for (int len = 1; len <= maxLength; len++)
         {
@@ -130,7 +132,7 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
         return null;
     }
 
-    private bool TryPdaCandidate(Core.Models.DoMain.FiniteAutomatons.PDA pda, string candidate)
+    private bool TryPdaCandidate(Automaton pda, string candidate)
     {
         try
         {
@@ -241,7 +243,7 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
         if (!IsValid)
             return null;
 
-        if (automaton.Type == AutomatonType.PDA)
+        if (automaton.Type == AutomatonType.DPDA || automaton.Type == AutomatonType.NPDA)
         {
             return GenerateRandomAcceptingStringForPda(automaton, minLength, maxLength, maxAttempts, seed);
         }
@@ -362,7 +364,9 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
             return null;
         }
 
-        var pda = automatonBuilderService.CreatePDA(automaton);
+        var pda = automaton.Type == AutomatonType.DPDA
+            ? (Automaton)automatonBuilderService.CreateDPDA(automaton)
+            : automatonBuilderService.CreateNPDA(automaton);
         var random = seed.HasValue ? new Random(seed.Value) : new Random();
 
         var emptyStringFallback = CheckEmptyStringForPda(pda);
@@ -376,7 +380,7 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
         return [.. automaton.Alphabet.Where(c => c != '\0')];
     }
 
-    private string? CheckEmptyStringForPda(Core.Models.DoMain.FiniteAutomatons.PDA pda)
+    private string? CheckEmptyStringForPda(Automaton pda)
     {
         try
         {
@@ -394,7 +398,7 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
         return null;
     }
 
-    private string? TryRandomPdaCandidates(Core.Models.DoMain.FiniteAutomatons.PDA pda, List<char> alphabet,
+    private string? TryRandomPdaCandidates(Automaton pda, List<char> alphabet,
         int minLength, int maxLength, int maxAttempts, Random random)
     {
         for (int attempt = 0; attempt < maxAttempts; attempt++)
@@ -421,7 +425,7 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
         return new string(chars);
     }
 
-    private bool TryPdaCandidateExecution(Core.Models.DoMain.FiniteAutomatons.PDA pda, string candidate, int attempt)
+    private bool TryPdaCandidateExecution(Automaton pda, string candidate, int attempt)
     {
         try
         {
@@ -534,7 +538,7 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
         if (!ValidateAutomatonForRejectingString(automaton, out var alphabet))
             return null;
 
-        if (automaton.Type == AutomatonType.PDA)
+        if (automaton.Type == AutomatonType.DPDA || automaton.Type == AutomatonType.NPDA)
         {
             return GenerateRejectingStringForPda(automaton, alphabet!, maxLength);
         }
@@ -583,7 +587,9 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
     {
         logger.LogInformation("Generating rejecting string for PDA");
 
-        var pda = automatonBuilderService.CreatePDA(automaton);
+        var pda = automaton.Type == AutomatonType.DPDA
+            ? (Automaton)automatonBuilderService.CreateDPDA(automaton)
+            : automatonBuilderService.CreateNPDA(automaton);
 
         var result = SearchPdaRejectingString(pda, alphabet, maxLength);
         if (result != null)
@@ -592,7 +598,7 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
         return GenerateFallbackPdaRejectingString(pda, alphabet, maxLength);
     }
 
-    private string? SearchPdaRejectingString(Core.Models.DoMain.FiniteAutomatons.PDA pda, List<char> alphabet, int maxLength)
+    private string? SearchPdaRejectingString(Automaton pda, List<char> alphabet, int maxLength)
     {
         var strategies = new List<Func<string>>
         {
@@ -645,7 +651,7 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
         return result + alphabet[0];
     }
 
-    private bool TryRejectingCandidate(Core.Models.DoMain.FiniteAutomatons.PDA pda, string candidate)
+    private bool TryRejectingCandidate(Automaton pda, string candidate)
     {
         try
         {
@@ -670,7 +676,7 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
         return false;
     }
 
-    private string? GenerateFallbackPdaRejectingString(Core.Models.DoMain.FiniteAutomatons.PDA pda, List<char> alphabet, int maxLength)
+    private string? GenerateFallbackPdaRejectingString(Automaton pda, List<char> alphabet, int maxLength)
     {
         for (int len = 1; len <= Math.Min(maxLength, 10); len++)
         {
@@ -802,7 +808,7 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
 
     private void AddPdaSpecificCases(AutomatonViewModel automaton, List<(string, string)> cases, int maxLength)
     {
-        if (automaton.Type != AutomatonType.PDA)
+        if (automaton.Type != AutomatonType.DPDA && automaton.Type != AutomatonType.NPDA)
             return;
 
         logger.LogInformation("Adding PDA-specific interesting cases");

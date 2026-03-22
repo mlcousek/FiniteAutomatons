@@ -1,4 +1,4 @@
-﻿@model AutomatonViewModel
+@model AutomatonViewModel
 @if (Model.HasExecuted || Model.Position > 0 || Model.CurrentStateId.HasValue || (Model.CurrentStates != null && Model.CurrentStates.Count > 0))
 {
     <div class="automaton-detail-section execution-state-section" data-panel-id="execution">
@@ -9,7 +9,7 @@
                 <span class="execution-value">@Model.Position / @(Model.Input?.Length ?? 0)</span>
             </div>
 
-            @if (Model.Type == AutomatonType.DFA || Model.Type == AutomatonType.PDA)
+            @if (Model.Type == AutomatonType.DFA || Model.Type == AutomatonType.DPDA || Model.Type == AutomatonType.NPDA)
             {
                 <div class="execution-state-item">
                     <span class="execution-label">Current State:</span>
@@ -95,7 +95,7 @@
                 </span>
             </div>
 
-            @if (Model.Type == AutomatonType.PDA && !string.IsNullOrEmpty(Model.StackSerialized))
+            @if ((Model.Type == AutomatonType.DPDA || Model.Type == AutomatonType.NPDA) && !string.IsNullOrEmpty(Model.StackSerialized))
             {
                 <div class="execution-state-item">
                     <span class="execution-label">Stack:</span>

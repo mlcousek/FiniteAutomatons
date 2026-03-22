@@ -1,4 +1,4 @@
-﻿using FiniteAutomatons.Core.Models.DoMain;
+using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Interfaces;
@@ -37,7 +37,7 @@ public class MockAutomatonGeneratorService : IAutomatonGeneratorService
             IsCustomAutomaton = true
         };
 
-        if (type == AutomatonType.PDA)
+        if (type == AutomatonType.DPDA)
         {
             model.AcceptanceMode = acceptanceMode ?? PDAAcceptanceMode.FinalStateAndEmptyStack;
             model.InitialStackSerialized = initialStack != null ? System.Text.Json.JsonSerializer.Serialize(initialStack.ToList()) : string.Empty;
@@ -64,3 +64,4 @@ public class MockAutomatonGeneratorService : IAutomatonGeneratorService
         return (5, 10, 3, 0.3);
     }
 }
+

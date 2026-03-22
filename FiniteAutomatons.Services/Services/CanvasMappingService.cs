@@ -1,4 +1,4 @@
-﻿using FiniteAutomatons.Core.Models.Api;
+using FiniteAutomatons.Core.Models.Api;
 using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Interfaces;
@@ -9,7 +9,7 @@ public class CanvasMappingService : ICanvasMappingService
 {
     public CanvasSyncResponse BuildSyncResponse(CanvasSyncRequest request)
     {
-        bool isPDA = string.Equals(request.Type, "PDA", StringComparison.OrdinalIgnoreCase);
+        bool isPDA = string.Equals(request.Type, "DPDA", StringComparison.OrdinalIgnoreCase) || string.Equals(request.Type, "NPDA", StringComparison.OrdinalIgnoreCase);
 
         var alphabet = request.Transitions
             .Select(t => ParseSymbol(t.Symbol))
@@ -70,7 +70,8 @@ public class CanvasMappingService : ICanvasMappingService
         {
             "NFA" => AutomatonType.NFA,
             "EPSILONNFA" => AutomatonType.EpsilonNFA,
-            "PDA" => AutomatonType.PDA,
+            "DPDA" => AutomatonType.DPDA,
+            "NPDA" => AutomatonType.NPDA,
             _ => AutomatonType.DFA
         };
 
@@ -81,7 +82,7 @@ public class CanvasMappingService : ICanvasMappingService
             IsAccepting = s.IsAccepting
         }).ToList();
 
-        var isPDA = type == AutomatonType.PDA;
+        var isPDA = type == AutomatonType.DPDA || type == AutomatonType.NPDA;
         var transitions = request.Transitions.Select(t => new Transition
         {
             FromStateId = t.FromStateId,

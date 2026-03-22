@@ -1,4 +1,4 @@
-﻿@model AutomatonViewModel
+@model AutomatonViewModel
 <div class="automaton-detail-section" data-panel-id="transitions">
     <h4>Transitions</h4>
     <div class="transitions-display" id="panel-transitions-list">
@@ -8,7 +8,7 @@
                 @foreach (var transition in Model.Transitions.OrderBy(t => t.FromStateId).ThenBy(t => t.Symbol).ThenBy(t => t.ToStateId))
                 {
                     <li class="transition-item" data-from="@transition.FromStateId" data-to="@transition.ToStateId" data-symbol="@(transition.Symbol == '\0' ? "" : transition.Symbol.ToString())">
-                        @if (Model.Type == AutomatonType.PDA)
+                        @if (Model.Type == AutomatonType.DPDA || Model.Type == AutomatonType.NPDA)
                         {
                             <span class="transition-text">
                                 q@(transition.FromStateId) -- @(transition.Symbol == '\0' ? 'ε' : transition.Symbol.ToString()) \
