@@ -1,10 +1,11 @@
-// Licensed to the .NET Foundation under one or more agreements.
+﻿// Licensed to the .NET Foundation under one or more agreements.
 // The .NET Foundation licenses this file to you under the MIT license.
 #nullable disable
 
 using FiniteAutomatons.Core.Models.Database;
 
 using System;
+using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -13,6 +14,7 @@ using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.Extensions.Configuration;
 
 namespace FiniteAutomatons.Areas.Identity.Pages.Account
 {
@@ -21,11 +23,13 @@ namespace FiniteAutomatons.Areas.Identity.Pages.Account
     {
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IEmailSender _sender;
+        private readonly IConfiguration _configuration;
 
-        public RegisterConfirmationModel(UserManager<ApplicationUser> userManager, IEmailSender sender)
+        public RegisterConfirmationModel(UserManager<ApplicationUser> userManager, IEmailSender sender, IConfiguration configuration)
         {
             _userManager = userManager;
             _sender = sender;
+            _configuration = configuration;
         }
 
         /// <summary>
@@ -46,6 +50,12 @@ namespace FiniteAutomatons.Areas.Identity.Pages.Account
         /// </summary>
         public string EmailConfirmationUrl { get; set; }
 
+        // Indicates that the app is configured to write emails to a pickup directory (development mode)
+        public bool IsPickupDirectoryConfigured { get; set; }
+
+        // Resolved absolute path to the pickup directory when configured
+        public string PickupDirectoryPath { get; set; }
+
         public async Task<IActionResult> OnGetAsync(string email, string returnUrl = null)
         {
             if (email == null)
@@ -63,6 +73,30 @@ namespace FiniteAutomatons.Areas.Identity.Pages.Account
             Email = email;
             // Once you add a real email sender, you should remove this code that lets you confirm the account
             DisplayConfirmAccountLink = true;
+            // Determine pickup directory path for developer feedback when UsePickupDirectory is enabled
+            try
+            {
+                var usePickup = _configuration.GetValue<bool>("Smtp:UsePickupDirectory");
+                IsPickupDirectoryConfigured = usePickup;
+                if (usePickup)
+                {
+                    var configured = _configuration.GetValue<string>("Smtp:PickupDirectory");
+                    var pickup = string.IsNullOrWhiteSpace(configured)
+                        ? Path.Combine(AppContext.BaseDirectory, "emails")
+                        : configured!;
+                    if (!Path.IsPathRooted(pickup))
+                    {
+                        pickup = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, pickup));
+                    }
+                    PickupDirectoryPath = pickup;
+                }
+            }
+            catch
+            {
+                // ignore configuration errors; this is non-critical helper for developer UX
+                IsPickupDirectoryConfigured = false;
+                PickupDirectoryPath = string.Empty;
+            }
             if (DisplayConfirmAccountLink)
             {
                 var userId = await _userManager.GetUserIdAsync(user);

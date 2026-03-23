@@ -261,6 +261,9 @@ public partial class Program
         // Register regex services
         services.AddScoped<IRegexToAutomatonService, RegexToAutomatonService>();
         services.AddSingleton<IRegexPresetService, RegexPresetService>();
+
+        // Email sender (SMTP). Reads settings from configuration 'Smtp' section.
+        services.AddTransient<Microsoft.AspNetCore.Identity.UI.Services.IEmailSender, FiniteAutomatons.Services.Services.SmtpEmailSender>();
     }
 
     private static void ConfigureRequestPipeline(WebApplication app)

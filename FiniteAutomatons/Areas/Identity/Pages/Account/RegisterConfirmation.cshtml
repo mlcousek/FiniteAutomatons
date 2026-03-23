@@ -6,18 +6,34 @@
 
 <h1>@ViewData["Title"]</h1>
 @{
-    if (@Model.DisplayConfirmAccountLink)
+    if (Model.DisplayConfirmAccountLink)
     {
+        @* If the app is configured to write emails to a pickup directory (development), show the resolved path for developer convenience. *@
+        @if (Model.IsPickupDirectoryConfigured)
+        {
 <p>
-    This app does not currently have a real email sender registered, see <a href="https://aka.ms/aspaccountconf">these docs</a> for how to configure a real email sender.
-    Normally this would be emailed: <a id="confirm-link" href="@Model.EmailConfirmationUrl">Click here to confirm your account</a>
-</p>
+                In this environment emails are written to the pickup directory: <strong>@Model.PickupDirectoryPath</strong> <a id="confirm-link" href="@Model.EmailConfirmationUrl">There is a email where this confirmation link is written.</a>
+        </p>
+        }
+        else
+        {
+            <p>
+                This app does not currently have a real email sender registered, see <a href="https://aka.ms/aspaccountconf">these docs</a> for how to configure a real email sender.
+                Normally this would be emailed: <a id="confirm-link" href="@Model.EmailConfirmationUrl">Click here to confirm your account</a>
+            </p>
+        }
     }
     else
     {
 <p>
         Please check your email to confirm your account.
+        @if (Model.IsPickupDirectoryConfigured)
+        {
+            <br />
+                <p>
+                    In this environment emails are written to the pickup directory: <strong>@Model.PickupDirectoryPath</strong>
+                </p>
+        }
 </p>
     }
 }
-
