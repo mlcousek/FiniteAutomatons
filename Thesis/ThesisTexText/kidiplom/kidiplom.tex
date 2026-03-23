@@ -1965,6 +1965,79 @@ Zkušenost z tohoto projektu jasně demonstruje, že investice do kvalitního te
 %% ============================================
 
 \section{Uživatelská dokumentace}
+Tato kapitola slouží jako praktický průvodce pro koncové uživatele aplikace. Popisuje základní ovládací prvky, proces registrace a pokročilé funkce pro správu a sdílení vytvořených automatů.
+
+\subsection{Úvod a první spuštění}
+Aplikace je dostupná skrze webový prohlížeč. Při prvním vstupu do aplikace je uživatel přivítán na hlavní obrazovce simulátoru, která je rozdělena na několik funkčních bloků tak, aby byla zajištěna maximální přehlednost a intuitivnost ovládání. Simulátor je v tomto stavu plně funkční i pro anonymní uživatele, kteří mohou vytvářet, editovat a testovat automaty, avšak bez možnosti jejich trvalého uložení na server.
+
+\subsection{Hlavní obrazovka a vizualizátor}
+Dominantou aplikace je interaktivní pracovní plocha doplněná o ovládací panely. Pro lepší orientaci je hlavní rozhraní (viz Obrázek \ref{fig:main_screen_desc}) rozděleno do sedmi klíčových oblastí:
+
+%\begin{figure}[H]
+%    \centering
+%    % TODO: Změnit na skutečný screenshot s očíslovanými oblastmi (1-7)
+%    \includegraphics[width=1.0\textwidth]{graphics/custom/doc/home_numbered.png}
+%    \caption{Hlavní obrazovka simulátoru s popisy klíčových prvků.}
+%    \label{fig:main_screen_desc}
+%\end{figure}
+
+\begin{enumerate}
+    \item \textbf{Pracovní plocha (Graf):} Centrální interaktivní oblast, kde probíhá vizuální tvorba automatu. Uživatel může pomocí myši nebo dotyku přidávat nové stavy, vytvářet přechody tažením mezi stavy a libovolně měnit jejich pozici. Plocha podporuje intuitivní gesta pro přiblížení (zoom) a posun celého grafu.
+    \item \textbf{Konstrukční panel (Vlevo):} Poskytuje tabulkový pohled na strukturu automatu. Zobrazuje aktuální abecedu, seznam všech definovaných stavů (včetně označení počátečního a koncových stavů) a výčet všech přechodových pravidel. Data v tomto panelu se v reálném čase synchronizují s grafickou plochou.
+    \item \textbf{Panel nástrojů (Nahoře):} Obsahuje ovládací prvky pro globální operace s projektem. Zde se nachází tlačítka pro uložení automatu (pro přihlášené), vytvoření nového projektu, generování náhodného automatu a komplexní export/import dat v souborech formátu JSON nebo textového zápisu. Dále jsou zde nástroje pro automatické zarovnání grafu (Layout) a ovládání historie změn (Zpět/Vpřed).
+    \item \textbf{Vstupní řetězec (Dole vlevo):} Textové pole určené pro zadání řetězce, který chce uživatel v automatu otestovat. Panel obsahuje také generátor, který dokáže na základě struktury automatu automaticky navrhnout krátké přijímané slovo.
+    \item \textbf{Ovládání simulace (Dole vpravo):} Slouží k řízení běhu výpočtu nad zadaným slovem. Umožňuje simulaci spustit, resetovat, nebo ji krokovat směrem vpřed i vzad. Při krokování je aktuální konfigurace automatu (stavy a případně obsah zásobníku) vizuálně zvýrazněna na pracovní ploše.
+    \item \textbf{Výběr typu automatu:} Přepínač mezi různými výpočetními modely (\gls{DKA}, \gls{NKA}, \gls{eNKA}, \gls{DZA}, \gls{NZA}). Změna typu automatu automaticky přizpůsobí dostupné vlastnosti (např. u zásobníkových automatů se odemkne práce se zásobníkovou abecedou).
+    \item \textbf{Panel algoritmů:} Tato sekce se dynamicky mění podle kontextu. U deterministických automatů zde uživatel nalezne tlačítko pro minimalizaci počtu stavů, u jiných typů pak například možnost převodu (determinizace).
+\end{enumerate}
+
+\subsection{Registrace a přihlášení}
+Pro plnohodnotné využití aplikace, zejména pro potřeby dlouhodobého studia nebo týmové spolupráce, je připraven systém uživatelských účtů. Registrace vyžaduje pouze platnou e-mailovou adresu a heslo. Po přihlášení se v horní navigační liště odemknou sekce pro správu vlastních projektů a nástroje pro kolaboraci.
+
+\subsection{Správa vlastních a sdílených automatů}
+Uživatelé s vytvořeným účtem mají k dispozici pokročilé prostředí pro organizaci své práce.
+
+\subsubsection{Vlastní automaty}
+V sekci \uv{Saved Automatons} (viz Obrázek \ref{fig:saved_screen}) uživatel spravuje své uložené modely. 
+%\begin{figure}[H]
+%    \centering
+%    % TODO: Změnit na skutečný screenshot seznamu uložených automatů
+%    \includegraphics[width=0.9\textwidth]{graphics/custom/doc/saved_list.png}
+%    \caption{Přehled uložených automatů s náhledy a možností organizace do složek.}
+%    \label{fig:saved_screen}
+%\end{figure}
+
+Klíčové funkce této sekce zahrnují:
+\begin{itemize}
+    \item \textbf{Organizace do skupin:} Možnost vytvářet složky pro logické členění projektů (např. podle témat cvičení).
+    \item \textbf{Vizuální náhledy:} Každý automat je v seznamu reprezentován miniaturou (thumbnail), která usnadňuje rychlou orientaci bez nutnosti projekt otevírat.
+    \item \textbf{Pokročilý export:} Možnost hromadného exportu celé skupiny automatů do jednoho archivu.
+    \item \textbf{Verzování:} Uživatel si může zvolit, zda chce automat načíst v čistém stavu, nebo včetně posledního testovaného slova a historie výpočtu.
+\end{itemize}
+
+\subsubsection{Sdílené automaty a spolupráce}
+Jedinečnou funkcí aplikace je podpora pro \uv{sdílené skupiny} (Shared Groups). Tato sekce umožňuje více uživatelům pracovat na stejném automatu současně nebo sdílet studijní materiály (viz Obrázek \ref{fig:shared_screen}).
+
+%\begin{figure}[H]
+%    \centering
+%    % TODO: Změnit na skutečný screenshot seznamu sdílených skupin
+%    \includegraphics[width=0.9\textwidth]{graphics/custom/doc/shared_groups.png}
+%    \caption{Prostředí pro správu sdílených skupin a pozvánek k týmové spolupráci.}
+%    \label{fig:shared_screen}
+%\end{figure}
+
+Práce ve skupinách se řídí systémem rolí:
+\begin{itemize}
+    \item \textbf{Vlastník (Owner):} Zakladatel skupiny, má plnou kontrolu nad obsahem i členy.
+    \item \textbf{Správce (Admin):} Může pozývat nové členy a editovat všechny automaty ve skupině.
+    \item \textbf{Editor:} Může vytvářet nové automaty a upravovat ty stávající.
+    \item \textbf{Pozorovatel (Viewer):} Může si automaty pouze prohlížet a spouštět simulace, bez práva na trvalou změnu jejich struktury.
+\end{itemize}
+
+\subsection{Profil a nastavení účtu}
+Uživatel má možnost spravovat své osobní údaje v sekci nastavení profilu. Zde může měnit své přístupové heslo, spravovat dvoufázové ověření v případě potřeby zvýšeného zabezpečení a v případě potřeby provést kompletní odstranění svého účtu a všech s ním spojených dat.
+
+
 
 %% ============================================
 %% KAPITOLA 7: TESTOVÁNÍ A EXPERIMENTY

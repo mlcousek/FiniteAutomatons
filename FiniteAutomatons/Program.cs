@@ -1,9 +1,9 @@
 ﻿using FiniteAutomatons.Core.Models.Database;
 using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Data;
+using FiniteAutomatons.Data.Seeding;
 using FiniteAutomatons.Filters;
 using FiniteAutomatons.Middleware;
-using FiniteAutomatons.Observability;
 using FiniteAutomatons.Services.Interfaces;
 using FiniteAutomatons.Services.Observability;
 using FiniteAutomatons.Services.Services;
@@ -77,6 +77,13 @@ public partial class Program
                 logger.LogError(ex, "Error applying database migrations. The application will continue but database may be out of sync.");
                 // Don't crash the app - let it start and show a friendly error page
             }
+        }
+
+        if (app.Configuration.GetValue<bool>("DemoData:Enabled"))
+        {
+            using var scope = app.Services.CreateScope();
+            var seeder = scope.ServiceProvider.GetRequiredService<DemoDataSeeder>();
+            await seeder.SeedAsync();
         }
 
         ConfigureRequestPipeline(app);
@@ -179,6 +186,9 @@ public partial class Program
 
         // Application services
         RegisterApplicationServices(builder.Services);
+
+        // Demo data seeder (idempotent, enabled via DemoData:Enabled)
+        builder.Services.AddScoped<DemoDataSeeder>();
 
         // register saved automaton service
         builder.Services.AddScoped<ISavedAutomatonService, SavedAutomatonService>();
