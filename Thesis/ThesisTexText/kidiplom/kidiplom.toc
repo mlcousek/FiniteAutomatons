@@ -1,150 +1,150 @@
 \babel@toc {czech}{}\relax 
-\contentsline {section}{\numberline {1}Úvod}{10}{section.1}%
-\contentsline {subsection}{\numberline {1.1}Kontext a motivace}{10}{subsection.1.1}%
-\contentsline {subsection}{\numberline {1.2}Problematika a potřeba řešení}{10}{subsection.1.2}%
-\contentsline {section}{\numberline {2}Teoretický základ}{11}{section.2}%
-\contentsline {subsection}{\numberline {2.1}Formální gramatiky a jazyky}{11}{subsection.2.1}%
-\contentsline {subsection}{\numberline {2.2}Chomského hierarchie}{11}{subsection.2.2}%
-\contentsline {subsection}{\numberline {2.3}Konečné automaty a regulární jazyky}{12}{subsection.2.3}%
-\contentsline {subsubsection}{\numberline {2.3.1}Deterministický konečný automat (\gls {DKA})}{13}{subsubsection.2.3.1}%
-\contentsline {subsubsection}{\numberline {2.3.2}Nedeterministický konečný automat (\gls {NKA})}{13}{subsubsection.2.3.2}%
-\contentsline {subsubsection}{\numberline {2.3.3}Konečný automat s $\varepsilon $-kroky (\gls {eNKA})}{14}{subsubsection.2.3.3}%
-\contentsline {subsection}{\numberline {2.4}Regulární výrazy}{14}{subsection.2.4}%
-\contentsline {subsubsection}{\numberline {2.4.1}Převod regulárního výrazu na konečný automat}{15}{subsubsection.2.4.1}%
-\contentsline {subsection}{\numberline {2.5}Operace nad konečnými automaty}{16}{subsection.2.5}%
-\contentsline {subsubsection}{\numberline {2.5.1}Převod \gls {eNKA} na \gls {NKA}}{16}{subsubsection.2.5.1}%
-\contentsline {subsubsection}{\numberline {2.5.2}Převod \gls {NKA} na \gls {DKA} (Determinizace)}{16}{subsubsection.2.5.2}%
-\contentsline {subsubsection}{\numberline {2.5.3}Minimalizace konečných automatů}{16}{subsubsection.2.5.3}%
-\contentsline {subsection}{\numberline {2.6}Zásobníkové automaty a bezkontextové jazyky}{17}{subsection.2.6}%
-\contentsline {subsubsection}{\numberline {2.6.1}Princip fungování zásobníku}{18}{subsubsection.2.6.1}%
-\contentsline {subsubsection}{\numberline {2.6.2}Akceptační módy zásobníkového automatu}{18}{subsubsection.2.6.2}%
-\contentsline {subsubsection}{\numberline {2.6.3}Odlišná role nedeterminismu a deterministické automaty}{18}{subsubsection.2.6.3}%
-\contentsline {subsubsection}{\numberline {2.6.4}Nedeterministický zásobníkový automat}{19}{subsubsection.2.6.4}%
-\contentsline {paragraph}{\numberline {2.6.4.1}Akceptační módy \gls {NZA} a ekvivalence}{20}{paragraph.2.6.4.1}%
-\contentsline {paragraph}{\numberline {2.6.4.2}Výpočetní síla \gls {NZA} oproti \gls {DZA}}{20}{paragraph.2.6.4.2}%
-\contentsline {section}{\numberline {3}Návrh systému}{20}{section.3}%
-\contentsline {subsection}{\numberline {3.1}Analýza požadavků a cílová skupina}{20}{subsection.3.1}%
-\contentsline {subsubsection}{\numberline {3.1.1}Funkční a nefunkční požadavky}{21}{subsubsection.3.1.1}%
-\contentsline {subsection}{\numberline {3.2}\gls {HTA}}{22}{subsection.3.2}%
-\contentsline {subsection}{\numberline {3.3}Prototypování a návrh UI}{22}{subsection.3.3}%
-\contentsline {subsubsection}{\numberline {3.3.1}Wireframy (Nízká věrnost)}{22}{subsubsection.3.3.1}%
-\contentsline {subsubsection}{\numberline {3.3.2}\gls {hifi} Mockup (Vysoká věrnost)}{23}{subsubsection.3.3.2}%
-\contentsline {section}{\numberline {4}Implementace}{24}{section.4}%
-\contentsline {subsection}{\numberline {4.1}Použité technologie}{24}{subsection.4.1}%
-\contentsline {subsubsection}{\numberline {4.1.1}C\kern -.03em\raise .38ex\hbox {\scriptsize {\#}}{} a .NET 10}{24}{subsubsection.4.1.1}%
-\contentsline {subsubsection}{\numberline {4.1.2}ASP.NET Core 10}{25}{subsubsection.4.1.2}%
-\contentsline {subsubsection}{\numberline {4.1.3}ASP.NET Core Identity}{25}{subsubsection.4.1.3}%
-\contentsline {subsubsection}{\numberline {4.1.4}Entity Framework Core 10 (EF Core)}{25}{subsubsection.4.1.4}%
-\contentsline {subsubsection}{\numberline {4.1.5}Microsoft SQL Server}{26}{subsubsection.4.1.5}%
-\contentsline {subsubsection}{\numberline {4.1.6}Front-endové technologie}{26}{subsubsection.4.1.6}%
-\contentsline {paragraph}{\numberline {4.1.6.1}HTML5}{26}{paragraph.4.1.6.1}%
-\contentsline {paragraph}{\numberline {4.1.6.2}CSS3 \& Bootstrap 5}{27}{paragraph.4.1.6.2}%
-\contentsline {paragraph}{\numberline {4.1.6.3}JavaScript (ES6)}{27}{paragraph.4.1.6.3}%
-\contentsline {subsubsection}{\numberline {4.1.7}Kontejnerizace a orchestrace}{27}{subsubsection.4.1.7}%
-\contentsline {paragraph}{\numberline {4.1.7.1}Docker a Docker Compose}{27}{paragraph.4.1.7.1}%
-\contentsline {paragraph}{\numberline {4.1.7.2}.NET Aspire}{28}{paragraph.4.1.7.2}%
-\contentsline {subsubsection}{\numberline {4.1.8}Doplňkové technologie a knihovny}{28}{subsubsection.4.1.8}%
-\contentsline {paragraph}{\numberline {4.1.8.1}xUnit}{28}{paragraph.4.1.8.1}%
-\contentsline {paragraph}{\numberline {4.1.8.2}Testcontainers}{28}{paragraph.4.1.8.2}%
-\contentsline {paragraph}{\numberline {4.1.8.3}Shouldly}{29}{paragraph.4.1.8.3}%
-\contentsline {paragraph}{\numberline {4.1.8.4}OpenTelemetry}{29}{paragraph.4.1.8.4}%
-\contentsline {paragraph}{\numberline {4.1.8.5}Cytoscape.js, Dagre a Cytoscape-Dagre}{29}{paragraph.4.1.8.5}%
-\contentsline {subsubsection}{\numberline {4.1.9}Vývojové nástroje a prostředí}{29}{subsubsection.4.1.9}%
-\contentsline {paragraph}{\numberline {4.1.9.1}Visual Studio 2026}{29}{paragraph.4.1.9.1}%
-\contentsline {paragraph}{\numberline {4.1.9.2}Docker Desktop}{30}{paragraph.4.1.9.2}%
-\contentsline {paragraph}{\numberline {4.1.9.3}GitHub}{30}{paragraph.4.1.9.3}%
-\contentsline {paragraph}{\numberline {4.1.9.4}GitHub Copilot}{30}{paragraph.4.1.9.4}%
-\contentsline {subsection}{\numberline {4.2}Softwarová architektura a struktura projektů}{30}{subsection.4.2}%
-\contentsline {subsubsection}{\numberline {4.2.1}Dekompozice aplikačního jádra (Layered Architecture)}{31}{subsubsection.4.2.1}%
-\contentsline {subsubsection}{\numberline {4.2.2}Ověřování kvality (Testovací blok)}{32}{subsubsection.4.2.2}%
-\contentsline {subsubsection}{\numberline {4.2.3}Kontejnerizace a Orchestrace (Nasazovací blok)}{32}{subsubsection.4.2.3}%
-\contentsline {subsubsection}{\numberline {4.2.4}Aplikace principů SOLID}{32}{subsubsection.4.2.4}%
-\contentsline {subsubsection}{\numberline {4.2.5}Návrhové vzory a správa závislostí}{33}{subsubsection.4.2.5}%
-\contentsline {paragraph}{\numberline {4.2.5.1}Inverze řízení a Dependency Injection (\gls {di})}{33}{paragraph.4.2.5.1}%
-\contentsline {paragraph}{\numberline {4.2.5.2}Vzor Strategie (Strategy Pattern)}{34}{paragraph.4.2.5.2}%
-\contentsline {paragraph}{\numberline {4.2.5.3}Vzor Dekorátor (Decorator Pattern)}{35}{paragraph.4.2.5.3}%
-\contentsline {subsubsection}{\numberline {4.2.6}Životní cyklus požadavku a Observabilita}{35}{subsubsection.4.2.6}%
-\contentsline {paragraph}{\numberline {4.2.6.1}Vlastní Middleware a Action filtry}{35}{paragraph.4.2.6.1}%
-\contentsline {paragraph}{\numberline {4.2.6.2}Tři pilíře observability}{36}{paragraph.4.2.6.2}%
-\contentsline {subsection}{\numberline {4.3}Implementace matematických algoritmů}{36}{subsection.4.3}%
-\contentsline {subsubsection}{\numberline {4.3.1}Minimalizace deterministického konečného automatu}{36}{subsubsection.4.3.1}%
-\contentsline {paragraph}{\numberline {4.3.1.1}Fáze algoritmu}{36}{paragraph.4.3.1.1}%
-\contentsline {subsubsection}{\numberline {4.3.2}Převod NFA na DFA (Podmnožinová konstrukce)}{41}{subsubsection.4.3.2}%
-\contentsline {paragraph}{\numberline {4.3.2.1}Průběh algoritmu}{41}{paragraph.4.3.2.1}%
-\contentsline {paragraph}{\numberline {4.3.2.2}Složitost}{41}{paragraph.4.3.2.2}%
-\contentsline {subsubsection}{\numberline {4.3.3}Eliminace $\varepsilon $-přechodů (\gls {eNKA} na \gls {NKA})}{42}{subsubsection.4.3.3}%
-\contentsline {paragraph}{\numberline {4.3.3.1}$\varepsilon $-uzávěr}{42}{paragraph.4.3.3.1}%
-\contentsline {paragraph}{\numberline {4.3.3.2}Transformace automatu}{42}{paragraph.4.3.3.2}%
-\contentsline {subsubsection}{\numberline {4.3.4}Thompsonova konstrukce (regulární výraz $\rightarrow $ $\varepsilon $-NFA)}{43}{subsubsection.4.3.4}%
-\contentsline {paragraph}{\numberline {4.3.4.1}Fáze 1: Tokenizace s podporou znakových tříd}{43}{paragraph.4.3.4.1}%
-\contentsline {paragraph}{\numberline {4.3.4.2}Fáze 2: Infix $\rightarrow $ Postfix}{44}{paragraph.4.3.4.2}%
-\contentsline {paragraph}{\numberline {4.3.4.3}Fáze 3: Fragmentová konstrukce $\varepsilon $-NFA}{44}{paragraph.4.3.4.3}%
-\contentsline {subsubsection}{\numberline {4.3.5}Generování náhodných automatů}{44}{subsubsection.4.3.5}%
-\contentsline {paragraph}{\numberline {4.3.5.1}Strategie generování}{45}{paragraph.4.3.5.1}%
-\contentsline {subsubsection}{\numberline {4.3.6}Generování vstupních řetězců}{46}{subsubsection.4.3.6}%
-\contentsline {paragraph}{\numberline {4.3.6.1}Generování přijímaného vstupu (BFS)}{46}{paragraph.4.3.6.1}%
-\contentsline {paragraph}{\numberline {4.3.6.2}Náhodná procházka (Random Walk)}{47}{paragraph.4.3.6.2}%
-\contentsline {paragraph}{\numberline {4.3.6.3}Generování zamítaného vstupu}{47}{paragraph.4.3.6.3}%
-\contentsline {paragraph}{\numberline {4.3.6.4}Souhrnná tabulka složitostí}{47}{paragraph.4.3.6.4}%
-\contentsline {subsection}{\numberline {4.4}Vizualizační systém a interaktivní plátno}{48}{subsection.4.4}%
-\contentsline {subsubsection}{\numberline {4.4.1}Architektura vizualizačního systému}{48}{subsubsection.4.4.1}%
-\contentsline {paragraph}{\numberline {4.4.1.1}Klíčové komponenty}{48}{paragraph.4.4.1.1}%
-\contentsline {subsubsection}{\numberline {4.4.2}Interakce s backendem}{53}{subsubsection.4.4.2}%
-\contentsline {section}{\numberline {5}Zajištění kvality a testování}{54}{section.5}%
-\contentsline {subsection}{\numberline {5.1}Význam testování v moderním vývoji softwaru}{54}{subsection.5.1}%
-\contentsline {subsubsection}{\numberline {5.1.1}Testy jako vývojářská pojistka}{54}{subsubsection.5.1.1}%
-\contentsline {subsection}{\numberline {5.2}Pyramida testů a testovací strategie}{55}{subsection.5.2}%
-\contentsline {subsubsection}{\numberline {5.2.1}Jednotkové testy (Unit Tests) -- Základ pyramidy}{55}{subsubsection.5.2.1}%
-\contentsline {subsubsection}{\numberline {5.2.2}Integrační testy (Integration Tests) -- Střední vrstva}{56}{subsubsection.5.2.2}%
-\contentsline {subsubsection}{\numberline {5.2.3}End-to-End testy (E2E) -- Vrchol pyramidy}{57}{subsubsection.5.2.3}%
-\contentsline {subsection}{\numberline {5.3}Závislosti jako zdroj komplikací}{57}{subsection.5.3}%
-\contentsline {subsection}{\numberline {5.4}Vlastnosti kvalitních testů}{57}{subsection.5.4}%
-\contentsline {subsection}{\numberline {5.5}Kontinuální integrace a automatizace}{58}{subsection.5.5}%
-\contentsline {subsection}{\numberline {5.6}Role testů při práci s umělou inteligencí}{58}{subsection.5.6}%
-\contentsline {subsection}{\numberline {5.7}Závěr kapitoly}{58}{subsection.5.7}%
-\contentsline {section}{\numberline {6}Uživatelská dokumentace}{59}{section.6}%
-\contentsline {subsection}{\numberline {6.1}Úvod a první spuštění}{59}{subsection.6.1}%
-\contentsline {subsection}{\numberline {6.2}Hlavní obrazovka a vizualizátor}{59}{subsection.6.2}%
-\contentsline {subsubsection}{\numberline {6.2.1}Oblast 1 -- Pracovní plocha (Graf)}{59}{subsubsection.6.2.1}%
-\contentsline {paragraph}{\numberline {6.2.1.1}Dialog pro vytvoření nového automatu}{62}{paragraph.6.2.1.1}%
-\contentsline {paragraph}{\numberline {6.2.1.2}Dialog pro generování automatu}{63}{paragraph.6.2.1.2}%
-\contentsline {subsubsection}{\numberline {6.2.2}Oblast 2 -- Konstrukční panel}{64}{subsubsection.6.2.2}%
-\contentsline {subsubsection}{\numberline {6.2.3}Oblast 4 -- Vstupní řetězec}{66}{subsubsection.6.2.3}%
-\contentsline {subsubsection}{\numberline {6.2.4}Oblast 5 -- Ovládání simulace}{67}{subsubsection.6.2.4}%
-\contentsline {subsubsection}{\numberline {6.2.5}Oblast 6 -- Výběr typu automatu a operace minimalizace}{68}{subsubsection.6.2.5}%
-\contentsline {paragraph}{\numberline {6.2.5.1}Přepínač typu automatu (Automaton Type)}{68}{paragraph.6.2.5.1}%
-\contentsline {paragraph}{\numberline {6.2.5.2}Operace minimalizace}{68}{paragraph.6.2.5.2}%
-\contentsline {subsubsection}{\numberline {6.2.6}Změna při zásobníkových automatech}{69}{subsubsection.6.2.6}%
-\contentsline {subsection}{\numberline {6.3}Registrace a přihlášení}{69}{subsection.6.3}%
-\contentsline {subsection}{\numberline {6.4}Správa vlastních a sdílených automatů}{69}{subsection.6.4}%
-\contentsline {subsubsection}{\numberline {6.4.1}Vlastní automaty}{69}{subsubsection.6.4.1}%
-\contentsline {subsubsection}{\numberline {6.4.2}Sdílené automaty a spolupráce}{71}{subsubsection.6.4.2}%
-\contentsline {paragraph}{\numberline {6.4.2.1}Přehled skupin}{71}{paragraph.6.4.2.1}%
-\contentsline {paragraph}{\numberline {6.4.2.2}Detail skupiny a sdílené automaty}{71}{paragraph.6.4.2.2}%
-\contentsline {paragraph}{\numberline {6.4.2.3}Správa členů skupiny}{72}{paragraph.6.4.2.3}%
-\contentsline {subsection}{\numberline {6.5}Profil a nastavení účtu}{73}{subsection.6.5}%
-\contentsline {section}{\numberline {7}Testování a experimenty}{74}{section.7}%
-\contentsline {section}{\numberline {8}Potenciální rozšíření a pokračování}{74}{section.8}%
-\contentsline {subsection}{\numberline {8.1}Funkční rozšíření}{74}{subsection.8.1}%
-\contentsline {subsubsection}{\numberline {8.1.1}Turingovy stroje}{74}{subsubsection.8.1.1}%
-\contentsline {subsubsection}{\numberline {8.1.2}Nedeterministické zásobníkové automaty}{74}{subsubsection.8.1.2}%
-\contentsline {subsubsection}{\numberline {8.1.3}Formální gramatiky}{75}{subsubsection.8.1.3}%
-\contentsline {subsubsection}{\numberline {8.1.4}Ekvivalence automatů}{75}{subsubsection.8.1.4}%
-\contentsline {subsection}{\numberline {8.2}Technická vylepšení}{75}{subsection.8.2}%
-\contentsline {subsubsection}{\numberline {8.2.1}Progressive Web App (PWA)}{75}{subsubsection.8.2.1}%
-\contentsline {subsubsection}{\numberline {8.2.2}Mobilní responsivita}{75}{subsubsection.8.2.2}%
-\contentsline {subsubsection}{\numberline {8.2.3}Collaborative Real-Time Editing}{75}{subsubsection.8.2.3}%
-\contentsline {subsection}{\numberline {8.3}AI asistence}{75}{subsection.8.3}%
-\contentsline {subsubsection}{\numberline {8.3.1}Návrh automatu pomocí přirozeného jazyka}{75}{subsubsection.8.3.1}%
-\contentsline {subsection}{\numberline {8.4}Výzkumný potenciál}{76}{subsection.8.4}%
-\contentsline {section}{Z\'av\v er}{77}{section*.29}%
+\contentsline {section}{\numberline {1}Úvod}{9}{section.1}%
+\contentsline {subsection}{\numberline {1.1}Kontext a motivace}{9}{subsection.1.1}%
+\contentsline {subsection}{\numberline {1.2}Problematika a potřeba řešení}{9}{subsection.1.2}%
+\contentsline {section}{\numberline {2}Teoretický základ}{10}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Formální gramatiky a jazyky}{10}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Chomského hierarchie}{10}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}Konečné automaty a regulární jazyky}{11}{subsection.2.3}%
+\contentsline {subsubsection}{\numberline {2.3.1}Deterministický konečný automat (\gls {DKA})}{12}{subsubsection.2.3.1}%
+\contentsline {subsubsection}{\numberline {2.3.2}Nedeterministický konečný automat (\gls {NKA})}{12}{subsubsection.2.3.2}%
+\contentsline {subsubsection}{\numberline {2.3.3}Konečný automat s $\varepsilon $-kroky (\gls {eNKA})}{13}{subsubsection.2.3.3}%
+\contentsline {subsection}{\numberline {2.4}Regulární výrazy}{13}{subsection.2.4}%
+\contentsline {subsubsection}{\numberline {2.4.1}Převod regulárního výrazu na konečný automat}{14}{subsubsection.2.4.1}%
+\contentsline {subsection}{\numberline {2.5}Operace nad konečnými automaty}{15}{subsection.2.5}%
+\contentsline {subsubsection}{\numberline {2.5.1}Převod \gls {eNKA} na \gls {NKA}}{15}{subsubsection.2.5.1}%
+\contentsline {subsubsection}{\numberline {2.5.2}Převod \gls {NKA} na \gls {DKA} (Determinizace)}{15}{subsubsection.2.5.2}%
+\contentsline {subsubsection}{\numberline {2.5.3}Minimalizace konečných automatů}{15}{subsubsection.2.5.3}%
+\contentsline {subsection}{\numberline {2.6}Zásobníkové automaty a bezkontextové jazyky}{16}{subsection.2.6}%
+\contentsline {subsubsection}{\numberline {2.6.1}Princip fungování zásobníku}{16}{subsubsection.2.6.1}%
+\contentsline {subsubsection}{\numberline {2.6.2}Akceptační módy zásobníkového automatu}{17}{subsubsection.2.6.2}%
+\contentsline {subsubsection}{\numberline {2.6.3}Odlišná role nedeterminismu a deterministické automaty}{17}{subsubsection.2.6.3}%
+\contentsline {subsubsection}{\numberline {2.6.4}Nedeterministický zásobníkový automat}{18}{subsubsection.2.6.4}%
+\contentsline {paragraph}{\numberline {2.6.4.1}Akceptační módy \gls {NZA} a ekvivalence}{18}{paragraph.2.6.4.1}%
+\contentsline {paragraph}{\numberline {2.6.4.2}Výpočetní síla \gls {NZA} oproti \gls {DZA}}{18}{paragraph.2.6.4.2}%
+\contentsline {section}{\numberline {3}Návrh systému}{19}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Analýza požadavků a cílová skupina}{19}{subsection.3.1}%
+\contentsline {subsubsection}{\numberline {3.1.1}Funkční a nefunkční požadavky}{20}{subsubsection.3.1.1}%
+\contentsline {subsection}{\numberline {3.2}\gls {HTA}}{20}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}Prototypování a návrh UI}{21}{subsection.3.3}%
+\contentsline {subsubsection}{\numberline {3.3.1}Wireframy (Nízká věrnost)}{21}{subsubsection.3.3.1}%
+\contentsline {subsubsection}{\numberline {3.3.2}\gls {hifi} Mockup (Vysoká věrnost)}{21}{subsubsection.3.3.2}%
+\contentsline {section}{\numberline {4}Implementace}{22}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Použité technologie}{22}{subsection.4.1}%
+\contentsline {subsubsection}{\numberline {4.1.1}C\kern -.03em\raise .38ex\hbox {\scriptsize {\#}}{} a .NET 10}{23}{subsubsection.4.1.1}%
+\contentsline {subsubsection}{\numberline {4.1.2}ASP.NET Core 10}{23}{subsubsection.4.1.2}%
+\contentsline {subsubsection}{\numberline {4.1.3}ASP.NET Core Identity}{24}{subsubsection.4.1.3}%
+\contentsline {subsubsection}{\numberline {4.1.4}Entity Framework Core 10 (EF Core)}{24}{subsubsection.4.1.4}%
+\contentsline {subsubsection}{\numberline {4.1.5}Microsoft SQL Server}{25}{subsubsection.4.1.5}%
+\contentsline {subsubsection}{\numberline {4.1.6}Front-endové technologie}{25}{subsubsection.4.1.6}%
+\contentsline {paragraph}{\numberline {4.1.6.1}HTML5}{25}{paragraph.4.1.6.1}%
+\contentsline {paragraph}{\numberline {4.1.6.2}CSS3 \& Bootstrap 5}{25}{paragraph.4.1.6.2}%
+\contentsline {paragraph}{\numberline {4.1.6.3}JavaScript (ES6)}{26}{paragraph.4.1.6.3}%
+\contentsline {subsubsection}{\numberline {4.1.7}Kontejnerizace a orchestrace}{26}{subsubsection.4.1.7}%
+\contentsline {paragraph}{\numberline {4.1.7.1}Docker a Docker Compose}{26}{paragraph.4.1.7.1}%
+\contentsline {paragraph}{\numberline {4.1.7.2}.NET Aspire}{26}{paragraph.4.1.7.2}%
+\contentsline {subsubsection}{\numberline {4.1.8}Doplňkové technologie a knihovny}{27}{subsubsection.4.1.8}%
+\contentsline {paragraph}{\numberline {4.1.8.1}xUnit}{27}{paragraph.4.1.8.1}%
+\contentsline {paragraph}{\numberline {4.1.8.2}Testcontainers}{27}{paragraph.4.1.8.2}%
+\contentsline {paragraph}{\numberline {4.1.8.3}Shouldly}{27}{paragraph.4.1.8.3}%
+\contentsline {paragraph}{\numberline {4.1.8.4}OpenTelemetry}{28}{paragraph.4.1.8.4}%
+\contentsline {paragraph}{\numberline {4.1.8.5}Cytoscape.js, Dagre a Cytoscape-Dagre}{28}{paragraph.4.1.8.5}%
+\contentsline {subsubsection}{\numberline {4.1.9}Vývojové nástroje a prostředí}{28}{subsubsection.4.1.9}%
+\contentsline {paragraph}{\numberline {4.1.9.1}Visual Studio 2026}{28}{paragraph.4.1.9.1}%
+\contentsline {paragraph}{\numberline {4.1.9.2}Docker Desktop}{28}{paragraph.4.1.9.2}%
+\contentsline {paragraph}{\numberline {4.1.9.3}GitHub}{29}{paragraph.4.1.9.3}%
+\contentsline {paragraph}{\numberline {4.1.9.4}GitHub Copilot}{29}{paragraph.4.1.9.4}%
+\contentsline {subsection}{\numberline {4.2}Softwarová architektura a struktura projektů}{29}{subsection.4.2}%
+\contentsline {subsubsection}{\numberline {4.2.1}Dekompozice aplikačního jádra (Layered Architecture)}{30}{subsubsection.4.2.1}%
+\contentsline {subsubsection}{\numberline {4.2.2}Ověřování kvality (Testovací blok)}{31}{subsubsection.4.2.2}%
+\contentsline {subsubsection}{\numberline {4.2.3}Kontejnerizace a Orchestrace (Nasazovací blok)}{31}{subsubsection.4.2.3}%
+\contentsline {subsubsection}{\numberline {4.2.4}Aplikace principů SOLID}{31}{subsubsection.4.2.4}%
+\contentsline {subsubsection}{\numberline {4.2.5}Návrhové vzory a správa závislostí}{32}{subsubsection.4.2.5}%
+\contentsline {paragraph}{\numberline {4.2.5.1}Inverze řízení a Dependency Injection (\gls {di})}{32}{paragraph.4.2.5.1}%
+\contentsline {paragraph}{\numberline {4.2.5.2}Vzor Strategie (Strategy Pattern)}{33}{paragraph.4.2.5.2}%
+\contentsline {paragraph}{\numberline {4.2.5.3}Vzor Dekorátor (Decorator Pattern)}{34}{paragraph.4.2.5.3}%
+\contentsline {subsubsection}{\numberline {4.2.6}Životní cyklus požadavku a Observabilita}{34}{subsubsection.4.2.6}%
+\contentsline {paragraph}{\numberline {4.2.6.1}Vlastní Middleware a Action filtry}{34}{paragraph.4.2.6.1}%
+\contentsline {paragraph}{\numberline {4.2.6.2}Tři pilíře observability}{35}{paragraph.4.2.6.2}%
+\contentsline {subsection}{\numberline {4.3}Implementace matematických algoritmů}{35}{subsection.4.3}%
+\contentsline {subsubsection}{\numberline {4.3.1}Minimalizace deterministického konečného automatu}{35}{subsubsection.4.3.1}%
+\contentsline {paragraph}{\numberline {4.3.1.1}Fáze algoritmu}{35}{paragraph.4.3.1.1}%
+\contentsline {subsubsection}{\numberline {4.3.2}Převod NFA na DFA (Podmnožinová konstrukce)}{40}{subsubsection.4.3.2}%
+\contentsline {paragraph}{\numberline {4.3.2.1}Průběh algoritmu}{40}{paragraph.4.3.2.1}%
+\contentsline {paragraph}{\numberline {4.3.2.2}Složitost}{40}{paragraph.4.3.2.2}%
+\contentsline {subsubsection}{\numberline {4.3.3}Eliminace $\varepsilon $-přechodů (\gls {eNKA} na \gls {NKA})}{41}{subsubsection.4.3.3}%
+\contentsline {paragraph}{\numberline {4.3.3.1}$\varepsilon $-uzávěr}{41}{paragraph.4.3.3.1}%
+\contentsline {paragraph}{\numberline {4.3.3.2}Transformace automatu}{41}{paragraph.4.3.3.2}%
+\contentsline {subsubsection}{\numberline {4.3.4}Thompsonova konstrukce (regulární výraz $\rightarrow $ $\varepsilon $-NFA)}{42}{subsubsection.4.3.4}%
+\contentsline {paragraph}{\numberline {4.3.4.1}Fáze 1: Tokenizace s podporou znakových tříd}{42}{paragraph.4.3.4.1}%
+\contentsline {paragraph}{\numberline {4.3.4.2}Fáze 2: Infix $\rightarrow $ Postfix}{43}{paragraph.4.3.4.2}%
+\contentsline {paragraph}{\numberline {4.3.4.3}Fáze 3: Fragmentová konstrukce $\varepsilon $-NFA}{43}{paragraph.4.3.4.3}%
+\contentsline {subsubsection}{\numberline {4.3.5}Generování náhodných automatů}{43}{subsubsection.4.3.5}%
+\contentsline {paragraph}{\numberline {4.3.5.1}Strategie generování}{44}{paragraph.4.3.5.1}%
+\contentsline {subsubsection}{\numberline {4.3.6}Generování vstupních řetězců}{45}{subsubsection.4.3.6}%
+\contentsline {paragraph}{\numberline {4.3.6.1}Generování přijímaného vstupu (BFS)}{45}{paragraph.4.3.6.1}%
+\contentsline {paragraph}{\numberline {4.3.6.2}Náhodná procházka (Random Walk)}{46}{paragraph.4.3.6.2}%
+\contentsline {paragraph}{\numberline {4.3.6.3}Generování zamítaného vstupu}{46}{paragraph.4.3.6.3}%
+\contentsline {paragraph}{\numberline {4.3.6.4}Souhrnná tabulka složitostí}{46}{paragraph.4.3.6.4}%
+\contentsline {subsection}{\numberline {4.4}Vizualizační systém a interaktivní plátno}{47}{subsection.4.4}%
+\contentsline {subsubsection}{\numberline {4.4.1}Architektura vizualizačního systému}{47}{subsubsection.4.4.1}%
+\contentsline {paragraph}{\numberline {4.4.1.1}Klíčové komponenty}{47}{paragraph.4.4.1.1}%
+\contentsline {subsubsection}{\numberline {4.4.2}Interakce s backendem}{52}{subsubsection.4.4.2}%
+\contentsline {section}{\numberline {5}Zajištění kvality a testování}{53}{section.5}%
+\contentsline {subsection}{\numberline {5.1}Význam testování v moderním vývoji softwaru}{53}{subsection.5.1}%
+\contentsline {subsubsection}{\numberline {5.1.1}Testy jako vývojářská pojistka}{53}{subsubsection.5.1.1}%
+\contentsline {subsection}{\numberline {5.2}Pyramida testů a testovací strategie}{54}{subsection.5.2}%
+\contentsline {subsubsection}{\numberline {5.2.1}Jednotkové testy (Unit Tests) -- Základ pyramidy}{54}{subsubsection.5.2.1}%
+\contentsline {subsubsection}{\numberline {5.2.2}Integrační testy (Integration Tests) -- Střední vrstva}{55}{subsubsection.5.2.2}%
+\contentsline {subsubsection}{\numberline {5.2.3}End-to-End testy (E2E) -- Vrchol pyramidy}{56}{subsubsection.5.2.3}%
+\contentsline {subsection}{\numberline {5.3}Závislosti jako zdroj komplikací}{56}{subsection.5.3}%
+\contentsline {subsection}{\numberline {5.4}Vlastnosti kvalitních testů}{56}{subsection.5.4}%
+\contentsline {subsection}{\numberline {5.5}Kontinuální integrace a automatizace}{57}{subsection.5.5}%
+\contentsline {subsection}{\numberline {5.6}Role testů při práci s umělou inteligencí}{57}{subsection.5.6}%
+\contentsline {subsection}{\numberline {5.7}Závěr kapitoly}{57}{subsection.5.7}%
+\contentsline {section}{\numberline {6}Uživatelská dokumentace}{58}{section.6}%
+\contentsline {subsection}{\numberline {6.1}Úvod a první spuštění}{58}{subsection.6.1}%
+\contentsline {subsection}{\numberline {6.2}Hlavní obrazovka a vizualizátor}{58}{subsection.6.2}%
+\contentsline {subsubsection}{\numberline {6.2.1}Oblast 1 -- Pracovní plocha (Graf)}{58}{subsubsection.6.2.1}%
+\contentsline {paragraph}{\numberline {6.2.1.1}Dialog pro vytvoření nového automatu}{61}{paragraph.6.2.1.1}%
+\contentsline {paragraph}{\numberline {6.2.1.2}Dialog pro generování automatu}{62}{paragraph.6.2.1.2}%
+\contentsline {subsubsection}{\numberline {6.2.2}Oblast 2 -- Konstrukční panel}{63}{subsubsection.6.2.2}%
+\contentsline {subsubsection}{\numberline {6.2.3}Oblast 4 -- Vstupní řetězec}{65}{subsubsection.6.2.3}%
+\contentsline {subsubsection}{\numberline {6.2.4}Oblast 5 -- Ovládání simulace}{66}{subsubsection.6.2.4}%
+\contentsline {subsubsection}{\numberline {6.2.5}Oblast 6 -- Výběr typu automatu a operace minimalizace}{67}{subsubsection.6.2.5}%
+\contentsline {paragraph}{\numberline {6.2.5.1}Přepínač typu automatu (Automaton Type)}{67}{paragraph.6.2.5.1}%
+\contentsline {paragraph}{\numberline {6.2.5.2}Operace minimalizace}{67}{paragraph.6.2.5.2}%
+\contentsline {subsubsection}{\numberline {6.2.6}Změna při zásobníkových automatech}{68}{subsubsection.6.2.6}%
+\contentsline {subsection}{\numberline {6.3}Registrace a přihlášení}{68}{subsection.6.3}%
+\contentsline {subsection}{\numberline {6.4}Správa vlastních a sdílených automatů}{68}{subsection.6.4}%
+\contentsline {subsubsection}{\numberline {6.4.1}Vlastní automaty}{68}{subsubsection.6.4.1}%
+\contentsline {subsubsection}{\numberline {6.4.2}Sdílené automaty a spolupráce}{70}{subsubsection.6.4.2}%
+\contentsline {paragraph}{\numberline {6.4.2.1}Přehled skupin}{70}{paragraph.6.4.2.1}%
+\contentsline {paragraph}{\numberline {6.4.2.2}Detail skupiny a sdílené automaty}{70}{paragraph.6.4.2.2}%
+\contentsline {paragraph}{\numberline {6.4.2.3}Správa členů skupiny}{71}{paragraph.6.4.2.3}%
+\contentsline {subsection}{\numberline {6.5}Profil a nastavení účtu}{72}{subsection.6.5}%
+\contentsline {section}{\numberline {7}Testování a experimenty}{73}{section.7}%
+\contentsline {section}{\numberline {8}Potenciální rozšíření a pokračování}{73}{section.8}%
+\contentsline {subsection}{\numberline {8.1}Funkční rozšíření}{73}{subsection.8.1}%
+\contentsline {subsubsection}{\numberline {8.1.1}Turingovy stroje}{73}{subsubsection.8.1.1}%
+\contentsline {subsubsection}{\numberline {8.1.2}Nedeterministické zásobníkové automaty}{73}{subsubsection.8.1.2}%
+\contentsline {subsubsection}{\numberline {8.1.3}Formální gramatiky}{74}{subsubsection.8.1.3}%
+\contentsline {subsubsection}{\numberline {8.1.4}Ekvivalence automatů}{74}{subsubsection.8.1.4}%
+\contentsline {subsection}{\numberline {8.2}Technická vylepšení}{74}{subsection.8.2}%
+\contentsline {subsubsection}{\numberline {8.2.1}Progressive Web App (PWA)}{74}{subsubsection.8.2.1}%
+\contentsline {subsubsection}{\numberline {8.2.2}Mobilní responsivita}{74}{subsubsection.8.2.2}%
+\contentsline {subsubsection}{\numberline {8.2.3}Collaborative Real-Time Editing}{74}{subsubsection.8.2.3}%
+\contentsline {subsection}{\numberline {8.3}AI asistence}{74}{subsection.8.3}%
+\contentsline {subsubsection}{\numberline {8.3.1}Návrh automatu pomocí přirozeného jazyka}{74}{subsubsection.8.3.1}%
+\contentsline {subsection}{\numberline {8.4}Výzkumný potenciál}{75}{subsection.8.4}%
+\contentsline {section}{Z\'av\v er}{76}{section*.27}%
 \babel@toc {czech}{}\relax 
 \babel@toc {czech}{}\relax 
-\contentsline {section}{Conclusions}{78}{section*.31}%
+\contentsline {section}{Conclusions}{77}{section*.29}%
 \babel@toc {english}{}\relax 
 \babel@toc {czech}{}\relax 
-\contentsline {section}{\numberline {A}Návrh uživatelského rozhraní (HCI prezentace)}{79}{appendix.A}%
-\contentsline {section}{\numberline {B}Testování při vývoji softwaru (Integrační testy pomocí testcontainers)}{79}{appendix.B}%
-\contentsline {section}{\numberline {C}Obsah elektronických dat}{79}{appendix.C}%
-\contentsline {section}{Seznam zkratek}{81}{section*.33}%
-\contentsline {section}{Literatura}{82}{section*.34}%
+\contentsline {section}{\numberline {A}Návrh uživatelského rozhraní (HCI prezentace)}{78}{appendix.A}%
+\contentsline {section}{\numberline {B}Testování při vývoji softwaru (Integrační testy pomocí testcontainers)}{78}{appendix.B}%
+\contentsline {section}{\numberline {C}Obsah elektronických dat}{78}{appendix.C}%
+\contentsline {section}{Seznam zkratek}{80}{section*.31}%
+\contentsline {section}{Literatura}{81}{section*.32}%
