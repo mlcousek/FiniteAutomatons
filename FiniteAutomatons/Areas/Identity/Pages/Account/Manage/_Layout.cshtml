@@ -9,19 +9,21 @@
     }
 }
 
-<h1>Manage your account</h1>
-
-<div>
-    <h2>Change your account settings</h2>
-    <hr />
-    <div class="row">
-        <div class="col-md-3">
+<div class="row align-items-start justify-content-center min-vh-50">
+    <div class="col-md-3 d-none d-md-flex align-items-start justify-content-center">
+        <div class="py-4">
             <partial name="_ManageNav" />
         </div>
-        <div class="col-md-9">
+    </div>
+    <div class="col-12 col-md-6 d-flex justify-content-center">
+        <div class="w-100" style="max-width:720px;">
+            <h1 class="text-center mb-1">Manage your account</h1>
+            <h2 class="text-center h4 mb-3">Change your account settings</h2>
+            <hr />
             @RenderBody()
         </div>
     </div>
+    <div class="col-md-3 d-none d-md-block"></div>
 </div>
 
 @section Scripts {

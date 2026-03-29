@@ -54,6 +54,7 @@
 %% práce.
 \usepackage{lipsum}
 \usepackage{longtable}
+\usepackage{subcaption}
 
 
 \usepackage{float} % Pro parametr [H] u tabulek a obrázků
@@ -261,69 +262,6 @@ Pro zadaný deterministický konečný automat $M = (Q, \Sigma, \delta, q_0, F)$
     \item $L(M) = L(M')$ (oba automaty přijímají totožný jazyk),
     \item $M'$ je minimální (neexistuje menší ekvivalentní \gls{DKA}).
 \end{itemize}
-%
-%Pro lepší porozumění celému procesu si ukažme minimalizaci na konkrétním příkladu \cite[cvičení~3.35]{jancar_ti}.
-%
-%\begin{example}[Minimalizace DKA]
-%Mějme deterministický konečný automat zadaný následující přechodovou tabulkou, kde stav 1 je počáteční a stavy 3, 5 a 6 jsou koncové (přijímající):
-%
-%\begin{table}[H]
-%\centering
-%\begin{tabular}{c|cc}
-%\textbf{Stav} & \textbf{a} & \textbf{b} \\ \hline
-%$\rightarrow$ 1 & 2 & 3 \\
-%2 & 2 & 4 \\
-%$\leftarrow$ 3 & 3 & 5 \\
-%4 & 2 & 7 \\
-%$\leftarrow$ 5 & 6 & 3 \\
-%$\leftarrow$ 6 & 6 & 6 \\
-%7 & 7 & 4 \\
-%8 & 2 & 3 \\
-%9 & 9 & 4 \\
-%\end{tabular}
-%\end{table}
-%
-%Aplikujeme algoritmus minimalizace ve dvou krocích:
-%
-%\textbf{Krok 1: Odstranění nedosažitelných stavů} \\
-%Pomocí prohledávání grafu od počátečního stavu 1 zjistíme, které stavy jsou dosažitelné. Z tabulky je patrné, že do stavů 8 a 9 nevede žádný přechod z jiného stavu a ani nelze tyto stavy dosáhnout žádnou posloupností kroků ze stavu 1. Stavy 8 a 9 jsou tedy nedosažitelné a z automatu je trvale odstraníme. Zbývají nám stavy $Q' = \{1, 2, 3, 4, 5, 6, 7\}$.
-%
-%\textbf{Krok 2: Ztotožnění ekvivalentních stavů} \\
-%Nyní zbylé stavy rozdělíme do tříd ekvivalence (rozkladových tříd).
-%V nultém kroku ($R_0$) rozdělíme stavy na množinu nekoncových stavů $I$ a množinu koncových stavů $II$:
-%\begin{itemize}
-%    \item $I = \{1, 2, 4, 7\}$
-%    \item $II = \{3, 5, 6\}$
-%\end{itemize}
-%
-%V dalším kroku ($R_1$) zkoumáme, kam vedou přechody z jednotlivých stavů pro symboly abecedy $a$ a $b$:
-%\begin{itemize}
-%    \item \textbf{Třída I:} Ze stavu 1 vede přechod pro symbol $b$ do stavu 3 (což je třída $II$). Oproti tomu ze stavů 2, 4 a 7 vedou všechny přechody na symbolech $a$ i $b$ pouze do stavů uvnitř třídy $I$. Stav 1 se tedy chová jinak a musí být oddělen. Třída $I$ se rozpadá na dvě nové podtřídy: $A = \{1\}$ a $B = \{2, 4, 7\}$.
-%    \item \textbf{Třída II:} Ze všech stavů 3, 5 a 6 vedou přechody pod oběma symboly vždy jen do stavů patřících do třídy $II$. Tyto stavy jsou mezi sebou nerozlišitelné a zůstávají v jedné třídě, kterou označíme $C = \{3, 5, 6\}$.
-%\end{itemize}
-%
-%Rozklad $R_1$ má tedy třídy $A=\{1\}, B=\{2, 4, 7\}$ a $C=\{3, 5, 6\}$. Pokud bychom zkusili další iteraci, zjistíme, že se již žádná třída nerozpadne. Nalezli jsme ekvivalentní stavy.
-%
-%Výsledný minimální automat vznikne tak, že z každé třídy vytvoříme jeden nový stav. Třída $A$ bude počátečním stavem, třída $C$ bude koncovým stavem. Výsledek ilustruje následující stavový diagram:
-%
-%\begin{figure}[H]
-%    \centering
-%    \begin{tikzpicture}[shorten >=1pt,node distance=3cm,on grid,auto] 
-%       \node[state,initial,initial text={}] (q_A)   {$A$}; 
-%       \node[state] (q_B) [above right=of q_A] {$B$}; 
-%       \node[state,accepting] (q_C) [below right=of q_A] {$C$}; 
-%        
-%       \path[->] 
-%        (q_A) edge  node [above left] {$a$} (q_B)
-%              edge  node [below left] {$b$} (q_C)
-%        (q_B) edge [loop above] node {$a, b$} ()
-%        (q_C) edge [loop below] node {$a, b$} ();
-%    \end{tikzpicture}
-%    \caption{Výsledný minimální DKA ekvivalentní s původním automatem.}
-%\end{figure}
-%
-%Pozn. Lze si všimnout, že minimalizovaný automat velmi elegantně a pouhými třemi stavy rozpoznává jednoduchý jazyk: akceptuje jakékoliv slovo, které začíná symbolem $b$.
-%\end{example}
 
 \subsection{Zásobníkové automaty a bezkontextové jazyky}
 Zatímco konečné automaty poskytují vysoce efektivní rámec pro zpracování regulárních
@@ -997,60 +935,6 @@ private static DFA BuildMinimizedDfa(List<HashSet<int>> partitions,
     return minimizedDfa;
 }
 \end{lstlisting}
-%
-%\textbf{Ilustrativní příklad minimalizace:} Uvažme \gls{DKA} nad abecedou $\Sigma = \{a, b\}$ s pěti stavy znázorněný tabulkou přechodů \ref{tab:min_example_orig}. Stav 1 je počáteční, stavy 2, 3 jsou přijímající.
-%
-%\begin{table}[H]
-%\centering
-%\begin{tabular}{c|cc|c}
-%\textbf{Stav} & \textbf{a} & \textbf{b} & \textbf{Přijímající?} \\ \hline
-%$\rightarrow$ 1 & 2 & 3 & Ne \\
-%2 & 4 & 5 & Ano \\
-%3 & 4 & 5 & Ano \\
-%4 & 4 & 4 & Ne \\
-%5 & 5 & 5 & Ne \\
-%\end{tabular}
-%\caption{Původní DFA před minimalizací}
-%\label{tab:min_example_orig}
-%\end{table}
-%
-%\textbf{Průběh minimalizace:}
-%
-%\textit{Iterace 0 (Inicializace):} Rozdělení na přijímající a nepřijímající: $\Pi_0 = \{\{2, 3\}, \{1, 4, 5\}\}$.
-%
-%\textit{Iterace 1 (První zjemnění):} \\
-%Pro třídu $\{2, 3\}$:
-%\begin{itemize}
-%    \item Stav 2: přechody $a \to 4$ (třída $\{1,4,5\}$), $b \to 5$ (třída $\{1,4,5\}$) $\Rightarrow$ signatura $\langle \{1,4,5\}, \{1,4,5\} \rangle$
-%    \item Stav 3: přechody $a \to 4$, $b \to 5$ $\Rightarrow$ signatura $\langle \{1,4,5\}, \{1,4,5\} \rangle$
-%    \item Signatury shodné $\Rightarrow$ třída zůstává: $\{2, 3\}$
-%\end{itemize}
-%
-%Pro třídu $\{1, 4, 5\}$:
-%\begin{itemize}
-%    \item Stav 1: přechody $a \to 2$ (třída $\{2,3\}$), $b \to 3$ (třída $\{2,3\}$) $\Rightarrow$ signatura $\langle \{2,3\}, \{2,3\} \rangle$
-%    \item Stav 4: přechody $a \to 4$, $b \to 4$ (oba do $\{1,4,5\}$) $\Rightarrow$ signatura $\langle \{1,4,5\}, \{1,4,5\} \rangle$
-%    \item Stav 5: přechody $a \to 5$, $b \to 5$ (oba do $\{1,4,5\}$) $\Rightarrow$ signatura $\langle \{1,4,5\}, \{1,4,5\} \rangle$
-%    \item Signatury rozdílné $\Rightarrow$ rozdělení na: $\{1\}$, $\{4, 5\}$
-%\end{itemize}
-%
-%Výsledný rozklad: $\Pi_1 = \{\{1\}, \{2, 3\}, \{4, 5\}\}$.
-%
-%\textit{Iterace 2 (Kontrola konvergence):} Při další iteraci již žádná třída nesplňuje podmínku pro rozdělení. Algoritmus konverguje: $\Pi_2 = \Pi_1$.
-%
-%\textbf{Výsledný minimální automat} má tři stavy: $q_0 = \{1\}$ (počáteční), $q_1 = \{2, 3\}$ (přijímající), $q_2 = \{4, 5\}$ (nepřijímající). Přechodová tabulka má tvar:
-%
-%\begin{table}[H]
-%\centering
-%\begin{tabular}{c|cc|c}
-%\textbf{Stav} & \textbf{a} & \textbf{b} & \textbf{Přijímající?} \\ \hline
-%$\rightarrow$ $q_0$ & $q_1$ & $q_1$ & Ne \\
-%$q_1$ & $q_2$ & $q_2$ & Ano \\
-%$q_2$ & $q_2$ & $q_2$ & Ne \\
-%\end{tabular}
-%\caption{Minimální DFA (redukce z 5 na 3 stavy, úspora 40 procent)}
-%\label{tab:min_example_result}
-%\end{table}
 
 \subsubsection{Převod NFA na DFA (Podmnožinová konstrukce)}
 Transformace nedeterministického konečného automatu na ekvivalentní deterministický automat je základní operací. Implementace využívá tzv. podmnožinové konstrukce \cite{jancar_ti}.
@@ -1606,18 +1490,6 @@ Na rozdíl od obchodních metrik (které primárně zajímají management a zák
     \item \textbf{Zvýšení sebedůvěry:} Programátor má jistotu, že kód dělá přesně to, co má.
 \end{itemize}
 
-%\subsubsection{Role testů při práci s umělou inteligencí}
-%Vývoj softwaru s asistencí nástrojů umělé inteligence (jako je GitHub Copilot) přináší revoluci v produktivitě, avšak současně zvyšuje riziko zanesení subtilních chyb do kódu. AI modely jsou vynikající v generování syntakticky správného kódu, ale nemohou garantovat jeho sémantickou korektnost v kontextu konkrétní aplikace.
-%
-%V tomto prostředí se automatizované testy stávají \textbf{nepostradatelnou oporou}. Fungují jako:
-%\begin{itemize}
-%    \item \textbf{Validátor AI-generovaného kódu:} Okamžitě odhalí, pokud navržené řešení od AI nesplňuje specifikaci.
-%    \item \textbf{Zpětnovazební smyčka:} Umožňují iterativní zdokonalování AI návrhů -- pokud test selže, lze AI požádat o opravu s konkrétním chybovým výpisem.
-%    \item \textbf{Prevence kognitivního přetížení:} Vývojář se nemusí soustředit na každý detail generovaného kódu; testy automaticky ověří správnost.
-%\end{itemize}
-%
-%Tato diplomová práce byla částečně vyvíjena s využitím GitHub Copilot, přičemž robustní testovací pokrytí zajistilo, že kvalita výsledného softwaru zůstala na vysoké úrovni.
-
 \subsection{Pyramida testů a testovací strategie}
 Pro efektivní a udržitelnou testovací strategii se v softwarovém inženýrství používá koncept \textit{testovací pyramidy} \cite{testing_pyramid}. Ta definuje ideální poměr různých typů testů v projektu.
 
@@ -1693,216 +1565,6 @@ Simulují reálné chování uživatele v produkčním prostředí. Testují apl
 \end{itemize}
 
 \textbf{Příklad z projektu:} Testování scénáře pomocí azure aspire.
-%
-%\subsection{Použité testovací nástroje a frameworky}
-%Pro realizaci testovací strategie byla v projektu nasazena sada specializovaných nástrojů, které pokrývají všechny úrovně testovací pyramidy.
-%
-%\subsubsection{xUnit.net -- Základ jednotkového testování}
-%xUnit je moderní, komunitou podporovaný testovací framework pro platformu .NET. V projektu slouží jako primární nástroj pro psaní a spouštění jednotkových testů.
-%
-%\textbf{Klíčové vlastnosti využité v projektu:}
-%\begin{itemize}
-%    \item \textbf{[Fact] atribut:} Pro jednoduché testy bez parametrů.
-%    \item \textbf{[Theory] + [InlineData]:} Pro parametrizované testy, kdy stejná logika je ověřována na různých vstupních datech.
-%    \item \textbf{Paralelní běh:} xUnit implicitně spouští testy paralelně, což dramaticky zkracuje celkovou dobu běhu testovací sady.
-%\end{itemize}
-%
-%\begin{lstlisting}[caption={Parametrizovaný test s Theory a InlineData}, label={lst:theory_test}]
-%[Theory]
-%[InlineData("a*", "aaaa", true)]
-%[InlineData("a*", "", true)]
-%[InlineData("a+", "a", true)]
-%[InlineData("a+", "", false)]
-%[InlineData("(a|b)*", "abba", true)]
-%public void RegexToAutomaton_VariousPatterns_ShouldAcceptCorrectly(
-%    string regex, string input, bool shouldAccept)
-%{
-%    var service = new RegexToAutomatonService();
-%    var automaton = service.ConvertToAutomaton(regex);
-%    
-%    var result = automaton.Execute(input);
-%    
-%    result.ShouldBe(shouldAccept);
-%}
-%\end{lstlisting}
-%
-%\subsubsection{Shouldly -- Čitelné aserce}
-%Shouldly je aserční knihovna, která radikálně zlepšuje čitelnost testů a diagnostiku selhání.
-%
-%\textbf{Příklad rozdílu:}
-%\begin{lstlisting}[caption={Srovnání xUnit Assert vs Shouldly}, label={lst:shouldly_comparison}]
-%// Tradicni xUnit Assert (mene citelne)
-%Assert.Equal(3, minimized.States.Count);
-%Assert.True(minimized.Execute("ab"));
-%
-%// Shouldly (prirodzeny jazyk)
-%minimized.States.Count.ShouldBe(3);
-%minimized.Execute("ab").ShouldBeTrue();
-%\end{lstlisting}
-%
-%Při selhání Shouldly poskytuje extrémně užitečné chybové zprávy:
-%\begin{verbatim}
-%minimized.States.Count
-%    should be
-%3
-%    but was
-%5
-%\end{verbatim}
-%
-%\subsubsection{Testcontainers -- Reálné databáze v testech}
-%Testcontainers je revoluční knihovna, která umožňuje programově spouštět Docker kontejnery přímo z testovacího kódu. V projektu je využívána pro spouštění izolovaných instancí Microsoft SQL Serveru během integračních testů.
-%
-%%\begin{figure}[H]
-% %   \centering
-%  %  \includegraphics[width=0.8\textwidth]{graphics/custom/testing/testcontainers.png}
-%   % \caption{Architektura Testcontainers -- automatické řízení životního cyklu kontejnerů}
-%    %\label{fig:testcontainers}
-%%\end{figure}
-%
-%\textbf{Výhody oproti in-memory databázím:}
-%\begin{itemize}
-%    \item \textbf{Realističnost:} Testy běží proti skutečnému SQL Serveru, ne simulaci.
-%    \item \textbf{Plná kompatibilita:} Všechny SQL Server specifické funkce (triggery, stored procedures, plné textové vyhledávání) fungují.
-%    \item \textbf{Izolace:} Každá testovací třída dostane vlastní čistou databázi.
-%    \item \textbf{Deterministické očištění:} Po dokončení testů je kontejner automaticky zničen.
-%\end{itemize}
-%
-%\begin{lstlisting}[caption={Inicializace SQL Server kontejneru pro integrační testy}, label={lst:testcontainers_setup}]
-%public sealed class IntegrationTestsFixture : IAsyncLifetime
-%{
-%    private readonly MsSqlContainer _dbContainer;
-%    public string ConnectionString { get; private set; }
-%
-%    public IntegrationTestsFixture()
-%    {
-%        _dbContainer = new MsSqlBuilder()
-%            .WithImage("mcr.microsoft.com/mssql/server:2022-latest")
-%            .WithPassword("StrongP@ssw0rd!")
-%            .Build();
-%    }
-%
-%    public async Task InitializeAsync()
-%    {
-%        await _dbContainer.StartAsync();
-%        ConnectionString = _dbContainer.GetConnectionString();
-%        
-%        // Aplikace migraci
-%        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-%            .UseSqlServer(ConnectionString)
-%            .Options;
-%        await using var context = new ApplicationDbContext(options);
-%        await context.Database.MigrateAsync();
-%    }
-%
-%    public async Task DisposeAsync()
-%    {
-%        await _dbContainer.DisposeAsync();
-%    }
-%}
-%\end{lstlisting}
-%
-%\subsubsection{.NET Aspire a observabilita testů}
-%Pro pokročilé scénáře integračního testování byl využit orchestrátor .NET Aspire, který poskytuje unifikované prostředí pro správu závislostí a sběr telemetrických dat během testů.
-%
-%\textbf{Přínosy:}
-%\begin{itemize}
-%    \item \textbf{Dashboard s real-time metriky:} Vizualizace výkonu testovaných algoritmů.
-%    \item \textbf{Distribuované trasování:} Sledování toku dat přes jednotlivé vrstvy aplikace.
-%    \item \textbf{Strukturované logy:} Automatické propojení logů s kontextem testu.
-%\end{itemize}
-%
-%\subsection{Testovací scénáře a pokrytí}
-%Testovací sada projektu obsahuje přes 150 automatizovaných testů pokrývajících kritické části aplikace. Testy jsou strukturovány do logických celků podle testované funkcionality.
-%
-%\subsubsection{Testování matematických algoritmů}
-%Jádro aplikace -- algoritmy pro transformace automatů -- je pokryto rozsáhlou sadou jednotkových testů.
-%
-%\textbf{Minimalizace DFA:}
-%\begin{itemize}
-%    \item Základní scénáře (typický automat s redundantními stavy).
-%    \item Okrajové případy (automat s jediným stavem, prázdný automat, již minimální automat).
-%    \item Komplexní automaty (nad 50 stavů, hustě propojené).
-%\end{itemize}
-%
-%\textbf{Determinizace NFA:}
-%\begin{itemize}
-%    \item Konverze jednoduchých NFA (do 5 stavů).
-%    \item Exponenciální nárůst stavů (nejhorší případ).
-%    \item Speciální případy (epsilon přechody, self-loops).
-%\end{itemize}
-%
-%\textbf{Thompsonova konstrukce:}
-%\begin{itemize}
-%    \item Základní operátory (konkatenace, alternace, iterace).
-%    \item Vnořené výrazy (závorky, precedence).
-%    \item Rozšířená syntaxe (znakové třídy \texttt{[a-z]}, kvantifikátory \texttt{+}, \texttt{?}).
-%\end{itemize}
-%
-%\begin{lstlisting}[caption={Test komplexního regulárního výrazu}, label={lst:regex_complex_test}]
-%[Fact]
-%public void RegexToAutomaton_ComplexPattern_WithNestedGroups()
-%{
-%    var regex = "((a|b)*c+d?e)+";
-%    var service = new RegexToAutomatonService();
-%    
-%    var automaton = service.ConvertToAutomaton(regex);
-%    
-%    automaton.Execute("ce").ShouldBeTrue();
-%    automaton.Execute("abcde").ShouldBeTrue();
-%    automaton.Execute("ccceabce").ShouldBeTrue();
-%    automaton.Execute("abcd").ShouldBeFalse(); // chybi koncove 'e'
-%}
-%\end{lstlisting}
-%
-%\subsubsection{Integrační testování persistence}
-%Integrační testy ověřují kompletní interakci s databázovou vrstvou.
-%
-%\textbf{Testované scénáře:}
-%\begin{itemize}
-%    \item \textbf{CRUD operace:} Vytvoření, čtení, aktualizace a mazání uložených automatů.
-%    \item \textbf{Sdílení automatů:} Přidávání a odebírání spolupracovníků s různými rolemi (vlastník, editor, pouze pro čtení).
-%    \item \textbf{Versionování:} Ukládání historických verzí automatu při každé změně.
-%    \item \textbf{Transakční integrita:} Rollback při chybě během složité operace.
-%\end{itemize}
-%
-%\begin{lstlisting}[caption={Integrační test pro ukládání a načítání automatu}, label={lst:integration_persistence}]
-%[Fact]
-%public async Task SaveAndLoadAutomaton_ShouldPreserveAllProperties()
-%{
-%    // Arrange
-%    var automaton = CreateComplexDFA();
-%    var userId = "test-user-123";
-%    
-%    // Act: Ulozeni
-%    var savedId = await _service.SaveAutomatonAsync(automaton, userId, "Test DFA");
-%    
-%    // Act: Nacteni z DB
-%    var loaded = await _service.LoadAutomatonAsync(savedId, userId);
-%    
-%    // Assert: Overeni identity
-%    loaded.ShouldNotBeNull();
-%    loaded.States.Count.ShouldBe(automaton.States.Count);
-%    loaded.Transitions.Count.ShouldBe(automaton.Transitions.Count);
-%    loaded.Type.ShouldBe(automaton.Type);
-%    
-%    // Funkcni overeni
-%    var testInputs = new[] { "ab", "aabb", "xyz" };
-%    foreach (var input in testInputs)
-%    {
-%        loaded.Execute(input).ShouldBe(automaton.Execute(input));
-%    }
-%}
-%\end{lstlisting}
-%
-%\subsubsection{End-to-End testování uživatelských scénářů}
-%Pro kritické cesty aplikace byly implementovány E2E testy simulující reálné uživatelské interakce.
-%
-%\textbf{Kritické scénáře:}
-%\begin{enumerate}
-%    \item \textbf{Kompletní workflow:} Vytvoření automatu v GUI $\rightarrow$ simulace vstupu $\rightarrow$ minimalizace $\rightarrow$ uložení $\rightarrow$ export do souboru.
-%    \item \textbf{Regex pipeline:} Zadání regulárního výrazu $\rightarrow$ konverze na automat $\rightarrow$ determinizace $\rightarrow$ testování slov.
-%    \item \textbf{Collaborative editing:} Sdílení automatu s jiným uživatelem $\rightarrow$ souběžné úpravy $\rightarrow$ synchronizace změn.
-%\end{enumerate}
 
 \subsection{Závislosti jako zdroj komplikací}
 Jeden z klíčových principů testovatelného kódu je minimalizace závislostí. Každá externí závislost (databáze, API, souborový systém) exponenciálně zvyšuje komplexitu testování.
@@ -1965,79 +1627,363 @@ Zkušenost z tohoto projektu jasně demonstruje, že investice do kvalitního te
 %% ============================================
 
 \section{Uživatelská dokumentace}
-Tato kapitola slouží jako praktický průvodce pro koncové uživatele aplikace. Popisuje základní ovládací prvky, proces registrace a pokročilé funkce pro správu a sdílení vytvořených automatů.
+Tato kapitola slouží jako praktický průvodce pro koncové uživatele aplikace. Popisuje základní ovládací prvky, jejich chování a vzájemné interakce, jakož i pokročilé funkce pro správu a sdílení vytvořených automatů. Cílem je umožnit uživateli plnohodnotné využití všech možností simulátoru bez nutnosti studia zdrojového kódu nebo technické dokumentace.
+
 
 \subsection{Úvod a první spuštění}
-Aplikace je dostupná skrze webový prohlížeč. Při prvním vstupu do aplikace je uživatel přivítán na hlavní obrazovce simulátoru, která je rozdělena na několik funkčních bloků tak, aby byla zajištěna maximální přehlednost a intuitivnost ovládání. Simulátor je v tomto stavu plně funkční i pro anonymní uživatele, kteří mohou vytvářet, editovat a testovat automaty, avšak bez možnosti jejich trvalého uložení.
+Aplikace je dostupná skrze standardní webový prohlížeč bez nutnosti instalace jakéhokoliv doplňkového softwaru. Při prvním vstupu do aplikace je uživatel přivítán na hlavní obrazovce simulátoru, která je patrná na obrázku~\ref{fig:main_screen_composite}. Rozhraní je navrženo tak, aby bylo intuitivní pro uživatele bez předchozí zkušenosti s nástroji pro teorii formálních jazyků, zároveň však nabízí dostatečnou hloubku funkcí pro pokročilé scénáře. Simulátor je v tomto stavu plně funkční i pro anonymní uživatele -- tito mohou vytvářet, editovat a testovat automaty, avšak bez možnosti jejich trvalého uložení na server.
 
 \subsection{Hlavní obrazovka a vizualizátor}
-Dominantou aplikace je interaktivní pracovní plocha doplněná o ovládací panely. Pro lepší orientaci je hlavní rozhraní (viz Obrázek \ref{fig:main_screen_desc}) rozděleno do sedmi klíčových oblastí:
+Dominantou aplikace je interaktivní pracovní plocha doplněná o sadu ovládacích panelů. Pro lepší orientaci je hlavní rozhraní (viz obrázek~\ref{fig:main_screen_numbers}) rozčleněno do šesti klíčových funkčních oblastí, označených na přiloženém snímku čísly 1 až 6. Sedmá oblast označená číslem 7 odpovídá navigační liště aplikace popsané v sekci~\ref{subsec:registrace}.
 
-%\begin{figure}[H]
-%    \centering
-%    % TODO: Změnit na skutečný screenshot s očíslovanými oblastmi (1-7)
-%    \includegraphics[width=1.0\textwidth]{graphics/custom/doc/home_numbered.png}
-%    \caption{Hlavní obrazovka simulátoru s popisy klíčových prvků.}
-%    \label{fig:main_screen_desc}
-%\end{figure}
 
-\begin{enumerate}
-    \item \textbf{Pracovní plocha (Graf):} Centrální interaktivní oblast, kde probíhá vizuální tvorba automatu. Uživatel může pomocí myši nebo dotyku přidávat nové stavy, vytvářet přechody tažením mezi stavy a libovolně měnit jejich pozici. Plocha podporuje intuitivní gesta pro přiblížení (zoom) a posun celého grafu.
-    \item \textbf{Konstrukční panel (Vlevo):} Poskytuje tabulkový pohled na strukturu automatu. Zobrazuje aktuální abecedu, seznam všech definovaných stavů (včetně označení počátečního a koncových stavů) a výčet všech přechodových pravidel. Data v tomto panelu se v reálném čase synchronizují s grafickou plochou.
-    \item \textbf{Panel nástrojů (Nahoře):} Obsahuje ovládací prvky pro globální operace s projektem. Zde se nachází tlačítka pro uložení automatu (pro přihlášené), vytvoření nového projektu, generování náhodného automatu a komplexní export/import dat v souborech formátu JSON nebo textového zápisu. Dále jsou zde nástroje pro automatické zarovnání grafu (Layout) a ovládání historie změn (Zpět/Vpřed).
-    \item \textbf{Vstupní řetězec (Dole vlevo):} Textové pole určené pro zadání řetězce, který chce uživatel v automatu otestovat. Panel obsahuje také generátor, který dokáže na základě struktury automatu automaticky navrhnout krátké přijímané slovo.
-    \item \textbf{Ovládání simulace (Dole vpravo):} Slouží k řízení běhu výpočtu nad zadaným slovem. Umožňuje simulaci spustit, resetovat, nebo ji krokovat směrem vpřed i vzad. Při krokování je aktuální konfigurace automatu (stavy a případně obsah zásobníku) vizuálně zvýrazněna na pracovní ploše.
-    \item \textbf{Výběr typu automatu:} Přepínač mezi různými výpočetními modely (\gls{DKA}, \gls{NKA}, \gls{eNKA}, \gls{DZA}, \gls{NZA}). Změna typu automatu automaticky přizpůsobí dostupné vlastnosti (např. u zásobníkových automatů se odemkne práce se zásobníkovou abecedou).
-    \item \textbf{Panel algoritmů:} Tato sekce se dynamicky mění podle kontextu. U deterministických automatů zde uživatel nalezne tlačítko pro minimalizaci počtu stavů, u jiných typů pak například možnost převodu (determinizace).
-\end{enumerate}
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[b]{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{graphics/custom/app/homescreen.png}
+        \caption{Hlavní obrazovka simulátoru při prvním spuštění.}
+        \label{fig:main_screen}
+    \end{subfigure}
+    \hfill 
+    \begin{subfigure}[b]{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{graphics/custom/app/homescreen-numbers.png}
+        \caption{Hlavní obrazovka s vyznačením funkčních oblastí.}
+        \label{fig:main_screen_numbers}
+    \end{subfigure}
+    
+    % Hlavní popisek pro celý složený obrázek
+    \caption{Srovnání hlavní obrazovky simulátoru: výchozí stav a popis funkčních oblastí.}
+    \label{fig:main_screen_composite}
+\end{figure}
+\subsubsection{Oblast 1 -- Pracovní plocha (Graf)}
 
-\subsection{Registrace a přihlášení}
-Pro plnohodnotné využití aplikace, zejména pro potřeby dlouhodobého studia nebo týmové spolupráce, je připraven systém uživatelských účtů. Registrace vyžaduje pouze platnou e-mailovou adresu a heslo. Po přihlášení se v horní navigační liště odemknou sekce pro správu vlastních projektů a nástroje pro kolaboraci.
+Centrální a dominantní část rozhraní tvoří interaktivní grafická plocha označovaná jako \emph{Graf} (viz obrázek~\ref{fig:graph_detail}). Tato plocha slouží jako primární prostředek pro vizuální tvorbu a editaci struktury automatu. Každý stav automatu je reprezentován kružnicí s jedinečným identifikátorem (standardně $q_0, q_1, q_2, \ldots$), přičemž počáteční stav je odlišen červeným okrajem a přijímající stav je vizuálně zdůrazněn dvojitou kružnicí s oranžovým zvýrazněním. Přechodová funkce je znázorněna orientovanými hranami (šipkami) opatřenými štítky se symboly, na jejichž základě je přechod vykonán.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\textwidth]{graphics/custom/app/graph.png}
+    \caption{Detail pracovní plochy (Graf) se zobrazením konečného automatu a panelem nástrojů grafu.}
+    \label{fig:graph_detail}
+\end{figure}
+
+Uživatel může s grafem interagovat prostřednictvím myši nebo dotykové obrazovky. Pokud je tlačítko pro povolení úprav vypnuto může uživatel s plátnem dělat následující operace:
+\begin{itemize}
+    \item \textbf{Přiblížení a oddálení:} Po povolení tlačítka pro přibližování myší se pomocí gesta přiblížení prsty nebo kolečka myši lze přizpůsobit úroveň detailu zobrazení. Bez jeho povolení jsou zde tlačítka pro přiblížení a oddálení a také je možný posun pohledu, který provádí tažením prázdnou plochou. 
+        \item \textbf{Přesun stavů:} Při povoleném tlačítku pro posun lze libovolný stav přetáhnout na libovolnou pozici na plátně, hrany se automaticky překreslí.
+\end{itemize}
+Pokud je tlačítko pro povolení úprav zapnuto může uživatel s plátnem dělat následující operace:
+\begin{itemize}
+    \item \textbf{Přidání stavu:} Kliknutí na prázdnou plochu vytvoří nový stav na daném místě.
+    \item \textbf{Odebrání stavu:} Kliknutím na existující stav se uživatel dostane do editačního režimu stavu (jak je vidět na obrázku x). Následným stlačením tlačítka delete se stav smaže i s příslušnýma přechodama.
+    \item \textbf{Změna stavu:} Dojtým kliknutím na nekoncový stav se stav stane koncový. Dvojtým kliknutím na koncový stav se z něj stane stav obyčejný. Trojitým kliknutím na libovolný stav se stav stane počátečním.
+    \item \textbf{Vytvoření přechodu:} Kliknutím na existující stav se uživatel dostane do editačního režimu stavu (jak je vidět na obrázku x). Následným kliknutím na další existující stav se otevře okno pro zadání symbolu přechodu. Po jeho zadání se přechod vytvoří.
+    \item \textbf{Smazání přechodu:} 
+    \item \textbf{Změna přechodu:} Dvojitým kliknutím na existující přechod se uživatle dostane do editačního okna stavu. Zde může libovolně přepsat symboly u existujícího přechodu. 
+\end{itemize}
+
+V horní části grafické plochy se nachází panel nástrojů grafu (viz obrázek~\ref{fig:graph_toolbar}), který sdružuje ovládací prvky pro přímou manipulaci s plátnem a správu projektu. Jednotlivá tlačítka jsou popsána v tabulce~\ref{tab:graph_toolbar}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\textwidth]{graphics/custom/app/edit buttons.png}
+    \caption{Panel nástrojů grafické plochy s ovládacími prvky.}
+    \label{fig:graph_toolbar}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\caption{Popis tlačítek panelu nástrojů grafické plochy.}
+\label{tab:graph_toolbar}
+\begin{tabular}{|c|p{0.65\textwidth}|}
+\hline
+\textbf{Ikona / Název} & \textbf{Funkce} \\
+\hline
+Přiblížit ($+$) & Přiblíží pohled na plátno o jeden krok. \\
+\hline
+Oddálit ($-$) & Oddálí pohled na plátno o jeden krok. \\
+\hline
+Zaměřit & Automaticky nastaví přiblížení a polohu tak, aby byl celý automat viditelný na plátně. \\
+\hline
+Kolečko myši & Přepíná, zda kolečko myši ovládá přiblížení. \\
+\hline
+Reset Layout & Znovu rozmístí všechny stavy do výchozího automatického rozložení a zaměří automat. \\
+\hline
+Uložit & Otevře dialog pro uložení aktuálního automatu na server (dostupné pouze pro přihlášené uživatele). \\
+\hline
+Nový ($+$) & Otevře dialog pro vytvoření nového prázdného automatu zvoleného typu. \\
+\hline
+Generovat & Otevře dialog pro automatické vygenerování nového automatu dle zadaných parametrů. \\
+\hline
+Importovat & Otevře dialog systémového souborového prohlížeče pro nahrání automatu ze souboru ve formátu JSON nebo textového zápisu. \\
+\hline
+Exportovat & Rozbalovací nabídka se třemi možnostmi: export do JSON, export do textového souboru, nebo export do zvoleného formátu včetně aktuální vstupního slovu a v případě již probíhající simulace je zde i možnost uložení stavu simulace. \\ %TODO
+\hline
+Přesun & Přepíná mezi režimem přesouvání stavů je režimem kdy stavy přesouvat nelze. \\
+\hline
+Editace & Přepíná, zda je plátno uzamčeno nebo odemčeno pro editaci. \\
+\hline
+Zpět / Vpřed & Vrátí nebo opakuje poslední akci. \\
+\hline
+\end{tabular}
+\end{table}
+
+\paragraph{Dialog pro vytvoření nového automatu}
+Po stisknutí tlačítka \emph{Nový} se zobrazí modální dialog (viz obrázek~\ref{fig:createnew_modal}), který uživatele nejprve upozorní, že aktuální obsah plátna bude nenávratně odstraněn, pokud nebyl předem uložen. Poté je uživatel vyzván k výběru typu nového automatu (\gls{DKA}, \gls{NKA}, \gls{eNKA}, \gls{DZA} nebo \gls{NZA}). Po potvrzení výběru je na plátno vložen nový automat s jediným počátečním stavem příslušného typu.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\textwidth]{graphics/custom/app/createnew-modal.png}
+    \caption{Dialog pro vytvoření nového automatu s výběrem typu a upozorněním na ztrátu dat.}
+    \label{fig:createnew_modal}
+\end{figure}
+
+\paragraph{Dialog pro generování automatu}
+Tlačítko \emph{Generovat} otevírá dialog (viz obrázek~\ref{fig:generate_modal}), který nabízí tři způsoby generování náhodného automatu:
+
+\begin{itemize}
+    \item \textbf{Rychlé generování ze šablony (Quick Generate):} Uživatel zvolí typ automatu a předdefinovanou šablonu (např.\ \emph{Random DFA}) a klikne na tlačítko \emph{Generate from Preset}. Systém vygeneruje automat podle zvolené šablony s přednastavenými parametry.
+    \item \textbf{Generování s vlastními parametry (Custom Parameters):} Uživatel může explicitně zadat počet stavů, počet přechodů, velikost abecedy a poměr akceptujících stavů (\emph{Accepting Ratio}). Kliknutím na \emph{Generate with Parameters} systém sestrojí automat splňující zadaná kritéria.
+    \item \textbf{Generování na základě regulárních výrazů (From Regular Expression):} 
+\end{itemize} %TODO
+
+Tato funkce je obzvláště užitečná pro výukové účely -- umožňuje rychle generovat rozmanité příklady automatů pro procvičování algoritmů minimalizace nebo determinizace. Také umožňuje jednoduché procvičování regulárních výrazů.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\textwidth]{graphics/custom/app/generateautomaton-modal.png}
+    \caption{Dialog pro generování náhodného automatu s podporou šablon i vlastních parametrů.}
+    \label{fig:generate_modal}
+\end{figure}
+
+\subsubsection{Oblast 2 -- Konstrukční panel} 
+
+Levá část hlavní obrazovky je vyhrazena konstrukčnímu panelu automatu (viz obrázek~\ref{fig:automaton_panel}), který poskytuje textový pohled na celou strukturu aktuálně editovaného automatu. Panel je rozdělen do tří logických sekcí: \textbf{Abeceda} (\emph{Alphabet}), \textbf{Stavy} (\emph{States}) a \textbf{Přechody} (\emph{Transitions}). Další sekce se objevují na základě událostí například \textbf{Přehled aktuální simulace} (\emph{Execution state}) nebo \textbf{Mapování minimalizace} (\emph{Minimalization mapping}) po jejím provedení. Tato přehledná tabulková reprezentace slouží jako záložní zobrazení ke grafické ploše a umožňuje rychlou kontrolu úplnosti a správnosti definice automatu bez nutnosti prohledávat vizuální diagram.
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[b]{0.42\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{graphics/custom/app/automaton.png}
+        \caption{Konstrukční panel v režimu prohlížení.}
+        \label{fig:automaton_panel_view}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.42\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{graphics/custom/app/automaton-edit.png}
+        \caption{Konstrukční panel v režimu editace.}
+        \label{fig:automaton_panel_edit}
+    \end{subfigure}
+    \caption{Konstrukční panel automatu -- srovnání režimu prohlížení a přímé editace.}
+    \label{fig:automaton_panel}
+\end{figure}
+
+Panel pracuje ve dvou odlišných režimech:
+\begin{itemize} %TODO zasobnik
+    \item \textbf{Režim prohlížení (View):} Výchozí stav panelu. Abeceda je zobrazena jako množina symbolů (např.\ $\{a, b\}$). Každý stav je uveden v samostatném řádku s barevnými odznaky indikujícími jeho roli -- zelený odznak \emph{START} označuje počáteční stav, tyrkysový odznak \emph{ACCEPTING} označuje akceptující stav. Přechody jsou zapsány ve formátu $q_i \rightarrow a \rightarrow q_j$, tedy ve tvaru trojice (zdrojový stav, symbol, cílový stav). Pro zásobníkové automaty jsou přechody zapsány ve formátu ... Data v panelu se v reálném čase synchronizují s grafickou plochou a naopak -- jakákoliv změna provedená v grafu se okamžitě projeví i zde.
+
+    \item \textbf{Režim editace (Edit):} Aktivuje se kliknutím na tlačítko \emph{Edit} v záhlaví panelu. V tomto režimu se vedle každého stavu zobrazí interaktivní odznaky \emph{START} a \emph{ACCEPTING}, jejichž kliknutím lze přepínat příslušné příznaky. Zároveň se zobrazí tlačítko pro smazání stavu (červené \texttt{×}) a ve spodní části sekce přechodů přibude formulář pro přidání nového přechodu s poli \emph{From} (zdrojový stav), \emph{To} (cílový stav) a \emph{Symbol} (vstupní symbol). Tlačítko \emph{+ Add State} umožňuje přidat nový stav přímo z panelu bez interakce s plátnem.
+\end{itemize}
+
+\subsubsection{Oblast 4 -- Vstupní řetězec}
+
+V levé části spodního pruhu aplikace se nachází sekce \textbf{INPUT} (viz obrázek~\ref{fig:input_section}), která slouží k zadání vstupního řetězce, jenž bude simulátorem zpracován. Textové pole přijímá libovolnou sekvenci znaků o délce až 100 symbolů. V průběhu simulace je pole přepnuto do režimu pouze pro čtení, aby nedocházelo k nechtěným změnám vstupu při krokování.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.45\textwidth]{graphics/custom/app/input.png}
+    \caption{Sekce pro zadání vstupního řetězce s tlačítkem pro generování testovacích vstupů.}
+    \label{fig:input_section}
+\end{figure}
+
+Vpravo od vstupního pole se nachází tlačítko s ikonou klávesnice, které otevírá dialog pro automatické generování testovacích vstupů (viz obrázek~\ref{fig:input_modal}). Tento dialog nabízí různé strategie generování:
+
+\begin{itemize}
+    \item \textbf{Rychlé generování (Quick Generate):} Tlačítko \emph{Shortest Accepting} vyhledá a vloží nejkratší řetězec, který aktuální automat přijímá. Tlačítko \emph{Rejecting} naopak vygeneruje krátký řetězec, jenž automat odmítne.
+    \item \textbf{Náhodný řetězec (Random String):} Vygeneruje náhodný řetězec délky v zadaném rozmezí (Min Length -- Max Length) bez ohledu na to, zda jej automat přijme, nebo odmítne.
+    \item \textbf{Náhodné přijímané slovo (Random Accepting -- Advanced):} Opakovaně generuje náhodné řetězce v zadaném rozsahu délek a ověřuje je vůči automatu. Po nalezení přijímaného řetězce ho vloží do vstupního pole. Parametr \emph{Max Attempts} určuje maximální počet pokusů hledání; vyšší hodnota zvyšuje pravděpodobnost nalezení přijímaného slova pro automaty s nízkým poměrem akceptujících cest.
+    \item \textbf{Zajímavé případy (Interesting test cases):} Umožňuje vygenerovat zajímavé případy pro daný typ automatu. Například opakující se vstup nebo alternující vstup.
+    \item \textbf{Speciální případy (Special cases):} Při volbě určitých automatů se odemkne i strategie speciálních případů, které například umožňují generovat a testovat nedeterministické případy a nebo případy s epsilon přechody.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\textwidth]{graphics/custom/app/input-modal.png}
+    \caption{Dialog pro automatické generování testovacích vstupních řetězců.}
+    \label{fig:input_modal}
+\end{figure}
+
+\subsubsection{Oblast 5 -- Ovládání simulace}
+
+Centrální část spodního pruhu tvoří sekce \textbf{SIMULATE} (viz obrázek~\ref{fig:simulate_section}), která poskytuje kompletní sadu ovládacích prvků pro řízení průběhu výpočtu automatu nad zadaným vstupním řetězcem. Simulace aktualizuje stav výpočtu a vrátí nové zvýraznění aktivních stavů na plátně.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.6\textwidth]{graphics/custom/app/simulate.png}
+    \caption{Sekce ovládání simulace s tlačítky pro řízení průběhu výpočtu.}
+    \label{fig:simulate_section}
+\end{figure}
+
+Panel obsahuje následující ovládací prvky:
+
+\begin{itemize}
+    \item \textbf{Start:} Zahájí simulaci -- inicializuje výpočet automatu nad zadaným vstupním řetězcem, nastaví počáteční stav a zvýrazní jej na plátně. Po stisknutí se toto tlačítko změní na \emph{Reset}.
+    \item \textbf{Reset:} Ukončí probíhající simulaci a vrátí automat do počátečního stavu shodného s tím před stisknutím \emph{Start}. Vstupní pole se stane opět editovatelným.
+    \item \textbf{To Start:} Přesune ukazatel výpočtu zpět na jeho samý začátek (pozice 0), aniž by simulaci ukončil.
+    \item \textbf{Back:} Provede jeden krok výpočtu zpět, tedy vrátí automat do konfigurace platné před posledním přečteným symbolem.
+    \item \textbf{Next:} Přečte jeden symbol ze vstupního řetězce a provede odpovídající přechod. Aktuálně aktivní stav (nebo množina stavů u nedeterministických modelů) je vizuálně zvýrazněn na plátně. Je-li automat v tomto okamžiku v akceptujícím stavu a vstup je zcela přečten, zobrazí se příslušná informace. 
+    \item \textbf{Read All:} Provede všechny zbývající kroky výpočtu najednou a přeskočí na výsledný stav. Výsledek (přijetí nebo odmítnutí) je zobrazen po dokončení.
+\end{itemize}
+
+Při každém kroku simulace je na grafické ploše vizuálně zvýrazněn aktuální stav (resp.\ aktuální množina stavů u \gls{NKA}, \gls{eNKA} a \gls{NZA}). U zásobníkových automatů je navíc zobrazen aktuální obsah zásobníku. Výsledek simulace je komunikován prostřednictvím barevně odlišeného upozornění -- zelené pro přijetí slova, červené pro odmítnutí.
+
+\subsubsection{Oblast 6 -- Výběr typu automatu a operace minimalizace} \label{subsec:typeandalgos}
+
+Pravá část spodního pruhu sdružuje dvě úzce provázané funkční oblasti: přepínač výpočetního modelu a panel algoritmických transformací (viz obrázek~\ref{fig:type_minimalize}).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\textwidth]{graphics/custom/app/transition-minimalize.png}
+    \caption{Přepínač typu automatu (vlevo) a panel algoritmických operací (vpravo).}
+    \label{fig:type_minimalize}
+\end{figure}
+
+\paragraph{Přepínač typu automatu (Automaton Type)}
+Tato skupina tlačítek zobrazuje aktuální typ automatu a u daným typů umožňuje přepínat mezi typy automatů. Je podporována transformace z \gls{eNKA} na \gls{NKA}, z \gls{eNKA} na \gls{DKA} a z \gls{NKA} na \gls{DKA}.
+
+\paragraph{Operace minimalizace}
+Sekce napravo od přepínače typu se dynamicky přizpůsobuje aktuálně zvolenému modelu. Pokud je aktuální automat \gls{DKA} mohou nastat 2 možnosti. Buďto je možnost minimalizace a tlačítko zobraný počet stavů na který je možno minimalizovat, a nebo tlačítko se zneaktivní a předá informaci, že automat je již minimální. Při ostatních typech automatů zobrazí tlačítko informaci, že pro daný typ minimalizaci nepodporuje.
+
+\subsubsection{Změna při zásobníkových automatech} %TODO
+
+\subsection{Registrace a přihlášení} \label{subsec:registrace}
+
+Pro plnohodnotné využití aplikace, zejména pro potřeby dlouhodobého studia nebo týmové spolupráce, je k dispozici systém uživatelských účtů. Navigační lišta aplikace (viz obrázek~\ref{fig:navbar_comparison}) se dynamicky mění v závislosti na stavu přihlášení uživatele.
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[b]{0.8\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{graphics/custom/app/navbar.png}
+        \caption{Navigační lišta pro nepřihlášeného uživatele s tlačítky Registrace a Přihlášení.}
+        \label{fig:navbar_anon}
+    \end{subfigure}
+    \vspace{0.5em}
+    \begin{subfigure}[b]{0.8\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{graphics/custom/app/navbar-loggedin.png}
+        \caption{Navigační lišta po přihlášení s přístupem ke správě automatů.}
+        \label{fig:navbar_loggedin}
+    \end{subfigure}
+    \caption{Porovnání navigační lišty pro anonymního a přihlášeného uživatele.}
+    \label{fig:navbar_comparison}
+\end{figure}
+%TODO dopracovat email nebo pridat poznamku
+Nepřihlášený uživatel vidí v pravé části lišty tlačítka \emph{Register} a \emph{Login}. Registrace vyžaduje pouze platnou e-mailovou adresu a zvolené heslo; systém odesílá na zadanou adresu ověřovací e-mail pro potvrzení identity. Po úspěšném přihlášení se lišta rozšíří o navigační položky \emph{Home} (hlavní obrazovka), \emph{Saved Automatons} (správa vlastních uložených automatů) a \emph{Shared Automatons} (sdílené skupiny a kolaborace). V pravém rohu lišty je k dispozici ikona uživatelského profilu pro přístup do nastavení účtu a tlačítko odhlášení.
 
 \subsection{Správa vlastních a sdílených automatů}
-Uživatelé s vytvořeným účtem mají k dispozici pokročilé prostředí pro organizaci své práce.
+Uživatelé s vytvořeným účtem mají k dispozici pokročilé prostředí pro organizaci své práce, přístupné z navigační lišty.
 
 \subsubsection{Vlastní automaty}
-V sekci \uv{Saved Automatons} (viz Obrázek \ref{fig:saved_screen}) uživatel spravuje své uložené modely. 
-%\begin{figure}[H]
-%    \centering
-%    % TODO: Změnit na skutečný screenshot seznamu uložených automatů
-%    \includegraphics[width=0.9\textwidth]{graphics/custom/doc/saved_list.png}
-%    \caption{Přehled uložených automatů s náhledy a možností organizace do složek.}
-%    \label{fig:saved_screen}
-%\end{figure}
 
-Klíčové funkce této sekce zahrnují:
+Sekce \emph{Saved Automatons}, přístupná z navigační lišty, slouží jako osobní knihovna uložených automatů přihlášeného uživatele (viz obrázek~\ref{fig:saved_overview}). Každý automat je zobrazen jako samostatná karta obsahující zvětšovací miniaturu automatu, název, textový popis a datum vytvoření. Je-li automat zařazen do jedné nebo více skupin, jsou tyto skupiny uvedeny.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{graphics/custom/app/saved.png}
+    \caption{Přehled uložených automatů s dostupnými akcemi pro každou položku.}
+    \label{fig:saved_overview}
+\end{figure}
+
+U každého automatu jsou k dispozici následující akce, jejichž dostupnost závisí na způsobu uložení daného automatu:
+
 \begin{itemize}
-    \item \textbf{Organizace do skupin:} Možnost vytvářet složky pro logické členění projektů (např. podle témat cvičení).
-    \item \textbf{Vizuální náhledy:} Každý automat je v seznamu reprezentován miniaturou (thumbnail), která usnadňuje rychlou orientaci bez nutnosti projekt otevírat.
-    \item \textbf{Pokročilý export:} Možnost hromadného exportu celé skupiny automatů do jednoho archivu.
-    \item \textbf{Verzování:} Uživatel si může zvolit, zda chce automat načíst v čistém stavu, nebo včetně posledního testovaného slova a historie výpočtu.
+    \item \textbf{Load} -- Načte automat na pracovní plochu simulátoru. 
+    \item \textbf{Load with Input} -- Načte automat spolu s naposledy uloženým vstupním řetězcem, takže je ihned připraven k simulaci.
+    \item \textbf{Load as State} -- Načte uložený stav simulace.
+    \item \textbf{Export} -- Stáhne automat do lokálního souboru ve zvoleném formátu.
+    \item \textbf{Share} -- Otevře dialog pro sdílení automatu do sdílené skupiny.
+    \item \textbf{Add to Group} -- Zařadí automat do některé z existujících skupin uživatele.
+    \item \textbf{Delete} -- Trvale odstraní automat.
 \end{itemize}
+
+V pravém horním rohu stránky se nachází tlačítko \emph{Create Group}, které umožňuje vytvořit novou skupinu pro organizaci automatů. Pro filtrování zobrazených automatů slouží rozevírací nabídka \emph{Filter by group} v levé části záhlaví. Po výběru konkrétní skupiny (viz obrázek~\ref{fig:saved_group}) se zobrazí pouze automaty do ní zařazené a záhlaví se rozšíří o tlačítka pro správu skupiny -- \emph{Export Group} (export celé skupiny do souboru), \emph{Import Group} (import skupiny ze souboru) a \emph{Delete Group} (smazání skupiny, přičemž samotné automaty zůstanou zachovány). Automat lze ze skupiny odebrat tlačítkem \emph{Remove from Group}, které se u položek v rámci filtrovaného zobrazení zobrazí namísto tlačítka \emph{Add to Group}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{graphics/custom/app/saved_group.png}
+    \caption{Zobrazení uložených automatů filtrovaných podle skupiny s rozšířenými možnostmi správy skupiny.}
+    \label{fig:saved_group}
+\end{figure}
+
 
 \subsubsection{Sdílené automaty a spolupráce}
-Jedinečnou funkcí aplikace je podpora pro \uv{sdílené skupiny} (Shared Groups). Tato sekce umožňuje více uživatelům pracovat na stejném automatu současně nebo sdílet studijní materiály (viz Obrázek \ref{fig:shared_screen}).
 
-%\begin{figure}[H]
-%    \centering
-%    % TODO: Změnit na skutečný screenshot seznamu sdílených skupin
-%    \includegraphics[width=0.9\textwidth]{graphics/custom/doc/shared_groups.png}
-%    \caption{Prostředí pro správu sdílených skupin a pozvánek k týmové spolupráci.}
-%    \label{fig:shared_screen}
-%\end{figure}
+Sekce \emph{Shared Automatons}, přístupná z navigační lišty, je určena pro týmovou spolupráci a sdílení sbírek automatů mezi více uživateli. Prostředí je organizováno do skupin -- každá skupina tvoří sdílený prostor, do nějž mohou přispívat a odkud mohou čerpat všichni její členové.
 
-Práce ve skupinách se řídí systémem rolí:
+\paragraph{Přehled skupin}
+Po otevření sekce uvidí uživatel seznam všech skupin, jichž je členem (viz obrázek~\ref{fig:shared_overview}). Každá skupina je označena názvem, popisem a informací o vlastníkovi. Uživatel může být v roli \textbf{vlastníka} (Owner), \textbf{editora} (Editor), \textbf{přispěvatele} (Contributor) nebo \textbf{pozorovatele} (Viewer); dostupné akce se odvíjejí od přidělené role.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\textwidth]{graphics/custom/app/shared.png}
+    \caption{Přehled sdílených skupin s dostupnými akcemi podle role uživatele.}
+    \label{fig:shared_overview}
+\end{figure}
+
+Pro každou skupinu jsou k dispozici tlačítka \emph{Open Group} (otevření skupiny a prohlížení jejího obsahu) a \emph{Leave Group} (opuštění skupiny). Vlastník skupiny navíc vidí tlačítko \emph{Manage Members} pro správu členů a \emph{Delete Group} pro trvalé smazání skupiny. Novou skupinu lze vytvořit tlačítkem \emph{+ Create Group} v pravém horním rohu stránky.
+
+\paragraph{Detail skupiny a sdílené automaty}
+Po otevření skupiny se zobrazí seznam automatů, které do ní byly přidány kterýmkoliv z členů (viz obrázky~\ref{fig:shared_group_member} a~\ref{fig:shared_group_owner}). U každého automatu je uveden jeho název, popis, autor a datum přidání. Podle přidělené role jsou dostupné akce \emph{Load} (načtení automatu na plátno), \emph{Load with input} (načtení automatu se vstupem), \emph{Load as state} (načtení automatu v daném uloženém stavu) a \emph{Export} (stažení do souboru). Vlastník skupiny a editor mají navíc možnost konkrétní automat ze skupiny odebrat tlačítkem \emph{Delete}. Vlastník skupiny může rovněž importovat automaty ze souboru přímo do skupiny prostřednictvím tlačítka \emph{Import Group} a celou skupinu exportovat pomocí \emph{Export Group}.
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[b]{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{graphics/custom/app/shared-group.png}
+        \caption{Detail skupiny z pohledu člena (role Viewer) -- dostupné jsou pouze akce Load a Export.}
+        \label{fig:shared_group_member}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.49\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{graphics/custom/app/shared-mygroup.png}
+        \caption{Detail skupiny z pohledu vlastníka -- dostupné jsou plné akce včetně Delete a Import.}
+        \label{fig:shared_group_owner}
+    \end{subfigure}
+    \caption{Srovnání detailu sdílené skupiny z pohledu různých rolí.}
+    \label{fig:shared_group}
+\end{figure}
+
+\paragraph{Správa členů skupiny}
+Vlastník skupiny má přístup k obrazovce správy členů (viz obrázek~\ref{fig:shared_manage_members}), kterou otevře tlačítkem \emph{Manage Members} v přehledu skupin nebo \emph{Manage Members} přímo v detailu skupiny. Tato obrazovka zobrazuje seznam všech aktuálních členů včetně jejich rolí, data přidání a informaci o tom, kdo je pozval. Roli libovolného člena může vlastník kdykoliv změnit prostřednictvím rozevírací nabídky v příslušném řádku, nebo ho skupiny zcela odebrat tlačítkem \emph{Remove}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{graphics/custom/app/shared-manage-members.png}
+    \caption{Obrazovka správy členů sdílené skupiny s přehledem rolí, čekajících pozvánek a sdíleného odkazu.}
+    \label{fig:shared_manage_members}
+\end{figure}
+
+Nové členy lze přizvat dvěma způsoby:
 \begin{itemize}
-    \item \textbf{Vlastník (Owner):} Zakladatel skupiny, má plnou kontrolu nad obsahem i členy.
-    \item \textbf{Správce (Admin):} Může pozývat nové členy a editovat všechny automaty ve skupině.
-    \item \textbf{Editor:} Může vytvářet nové automaty a upravovat ty stávající.
-    \item \textbf{Pozorovatel (Viewer):} Může si automaty pouze prohlížet a spouštět simulace, bez práva na trvalou změnu jejich struktury.
+    \item \textbf{Pozvánka e-mailem:} Tlačítko \emph{Invite Member} otevře formulář, kde vlastník zadá e-mailovou adresu pozvaného uživatele a vybere mu roli. Systém odešle pozvánku s platností jednoho týdne; dokud ji pozvaný nepřijme, je zobrazena v sekci \emph{Pending Invitations} s možností ji stornovat tlačítkem \emph{Cancel}.
+    \item \textbf{Sdílený odkaz (Shareable Invite Link):} Vlastník může vygenerovat sdílený odkaz, který po rozeslání umožní komukoliv se s jeho pomocí přímo přidat do skupiny. Odkaz je zobrazen v sekci \emph{Shareable Invite Link} a lze jej zkopírovat do schránky tlačítkem \emph{Copy}. Pro deaktivaci odkazu slouží tlačítko \emph{Deactivate Link}, čímž se zabrání dalšímu přidávání nových členů touto cestou.
 \end{itemize}
 
+
 \subsection{Profil a nastavení účtu}
-Uživatel má možnost spravovat své osobní údaje v sekci nastavení profilu. Zde může měnit své přístupové heslo, spravovat dvoufázové ověření v případě potřeby zvýšeného zabezpečení a v případě potřeby provést kompletní odstranění svého účtu a všech s ním spojených dat.
 
+Nastavení uživatelského účtu je přístupné kliknutím na ikonu profilu v pravém rohu navigační lišty. Stránka \emph{Manage your account} je rozdělena do čtyř kategorií přístupných prostřednictvím bočního menu: \textbf{Email}, \textbf{Password}, \textbf{Notifications} a \textbf{Personal data}.
 
+\begin{itemize}
+    \item \textbf{Email} -- Umožňuje změnit přihlašovací e-mailovou adresu. Po zadání nové adresy je na ni odeslán ověřovací e-mail. Změna se projeví až po jeho potvrzení.
+    \item \textbf{Password} -- Formulář pro změnu hesla. Uživatel musí zadat stávající heslo a následně zvolit a potvrdit nové.
+    \item \textbf{Notifications} -- Správa preferencí oznámení.Zde je k dispozici přepínač \emph{Group Invitation Notifications}: je-li aktivní, systém zobrazí upozornění při příštím přihlášení v případě, že na uživatele čeká nevyřízená pozvánka do skupiny. Nastavení se uloží tlačítkem \emph{Save Preferences}.
+    \item \textbf{Personal data} -- Sekce obsahující možnosti správy osobních údajů v souladu s požadavky na ochranu soukromí, včetně případné možnosti trvalého smazání účtu.
+\end{itemize}
 
 %% ============================================
 %% KAPITOLA 7: TESTOVÁNÍ A EXPERIMENTY

@@ -1,9 +1,23 @@
 ﻿@inject SignInManager<ApplicationUser> SignInManager
 @{
 }
-<ul class="nav nav-pills flex-column">
-    <li class="nav-item"><a class="nav-link @ManageNavPages.EmailNavClass(ViewContext)" id="email" asp-page="./Email">Email</a></li>
-    <li class="nav-item"><a class="nav-link @ManageNavPages.ChangePasswordNavClass(ViewContext)" id="change-password" asp-page="./ChangePassword">Password</a></li>
-    <li class="nav-item"><a class="nav-link @ManageNavPages.NotificationsNavClass(ViewContext)" id="notifications" asp-page="./Notifications">Notifications</a></li>
-    <li class="nav-item"><a class="nav-link @ManageNavPages.PersonalDataNavClass(ViewContext)" id="personal-data" asp-page="./PersonalData">Personal data</a></li>
-</ul>
+<div class="w-100 d-flex justify-content-center">
+    <div class="list-group shadow-sm rounded" style="background:#f3f4f6; max-width:220px; width:100%;">
+        <a asp-page="./Email" id="email"
+           class="list-group-item list-group-item-action border-0 @(ManageNavPages.EmailNavClass(ViewContext) == "active" ? "bg-secondary text-white" : "bg-transparent text-dark")">
+            Email
+        </a>
+        <a asp-page="./ChangePassword" id="change-password"
+           class="list-group-item list-group-item-action border-0 @(ManageNavPages.ChangePasswordNavClass(ViewContext) == "active" ? "bg-secondary text-white" : "bg-transparent text-dark")">
+            Password
+        </a>
+        <a asp-page="./Notifications" id="notifications"
+           class="list-group-item list-group-item-action border-0 @(ManageNavPages.NotificationsNavClass(ViewContext) == "active" ? "bg-secondary text-white" : "bg-transparent text-dark")">
+            Notifications
+        </a>
+        <a asp-page="./PersonalData" id="personal-data"
+           class="list-group-item list-group-item-action border-0 @(ManageNavPages.PersonalDataNavClass(ViewContext) == "active" ? "bg-secondary text-white" : "bg-transparent text-dark")">
+            Personal data
+        </a>
+    </div>
+</div>
