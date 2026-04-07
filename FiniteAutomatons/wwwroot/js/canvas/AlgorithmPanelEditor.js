@@ -1,4 +1,4 @@
-﻿/**
+/**
  * AlgorithmPanelEditor.js
  */
 export class AlgorithmPanelEditor {
@@ -125,6 +125,10 @@ export class AlgorithmPanelEditor {
                 freshStart.addEventListener('click', (e) => {
                     e.stopPropagation();
                     const currentVal = li.getAttribute('data-is-start') === 'true';
+                    if (currentVal) {
+                        console.log('Cannot remove start state. Automaton must have at least one starting state.');
+                        return;
+                    }
                     this._emitStateModified(stateId, 'isStart', !currentVal);
                 });
             }
@@ -174,7 +178,8 @@ export class AlgorithmPanelEditor {
         const container = document.getElementById(this.transitionsContainerId);
         if (!container) return;
 
-        const isPDA = this.automatonType === 'PDA';
+        const isPDA = ['PDA', 'DPDA', 'NPDA'].includes(this.automatonType);
+        const allowEpsilon = ['EpsilonNFA', 'PDA', 'DPDA', 'NPDA'].includes(this.automatonType);
 
         const existingItems = container.querySelectorAll('li.transition-item');
         existingItems.forEach((li, index) => {
@@ -200,17 +205,19 @@ export class AlgorithmPanelEditor {
 
         // Add "Add Transition" form at bottom if not already present
         if (!container.querySelector('[data-panel-add-transition]')) {
-            const form = this._buildAddTransitionForm(isPDA);
+            const form = this._buildAddTransitionForm();
             container.appendChild(form);
         }
     }
 
-    _buildAddTransitionForm(isPDA) {
+    _buildAddTransitionForm() {
         const wrapper = document.createElement('div');
         wrapper.className = 'panel-add-transition-form panel-edit-ctrl';
         wrapper.setAttribute('data-panel-edit-control', 'true');
         wrapper.setAttribute('data-panel-add-transition', 'true');
 
+        const isPDA = ['PDA', 'DPDA', 'NPDA'].includes(this.automatonType);
+        const allowEpsilon = ['EpsilonNFA', 'PDA', 'DPDA', 'NPDA'].includes(this.automatonType);
         const isEpsilonNFA = this.automatonType === 'EpsilonNFA';
 
         wrapper.innerHTML = `
@@ -263,6 +270,13 @@ export class AlgorithmPanelEditor {
 
             if (isNaN(fromId) || isNaN(toId)) {
                 this._showValidationError(wrapper, 'Please enter valid From and To state IDs.');
+                return;
+            }
+
+            // Block epsilon when not allowed (DFA, NFA)
+            const isEpsilonInput = symRaw === '' || symRaw === 'ε' || symRaw === 'epsilon' || symRaw === '\\0';
+            if (isEpsilonInput && !allowEpsilon) {
+                this._showValidationError(wrapper, 'ε transitions are not allowed for this automaton type.');
                 return;
             }
 

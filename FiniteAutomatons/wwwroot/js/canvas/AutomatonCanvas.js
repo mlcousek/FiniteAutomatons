@@ -1,4 +1,4 @@
-﻿import { AutomatonRenderer } from './AutomatonRenderer.js';
+import { AutomatonRenderer } from './AutomatonRenderer.js';
 import { LayoutEngine } from './LayoutEngine.js';
 import { CanvasInteractionHandler } from './CanvasInteractionHandler.js';
 import { EditModeManager } from './EditModeManager.js';
@@ -610,7 +610,7 @@ export class AutomatonCanvas {
         const symbol   = transition.symbol ?? '\0';
         const stackPop  = transition.stackPop  ?? null;
         const stackPush = transition.stackPush ?? null;
-        const isPDA     = this.automatonType === 'PDA';
+        const isPDA = ['PDA', 'DPDA', 'NPDA'].includes(this.automatonType);
 
         this.transitionEditor.addTransitionDirect(
             sourceNode,
@@ -648,8 +648,52 @@ export class AutomatonCanvas {
             return;
         }
 
-        // Delete the first matching edge
-        this.stateEditor.deleteTransition(edges.first().id());
+        const edge = edges.first();
+        const label = edge.data('label') ?? '';
+        const sym = transition.symbol ?? '';
+        const normalSym = (sym === '\0' || sym === 'ε' || sym === '\\0') ? 'ε' : sym;
+        const isPDA = this.automatonType === 'PDA';
+
+        let newLabels = [];
+        let removed = false;
+
+        if (label && label.length > 0) {
+            if (isPDA) {
+                const lines = label.split('\n').map(l=>l.trim()).filter(Boolean);
+                for (const line of lines) {
+                    if (!removed && line.startsWith(normalSym + ',')) removed = true;
+                    else newLabels.push(line);
+                }
+            } else {
+                const syms = label.split(', ').map(s=>s.trim()).filter(Boolean);
+                for (const s of syms) {
+                    if (!removed && s === normalSym) removed = true;
+                    else newLabels.push(s);
+                }
+            }
+        }
+
+        if (newLabels.length > 0 && removed) {
+            const oldLabel = label;
+            const newLabelStr = newLabels.join(isPDA ? '\n' : ', ');
+            edge.data('label', newLabelStr);
+
+            if (this.actionHistory) {
+                this.actionHistory.recordAction({
+                    do: () => { edge.data('label', newLabelStr); },
+                    undo: () => { edge.data('label', oldLabel); }
+                });
+            }
+
+            if (this._onTransitionDeleted) {
+                this._onTransitionDeleted(transition);
+            }
+        } else {
+            this.stateEditor.deleteTransition(edge.id());
+            if (this._onTransitionDeleted) {
+                this._onTransitionDeleted(transition);
+            }
+        }
     }
 
     _findFreePosition() {

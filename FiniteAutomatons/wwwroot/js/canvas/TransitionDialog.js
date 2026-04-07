@@ -1,4 +1,4 @@
-﻿export class TransitionDialog {
+export class TransitionDialog {
     constructor(containerEl) {
         this.containerEl = containerEl;
         this._dialog = null;
@@ -10,8 +10,8 @@
     show(sourceNode, targetNode, automatonType) {
         const title = `Add Transition`;
         const subtitle = `${sourceNode.data('label')} → ${targetNode.data('label')}`;
-        const isPDA = automatonType === 'PDA';
-        const allowEpsilon = automatonType !== 'DFA';
+        const isPDA = automatonType === 'PDA' || automatonType === 'DPDA' || automatonType === 'NPDA';
+        const allowEpsilon = automatonType === 'EpsilonNFA' || isPDA;
 
         return this._showDialog({ title, subtitle, isPDA, allowEpsilon, initialValues: {} });
     }
@@ -21,8 +21,8 @@
         const targetLabel = edge.target().data('label');
         const title = `Edit Transition`;
         const subtitle = `${sourceLabel} → ${targetLabel}`;
-        const isPDA = automatonType === 'PDA';
-        const allowEpsilon = automatonType !== 'DFA';
+        const isPDA = automatonType === 'PDA' || automatonType === 'DPDA' || automatonType === 'NPDA';
+        const allowEpsilon = automatonType === 'EpsilonNFA' || isPDA;
 
         const initialValues = {
             symbol: edge.data('rawSymbol') || edge.data('label') || '',
@@ -30,7 +30,7 @@
             stackPush: edge.data('stackPush') || ''
         };
 
-        return this._showDialog({ title, subtitle, isPDA, allowEpsilon, initialValues });
+        return this._showDialog({ title, subtitle, isPDA, allowEpsilon, initialValues, isEdit: true });
     }
 
     showNodeProperties(node) {
@@ -110,7 +110,7 @@
 
     // ==================== PRIVATE ====================
 
-    _showDialog({ title, subtitle, isPDA, allowEpsilon, initialValues }) {
+    _showDialog({ title, subtitle, isPDA, allowEpsilon, initialValues, isEdit = false }) {
         return new Promise((resolve) => {
             const { dialog, backdrop } = this._createBackdrop();
 
@@ -131,8 +131,8 @@
                         </label>
                         <div class="cd-input-row">
                             <input type="text" id="cdSymbol" class="cd-input" 
-                                   maxlength="1" placeholder="${allowEpsilon ? 'a or ε' : 'a'}"
-                                   value="${this._escHtml((initialValues.symbol || '').charAt(0))}" autocomplete="off" />
+                                   maxlength="20" placeholder="${allowEpsilon ? 'a b c or ε' : 'a b c'}"
+                                   value="${this._escHtml((initialValues.symbol || ''))}" autocomplete="off" />
                             ${allowEpsilon ? '<button class="cd-epsilon-btn" id="cdEpsilonBtn" type="button" title="Insert epsilon (ε)">ε</button>' : ''}
                         </div>
                     </div>
@@ -161,6 +161,7 @@
                     ` : ''}
                 </div>
                 <div class="cd-footer">
+                    ${isEdit ? '<button class="cd-btn cd-btn-danger" id="cdDelete" type="button" style="margin-right: auto"><i class="fas fa-trash"></i> Delete</button>' : ''}
                     <button class="cd-btn cd-btn-secondary" id="cdCancel" type="button">Cancel</button>
                     <button class="cd-btn cd-btn-primary" id="cdConfirm" type="button">
                         <i class="fas fa-check"></i> Confirm
@@ -185,23 +186,62 @@
                 let rawSymbol = symbolInput.value.trim();
                 if (!rawSymbol) { symbolInput.classList.add('cd-input-error'); symbolInput.focus(); return; }
 
-                if (rawSymbol.length > 1 && rawSymbol !== 'ε') {
-                    rawSymbol = rawSymbol.charAt(0);
+                const symbols = rawSymbol === 'ε' ? ['ε'] : rawSymbol.split(/[\s,]+/).filter(Boolean);
+
+                // Block epsilon when not allowed (DFA, NFA)
+                if (!allowEpsilon) {
+                    const hasEpsilon = symbols.some(s => s === 'ε' || s === 'epsilon' || s === '\\0');
+                    if (hasEpsilon) {
+                        symbolInput.classList.add('cd-input-error');
+                        let errorHint = dialog.querySelector('#cdSymbolError');
+                        if (!errorHint) {
+                            errorHint = document.createElement('div');
+                            errorHint.id = 'cdSymbolError';
+                            errorHint.className = 'cd-hint';
+                            errorHint.style.color = '#e63946';
+                            errorHint.style.marginTop = '4px';
+                            errorHint.innerHTML = "ε transitions are not allowed for this automaton type";
+                            symbolInput.parentElement.appendChild(errorHint);
+                        }
+                        symbolInput.focus();
+                        return;
+                    }
+                }
+                
+                const invalidSymbol = symbols.find(s => s.length > 1 && s !== 'ε' && s !== 'epsilon' && s !== '\\0');
+                if (invalidSymbol) {
+                    symbolInput.classList.add('cd-input-error');
+                    let errorHint = dialog.querySelector('#cdSymbolError');
+                    if (!errorHint) {
+                        errorHint = document.createElement('div');
+                        errorHint.id = 'cdSymbolError';
+                        errorHint.className = 'cd-hint';
+                        errorHint.style.color = '#e63946';
+                        errorHint.style.marginTop = '4px';
+                        errorHint.innerHTML = "Use single characters separated by spaces (e.g. <strong>a b c</strong>)";
+                        symbolInput.parentElement.appendChild(errorHint);
+                    }
+                    symbolInput.focus(); 
+                    return;
                 }
 
-                const result = { symbol: this._parseSymbol(rawSymbol) };
+                const results = symbols.map(sym => {
+                    return { symbol: this._parseSymbol(sym), rawSymbol: sym };
+                });
+
                 if (isPDA) {
                     let rawPop = stackPopInput?.value.trim() || '';
                     if (rawPop.length > 1 && rawPop !== 'ε') rawPop = rawPop.charAt(0);
-                    result.stackPop = this._parseSymbol(rawPop);
-                    result.stackPush = stackPushInput?.value.trim() || '';
-                    result.rawSymbol = rawSymbol;
-                    result.rawStackPop = rawPop;
-                } else {
-                    result.rawSymbol = rawSymbol;
+                    const parsedPop = this._parseSymbol(rawPop);
+                    const pushTrimmed = stackPushInput?.value.trim() || '';
+                    results.forEach(r => {
+                        r.stackPop = parsedPop;
+                        r.stackPush = pushTrimmed;
+                        r.rawStackPop = rawPop;
+                    });
                 }
 
-                cleanup(); resolve(result);
+                cleanup(); resolve(results);
             };
 
             const cancel = () => { cleanup(); resolve(null); };
@@ -218,6 +258,9 @@
 
             dialog.querySelector('#cdConfirm').addEventListener('click', confirm);
             dialog.querySelector('#cdCancel').addEventListener('click', cancel);
+            dialog.querySelector('#cdDelete')?.addEventListener('click', () => {
+                cleanup(); resolve('DELETE');
+            });
             dialog.querySelector('.cd-close').addEventListener('click', cancel);
             backdrop.addEventListener('click', (e) => { if (e.target === backdrop) cancel(); });
 
@@ -226,6 +269,10 @@
                     if (e.key === 'Enter') { e.preventDefault(); confirm(); }
                     if (e.key === 'Escape') { e.preventDefault(); cancel(); }
                     input.classList.remove('cd-input-error');
+                    if (input.id === 'cdSymbol') {
+                        const errorHint = dialog.querySelector('#cdSymbolError');
+                        if (errorHint) errorHint.remove();
+                    }
                 });
             });
 

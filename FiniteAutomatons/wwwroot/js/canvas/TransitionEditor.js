@@ -1,4 +1,4 @@
-﻿import { TransitionDialog } from './TransitionDialog.js';
+import { TransitionDialog } from './TransitionDialog.js';
 
 export class TransitionEditor {
     constructor(cy, containerEl, options = {}) {
@@ -261,14 +261,14 @@ export class TransitionEditor {
         this._removeHint();
 
         this._isShowingDialog = true;
-        let result;
+        let results;
         try {
-            result = await this._dialog.show(sourceNode, targetNode, this.automatonType);
+            results = await this._dialog.show(sourceNode, targetNode, this.automatonType);
         } finally {
             this._isShowingDialog = false;
         }
 
-        if (!result) return; // Cancelled
+        if (!results || results.length === 0) return; // Cancelled
 
         const fromId = sourceNode.data('stateId');
         const toId = targetNode.data('stateId');
@@ -276,7 +276,11 @@ export class TransitionEditor {
         const isSelfLoop = fromId === toId;
         const isPDA = this.automatonType === 'PDA';
 
-        const label = this._buildEdgeLabel(result, isPDA);
+        const labels = results.map(r => this._buildEdgeLabel(r, isPDA));
+        const additions = results.map(r => this._buildTransitionData(fromId, toId, r, isPDA));
+        const separator = isPDA ? '\n' : ', ';
+        const addedLabelStr = labels.join(separator);
+
         const classes = [
             isSelfLoop ? 'self-loop' : '',
             isPDA ? 'pda' : ''
@@ -285,27 +289,9 @@ export class TransitionEditor {
         const reverseEdge = this.cy.getElementById(`edge-${toId}-${fromId}`);
         const existingEdge = this.cy.getElementById(edgeId);
 
-        const edgeData = {
-            group: 'edges',
-            data: {
-                id: edgeId,
-                source: `state-${fromId}`,
-                target: `state-${toId}`,
-                label: label,
-                symbol: result.symbol,
-                rawSymbol: result.rawSymbol || label,
-                isPDA,
-                stackPop: result.stackPop,
-                stackPush: result.stackPush,
-                rawStackPop: result.rawStackPop
-            },
-            classes
-        };
-
         if (existingEdge && existingEdge.length > 0) {
             const prevLabel = existingEdge.data('label');
-            const separator = isPDA ? '\n' : ', ';
-            const newLabel = prevLabel + separator + label;
+            const newLabel = (prevLabel ? prevLabel + separator : '') + addedLabelStr;
             existingEdge.data('label', newLabel);
 
             if (this.actionHistory) {
@@ -315,17 +301,33 @@ export class TransitionEditor {
                 });
             }
 
-            const transition = this._buildTransitionData(fromId, toId, result, isPDA);
-            this.onTransitionAdded(transition);
+            additions.forEach(t => this.onTransitionAdded(t));
             return;
         }
+
+        const edgeData = {
+            group: 'edges',
+            data: {
+                id: edgeId,
+                source: `state-${fromId}`,
+                target: `state-${toId}`,
+                label: addedLabelStr,
+                symbol: results[0].symbol,
+                rawSymbol: results.map(r => r.rawSymbol).join(' '),
+                isPDA,
+                stackPop: results[0].stackPop,
+                stackPush: results[0].stackPush,
+                rawStackPop: results[0].rawStackPop
+            },
+            classes
+        };
 
         if (reverseEdge && reverseEdge.length > 0) {
             edgeData.classes += (edgeData.classes ? ' ' : '') + 'parallel';
             reverseEdge.addClass('parallel');
         }
 
-        const addedEdge = this.cy.add(edgeData);
+        this.cy.add(edgeData);
 
         if (this.actionHistory) {
             this.actionHistory.recordAction({
@@ -334,49 +336,91 @@ export class TransitionEditor {
             });
         }
 
-        const transition = this._buildTransitionData(fromId, toId, result, isPDA);
-        this.onTransitionAdded(transition);
-        console.log(`Transition added: ${sourceNode.data('label')} → ${targetNode.data('label')} [${label}]`);
+        additions.forEach(t => this.onTransitionAdded(t));
+        console.log(`Transition added: ${sourceNode.data('label')} → ${targetNode.data('label')} [${addedLabelStr}]`);
     }
 
     async _handleEdgeDoubleClick(edge) {
         this._isShowingDialog = true;
-        let result;
+        let results;
         try {
-            result = await this._dialog.showEdit(edge, this.automatonType);
+            results = await this._dialog.showEdit(edge, this.automatonType);
         } finally {
             this._isShowingDialog = false;
         }
 
-        if (!result) return; // Cancelled
+        if (!results || results.length === 0) return; // Cancelled
+
+        if (results === 'DELETE') {
+            const edgeSnapshot = {
+                data: { ...edge.data() },
+                classes: edge.className()
+            };
+            const transitionData = {
+                fromStateId: edge.source().data('stateId'),
+                toStateId: edge.target().data('stateId'),
+                symbol: edge.data('symbol'),
+                stackPop: edge.data('stackPop'),
+                stackPush: edge.data('stackPush')
+            };
+
+            this.cy.remove(edge);
+            this.onTransitionDeleted(transitionData);
+            
+            if (this.actionHistory) {
+                this.actionHistory.recordAction({
+                    do: () => { this.cy.getElementById(edgeSnapshot.data.id).remove(); },
+                    undo: () => { 
+                        if (!this.cy.getElementById(edgeSnapshot.data.id).length) {
+                            this.cy.add({ group: 'edges', data: edgeSnapshot.data, classes: edgeSnapshot.classes });
+                        }
+                    }
+                });
+            }
+            console.log(`Transition deleted via dialog: ${edgeSnapshot.data.id}`);
+            return;
+        }
 
         const isPDA = this.automatonType === 'PDA';
-        const newLabel = this._buildEdgeLabel(result, isPDA);
+        const labels = results.map(r => this._buildEdgeLabel(r, isPDA));
+        const newLabel = labels.join(isPDA ? '\n' : ', ');
+
         const prevLabel = edge.data('label');
+        const prevSymbol = edge.data('symbol');
+        const prevRawSymbol = edge.data('rawSymbol');
         const prevStackPop = edge.data('stackPop');
         const prevStackPush = edge.data('stackPush');
+        const prevRawStackPop = edge.data('rawStackPop');
 
         edge.data('label', newLabel);
-        edge.data('symbol', result.symbol);
-        edge.data('rawSymbol', result.rawSymbol);
+        edge.data('symbol', results[0].symbol);
+        edge.data('rawSymbol', results.map(r => r.rawSymbol).join(' '));
         if (isPDA) {
-            edge.data('stackPop', result.stackPop);
-            edge.data('stackPush', result.stackPush);
-            edge.data('rawStackPop', result.rawStackPop);
+            edge.data('stackPop', results[0].stackPop);
+            edge.data('stackPush', results[0].stackPush);
+            edge.data('rawStackPop', results[0].rawStackPop);
         }
 
         if (this.actionHistory) {
             this.actionHistory.recordAction({
                 do: () => {
                     edge.data('label', newLabel);
-                    edge.data('symbol', result.symbol);
+                    edge.data('symbol', results[0].symbol);
+                    edge.data('rawSymbol', results.map(r => r.rawSymbol).join(' '));
+                    if (isPDA) {
+                        edge.data('stackPop', results[0].stackPop);
+                        edge.data('stackPush', results[0].stackPush);
+                        edge.data('rawStackPop', results[0].rawStackPop);
+                    }
                 },
                 undo: () => {
                     edge.data('label', prevLabel);
-                    edge.data('symbol', prevStackPop); // restore
+                    edge.data('symbol', prevSymbol);
+                    edge.data('rawSymbol', prevRawSymbol);
                     if (isPDA) {
                         edge.data('stackPop', prevStackPop);
                         edge.data('stackPush', prevStackPush);
+                        edge.data('rawStackPop', prevRawStackPop);
                     }
                 }
             });
@@ -385,7 +429,7 @@ export class TransitionEditor {
         const transition = {
             fromStateId: edge.source().data('stateId'),
             toStateId: edge.target().data('stateId'),
-            ...result
+            ...results[0]
         };
         this.onTransitionModified(transition);
         console.log(`Transition modified: ${edge.id()} → [${newLabel}]`);
@@ -423,9 +467,7 @@ export class TransitionEditor {
             if (this.actionHistory) {
                 this.actionHistory.recordAction({
                     do: () => edgeSnapshots.forEach(snap => {
-                        if (!this.cy.getElementById(snap.data.id).length) {
-                            this.cy.add({ group: 'edges', data: snap.data, classes: snap.classes });
-                        }
+                        this.cy.getElementById(snap.data.id).remove();
                     }),
                     undo: () => edgeSnapshots.forEach(snap => {
                         if (!this.cy.getElementById(snap.data.id).length) {
@@ -433,12 +475,6 @@ export class TransitionEditor {
                         }
                     })
                 });
-                const last = this.actionHistory._undoStack[this.actionHistory._undoStack.length - 1];
-                if (last) {
-                    const restore = last.do;
-                    last.do = last.undo;
-                    last.undo = restore;
-                }
             }
         }
     }

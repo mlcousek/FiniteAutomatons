@@ -397,21 +397,12 @@ function setupCanvasControls() {
         editModeToggleBtn.addEventListener('click', () => {
             if (!canvas) return;
 
-            // Mutual exclusion: disable panel edit when enabling canvas edit
-            if (!canvas.isEditModeActive() && algorithmPanelEditor?.isEnabled) {
-                algorithmPanelEditor.disable();
-                _updatePanelEditButton(false);
-            }
-
             const isActive = canvas.toggleEditMode();
             updateEditModeButton(isActive);
         });
 
         window.addEventListener('canvasEditModeChanged', (e) => {
             updateEditModeButton(e.detail.isEditMode);
-            // When canvas edit mode turns ON, disable panel edit button
-            const panelEditBtn = document.getElementById('panelEditModeToggleBtn');
-            if (panelEditBtn) panelEditBtn.disabled = e.detail.isEditMode;
         });
 
         function updateEditModeButton(isEditMode) {
@@ -547,12 +538,6 @@ function _setupPanelEditButton(automatonType) {
 
     btn.addEventListener('click', () => {
         if (!algorithmPanelEditor) return;
-
-        // Mutual exclusion: disable canvas edit when enabling panel edit
-        if (!algorithmPanelEditor.isEnabled && canvas?.isEditModeActive()) {
-            canvas.disableEditMode();
-            // Let canvasEditModeChanged handler update the canvas button UI
-        }
 
         const nowEnabled = algorithmPanelEditor.toggle();
         _updatePanelEditButton(nowEnabled);

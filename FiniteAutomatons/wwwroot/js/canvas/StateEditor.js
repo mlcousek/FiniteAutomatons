@@ -1,4 +1,4 @@
-﻿
+
 import { TransitionDialog } from './TransitionDialog.js';
 
 export class StateEditor {
@@ -281,25 +281,32 @@ export class StateEditor {
     addState(x, y) {
         const newStateId = this._getNextStateId();
         const nodeId = `state-${newStateId}`;
-        
+
+        // First state on an empty canvas → automatically becomes start
+        const isFirstState = this.cy.nodes().filter(n => !n.hasClass('dummy')).length === 0;
+
         const node = this.cy.add({
             group: 'nodes',
             data: {
                 id: nodeId,
                 stateId: newStateId,
                 label: `q${newStateId}`,
-                isStart: false,
+                isStart: isFirstState,
                 isAccepting: false
             },
             position: { x, y },
-            classes: ''
+            classes: isFirstState ? 'start' : ''
         });
+
+        if (isFirstState) {
+            console.log(`First state added — automatically set as start state: q${newStateId}`);
+        }
 
         if (this.actionHistory) {
             this.actionHistory.recordAction({
                 do: () => {
                     if (!this.cy.getElementById(nodeId).length) {
-                        this.cy.add({ group: 'nodes', data: { id: nodeId, stateId: newStateId, label: `q${newStateId}`, isStart: false, isAccepting: false }, position: { x, y } });
+                        this.cy.add({ group: 'nodes', data: { id: nodeId, stateId: newStateId, label: `q${newStateId}`, isStart: isFirstState, isAccepting: false }, position: { x, y }, classes: isFirstState ? 'start' : '' });
                     }
                 },
                 undo: () => {
@@ -311,7 +318,7 @@ export class StateEditor {
         this.onStateAdded({
             id: newStateId,
             label: `q${newStateId}`,
-            isStart: false,
+            isStart: isFirstState,
             isAccepting: false,
             position: { x, y }
         });
@@ -319,6 +326,7 @@ export class StateEditor {
         console.log(`State added: q${newStateId}`);
         return node;
     }
+
 
     deleteState(nodeId) {
         const node = this.cy.getElementById(nodeId);
@@ -334,13 +342,53 @@ export class StateEditor {
         const data = { ...node.data() };
         const connectedEdges = node.connectedEdges().map(e => ({ data: { ...e.data() }, classes: e.className() }));
 
+        const wasStart = node.hasClass('start');
+
         this.cy.remove(node);
+
+        // If the deleted node was the start state, promote another node
+        let promotedNodeId = null;
+        if (wasStart) {
+            const remaining = this.cy.nodes().filter(n => !n.hasClass('dummy'));
+            if (remaining.length > 0) {
+                const newStart = remaining.first();
+                promotedNodeId = newStart.id();
+                newStart.addClass('start');
+                newStart.data('isStart', true);
+                this.onStateModified({
+                    id: newStart.data('stateId'),
+                    label: newStart.data('label'),
+                    isStart: true,
+                    isAccepting: newStart.hasClass('accepting')
+                });
+                console.log(`Start state was deleted — promoted ${newStart.data('label')} to start state.`);
+            }
+        }
 
         if (this.actionHistory) {
             this.actionHistory.recordAction({
-                do: () => { this.cy.getElementById(nodeId).remove(); },
+                do: () => {
+                    this.cy.getElementById(nodeId).remove();
+                    if (wasStart && promotedNodeId) {
+                        const n = this.cy.getElementById(promotedNodeId);
+                        if (n.length) { n.addClass('start').data('isStart', true); }
+                    }
+                },
                 undo: () => {
                     if (!this.cy.getElementById(nodeId).length) {
+                        // Remove promoted start before restoring
+                        if (wasStart && promotedNodeId) {
+                            const promoted = this.cy.getElementById(promotedNodeId);
+                            if (promoted.length) {
+                                promoted.removeClass('start').data('isStart', false);
+                                this.onStateModified({
+                                    id: promoted.data('stateId'),
+                                    label: promoted.data('label'),
+                                    isStart: false,
+                                    isAccepting: promoted.hasClass('accepting')
+                                });
+                            }
+                        }
                         this.cy.add({ group: 'nodes', data, position, classes });
                         connectedEdges.forEach(e => {
                             if (!this.cy.getElementById(e.data.id).length) {
@@ -372,8 +420,8 @@ export class StateEditor {
             node.addClass('start');
             node.data('isStart', true);
         } else {
-            node.removeClass('start');
-            node.data('isStart', false);
+            console.log('Cannot remove start state. Automaton must have at least one starting state.');
+            return;
         }
 
         if (this.actionHistory) {
