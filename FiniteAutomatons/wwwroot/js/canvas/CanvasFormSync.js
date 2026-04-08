@@ -94,7 +94,7 @@
         this._removeStaticInputsByPattern(form, /^Transitions(\[|\.)/, 'transitions');
 
         let i = 0;
-        const isPDA = this.automatonType === 'PDA';
+        const isPDA = this.automatonType === 'PDA' || this.automatonType === 'DPDA' || this.automatonType === 'NPDA';
 
         edges.each((edge) => {
             const fromId = edge.source().data('stateId');
@@ -111,12 +111,13 @@
                 fragment.appendChild(this._makeInput(`Transitions[${i}].Symbol`, symbolVal, 'transitions'));
 
                 if (isPDA) {
-                    if (sym.stackPop !== undefined) {
-                        const popVal = (sym.stackPop === '\0' || sym.stackPop === 'ε') ? '\\0' : (sym.stackPop || '\\0');
-                        fragment.appendChild(this._makeInput(`Transitions[${i}].StackPop`, popVal, 'transitions'));
-                    }
-                    if (sym.stackPush !== undefined && sym.stackPush !== '') {
-                        fragment.appendChild(this._makeInput(`Transitions[${i}].StackPush`, sym.stackPush, 'transitions'));
+                    const normalizedPop = (sym.stackPop === undefined) ? '\0' : sym.stackPop;
+                    const popVal = (normalizedPop === '\0' || normalizedPop === 'ε') ? '\\0' : (normalizedPop || '\\0');
+                    fragment.appendChild(this._makeInput(`Transitions[${i}].StackPop`, popVal, 'transitions'));
+
+                    const pushVal = (sym.stackPush === '\0' || sym.stackPush === 'ε') ? '' : (sym.stackPush ?? '');
+                    if (pushVal !== '') {
+                        fragment.appendChild(this._makeInput(`Transitions[${i}].StackPush`, pushVal, 'transitions'));
                     }
                 }
 
@@ -128,7 +129,7 @@
     }
 
     _extractRawSymbols(edge) {
-        const isPDA = edge.data('isPDA') || this.automatonType === 'PDA';
+        const isPDA = edge.data('isPDA') || this.automatonType === 'PDA' || this.automatonType === 'DPDA' || this.automatonType === 'NPDA';
         const label = edge.data('label') || '';
 
         if (!label) {
@@ -147,15 +148,24 @@
         if (isPDA) {
             const lines = label.split('\n').filter(l => l.trim());
             return lines.map(line => {
-                const match = line.match(/^(.+?),\s*(.+?)\/(.*)$/);
+                const groupedMatch = line.match(/^(.+?)\s*\(\s*(.+?)\s*\/\s*(.*?)\s*\)$/);
+                const legacyMatch = line.match(/^(.+?),\s*(.+?)\s*\/\s*(.*)$/);
+                const match = groupedMatch || legacyMatch;
                 if (match) {
+                    const push = match[3].trim();
                     return {
                         symbol: this._normalizeSymbol(match[1].trim()),
                         stackPop: this._normalizeSymbol(match[2].trim()),
-                        stackPush: match[3].trim()
+                        stackPush: (push === 'ε' || push === '\\0') ? '' : push
                     };
                 }
-                return { symbol: this._normalizeSymbol(line.trim()) };
+
+                // Fallback for unexpected label formats: keep explicit PDA fields.
+                return {
+                    symbol: this._normalizeSymbol(line.trim()),
+                    stackPop: this._normalizeSymbol(edge.data('stackPop') || '\0'),
+                    stackPush: edge.data('stackPush') || ''
+                };
             });
         } else {
             const symbols = label.split(', ').map(s => s.trim()).filter(s => s);

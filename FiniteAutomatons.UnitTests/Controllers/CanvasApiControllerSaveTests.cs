@@ -39,6 +39,36 @@ public class CanvasApiControllerSaveTests
         => controller.Save(SimpleDfa()).ShouldBeOfType<OkObjectResult>();
 
     [Fact]
+    public void Save_DfaNondeterministicTransitions_ReturnsConflict()
+    {
+        var result = controller.Save(Req("DFA",
+            [new() { Id = 0, IsStart = true }, new() { Id = 1 }, new() { Id = 2 }],
+            [
+                new() { FromStateId = 0, ToStateId = 1, Symbol = "a" },
+                new() { FromStateId = 0, ToStateId = 2, Symbol = "a" }
+            ]));
+
+        var conflict = result.ShouldBeOfType<ConflictObjectResult>();
+        conflict.Value.ShouldBeOfType<string>().ShouldContain("deterministic");
+        session.Keys.ShouldNotContain(CanvasApiController.SessionKey);
+    }
+
+    [Fact]
+    public void Save_DpdaEpsilonAndConsumingOverlap_ReturnsConflict()
+    {
+        var result = controller.Save(Req("PDA",
+            [new() { Id = 0, IsStart = true }, new() { Id = 1 }, new() { Id = 2 }],
+            [
+                new() { FromStateId = 0, ToStateId = 1, Symbol = "\\0", StackPop = "\\0", StackPush = "Z" },
+                new() { FromStateId = 0, ToStateId = 2, Symbol = "a", StackPop = "Z", StackPush = "" }
+            ]));
+
+        var conflict = result.ShouldBeOfType<ConflictObjectResult>();
+        conflict.Value.ShouldBeOfType<string>().ShouldContain("DPDA");
+        session.Keys.ShouldNotContain(CanvasApiController.SessionKey);
+    }
+
+    [Fact]
     public void Save_ValidRequest_WritesSessionKey()
     {
         controller.Save(SimpleDfa());

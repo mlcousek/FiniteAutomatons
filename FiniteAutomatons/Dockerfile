@@ -12,9 +12,12 @@ EXPOSE 8081
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
+COPY ["Directory.Build.props", "."]
+COPY ["Directory.Packages.props", "."]
 COPY ["FiniteAutomatons/FiniteAutomatons.csproj", "FiniteAutomatons/"]
 COPY ["FiniteAutomatons.Core/FiniteAutomatons.Core.csproj", "FiniteAutomatons.Core/"]
 COPY ["FiniteAutomatons.Data/FiniteAutomatons.Data.csproj", "FiniteAutomatons.Data/"]
+COPY ["FiniteAutomatons.ServiceDefaults/FiniteAutomatons.ServiceDefaults.csproj", "FiniteAutomatons.ServiceDefaults/"]
 COPY ["FiniteAutomatons.Services/FiniteAutomatons.Services.csproj", "FiniteAutomatons.Services/"]
 RUN dotnet restore "./FiniteAutomatons/FiniteAutomatons.csproj"
 COPY . .

@@ -81,6 +81,123 @@ public class AutomatonPresetServiceTests
 
     #endregion
 
+    #region PDA Type Routing Tests
+
+    [Fact]
+    public void GenerateRandomPda_WithNpdaType_RequestsNpdaFromGenerator()
+    {
+        // Arrange
+        mockGeneratorService.RandomAutomatonToReturn = new AutomatonViewModel
+        {
+            Type = AutomatonType.NPDA,
+            States = [new State { Id = 0, IsStart = true, IsAccepting = true }],
+            Transitions = []
+        };
+
+        // Act
+        var result = service.GenerateRandomPda(pdaType: AutomatonType.NPDA);
+
+        // Assert
+        mockGeneratorService.LastRequestedType.ShouldBe(AutomatonType.NPDA);
+        result.Type.ShouldBe(AutomatonType.NPDA);
+    }
+
+    [Fact]
+    public void GeneratePdaWithPushPopPairs_WithNpdaType_RequestsNpdaFromGenerator()
+    {
+        // Arrange
+        mockGeneratorService.RandomAutomatonToReturn = new AutomatonViewModel
+        {
+            Type = AutomatonType.NPDA,
+            States =
+            [
+                new State { Id = 0, IsStart = true, IsAccepting = false },
+                new State { Id = 1, IsStart = false, IsAccepting = true }
+            ],
+            Transitions =
+            [
+                new Transition { FromStateId = 0, ToStateId = 1, Symbol = 'a', StackPop = null, StackPush = "A" }
+            ]
+        };
+
+        // Act
+        var result = service.GeneratePdaWithPushPopPairs(pdaType: AutomatonType.NPDA);
+
+        // Assert
+        mockGeneratorService.LastRequestedType.ShouldBe(AutomatonType.NPDA);
+        result.Type.ShouldBe(AutomatonType.NPDA);
+    }
+
+    [Fact]
+    public void GeneratePdaWithPushPopPairs_WithDpdaType_KeepsModelDeterministic()
+    {
+        // Arrange - Every state already has transitions for each alphabet symbol,
+        // so blind additions would create DPDA determinism conflicts.
+        mockGeneratorService.RandomAutomatonToReturn = new AutomatonViewModel
+        {
+            Type = AutomatonType.DPDA,
+            States =
+            [
+                new State { Id = 0, IsStart = true, IsAccepting = false },
+                new State { Id = 1, IsStart = false, IsAccepting = false },
+                new State { Id = 2, IsStart = false, IsAccepting = true }
+            ],
+            Transitions =
+            [
+                new Transition { FromStateId = 0, ToStateId = 1, Symbol = 'a', StackPop = null, StackPush = null },
+                new Transition { FromStateId = 0, ToStateId = 2, Symbol = 'b', StackPop = null, StackPush = null },
+                new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = null, StackPush = null },
+                new Transition { FromStateId = 1, ToStateId = 2, Symbol = 'b', StackPop = null, StackPush = null },
+                new Transition { FromStateId = 2, ToStateId = 2, Symbol = 'a', StackPop = null, StackPush = null },
+                new Transition { FromStateId = 2, ToStateId = 0, Symbol = 'b', StackPop = null, StackPush = null }
+            ],
+            IsCustomAutomaton = true
+        };
+
+        // Act
+        var result = service.GeneratePdaWithPushPopPairs(seed: 7, pdaType: AutomatonType.DPDA);
+
+        // Assert
+        mockGeneratorService.LastRequestedType.ShouldBe(AutomatonType.DPDA);
+        result.Type.ShouldBe(AutomatonType.DPDA);
+        IsDpdaDeterministic(result).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void GeneratePdaWithPushPopPairs_WithDpdaType_PreservesValidSameSymbolDifferentStackTop()
+    {
+        // Arrange
+        mockGeneratorService.RandomAutomatonToReturn = new AutomatonViewModel
+        {
+            Type = AutomatonType.DPDA,
+            States =
+            [
+                new State { Id = 0, IsStart = true, IsAccepting = false },
+                new State { Id = 1, IsStart = false, IsAccepting = false },
+                new State { Id = 2, IsStart = false, IsAccepting = true }
+            ],
+            Transitions =
+            [
+                new Transition { FromStateId = 0, ToStateId = 1, Symbol = 'a', StackPop = 'A', StackPush = null },
+                new Transition { FromStateId = 0, ToStateId = 2, Symbol = 'a', StackPop = 'B', StackPush = null },
+                new Transition { FromStateId = 1, ToStateId = 2, Symbol = 'b', StackPop = null, StackPush = null }
+            ],
+            IsCustomAutomaton = true
+        };
+
+        // Act
+        var result = service.GeneratePdaWithPushPopPairs(seed: 11, pdaType: AutomatonType.DPDA);
+
+        // Assert
+        IsDpdaDeterministic(result).ShouldBeTrue();
+
+        result.Transitions
+            .Count(t => t.FromStateId == 0 && t.Symbol == 'a')
+            .ShouldBeGreaterThanOrEqualTo(2);
+    }
+
+    #endregion
+
     #region GenerateUnminimalizedDfa Tests
 
     [Fact]
@@ -1044,6 +1161,46 @@ public class AutomatonPresetServiceTests
         return automaton.Transitions.Any(t => t.Symbol == '\0');
     }
 
+    private static bool IsDpdaDeterministic(AutomatonViewModel automaton)
+    {
+        for (int i = 0; i < automaton.Transitions.Count; i++)
+        {
+            for (int j = i + 1; j < automaton.Transitions.Count; j++)
+            {
+                var t1 = automaton.Transitions[i];
+                var t2 = automaton.Transitions[j];
+
+                if (t1.FromStateId != t2.FromStateId)
+                    continue;
+
+                if (!StackConditionsOverlap(t1, t2))
+                    continue;
+
+                bool t1IsEpsilon = t1.Symbol == '\0';
+                bool t2IsEpsilon = t2.Symbol == '\0';
+
+                if (t1.Symbol == t2.Symbol)
+                    return false;
+
+                if (t1IsEpsilon ^ t2IsEpsilon)
+                    return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool StackConditionsOverlap(Transition t1, Transition t2)
+    {
+        bool t1AnyTop = !t1.StackPop.HasValue || t1.StackPop.Value == '\0';
+        bool t2AnyTop = !t2.StackPop.HasValue || t2.StackPop.Value == '\0';
+
+        if (t1AnyTop || t2AnyTop)
+            return true;
+
+        return t1.StackPop!.Value == t2.StackPop!.Value;
+    }
+
     #endregion
 
     #region Mock Services
@@ -1052,6 +1209,7 @@ public class AutomatonPresetServiceTests
     {
         public AutomatonViewModel? RealisticAutomatonToReturn { get; set; }
         public AutomatonViewModel? RandomAutomatonToReturn { get; set; }
+        public AutomatonType LastRequestedType { get; private set; }
 
         public AutomatonViewModel GenerateRandomAutomaton(
             AutomatonType type,
@@ -1063,6 +1221,7 @@ public class AutomatonPresetServiceTests
             PDAAcceptanceMode? acceptanceMode = null,
             Stack<char>? initialStack = null)
         {
+            LastRequestedType = type;
             return RandomAutomatonToReturn ?? new AutomatonViewModel { Type = type };
         }
 

@@ -83,4 +83,22 @@ public class AutomatonEditingServiceTests
         ok.ShouldBeFalse();
         err.ShouldNotBeNull();
     }
+
+    [Fact]
+    public void AddTransition_DpdaEpsilonAndConsumingOverlap_ReturnsErrorAndDoesNotAdd()
+    {
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.DPDA,
+            States = [new() { Id = 1, IsStart = true }, new() { Id = 2 }, new() { Id = 3 }],
+            Transitions = [new() { FromStateId = 1, ToStateId = 2, Symbol = '\0', StackPop = null, StackPush = "Z" }]
+        };
+
+        var (ok, _, error) = service.AddTransition(model, 1, 3, "a", "Z", "");
+
+        ok.ShouldBeFalse();
+        error.ShouldNotBeNull();
+        error.ShouldContain("DPDA");
+        model.Transitions.Count.ShouldBe(1);
+    }
 }

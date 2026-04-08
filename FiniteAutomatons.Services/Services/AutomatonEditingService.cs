@@ -66,6 +66,14 @@ public class AutomatonEditingService(IAutomatonValidationService validationServi
 
         var transition = new Transition { FromStateId = fromId, ToStateId = toId, Symbol = processed, StackPop = stackPopChar, StackPush = string.IsNullOrWhiteSpace(stackPush) ? null : stackPush };
         model.Transitions.Add(transition);
+
+        var determinismError = DeterminismValidationHelper.GetDeterminismError(model);
+        if (!string.IsNullOrWhiteSpace(determinismError))
+        {
+            model.Transitions.Remove(transition);
+            return (false, '\0', determinismError);
+        }
+
         model.ClearExecutionState(keepInput: true);
         if (logger.IsEnabled(LogLevel.Information))
         {

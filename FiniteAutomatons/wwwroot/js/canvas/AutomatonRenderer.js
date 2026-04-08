@@ -19,6 +19,8 @@
                 this.renderEpsilonNFA(cy, states, transitions);
                 break;
             case 'PDA':
+            case 'DPDA':
+            case 'NPDA':
                 this.renderPDA(cy, states, transitions);
                 break;
             default:
@@ -100,7 +102,7 @@
                     const symbol = this._formatSymbol(t.symbol, allowEpsilon);
                     const pop = this._formatSymbol(t.stackPop, true) || 'ε';
                     const push = t.stackPush || 'ε';
-                    return `${symbol}, ${pop}/${push}`;
+                    return `${symbol} (${pop}/${push})`;
                 });
                 const uniqueLabels = [...new Set(pdaLabels)];
                 label = uniqueLabels.join('\n');
@@ -129,7 +131,9 @@
                     source: `state-${fromId}`,
                     target: `state-${toId}`,
                     label: label,
-                    symbol: label, 
+                    displayLabel: this._toDisplayLabel(label),
+                    labelSizeHint: this._estimateLabelSizeHint(label),
+                    symbol: firstTrans.symbol,
                     isPDA: isPDA,
                     stackPop: isPDA ? firstTrans.stackPop : undefined,
                     stackPush: isPDA ? firstTrans.stackPush : undefined
@@ -222,7 +226,7 @@
                     'target-arrow-shape': 'triangle',
                     'curve-style': 'bezier',           
                     'control-point-step-size': 50,     
-                    'label': 'data(label)',
+                    'label': 'data(displayLabel)',
                     'font-size': '13px',               
                     'font-weight': '600',              
                     'font-family': 'Arial, sans-serif',
@@ -384,8 +388,8 @@
                     'curve-style': 'bezier',
                     'loop-direction': '0deg',
                     'loop-sweep': '120deg',
-                    'control-point-step-size': 80,
-                    'text-margin-y': -20
+                        'control-point-step-size': 'mapData(labelSizeHint, 8, 40, 80, 220)',
+                        'text-margin-y': 'mapData(labelSizeHint, 8, 40, -20, -56)'
                 }
             },
             {
@@ -407,6 +411,17 @@
         ];
 
         return baseStyles;
+    }
+
+    static _estimateLabelSizeHint(label) {
+        if (!label || typeof label !== 'string') return 8;
+        const lines = label.split('\n').map(l => l.trim()).filter(Boolean);
+        const longest = lines.length ? Math.max(...lines.map(l => l.length)) : label.length;
+        return Math.max(8, Math.min(40, longest));
+    }
+
+    static _toDisplayLabel(label) {
+        return String(label || '').replace(/\n+/g, '   ');
     }
 
     static getThemeColors(theme) {

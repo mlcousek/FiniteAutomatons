@@ -9,7 +9,7 @@
                 <span class="execution-value">@Model.Position / @(Model.Input?.Length ?? 0)</span>
             </div>
 
-            @if (Model.Type == AutomatonType.DFA || Model.Type == AutomatonType.DPDA || Model.Type == AutomatonType.NPDA)
+            @if (Model.Type == AutomatonType.DFA || Model.Type == AutomatonType.DPDA)
             {
                 <div class="execution-state-item">
                     <span class="execution-label">Current State:</span>
@@ -17,6 +17,22 @@
                         @if (Model.CurrentStateId.HasValue)
                         {
                             <span class="state-highlight">@($"q{Model.CurrentStateId}")</span>
+                        }
+                        else
+                        {
+                            <span class="placeholder-text">-</span>
+                        }
+                    </span>
+                </div>
+            }
+            else if (Model.Type == AutomatonType.NPDA)
+            {
+                <div class="execution-state-item">
+                    <span class="execution-label">Current States:</span>
+                    <span class="execution-value">
+                        @if (Model.CurrentStates != null && Model.CurrentStates.Count > 0)
+                        {
+                            <span class="state-highlight">{ @string.Join(", ", Model.CurrentStates.OrderBy(s => s).Select(s => "q" + s)) }</span>
                         }
                         else
                         {

@@ -10,6 +10,9 @@
     <input type="hidden" name="IsAccepted" value="@(Model.IsAccepted.HasValue ? Model.IsAccepted.Value.ToString().ToLowerInvariant() : "")" />
     <input type="hidden" name="StateHistorySerialized" value="@Model.StateHistorySerialized" />
     <input type="hidden" name="StackSerialized" value="@Model.StackSerialized" />
+    <input type="hidden" name="InitialStackSerialized" value="@Model.InitialStackSerialized" />
+    <input type="hidden" name="NPDAConfigurationsSerialized" value="@Model.NPDAConfigurationsSerialized" />
+    <input type="hidden" name="AcceptanceMode" value="@((int)Model.AcceptanceMode)" />
     <input type="hidden" name="IsCustomAutomaton" value="@Model.IsCustomAutomaton.ToString().ToLowerInvariant()" />
 
     @* States *@

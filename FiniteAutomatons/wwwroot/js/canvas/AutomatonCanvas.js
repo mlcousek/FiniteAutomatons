@@ -624,6 +624,14 @@ export class AutomatonCanvas {
     deleteTransitionFromPanel(transition) {
         if (!this.stateEditor || !this.cy) return;
 
+        const getPdaSymbolFromLine = (line) => {
+            const groupedMatch = line.match(/^(.+?)\s*\(\s*(.+?)\s*\/\s*(.*?)\s*\)$/);
+            if (groupedMatch) return groupedMatch[1].trim();
+            const legacyMatch = line.match(/^(.+?),\s*(.+?)\s*\/\s*(.*)$/);
+            if (legacyMatch) return legacyMatch[1].trim();
+            return line.trim();
+        };
+
         const edges = this.cy.edges().filter(e => {
             if (e.source().data('stateId') !== transition.fromStateId) return false;
             if (e.target().data('stateId') !== transition.toStateId)   return false;
@@ -632,9 +640,9 @@ export class AutomatonCanvas {
             const sym   = transition.symbol ?? '';
             const normalSym = (sym === '\0' || sym === 'ε' || sym === '\\0') ? 'ε' : sym;
             if (label) {
-                const isPDA = this.automatonType === 'PDA';
+                const isPDA = this.automatonType === 'PDA' || this.automatonType === 'DPDA' || this.automatonType === 'NPDA';
                 if (isPDA) {
-                    return label.split('\n').some(l => l.trim().startsWith(normalSym + ','));
+                    return label.split('\n').some(l => getPdaSymbolFromLine(l) === normalSym);
                 } else {
                     return label.split(', ').some(s => s.trim() === normalSym);
                 }
@@ -652,7 +660,7 @@ export class AutomatonCanvas {
         const label = edge.data('label') ?? '';
         const sym = transition.symbol ?? '';
         const normalSym = (sym === '\0' || sym === 'ε' || sym === '\\0') ? 'ε' : sym;
-        const isPDA = this.automatonType === 'PDA';
+        const isPDA = this.automatonType === 'PDA' || this.automatonType === 'DPDA' || this.automatonType === 'NPDA';
 
         let newLabels = [];
         let removed = false;
@@ -661,7 +669,7 @@ export class AutomatonCanvas {
             if (isPDA) {
                 const lines = label.split('\n').map(l=>l.trim()).filter(Boolean);
                 for (const line of lines) {
-                    if (!removed && line.startsWith(normalSym + ',')) removed = true;
+                    if (!removed && getPdaSymbolFromLine(line) === normalSym) removed = true;
                     else newLabels.push(line);
                 }
             } else {
@@ -675,13 +683,24 @@ export class AutomatonCanvas {
 
         if (newLabels.length > 0 && removed) {
             const oldLabel = label;
+            const oldDisplayLabel = edge.data('displayLabel') || this._toDisplayLabel(oldLabel);
             const newLabelStr = newLabels.join(isPDA ? '\n' : ', ');
             edge.data('label', newLabelStr);
+            edge.data('displayLabel', this._toDisplayLabel(newLabelStr));
+            edge.data('labelSizeHint', this._estimateLabelSizeHint(newLabelStr));
 
             if (this.actionHistory) {
                 this.actionHistory.recordAction({
-                    do: () => { edge.data('label', newLabelStr); },
-                    undo: () => { edge.data('label', oldLabel); }
+                    do: () => {
+                        edge.data('label', newLabelStr);
+                        edge.data('displayLabel', this._toDisplayLabel(newLabelStr));
+                        edge.data('labelSizeHint', this._estimateLabelSizeHint(newLabelStr));
+                    },
+                    undo: () => {
+                        edge.data('label', oldLabel);
+                        edge.data('displayLabel', oldDisplayLabel);
+                        edge.data('labelSizeHint', this._estimateLabelSizeHint(oldLabel));
+                    }
                 });
             }
 
@@ -782,7 +801,7 @@ export class AutomatonCanvas {
             if (isPDA) {
                 const stackPop = edge.data('stackPop') || 'ε';
                 const stackPush = edge.data('stackPush') || 'ε';
-                edge.data('tooltip', `${symbol}, ${stackPop}/${stackPush}`);
+                edge.data('tooltip', `${symbol} (${stackPop}/${stackPush})`);
             } else {
                 edge.data('tooltip', symbol);
             }
@@ -800,6 +819,17 @@ export class AutomatonCanvas {
                 CanvasLayoutCache.save(this._layoutFingerprint, this.cy);
             }
         }, 600);
+    }
+
+    _estimateLabelSizeHint(label) {
+        if (!label || typeof label !== 'string') return 8;
+        const lines = label.split('\n').map(l => l.trim()).filter(Boolean);
+        const longest = lines.length ? Math.max(...lines.map(l => l.length)) : label.length;
+        return Math.max(8, Math.min(40, longest));
+    }
+
+    _toDisplayLabel(label) {
+        return String(label || '').replace(/\n+/g, '   ');
     }
 
     _fitToViewport() {

@@ -37,6 +37,7 @@
                     </div>
 
                     <form id="generatePresetForm" asp-controller="AutomatonGeneration" asp-action="GeneratePreset" method="post">
+                        <input type="hidden" id="generateFamilyInput" name="family" value="DFA" />
                         <div class="form-group">
                             <label for="generateOptionSelect" class="form-label">
                                 <i class="fas fa-list"></i>

@@ -41,20 +41,20 @@ public class AutomatonPresetService(
         return minModel;
     }
 
-    public AutomatonViewModel GenerateRandomPda(int stateCount = 5, int transitionCount = 10, int alphabetSize = 3, double acceptingRatio = 0.3, int? seed = null, PDAAcceptanceMode? acceptanceMode = null, Stack<char>? initialStack = null)
+    public AutomatonViewModel GenerateRandomPda(int stateCount = 5, int transitionCount = 10, int alphabetSize = 3, double acceptingRatio = 0.3, int? seed = null, PDAAcceptanceMode? acceptanceMode = null, Stack<char>? initialStack = null, AutomatonType pdaType = AutomatonType.DPDA)
     {
         if (logger.IsEnabled(LogLevel.Information))
         {
-            logger.LogInformation("Generating random PDA preset with {StateCount} states, AcceptanceMode: {Mode}", stateCount, acceptanceMode ?? PDAAcceptanceMode.FinalStateAndEmptyStack);
+            logger.LogInformation("Generating random {PdaType} preset with {StateCount} states, AcceptanceMode: {Mode}", pdaType, stateCount, acceptanceMode ?? PDAAcceptanceMode.FinalStateAndEmptyStack);
         }
-        return generatorService.GenerateRandomAutomaton(AutomatonType.DPDA, stateCount, transitionCount, alphabetSize, acceptingRatio, seed, acceptanceMode, initialStack);
+        return generatorService.GenerateRandomAutomaton(pdaType, stateCount, transitionCount, alphabetSize, acceptingRatio, seed, acceptanceMode, initialStack);
     }
 
-    public AutomatonViewModel GeneratePdaWithPushPopPairs(int stateCount = 5, int transitionCount = 12, int alphabetSize = 3, double acceptingRatio = 0.3, int? seed = null, PDAAcceptanceMode? acceptanceMode = null, Stack<char>? initialStack = null)
+    public AutomatonViewModel GeneratePdaWithPushPopPairs(int stateCount = 5, int transitionCount = 12, int alphabetSize = 3, double acceptingRatio = 0.3, int? seed = null, PDAAcceptanceMode? acceptanceMode = null, Stack<char>? initialStack = null, AutomatonType pdaType = AutomatonType.DPDA)
     {
-        LogPdaGenerationStart(stateCount, acceptanceMode);
+        LogPdaGenerationStart(stateCount, acceptanceMode, pdaType);
 
-        var basePda = generatorService.GenerateRandomAutomaton(AutomatonType.DPDA, stateCount, transitionCount,
+        var basePda = generatorService.GenerateRandomAutomaton(pdaType, stateCount, transitionCount,
             alphabetSize, acceptingRatio, seed, acceptanceMode, initialStack);
 
         var random = seed.HasValue ? new Random(seed.Value) : new Random();
@@ -63,13 +63,13 @@ public class AutomatonPresetService(
         if (alphabet.Count == 0)
             return basePda;
 
-        AddPushPopPairs(basePda, alphabet, random);
+        AddPushPopPairs(basePda, alphabet, random, enforceDeterminism: pdaType == AutomatonType.DPDA);
 
         LogPdaGenerationComplete(basePda);
         return basePda;
     }
 
-    private static void AddPushPopPairs(AutomatonViewModel pda, List<char> alphabet, Random random)
+    private static void AddPushPopPairs(AutomatonViewModel pda, List<char> alphabet, Random random, bool enforceDeterminism)
     {
         int added = 0;
         int maxPairs = Math.Min(3, alphabet.Count);
@@ -80,10 +80,89 @@ public class AutomatonPresetService(
             if (pushSymbol == popSymbol)
                 continue;
 
-            AddPushTransition(pda, pushSymbol, random);
-            AddPopTransition(pda, popSymbol, pushSymbol, random);
-            added += 2;
+            if (enforceDeterminism)
+            {
+                if (TryAddPushTransitionDeterministic(pda, pushSymbol, random))
+                {
+                    added++;
+                }
+
+                if (TryAddPopTransitionDeterministic(pda, popSymbol, pushSymbol, random))
+                {
+                    added++;
+                }
+            }
+            else
+            {
+                AddPushTransition(pda, pushSymbol, random);
+                AddPopTransition(pda, popSymbol, pushSymbol, random);
+                added += 2;
+            }
         }
+    }
+
+    private static bool TryAddPushTransitionDeterministic(AutomatonViewModel pda, char symbol, Random random)
+    {
+        const int maxAttempts = 24;
+
+        for (int attempt = 0; attempt < maxAttempts; attempt++)
+        {
+            var transition = CreatePushTransition(pda, symbol, random);
+            if (!CanAddDeterministically(pda.Transitions, transition))
+                continue;
+
+            pda.Transitions.Add(transition);
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool TryAddPopTransitionDeterministic(AutomatonViewModel pda, char symbol, char stackSymbol, Random random)
+    {
+        const int maxAttempts = 24;
+
+        for (int attempt = 0; attempt < maxAttempts; attempt++)
+        {
+            var transition = CreatePopTransition(pda, symbol, stackSymbol, random);
+            if (!CanAddDeterministically(pda.Transitions, transition))
+                continue;
+
+            pda.Transitions.Add(transition);
+            return true;
+        }
+
+        return false;
+    }
+
+    private static Transition CreatePushTransition(AutomatonViewModel pda, char symbol, Random random)
+    {
+        var from = pda.States[random.Next(pda.States.Count)].Id;
+        var to = pda.States[random.Next(pda.States.Count)].Id;
+
+        return new Transition
+        {
+            FromStateId = from,
+            ToStateId = to,
+            Symbol = symbol,
+            StackPop = null,
+            StackPush = symbol.ToString()
+        };
+    }
+
+    private static Transition CreatePopTransition(AutomatonViewModel pda, char symbol, char stackSymbol, Random random)
+    {
+        var from = pda.States[random.Next(pda.States.Count)].Id;
+        var to = pda.States[random.Next(pda.States.Count)].Id;
+
+        return new Transition
+        {
+            FromStateId = from,
+            ToStateId = to,
+            Symbol = symbol,
+            StackPop = stackSymbol,
+            StackPush = null
+        };
     }
 
     private static (char push, char pop) SelectDifferentSymbols(List<char> alphabet, Random random)
@@ -95,32 +174,43 @@ public class AutomatonPresetService(
 
     private static void AddPushTransition(AutomatonViewModel pda, char symbol, Random random)
     {
-        var from = pda.States[random.Next(pda.States.Count)].Id;
-        var to = pda.States[random.Next(pda.States.Count)].Id;
-
-        pda.Transitions.Add(new Transition
-        {
-            FromStateId = from,
-            ToStateId = to,
-            Symbol = symbol,
-            StackPop = null,
-            StackPush = symbol.ToString()
-        });
+        pda.Transitions.Add(CreatePushTransition(pda, symbol, random));
     }
 
     private static void AddPopTransition(AutomatonViewModel pda, char symbol, char stackSymbol, Random random)
     {
-        var from = pda.States[random.Next(pda.States.Count)].Id;
-        var to = pda.States[random.Next(pda.States.Count)].Id;
+        pda.Transitions.Add(CreatePopTransition(pda, symbol, stackSymbol, random));
+    }
 
-        pda.Transitions.Add(new Transition
+    private static bool CanAddDeterministically(IEnumerable<Transition> transitions, Transition candidate)
+    {
+        foreach (var existing in transitions.Where(t => t.FromStateId == candidate.FromStateId))
         {
-            FromStateId = from,
-            ToStateId = to,
-            Symbol = symbol,
-            StackPop = stackSymbol,
-            StackPush = null
-        });
+            if (!StackConditionsOverlap(existing, candidate))
+                continue;
+
+            bool existingIsEpsilon = existing.Symbol == '\0';
+            bool candidateIsEpsilon = candidate.Symbol == '\0';
+
+            if (existing.Symbol == candidate.Symbol)
+                return false;
+
+            if (existingIsEpsilon ^ candidateIsEpsilon)
+                return false;
+        }
+
+        return true;
+    }
+
+    private static bool StackConditionsOverlap(Transition t1, Transition t2)
+    {
+        bool t1AnyTop = !t1.StackPop.HasValue || t1.StackPop.Value == '\0';
+        bool t2AnyTop = !t2.StackPop.HasValue || t2.StackPop.Value == '\0';
+
+        if (t1AnyTop || t2AnyTop)
+            return true;
+
+        return t1.StackPop!.Value == t2.StackPop!.Value;
     }
 
     private static List<char> ExtractAlphabet(AutomatonViewModel automaton)
@@ -131,12 +221,12 @@ public class AutomatonPresetService(
             .Distinct()];
     }
 
-    private void LogPdaGenerationStart(int stateCount, PDAAcceptanceMode? acceptanceMode)
+    private void LogPdaGenerationStart(int stateCount, PDAAcceptanceMode? acceptanceMode, AutomatonType pdaType)
     {
         if (logger.IsEnabled(LogLevel.Information))
         {
-            logger.LogInformation("Generating PDA preset with push/pop pairs, states={StateCount}, AcceptanceMode: {Mode}",
-                stateCount, acceptanceMode ?? PDAAcceptanceMode.FinalStateAndEmptyStack);
+            logger.LogInformation("Generating {PdaType} preset with push/pop pairs, states={StateCount}, AcceptanceMode: {Mode}",
+                pdaType, stateCount, acceptanceMode ?? PDAAcceptanceMode.FinalStateAndEmptyStack);
         }
     }
 

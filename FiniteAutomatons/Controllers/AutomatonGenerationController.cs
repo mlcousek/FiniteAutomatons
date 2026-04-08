@@ -71,7 +71,7 @@ public class AutomatonGenerationController(
     }
 
     [HttpPost]
-    public IActionResult GeneratePreset([FromForm] string preset)
+    public IActionResult GeneratePreset([FromForm] string preset, [FromForm] string? family)
     {
         if (string.IsNullOrWhiteSpace(preset))
         {
@@ -89,6 +89,8 @@ public class AutomatonGenerationController(
             var (stateCount, transitionCount, alphabetSize, acceptingRatio) = generatorService.GenerateRandomParameters();
             int? seed = null;
 
+            var pdaType = ResolvePdaType(family);
+
             AutomatonViewModel generated = preset.Trim().ToLowerInvariant() switch
             {
                 "random-dfa" => presetService.GenerateRandomDfa(stateCount, transitionCount, alphabetSize, acceptingRatio, seed),
@@ -99,8 +101,8 @@ public class AutomatonGenerationController(
                 "enfa-eps" => presetService.GenerateEpsilonNfa(stateCount, transitionCount, alphabetSize, acceptingRatio, seed),
                 "enfa-nondet" => presetService.GenerateEpsilonNfaNondeterministic(stateCount, transitionCount, alphabetSize, acceptingRatio, seed),
                 "random-enfa" => presetService.GenerateEpsilonNfa(stateCount, transitionCount, alphabetSize, acceptingRatio, seed),
-                "random-pda" => presetService.GenerateRandomPda(stateCount, transitionCount, alphabetSize, acceptingRatio, seed),
-                "pda-pushpop" => presetService.GeneratePdaWithPushPopPairs(stateCount, transitionCount, alphabetSize, acceptingRatio, seed),
+                "random-pda" => presetService.GenerateRandomPda(stateCount, transitionCount, alphabetSize, acceptingRatio, seed, pdaType: pdaType),
+                "pda-pushpop" => presetService.GeneratePdaWithPushPopPairs(stateCount, transitionCount, alphabetSize, acceptingRatio, seed, pdaType: pdaType),
                 "pda-balanced-parens" => presetService.GenerateBalancedParenthesesPda(),
                 "pda-anbn" => presetService.GenerateAnBnPda(),
                 "pda-palindrome" => presetService.GenerateEvenPalindromePda(),
@@ -120,5 +122,15 @@ public class AutomatonGenerationController(
             tempDataService.StoreErrorMessage(TempData, $"Failed to generate preset automaton: {ex.Message}");
             return RedirectToAction("Index", "Home");
         }
+    }
+
+    private static AutomatonType ResolvePdaType(string? family)
+    {
+        if (string.Equals(family, "NPDA", StringComparison.OrdinalIgnoreCase))
+        {
+            return AutomatonType.NPDA;
+        }
+
+        return AutomatonType.DPDA;
     }
 }

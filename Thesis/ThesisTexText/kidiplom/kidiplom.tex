@@ -58,7 +58,7 @@
 \usepackage{longtable}
 \usepackage{subcaption}
 
-
+\usepackage{array}
 \usepackage{float} % Pro parametr [H] u tabulek a obrázků
 \usepackage{tikz}  % Kreslící nástroj
 \usetikzlibrary{automata, positioning, babel, fit, backgrounds}
@@ -98,6 +98,9 @@
 \newacronym{ioc}{IoC}{Inversion of Control}
 \newacronym{di}{DI}{Dependecy Injection}  
 \newacronym{linq}{LINQ}{Language Integrated Query}
+
+\setcounter{secnumdepth}{3}
+\setcounter{tocdepth}{3}
 
 \begin{document}
 %% Sazba úvodních stran -- titulní, s bibliografickými údaji, s
@@ -299,7 +302,7 @@ odebere a nahradí ho předepsanou sekvencí (která může být i prázdná, č
 k odmazání vrchního symbolu). Přijetí slova se odehrává v závislosti na zvoleném
 akceptačním módu, jehož varianty jsou popsány v následující podkapitole.
 
-\subsubsection{Akceptační módy zásobníkového automatu}
+\subsubsection{Akceptační módy zásobníkového automatu} \label{par:prijimani}
 Zásobníkový automat může přijímat vstupní slova třemi způsoby, které se vzájemně
 liší podmínkami kladenými na stav automatu a obsah zásobníku po dočtení celého
 vstupního řetězce \cite[kapitola~4]{jancar_ti}:
@@ -1414,7 +1417,7 @@ Centrální a dominantní část rozhraní tvoří interaktivní grafická ploch
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.85\textwidth]{graphics/custom/app/graph.png}
-    \caption{Detail pracovní plochy (Graf) se zobrazením konečného automatu a panelem nástrojů grafu.}
+    \caption{Detail pracovní plochy se zobrazením konečného automatu a panelem nástrojů grafu.}
     \label{fig:graph_detail}
 \end{figure}
 
@@ -1427,7 +1430,7 @@ Pokud je tlačítko pro povolení úprav zapnuto může uživatel s plátnem dě
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.85\textwidth]{graphics/custom/app/state_state.png}
-    \caption{Detail pracovní plochy (Graf) v editačním režimu stavu.}
+    \caption{Detail pracovní plochy v editačním režimu stavu.}
     \label{fig:state_detail}
 \end{figure}
 \begin{figure}[H]
@@ -1458,9 +1461,10 @@ V horní části grafické plochy se nachází panel nástrojů grafu (viz obrá
 \centering
 \caption{Popis tlačítek panelu nástrojů grafické plochy.}
 \label{tab:graph_toolbar}
-\begin{tabular}{|c|p{0.65\textwidth}|}
+% Definice: první sloupec centrovaný 'm', druhý sloupec fixní šířka s centrovaným textem
+\begin{tabular}{|>{\centering\arraybackslash}m{0.2\textwidth}|>{\centering\arraybackslash}m{0.65\textwidth}|}
 \hline
-\textbf{Ikona / Název} & \textbf{Funkce} \\
+\textbf{Název} & \textbf{Funkce} \\
 \hline
 Přiblížit ($+$) & Přiblíží pohled na plátno o jeden krok. \\
 \hline
@@ -1478,9 +1482,9 @@ Nový ($+$) & Otevře dialog pro vytvoření nového prázdného automatu zvolen
 \hline
 Generovat & Otevře dialog pro automatické vygenerování nového automatu dle zadaných parametrů. \\
 \hline
-Importovat & Otevře dialog systémového souborového prohlížeče pro nahrání automatu ze souboru ve formátu JSON nebo textového zápisu. \\
+Importovat & Otevře dialog systémového souborového prohlížeče pro nahrání automatu ze souboru. \\
 \hline
-Exportovat & Rozbalovací nabídka se třemi možnostmi: export do JSON, export do textového souboru, nebo export do zvoleného formátu včetně aktuální vstupního slovu a v případě již probíhající simulace je zde i možnost uložení stavu simulace. \\ %TODO
+Exportovat & Rozbalovací nabídka se třemi možnostmi: export do JSON, export do textového souboru, nebo export do zvoleného formátu včetně aktuální vstupního slovu a v případě již probíhající simulace je zde i možnost uložení stavu simulace. \\
 \hline
 Přesun & Přepíná mezi režimem přesouvání stavů je režimem kdy stavy přesouvat nelze. \\
 \hline
@@ -1491,8 +1495,8 @@ Zpět / Vpřed & Vrátí nebo opakuje poslední akci. \\
 \end{tabular}
 \end{table}
 
-\paragraph{Dialog pro vytvoření nového automatu}
-Po stisknutí tlačítka \emph{Nový} se zobrazí modální dialog (viz obrázek~\ref{fig:createnew_modal}), který uživatele nejprve upozorní, že aktuální obsah plátna bude nenávratně odstraněn, pokud nebyl předem uložen. Poté je uživatel vyzván k výběru typu nového automatu (\gls{DKA}, \gls{NKA}, \gls{eNKA}, \gls{DZA} nebo \gls{NZA}). Po potvrzení výběru je na plátno vložen nový automat s jediným počátečním stavem příslušného typu.
+\paragraph{Dialog pro vytvoření nového automatu} \mbox{} \\
+Po stisknutí tlačítka pro vytvoření nového automatu se zobrazí modální dialog (viz obrázek~\ref{fig:createnew_modal}), který uživatele nejprve upozorní, že aktuální obsah plátna bude nenávratně odstraněn, pokud nebyl předem uložen. Poté je uživatel vyzván k výběru typu nového automatu (\gls{DKA}, \gls{NKA}, \gls{eNKA}, \gls{DZA} nebo \gls{NZA}). Po potvrzení výběru je na plátno vložen nový automat s jediným počátečním stavem příslušného typu.
 
 \begin{figure}[H]
     \centering
@@ -1501,16 +1505,16 @@ Po stisknutí tlačítka \emph{Nový} se zobrazí modální dialog (viz obrázek
     \label{fig:createnew_modal}
 \end{figure}
 
-\paragraph{Dialog pro generování automatu}
-Tlačítko \emph{Generovat} otevírá dialog (viz obrázek~\ref{fig:generate_modal}), který nabízí tři způsoby generování náhodného automatu:
+\paragraph{Dialog pro generování automatu} \mbox{} \\
+Tlačítko pro generování automatu otevírá dialog (viz obrázek~\ref{fig:generate_modal}), který nabízí různé způsoby generování automatu:
 
 \begin{itemize}
-    \item \textbf{Rychlé generování ze šablony (Quick Generate):} Uživatel zvolí typ automatu a předdefinovanou šablonu (např.\ \emph{Random DFA}) a klikne na tlačítko \emph{Generate from Preset}. Systém vygeneruje automat podle zvolené šablony s přednastavenými parametry.
-    \item \textbf{Generování s vlastními parametry (Custom Parameters):} Uživatel může explicitně zadat počet stavů, počet přechodů, velikost abecedy a poměr akceptujících stavů (\emph{Accepting Ratio}). Kliknutím na \emph{Generate with Parameters} systém sestrojí automat splňující zadaná kritéria.
-    \item \textbf{Generování na základě regulárních výrazů (From Regular Expression):} 
-\end{itemize} %TODO
+    \item \textbf{Rychlé generování ze šablony:} Uživatel zvolí typ automatu a předdefinovanou šablonu a klikne na tlačítko \emph{Generate from Preset}. Systém vygeneruje automat podle zvolené šablony s přednastavenými parametry.
+    \item \textbf{Generování s vlastními parametry:} Uživatel může explicitně zadat počet stavů, počet přechodů, velikost abecedy a poměr akceptujících stavů . Kliknutím na \emph{Generate with Parameters} systém sestrojí automat splňující zadaná kritéria.
+    \item \textbf{Generování na základě regulárních výrazů:} Uživatel zadá regulární výraz do textového pole (např. \texttt{(a|b)*c}), nebo si vybere z nabídky \emph{Example Patterns}, která obsahuje běžné příklady jako \emph{Binary Ending in 01} nebo \emph{Even Number of 'a'}. Po kliknutí na tlačítko \emph{Convert to Automaton} systém převede zadaný výraz na odpovídající konečný automat. Modul podporuje standardní operátory (iterace, alternace, volitelnost) a znakové třídy.
+\end{itemize}
 
-Tato funkce je obzvláště užitečná pro výukové účely -- umožňuje rychle generovat rozmanité příklady automatů pro procvičování algoritmů minimalizace nebo determinizace. Také umožňuje jednoduché procvičování regulárních výrazů.
+Pozn. Tato funkce je obzvláště užitečná pro výukové účely -- umožňuje rychle generovat rozmanité příklady automatů pro procvičování algoritmů minimalizace nebo determinizace. Také umožňuje jednoduché procvičování regulárních výrazů.
 
 \begin{figure}[H]
     \centering
@@ -1521,20 +1525,25 @@ Tato funkce je obzvláště užitečná pro výukové účely -- umožňuje rych
 
 \subsubsection{Oblast 2 -- Konstrukční panel} 
 
-Levá část hlavní obrazovky je vyhrazena konstrukčnímu panelu automatu (viz obrázek~\ref{fig:automaton_panel}), který poskytuje textový pohled na celou strukturu aktuálně editovaného automatu. Panel je rozdělen do tří logických sekcí: \textbf{Abeceda} (\emph{Alphabet}), \textbf{Stavy} (\emph{States}) a \textbf{Přechody} (\emph{Transitions}). Další sekce se objevují na základě událostí například \textbf{Přehled aktuální simulace} (\emph{Execution state}) nebo \textbf{Mapování minimalizace} (\emph{Minimalization mapping}) po jejím provedení. Tato přehledná tabulková reprezentace slouží jako záložní zobrazení ke grafické ploše a umožňuje rychlou kontrolu úplnosti a správnosti definice automatu bez nutnosti prohledávat vizuální diagram.
+Levá část hlavní obrazovky je vyhrazena konstrukčnímu panelu automatu (viz obrázek~\ref{fig:automaton_panel}), který poskytuje textový pohled na celou strukturu aktuálně editovaného automatu. Panel je rozdělen do logických sekcí: \textbf{Abeceda}, \textbf{Stavy} a \textbf{Přechody}. Další sekce se objevují na základě událostí například \textbf{Přehled aktuální simulace} nebo \textbf{Mapování minimalizace} po jejím provedení. Tato přehledná tabulková reprezentace slouží jako záložní zobrazení ke grafické ploše a umožňuje rychlou kontrolu úplnosti a správnosti definice automatu bez nutnosti prohledávat vizuální diagram. Zároveň uživatel může editovat aktuální automat pomocí této reprezentace po povolení tlačítka pro editaci.
 
 \begin{figure}[H]
     \centering
-    \begin{subfigure}[b]{0.42\textwidth}
+    % Definujeme si pomocnou délku pro výšku, aby se dala snadno změnit na jednom místě
+    \newlength{\imgheight}
+    \setlength{\imgheight}{13cm} 
+
+    \begin{subfigure}[b]{0.45\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{graphics/custom/app/automaton.png}
+        % Vynucení šířky i výšky bez ohledu na původní poměr stran
+        \includegraphics[width=\textwidth, height=\imgheight]{graphics/custom/app/automaton.png}
         \caption{Konstrukční panel v režimu prohlížení.}
         \label{fig:automaton_panel_view}
     \end{subfigure}
     \hfill
-    \begin{subfigure}[b]{0.42\textwidth}
+    \begin{subfigure}[b]{0.45\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{graphics/custom/app/automaton-edit.png}
+        \includegraphics[width=\textwidth, height=\imgheight]{graphics/custom/app/automaton-edit.png}
         \caption{Konstrukční panel v režimu editace.}
         \label{fig:automaton_panel_edit}
     \end{subfigure}
@@ -1543,15 +1552,15 @@ Levá část hlavní obrazovky je vyhrazena konstrukčnímu panelu automatu (viz
 \end{figure}
 
 Panel pracuje ve dvou odlišných režimech:
-\begin{itemize} %TODO zasobnik
-    \item \textbf{Režim prohlížení (View):} Výchozí stav panelu. Abeceda je zobrazena jako množina symbolů (např.\ $\{a, b\}$). Každý stav je uveden v samostatném řádku s barevnými odznaky indikujícími jeho roli -- zelený odznak \emph{START} označuje počáteční stav, tyrkysový odznak \emph{ACCEPTING} označuje akceptující stav. Přechody jsou zapsány ve formátu $q_i \rightarrow a \rightarrow q_j$, tedy ve tvaru trojice (zdrojový stav, symbol, cílový stav). Pro zásobníkové automaty jsou přechody zapsány ve formátu ... Data v panelu se v reálném čase synchronizují s grafickou plochou a naopak -- jakákoliv změna provedená v grafu se okamžitě projeví i zde.
+\begin{itemize} 
+    \item \textbf{Režim prohlížení:} Výchozí stav panelu. Abeceda je zobrazena jako množina symbolů (např.\ $\{a, b\}$). Každý stav je uveden v samostatném řádku s barevnými odznaky indikujícími jeho roli -- zelený odznak \emph{START} označuje počáteční stav, tyrkysový odznak \emph{ACCEPTING} označuje akceptující stav. Přechody jsou zapsány ve formátu $q_i - a \rightarrow q_j$, tedy ve tvaru trojice (zdrojový stav, symbol, cílový stav). Pro zásobníkové automaty jsou přechody zapsány ve formátu $q_i - a (b/c) \rightarrow q_j$ (zdrojový stav, symbol, symbol čtený ze zásobníku, symbol zapisovaný na zásobník, cílový stav). Data v panelu se v reálném čase synchronizují s grafickou plochou a naopak -- jakákoliv změna provedená v grafu se okamžitě projeví i zde.
 
-    \item \textbf{Režim editace (Edit):} Aktivuje se kliknutím na tlačítko \emph{Edit} v záhlaví panelu. V tomto režimu se vedle každého stavu zobrazí interaktivní odznaky \emph{START} a \emph{ACCEPTING}, jejichž kliknutím lze přepínat příslušné příznaky. Zároveň se zobrazí tlačítko pro smazání stavu (červené \texttt{×}) a ve spodní části sekce přechodů přibude formulář pro přidání nového přechodu s poli \emph{From} (zdrojový stav), \emph{To} (cílový stav) a \emph{Symbol} (vstupní symbol). Tlačítko \emph{+ Add State} umožňuje přidat nový stav přímo z panelu bez interakce s plátnem.
+    \item \textbf{Režim editace:} Aktivuje se kliknutím na tlačítko \emph{Edit} v záhlaví panelu. V tomto režimu se vedle každého stavu zobrazí interaktivní odznaky \emph{START} a \emph{ACCEPTING}, jejichž kliknutím lze přepínat příslušné příznaky. Zároveň se zobrazí tlačítko pro smazání stavu (červené \texttt{×}) a ve spodní části sekce přechodů přibude formulář pro přidání nového přechodu s poli \emph{From} (zdrojový stav), \emph{To} (cílový stav) a \emph{Symbol} (vstupní symbol). Pro zásobníkové automaty přibude také \emph{Pop} (symbol čtený ze zásobníku) a \emph{Push} (symbol zapisovaný na zásobník).  Tlačítko \emph{+ Add State} umožňuje přidat nový stav přímo z panelu bez interakce s plátnem. 
 \end{itemize}
 
 \subsubsection{Oblast 4 -- Vstupní řetězec}
 
-V levé části spodního pruhu aplikace se nachází sekce \textbf{INPUT} (viz obrázek~\ref{fig:input_section}), která slouží k zadání vstupního řetězce, jenž bude simulátorem zpracován. Textové pole přijímá libovolnou sekvenci znaků o délce až 100 symbolů. V průběhu simulace je pole přepnuto do režimu pouze pro čtení, aby nedocházelo k nechtěným změnám vstupu při krokování.
+V levé části spodního pruhu aplikace se nachází sekce \textbf{INPUT} (viz obrázek~\ref{fig:input_section}), která slouží k zadání vstupního řetězce, jenž bude simulátorem zpracován. V případě \gls{ZKA} se sekce nazývá \textbf{INPUT \& INITIAL STACK} (viz obrázek~\ref{fig:inputastack_section}). Textové pole přijímá libovolnou sekvenci znaků o délce až 100 symbolů. V průběhu simulace je pole přepnuto do režimu pouze pro čtení, aby nedocházelo k nechtěným změnám vstupu při krokování. Textové pole zásobníku taktéž přijímá libovolnou sekvenci znaků, která je zapsána na zásobník ještě před zahájením simulace.
 
 \begin{figure}[H]
     \centering
@@ -1560,14 +1569,21 @@ V levé části spodního pruhu aplikace se nachází sekce \textbf{INPUT} (viz 
     \label{fig:input_section}
 \end{figure}
 
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.45\textwidth]{graphics/custom/app/inputpda.png}
+    \caption{Sekce pro zadání vstupního řetězce s tlačítkem pro generování testovacích vstupů pro \gls{ZKA}.}
+    \label{fig:inputastack_section}
+\end{figure}
+
 Vpravo od vstupního pole se nachází tlačítko s ikonou klávesnice, které otevírá dialog pro automatické generování testovacích vstupů (viz obrázek~\ref{fig:input_modal}). Tento dialog nabízí různé strategie generování:
 
 \begin{itemize}
-    \item \textbf{Rychlé generování (Quick Generate):} Tlačítko \emph{Shortest Accepting} vyhledá a vloží nejkratší řetězec, který aktuální automat přijímá. Tlačítko \emph{Rejecting} naopak vygeneruje krátký řetězec, jenž automat odmítne.
-    \item \textbf{Náhodný řetězec (Random String):} Vygeneruje náhodný řetězec délky v zadaném rozmezí (Min Length -- Max Length) bez ohledu na to, zda jej automat přijme, nebo odmítne.
-    \item \textbf{Náhodné přijímané slovo (Random Accepting -- Advanced):} Opakovaně generuje náhodné řetězce v zadaném rozsahu délek a ověřuje je vůči automatu. Po nalezení přijímaného řetězce ho vloží do vstupního pole. Parametr \emph{Max Attempts} určuje maximální počet pokusů hledání; vyšší hodnota zvyšuje pravděpodobnost nalezení přijímaného slova pro automaty s nízkým poměrem akceptujících cest.
-    \item \textbf{Zajímavé případy (Interesting test cases):} Umožňuje vygenerovat zajímavé případy pro daný typ automatu. Například opakující se vstup nebo alternující vstup.
-    \item \textbf{Speciální případy (Special cases):} Při volbě určitých automatů se odemkne i strategie speciálních případů, které například umožňují generovat a testovat nedeterministické případy a nebo případy s epsilon přechody.
+    \item \textbf{Rychlé generování:} Tlačítko \emph{Shortest Accepting} vyhledá a vloží nejkratší řetězec, který aktuální automat přijímá. Tlačítko \emph{Rejecting} naopak vygeneruje krátký řetězec, jenž automat odmítne.
+    \item \textbf{Náhodný řetězec:} Vygeneruje náhodný řetězec délky v zadaném rozmezí (Min Length -- Max Length) bez ohledu na to, zda jej automat přijme, nebo odmítne.
+    \item \textbf{Náhodné přijímané slovo:} Opakovaně generuje náhodné řetězce v zadaném rozsahu délek a ověřuje je vůči automatu. Po nalezení přijímaného řetězce ho vloží do vstupního pole. Parametr \emph{Max Attempts} určuje maximální počet pokusů hledání.
+    \item \textbf{Zajímavé případy:} Umožňuje vygenerovat zajímavé případy pro daný typ automatu. Například opakující se vstup nebo alternující vstup.
+    \item \textbf{Speciální případy:} Při volbě určitých automatů se odemkne i strategie speciálních případů, které například umožňují generovat a testovat nedeterministické případy a nebo případy s epsilon přechody.
 \end{itemize}
 
 \begin{figure}[H]
@@ -1595,7 +1611,7 @@ Panel obsahuje následující ovládací prvky:
     \item \textbf{Reset:} Ukončí probíhající simulaci a vrátí automat do počátečního stavu shodného s tím před stisknutím \emph{Start}. Vstupní pole se stane opět editovatelným.
     \item \textbf{To Start:} Přesune ukazatel výpočtu zpět na jeho samý začátek (pozice 0), aniž by simulaci ukončil.
     \item \textbf{Back:} Provede jeden krok výpočtu zpět, tedy vrátí automat do konfigurace platné před posledním přečteným symbolem.
-    \item \textbf{Next:} Přečte jeden symbol ze vstupního řetězce a provede odpovídající přechod. Aktuálně aktivní stav (nebo množina stavů u nedeterministických modelů) je vizuálně zvýrazněn na plátně. Je-li automat v tomto okamžiku v akceptujícím stavu a vstup je zcela přečten, zobrazí se příslušná informace. 
+    \item \textbf{Next:} Přečte jeden symbol ze vstupního řetězce a provede odpovídající přechod. Je-li automat v tomto okamžiku v akceptujícím stavu a vstup je zcela přečten, zobrazí se příslušná informace. 
     \item \textbf{Read All:} Provede všechny zbývající kroky výpočtu najednou a přeskočí na výsledný stav. Výsledek (přijetí nebo odmítnutí) je zobrazen po dokončení.
 \end{itemize}
 
@@ -1608,17 +1624,19 @@ Pravá část spodního pruhu sdružuje dvě úzce provázané funkční oblasti
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.75\textwidth]{graphics/custom/app/transition-minimalize.png}
-    \caption{Přepínač typu automatu (vlevo) a panel algoritmických operací (vpravo).}
+    \caption{Přepínač typu automatu (vlevo) a panel minimalizace (vpravo).}
     \label{fig:type_minimalize}
 \end{figure}
 
-\paragraph{Přepínač typu automatu (Automaton Type)}
+\paragraph{Přepínač typu automatu} \mbox{} \\
 Tato skupina tlačítek zobrazuje aktuální typ automatu a u daným typů umožňuje přepínat mezi typy automatů. Je podporována transformace z \gls{eNKA} na \gls{NKA}, z \gls{eNKA} na \gls{DKA} a z \gls{NKA} na \gls{DKA}.
 
-\paragraph{Operace minimalizace}
+\paragraph{Operace minimalizace} \mbox{} \\
 Sekce napravo od přepínače typu se dynamicky přizpůsobuje aktuálně zvolenému modelu. Pokud je aktuální automat \gls{DKA} mohou nastat 2 možnosti. Buďto je možnost minimalizace a tlačítko zobraný počet stavů na který je možno minimalizovat, a nebo tlačítko se zneaktivní a předá informaci, že automat je již minimální. Při ostatních typech automatů zobrazí tlačítko informaci, že pro daný typ minimalizaci nepodporuje.
 
-\subsubsection{Změna při zásobníkových automatech} %TODO
+\subsubsection{Změna při zásobníkových automatech} 
+V případě, že uživatel pracuje se zásobníkovým automatem (\gls{ZKA}), dochází k dynamické obměně ovládacích prvků. Sekce minimalizace nahrazena nastavením \hyperref[par:prijimani]{podmínek přijímání}.
+
 
 \subsection{Registrace a přihlášení} \label{subsec:registrace}
 
@@ -1643,10 +1661,10 @@ Pro plnohodnotné využití aplikace, zejména pro potřeby dlouhodobého studia
     \label{fig:navbar_comparison}
 \end{figure}
 %TODO dopracovat email nebo pridat poznamku
-Nepřihlášený uživatel vidí v pravé části lišty tlačítka \emph{Register} a \emph{Login}. Registrace vyžaduje pouze platnou e-mailovou adresu a zvolené heslo; systém odesílá na zadanou adresu ověřovací e-mail pro potvrzení identity. Po úspěšném přihlášení se lišta rozšíří o navigační položky \emph{Home} (hlavní obrazovka), \emph{Saved Automatons} (správa vlastních uložených automatů) a \emph{Shared Automatons} (sdílené skupiny a kolaborace). V pravém rohu lišty je k dispozici ikona uživatelského profilu pro přístup do nastavení účtu a tlačítko odhlášení.
+Nepřihlášený uživatel vidí v pravé části lišty tlačítka pro registraci a přihlášení. Registrace vyžaduje pouze platnou e-mailovou adresu a zvolené heslo. Systém odesílá na zadanou adresu ověřovací e-mail pro potvrzení identity. Po úspěšném přihlášení se lišta rozšíří o hlavní obrazovku, správu vlastních uložených automatů a sdílené skupiny s automaty. V pravém rohu lišty je k dispozici ikona uživatelského profilu pro přístup do nastavení účtu a tlačítko odhlášení.
 
 \subsection{Správa vlastních a sdílených automatů}
-Uživatelé s vytvořeným účtem mají k dispozici pokročilé prostředí pro organizaci své práce, přístupné z navigační lišty.
+Uživatelé s vytvořeným účtem mají k dispozici prostředí pro organizaci své práce, přístupné z navigační lišty.
 
 \subsubsection{Vlastní automaty}
 
@@ -1685,8 +1703,8 @@ V pravém horním rohu stránky se nachází tlačítko \emph{Create Group}, kte
 
 Sekce \emph{Shared Automatons}, přístupná z navigační lišty, je určena pro týmovou spolupráci a sdílení sbírek automatů mezi více uživateli. Prostředí je organizováno do skupin -- každá skupina tvoří sdílený prostor, do nějž mohou přispívat a odkud mohou čerpat všichni její členové.
 
-\paragraph{Přehled skupin}
-Po otevření sekce uvidí uživatel seznam všech skupin, jichž je členem (viz obrázek~\ref{fig:shared_overview}). Každá skupina je označena názvem, popisem a informací o vlastníkovi. Uživatel může být v roli \textbf{vlastníka} (Owner), \textbf{editora} (Editor), \textbf{přispěvatele} (Contributor) nebo \textbf{pozorovatele} (Viewer); dostupné akce se odvíjejí od přidělené role.
+\paragraph{Přehled skupin} \mbox{} \\
+Po otevření sekce uvidí uživatel seznam všech skupin, jichž je členem (viz obrázek~\ref{fig:shared_overview}). Každá skupina je označena názvem, popisem a informací o vlastníkovi. Uživatel může být v roli vlastníka, editora, přispěvatele nebo pozorovatele. Dostupné akce se odvíjejí od přidělené role.
 
 \begin{figure}[H]
     \centering
@@ -1695,9 +1713,9 @@ Po otevření sekce uvidí uživatel seznam všech skupin, jichž je členem (vi
     \label{fig:shared_overview}
 \end{figure}
 
-Pro každou skupinu jsou k dispozici tlačítka \emph{Open Group} (otevření skupiny a prohlížení jejího obsahu) a \emph{Leave Group} (opuštění skupiny). Vlastník skupiny navíc vidí tlačítko \emph{Manage Members} pro správu členů a \emph{Delete Group} pro trvalé smazání skupiny. Novou skupinu lze vytvořit tlačítkem \emph{+ Create Group} v pravém horním rohu stránky.
+Pro každou skupinu jsou k dispozici tlačítka pro otevření skupiny a prohlížení jejího obsahu a také opuštění skupiny. Vlastník skupiny navíc vidí tlačítko pro správu členů a pro trvalé smazání skupiny. Novou skupinu lze vytvořit tlačítkem \emph{+ Create Group} v pravém horním rohu stránky.
 
-\paragraph{Detail skupiny a sdílené automaty}
+\paragraph{Detail skupiny a sdílené automaty} \mbox{} \\
 Po otevření skupiny se zobrazí seznam automatů, které do ní byly přidány kterýmkoliv z členů (viz obrázky~\ref{fig:shared_group_member} a~\ref{fig:shared_group_owner}). U každého automatu je uveden jeho název, popis, autor a datum přidání. Podle přidělené role jsou dostupné akce \emph{Load} (načtení automatu na plátno), \emph{Load with input} (načtení automatu se vstupem), \emph{Load as state} (načtení automatu v daném uloženém stavu) a \emph{Export} (stažení do souboru). Vlastník skupiny a editor mají navíc možnost konkrétní automat ze skupiny odebrat tlačítkem \emph{Delete}. Vlastník skupiny může rovněž importovat automaty ze souboru přímo do skupiny prostřednictvím tlačítka \emph{Import Group} a celou skupinu exportovat pomocí \emph{Export Group}.
 
 \begin{figure}[H]
@@ -1719,7 +1737,7 @@ Po otevření skupiny se zobrazí seznam automatů, které do ní byly přidány
     \label{fig:shared_group}
 \end{figure}
 
-\paragraph{Správa členů skupiny}
+\paragraph{Správa členů skupiny} \mbox{} \\
 Vlastník skupiny má přístup k obrazovce správy členů (viz obrázek~\ref{fig:shared_manage_members}), kterou otevře tlačítkem \emph{Manage Members} v přehledu skupin nebo \emph{Manage Members} přímo v detailu skupiny. Tato obrazovka zobrazuje seznam všech aktuálních členů včetně jejich rolí, data přidání a informaci o tom, kdo je pozval. Roli libovolného člena může vlastník kdykoliv změnit prostřednictvím rozevírací nabídky v příslušném řádku, nebo ho skupiny zcela odebrat tlačítkem \emph{Remove}.
 
 \begin{figure}[H]
@@ -1743,7 +1761,7 @@ Nastavení uživatelského účtu je přístupné kliknutím na ikonu profilu v 
 \begin{itemize}
     \item \textbf{Email} -- Umožňuje změnit přihlašovací e-mailovou adresu. Po zadání nové adresy je na ni odeslán ověřovací e-mail. Změna se projeví až po jeho potvrzení.
     \item \textbf{Password} -- Formulář pro změnu hesla. Uživatel musí zadat stávající heslo a následně zvolit a potvrdit nové.
-    \item \textbf{Notifications} -- Správa preferencí oznámení.Zde je k dispozici přepínač \emph{Group Invitation Notifications}: je-li aktivní, systém zobrazí upozornění při příštím přihlášení v případě, že na uživatele čeká nevyřízená pozvánka do skupiny. Nastavení se uloží tlačítkem \emph{Save Preferences}.
+    \item \textbf{Notifications} -- Správa preferencí oznámení. Zde je k dispozici přepínač \emph{Group Invitation Notifications}. Je-li aktivní, systém zobrazí upozornění při příštím přihlášení v případě, že na uživatele čeká nevyřízená pozvánka do skupiny. Nastavení se uloží tlačítkem \emph{Save Preferences}.
     \item \textbf{Personal data} -- Sekce obsahující možnosti správy osobních údajů v souladu s požadavky na ochranu soukromí, včetně případné možnosti trvalého smazání účtu.
 \end{itemize}
 
@@ -1762,19 +1780,7 @@ Současná implementace simulátoru poskytuje solidní základ pro další vývo
 \subsection{Funkční rozšíření}
 
 \subsubsection{Turingovy stroje}
-Ačkoliv současná verze nepokrývá univerzální model výpočtu, přidání Turingových strojů (TM) by dokončilo pokrytí Chomského hierarchie.
-
-\subsubsection{Nedeterministické zásobníkové automaty}
-Současná verze podporuje pouze DPDA (deterministické PDA). Rozšíření na obecné nedeterministické PDA by umožnilo pokrýt všechny bezkontextové jazyky.
-
-\textbf{Výzvy:}
-\begin{itemize}
-    \item \textbf{Exponenciální větvení:} Nutnost vizualizace stromu výpočetních cest (podobně jako u NFA, ale s nekonečně hlubokými zásobníky).
-    \item \textbf{Performance:} Prohledávání BFS/DFS s omezením hloubky (timeout mechanismus).
-    \item \textbf{UI:} Interaktivní strom cest s možností rozkliknutí konkrétní větve.
-\end{itemize}
-
-\textbf{Přínos:} Kompletní pokrytí CFL (Context-Free Languages), umožnění demonstrace jazyka palindromů (klasický příklad nedeterminismu u PDA).
+Ačkoliv současná verze nepokrývá univerzální model výpočtu, přidání Turingových strojů by dokončilo pokrytí Chomského hierarchie \cite{devopedia_chomsky}. 
 
 \subsubsection{Formální gramatiky}
 Přidání podpory pro přímou práci s gramatikami (nikoliv pouze automaty).
@@ -1805,7 +1811,7 @@ Transformace na offline-first aplikaci.
 
 
 \subsubsection{Mobilní responsivita}
-Adaptace UI pro tablety a smartphony.
+Rozšířená adaptace UI pro tablety a smartphony.
 
 
 \subsubsection{Collaborative Real-Time Editing}
@@ -1826,7 +1832,7 @@ Použití Large Language Models (LLM) pro generování automatů z textových po
 Kromě edukačního využití má aplikace potenciál pro výzkumné účely:
 
 \begin{itemize}
-    \item \textbf{Sběr dat o učení:} Telemetrie (s consent) -- Jak studenti skutečně navrhují automaty? Jaké dělají chyby? Kde tráví nejvíce času?
+    \item \textbf{Sběr dat o učení:} Telemetrie -- Jak studenti skutečně navrhují automaty? Jaké dělají chyby? Kde tráví nejvíce času?
     \item \textbf{A/B testování UI:} Experimentování s různými vizualizačními přístupy (vliv barev, layoutu na porozumění).
     \item \textbf{Benchmark dataset:} Veřejná databáze uživatelsky vytvořených automatů (anonymizovaná) pro testování algoritmů.
 \end{itemize}
@@ -1851,76 +1857,55 @@ Thesis conclusions in \uv{English}.
 \appendix
 
 \section{Návrh uživatelského rozhraní (HCI prezentace)} \label{sec:priloha_hci}
-V elektronických datech (nebo na následujících stranách) je přiložena kompletní prezentace z předmětu Human Computer Interaction, mapující celý proces návrhu aplikace od definice cílové skupiny, přes HTA až po tvorbu prototypů.
+V elektronických datech je přiložena kompletní prezentace z předmětu Human Computer Interaction, mapující celý proces návrhu aplikace od definice cílové skupiny, přes HTA až po tvorbu prototypů.
 
-\section{Testování při vývoji softwaru (Integrační testy pomocí testcontainers)} \label{sec:priloha_testing}
-V elektronických datech je přiložena kompletní prezentace o testování, dokumentující využití Testcontainers, testovací pyramidy a best practices.
+\section{Testování při vývoji softwaru (Integrační testy)} \label{sec:priloha_testing}
+V elektronických datech je přiložena kompletní prezentace o testování, dokumentující využití Testcontainers, testovací pyramidy a best practices při psaní integračních testů.
 
-%% Obsah elektronických dat. Poslední příloha. Upravte podle vlastní
-%% práce!
-\section{Obsah elektronických dat} \label{sec:ObsahData}
+\section{Instalace a spuštění aplikace} \label{sec:instalace}
+Tato sekce popisuje postup pro zprovoznění aplikace pomocí kontejnerizačního nástroje Docker.
 
-Na samotném konci textu práce je uveden stručný popis obsahu
-elektronických dat odevzdaných v systému katedry informatiky spolu s
-textem. Tato data jsou nedílnou součástí práce a tvoří (datovou)
-přílohu textu práce. Povinné položky struktury dat jsou:
-
-\begin{description}
-
-\item[\texttt{text/}] \hfill \\
-  Adresář s textem práce ve formátu PDF, vytvořený s~použitím
-  závazného stylu KI PřF UP v~Olomouci pro závěrečné práce, včetně
-  všech (textových) příloh, a~všechny soubory potřebné pro
-  bezproblémové vytvoření PDF dokumentu textu (případně v~ZIP
-  archivu), tj.~zdrojový text textu a příloh, vložené obrázky, apod.
-
-\item[\texttt{README.*}] \hfill \\
-  Textový soubor (s příponou např. \texttt{.txt}) s informacemi o
-  opakovatelném způsobu použití ostatních dat práce -- typicky plně
-  reprodukovatelný co nejúplnější funkční postup zprovoznění software
-  vytvořeného v~rámci práce, tzn. jeho případné instalace/nasazení a
-  spuštění, včetně uvedení všech požadavků pro bezproblémový provoz;
-  za zprovoznění software se nepovažuje zpřístupnění (např. po
-  Internetu) již někde zprovozněného software.
-
-\item[\texttt{*}] \hfill \\
-  Adresáře a soubory s veškerými ostatními autorskými daty práce
-  (případně v~ZIP archivu) -- typicky spustitelné a další soubory
-  software vytvořeného v rámci práce potřebné pro bezproblémový provoz
-  software, případně jeho instalační program, a kompletní zdrojové
-  texty software a další data nutná pro plně reprodukovatelné korektní
-  vytvoření spustitelných souborů.
-
-\end{description}
-
-Dále mohou data obsahovat například:
-
+\subsection{Požadavky}
+Aby mohl uživatel zprovoznit aplikaci, musí nejprve zajistit, že má nainstalované následující nástroje:
 \begin{itemize}
+    \item \textbf{Docker} -- Nástroj pro běh kontejnerizovaných aplikací.
+    \item \textbf{Docker Compose} -- Nástroj pro definování a spuštění vícesložkových aplikací (obvykle součástí instalace Docker Desktop).
+\end{itemize}
+Dále je nutné mít v systému (BIOS/UEFI) povolenou hardwarovou virtualizaci.
 
-%\item[\texttt{data/}] \hfill \\
-\item
-  ukázková a~testovací data použitá v~práci nebo pro potřeby posouzení
-  práce v rámci její obhajoby,
+\subsection{Instalace a spuštění}
+Aplikace je dostupná jako hotový obraz v registru \textbf{Docker Hub}. Postup spuštění je následující:
+\begin{enumerate}
+    \item Vytvoření kopie souboru \texttt{docker-compose.yml} z přiloženého média (složka \texttt{src/}) do cílového místa na disku.
+    \item Otevření terminálu nebo příkazového řádku v daném adresáři.
+    \item Spuštění příkazu: \texttt{docker-compose up -d}. Tento příkaz automaticky stáhne potřebné obrazy z Docker Hubu a spustí aplikaci.
+\end{enumerate}
 
-%\item[\texttt{literature/}] \hfill \\
-\item
-  položky bibliografie v elektronické podobě, příp.~jiná relevantní literatura
-  a dokumentace vztahující se k~práci,
-
-%\item[\texttt{install/}] \hfill \\
-\item
-  cizí data (software) potřebná pro bezproblémové použití autorských
-  dat práce (software), která nejsou standardní součástí
-  předpokládaného (softwarového) vybavení uživatele.
-
+\subsection{Přístup k aplikaci}
+Po úspěšném spuštění je aplikace dostupná v prohlížeči na adrese \texttt{http://localhost:8001}. Pro testovací účely jsou připraveny účty:
+\begin{itemize}
+    \item \textbf{Email:} \texttt{supervisor@test.test}, \texttt{alice@test.test}, \texttt{bob@test.test}, \texttt{charlie@test.test}, \texttt{diana@test.test}
+    \item \textbf{Heslo:} \texttt{Test123}
 \end{itemize}
 
-U~veškerých cizích obsažených materiálů jejich
-zahrnutí dovolují podmínky pro jejich veřejné šíření nebo přiložený souhlas
-držitele práv k užití. Pro všechny použité (a~citované) materiály,
-u~kterých toto není splněno a~nejsou tak obsaženy, je uveden
-jejich zdroj, např.~webová adresa, v~bibliografii nebo textu práce
-nebo souboru \texttt{README.*}.
+\section{Obsah elektronických dat} \label{sec:ObsahData}
+Níže je uveden stručný popis struktury odevzdaných dat. Tato data jsou nedílnou součástí práce.
+
+\begin{description}
+    \item[\texttt{source/}] \hfill \\
+    Složka obsahuje veškeré zdrojové soubory a projekty řešení.
+    
+    \item[\texttt{src/}] \hfill \\
+    Složka obsahuje soubor \texttt{docker-compose.yml} potřebný pro rychlé stažení a spuštění aplikace z registru Docker Hub.
+    
+    \item[\texttt{doc/}] \hfill \\
+    Složka obsahuje text práce ve formátu PDF, zdrojové soubory \LaTeX{} a obě prezentace zmíněné v přílohách \ref{sec:priloha_hci} a \ref{sec:priloha_testing}.
+    
+    \item[\texttt{README.txt}] \hfill \\
+    Textový soubor s detailním postupem pro instalaci, spuštění a konfiguraci aplikace.
+\end{description}
+
+U veškerých cizích materiálů (knihovny, frameworky) jejich zahrnutí dovolují podmínky pro jejich veřejné šíření (licence MIT/Apache).
 
 %% -------------------------------------------------------------------
 
@@ -1940,71 +1925,71 @@ nebo souboru \texttt{README.*}.
 %% Bibliografie, včetně sazby, při NEpoužití BibLaTeXu.
 \begin{thebibliography}{9}
 
-\bibitem{jancar_ti} \uppercase{Jančar}, Petr. \textit{Teoretická informatika: učební text}. Ostrava: Ediční středisko VŠB-TUO, 2007. 330 s. ISBN 978-80-248-1487-2.
+\bibitem{jancar_ti} \uppercase{JanČar}, Petr. \textit{Teoretická informatika: učební text}. Ostrava: Ediční středisko VŠB-TUO, 2007. 330 s. ISBN 978-80-248-1487-2.
 
-\bibitem{osicka_sloz} \uppercase{Osička}, Petr. \textit{KMI/SLO - poznámky, ZS2021} [online]. Univerzita Palackého v Olomouci, 2022 [cit. 2026-03-06]. Dostupné z: \url{https://phoenix.inf.upol.cz/~osicka/sloz/poznamky.pdf}
+\bibitem{osicka_sloz} \uppercase{OsiČka}, Petr. \textit{KMI/SLO - poznámky, ZS2021} [online]. Univerzita Palackého v Olomouci, 2022 [cit. 2026-04-08]. Dostupné z: \url{https://phoenix.inf.upol.cz/~osicka/sloz/poznamky.pdf}
 
-\bibitem{devopedia_chomsky} \uppercase{Devopedia}. \textit{Chomsky Hierarchy} [online]. 2026 [cit. 2026-02-20]. Dostupné z: \url{https://devopedia.org/chomsky-hierarchy}
+\bibitem{devopedia_chomsky} \uppercase{Devopedia}. \textit{Chomsky Hierarchy} [online]. 2026 [cit. 2026-04-08]. Dostupné z: \url{https://devopedia.org/chomsky-hierarchy}
 
-\bibitem{jflap} \uppercase{Rodger}, Susan H., a kol. \textit{JFLAP} [online]. Duke University, [cit. 2026-03-15]. Dostupné z: \url{https://www.jflap.org/}
+\bibitem{jflap} \uppercase{Rodger}, Susan H., a kol. \textit{JFLAP} [online]. Duke University, [cit. 2026-04-08]. Dostupné z: \url{https://www.jflap.org/}
 
-\bibitem{gfg_lifo} \uppercase{GeeksforGeeks}. \textit{LIFO Principle in Stack} [online]. 2025 [cit. 2026-03-06]. Dostupné z: \url{https://www.geeksforgeeks.org/dsa/lifo-principle-in-stack/}
+\bibitem{gfg_lifo} \uppercase{GeeksforGeeks}. \textit{LIFO Principle in Stack} [online]. 2025 [cit. 2026-04-08]. Dostupné z: \url{https://www.geeksforgeeks.org/dsa/lifo-principle-in-stack/}
 
-\bibitem{cerna_fja} \uppercase{Černá}, Ivana; \uppercase{Křetínský}, Mojmír; \uppercase{Kučera}, Antonín. \textit{Formální jazyky a automaty I} [online]. Brno: Masarykova univerzita, 2006 [cit. 2026-03-06]. ISSN 1802-128X. Dostupné z: \url{https://is.muni.cz/elportal/estud/fi/js06/ib005/Formalni_jazyky_a_automaty_I.pdf}
+\bibitem{cerna_fja} \uppercase{Černá}, Ivana; \uppercase{Křetínský}, Mojmír; \uppercase{Kučera}, Antonín. \textit{Formální jazyky a automaty I} [online]. Brno: Masarykova univerzita, 2006 [cit. 2026-04-08]. ISSN 1802-128X. Dostupné z: \url{https://is.muni.cz/elportal/estud/fi/js06/ib005/Formalni_jazyky_a_automaty_I.pdf}
 
-\bibitem{balun_fj} \uppercase{Balun}, Jiří. \textit{Materiály ke cvičení z předmětu Formální jazyky} [online]. Univerzita Palackého v Olomouci, 2026 [cit. 2026-03-06]. Dostupné z: \url{https://apollo.inf.upol.cz/~balun/fj/fj_cv_2026.pdf}
+\bibitem{balun_fj} \uppercase{Balun}, Jiří. \textit{Materiály ke cvičení z předmětu Formální jazyky} [online]. Univerzita Palackého v Olomouci, 2026 [cit. 2026-04-08]. Dostupné z: \url{https://apollo.inf.upol.cz/~balun/fj/fj_cv_2026.pdf}
 
 \bibitem{kleene1956} \uppercase{Kleene}, Stephen C. Representation of events in nerve nets and finite automata. In: \textit{Automata studies}. Princeton, NJ: Princeton University Press, 1956.
 
-\bibitem{mitra_thompson} \uppercase{Mitra}, Bivas. \textit{Lecture notes: Thompson's Construction, Subset Construction} [online]. Indian Institute of Technology Kharagpur, 2013 [cit. 2026-03-08]. Dostupné z: \url{https://cse.iitkgp.ac.in/~bivasm/notes/scribe/11CS10055.pdf}
+\bibitem{mitra_thompson} \uppercase{Mitra}, Bivas. \textit{Lecture notes: Thompson's Construction, Subset Construction} [online]. Indian Institute of Technology Kharagpur, 2013 [cit. 2026-04-08]. Dostupné z: \url{https://cse.iitkgp.ac.in/~bivasm/notes/scribe/11CS10055.pdf}
 
-\bibitem{ms_csharp} \uppercase{Microsoft}. \textit{C\# Documentation} [online]. 2026 [cit. 2026-03-09]. Dostupné z: \url{https://learn.microsoft.com/en-us/dotnet/csharp/}
+\bibitem{ms_csharp} \uppercase{Microsoft}. \textit{C\# Documentation} [online]. 2026 [cit. 2026-04-08]. Dostupné z: \url{https://learn.microsoft.com/en-us/dotnet/csharp/}
 
-\bibitem{ms_dotnet} \uppercase{Microsoft}. \textit{.NET Documentation} [online]. 2026 [cit. 2026-03-09]. Dostupné z: \url{https://learn.microsoft.com/en-us/dotnet/}
+\bibitem{ms_dotnet} \uppercase{Microsoft}. \textit{.NET Documentation} [online]. 2026 [cit. 2026-04-08]. Dostupné z: \url{https://learn.microsoft.com/en-us/dotnet/}
 
-\bibitem{ms_aspnet} \uppercase{Microsoft}. \textit{ASP.NET Core Documentation} [online]. 2026 [cit. 2026-03-09]. Dostupné z: \url{https://learn.microsoft.com/en-us/aspnet/core/}
+\bibitem{ms_aspnet} \uppercase{Microsoft}. \textit{ASP.NET Core Documentation} [online]. 2026 [cit. 2026-04-08]. Dostupné z: \url{https://learn.microsoft.com/en-us/aspnet/core/}
 
-\bibitem{ms_identity} \uppercase{Microsoft}. \textit{Introduction to Identity on ASP.NET Core} [online]. 2026 [cit. 2026-03-09]. Dostupné z: \url{https://learn.microsoft.com/en-us/aspnet/core/security/authentication/identity}
+\bibitem{ms_identity} \uppercase{Microsoft}. \textit{Introduction to Identity on ASP.NET Core} [online]. 2026 [cit. 2026-04-08]. Dostupné z: \url{https://learn.microsoft.com/en-us/aspnet/core/security/authentication/identity}
 
-\bibitem{ms_efcore} \uppercase{Microsoft}. \textit{Entity Framework Core} [online]. 2026 [cit. 2026-03-09]. Dostupné z: \url{https://learn.microsoft.com/en-us/ef/core/}
+\bibitem{ms_efcore} \uppercase{Microsoft}. \textit{Entity Framework Core} [online]. 2026 [cit. 2026-04-08]. Dostupné z: \url{https://learn.microsoft.com/en-us/ef/core/}
 
-\bibitem{ms_sql} \uppercase{Microsoft}. \textit{SQL Server Documentation} [online]. 2026 [cit. 2026-03-09]. Dostupné z: \url{https://learn.microsoft.com/en-us/sql/sql-server/}
+\bibitem{ms_sql} \uppercase{Microsoft}. \textit{SQL Server Documentation} [online]. 2026 [cit. 2026-04-08]. Dostupné z: \url{https://learn.microsoft.com/en-us/sql/sql-server/}
 
-\bibitem{ms_aspire} \uppercase{Microsoft}. \textit{.NET Aspire overview} [online]. 2026 [cit. 2026-03-09]. Dostupné z: \url{https://learn.microsoft.com/en-us/dotnet/aspire/get-started/aspire-overview}
+\bibitem{ms_aspire} \uppercase{Microsoft}. \textit{.NET Aspire overview} [online]. 2026 [cit. 2026-04-08]. Dostupné z: \url{https://learn.microsoft.com/en-us/dotnet/aspire/get-started/aspire-overview}
 
-\bibitem{w3c_html} \uppercase{W3C}. \textit{HTML5 Canvas} [online]. 2026 [cit. 2026-03-09]. Dostupné z: \url{https://html.spec.whatwg.org/multipage/canvas.html}
+\bibitem{w3c_html} \uppercase{W3C}. \textit{HTML5 Canvas} [online]. 2026 [cit. 2026-04-08]. Dostupné z: \url{https://html.spec.whatwg.org/multipage/canvas.html}
 
-\bibitem{w3c_css} \uppercase{W3C}. \textit{Cascading Style Sheets} [online]. 2026 [cit. 2026-03-09]. Dostupné z: \url{https://www.w3.org/Style/CSS/}
+\bibitem{w3c_css} \uppercase{W3C}. \textit{Cascading Style Sheets} [online]. 2026 [cit. 2026-04-08]. Dostupné z: \url{https://www.w3.org/Style/CSS/}
 
-\bibitem{bootstrap_docs} \uppercase{Bootstrap}. \textit{Bootstrap 5 Documentation} [online]. 2026 [cit. 2026-03-09]. Dostupné z: \url{https://getbootstrap.com/docs/5.3/getting-started/introduction/}
+\bibitem{bootstrap_docs} \uppercase{Bootstrap}. \textit{Bootstrap 5 Documentation} [online]. 2026 [cit. 2026-04-08]. Dostupné z: \url{https://getbootstrap.com/docs/5.3/getting-started/introduction/}
 
-\bibitem{mdn_js} \uppercase{MDN Web Docs}. \textit{JavaScript modules} [online]. 2026 [cit. 2026-03-09]. Dostupné z: \url{https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules}
+\bibitem{mdn_js} \uppercase{MDN Web Docs}. \textit{JavaScript modules} [online]. 2026 [cit. 2026-04-08]. Dostupné z: \url{https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules}
 
-\bibitem{docker_docs} \uppercase{Docker Inc.} \textit{Docker Documentation} [online]. 2026 [cit. 2026-03-09]. Dostupné z: \url{https://docs.docker.com/}
+\bibitem{docker_docs} \uppercase{Docker Inc.} \textit{Docker Documentation} [online]. 2026 [cit. 2026-04-08]. Dostupné z: \url{https://docs.docker.com/}
 
-\bibitem{xunit_docs} \uppercase{xUnit.net}. \textit{xUnit.net Documentation} [online]. [cit. 2026-03-15]. Dostupné z: \url{https://xunit.net/}
+\bibitem{xunit_docs} \uppercase{xUnit.net}. \textit{xUnit.net Documentation} [online]. [cit. 2026-04-08]. Dostupné z: \url{https://xunit.net/}
 
-\bibitem{testcontainers_docs} \uppercase{Testcontainers}. \textit{Testcontainers for .NET} [online]. [cit. 2026-03-15]. Dostupné z: \url{https://dotnet.testcontainers.org/}
+\bibitem{testcontainers_docs} \uppercase{Testcontainers}. \textit{Testcontainers for .NET} [online]. [cit. 2026-04-08]. Dostupné z: \url{https://dotnet.testcontainers.org/}
 
-\bibitem{shouldly_docs} \uppercase{Shouldly}. \textit{Shouldly Documentation} [online]. [cit. 2026-03-15]. Dostupné z: \url{https://docs.shouldly.org/}
+\bibitem{shouldly_docs} \uppercase{Shouldly}. \textit{Shouldly Documentation} [online]. [cit. 2026-04-08]. Dostupné z: \url{https://docs.shouldly.org/}
 
-\bibitem{opentelemetry_docs} \uppercase{OpenTelemetry}. \textit{OpenTelemetry Documentation} [online]. [cit. 2026-03-15]. Dostupné z: \url{https://opentelemetry.io/docs/}
+\bibitem{opentelemetry_docs} \uppercase{OpenTelemetry}. \textit{OpenTelemetry Documentation} [online]. [cit. 2026-04-08]. Dostupné z: \url{https://opentelemetry.io/docs/}
 
-\bibitem{cytoscape_docs} \uppercase{Cytoscape Consortium}. \textit{Cytoscape.js Documentation} [online]. [cit. 2026-03-15]. Dostupné z: \url{https://js.cytoscape.org/}
+\bibitem{cytoscape_docs} \uppercase{Cytoscape Consortium}. \textit{Cytoscape.js Documentation} [online]. [cit. 2026-04-08]. Dostupné z: \url{https://js.cytoscape.org/}
 
-\bibitem{dagre_docs} \uppercase{Dagre}. \textit{Dagre: Directed graph layout for JavaScript} [online]. GitHub, [cit. 2026-03-15]. Dostupné z: \url{https://github.com/dagrejs/dagre}
+\bibitem{dagre_docs} \uppercase{Dagre}. \textit{Dagre: Directed graph layout for JavaScript} [online]. GitHub, [cit. 2026-04-08]. Dostupné z: \url{https://github.com/dagrejs/dagre}
 
-\bibitem{cytoscape_dagre_docs} \uppercase{Cytoscape Consortium}. \textit{Cytoscape.js-dagre Extension} [online]. GitHub, [cit. 2026-03-15]. Dostupné z: \url{https://github.com/cytoscape/cytoscape.js-dagre}
+\bibitem{cytoscape_dagre_docs} \uppercase{Cytoscape Consortium}. \textit{Cytoscape.js-dagre Extension} [online]. GitHub, [cit. 2026-04-08]. Dostupné z: \url{https://github.com/cytoscape/cytoscape.js-dagre}
 
-\bibitem{vs_docs} \uppercase{Microsoft}. \textit{Visual Studio Documentation} [online]. [cit. 2026-03-15]. Dostupné z: \url{https://learn.microsoft.com/cs-cz/visualstudio/}
+\bibitem{vs_docs} \uppercase{Microsoft}. \textit{Visual Studio Documentation} [online]. [cit. 2026-04-08]. Dostupné z: \url{https://learn.microsoft.com/cs-cz/visualstudio/}
 
-\bibitem{docker_desktop_docs} \uppercase{Docker Inc.} \textit{Docker Desktop} [online]. [cit. 2026-03-15]. Dostupné z: \url{https://docs.docker.com/desktop/}
+\bibitem{docker_desktop_docs} \uppercase{Docker Inc.} \textit{Docker Desktop} [online]. [cit. 2026-04-08]. Dostupné z: \url{https://docs.docker.com/desktop/}
 
-\bibitem{github_docs} \uppercase{GitHub Inc.} \textit{GitHub Documentation} [online]. [cit. 2026-03-15]. Dostupné z: \url{https://docs.github.com/}
+\bibitem{github_docs} \uppercase{GitHub Inc.} \textit{GitHub Documentation} [online]. [cit. 2026-04-08]. Dostupné z: \url{https://docs.github.com/}
 
-\bibitem{copilot_docs} \uppercase{GitHub Inc.} \textit{GitHub Copilot Documentation} [online]. [cit. 2026-03-15]. Dostupné z: \url{https://docs.github.com/en/copilot}
+\bibitem{copilot_docs} \uppercase{GitHub Inc.} \textit{GitHub Copilot Documentation} [online]. [cit. 2026-04-08]. Dostupné z: \url{https://docs.github.com/en/copilot}
 
-\bibitem{king_solid_2014} \uppercase{King}, Brannon. \textit{C\# Best Practices: Dangers of Violating SOLID Principles in C\#} [online]. MSDN Magazine, květen 2014 [cit. 2026-03-15]. Dostupné z: \url{https://learn.microsoft.com/en-us/archive/msdn-magazine/2014/may/csharp-best-practices-dangers-of-violating-solid-principles-in-csharp}
+\bibitem{king_solid_2014} \uppercase{King}, Brannon. \textit{C\# Best Practices: Dangers of Violating SOLID Principles in C\#} [online]. MSDN Magazine, květen 2014 [cit. 2026-04-08]. Dostupné z: \url{https://learn.microsoft.com/en-us/archive/msdn-magazine/2014/may/csharp-best-practices-dangers-of-violating-solid-principles-in-csharp}
 
 \bibitem{hopcroft_ullman} \uppercase{Hopcroft}, John E., \uppercase{Motwani}, Rajeev a \uppercase{Ullman}, Jeffrey D. \textit{Introduction to Automata Theory, Languages, and Computation}. 3. vyd. Pearson Education, 2006. 560 s. ISBN 0-321-45536-3.
 

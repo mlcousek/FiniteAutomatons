@@ -24,11 +24,7 @@ export class TransitionDialog {
         const isPDA = automatonType === 'PDA' || automatonType === 'DPDA' || automatonType === 'NPDA';
         const allowEpsilon = automatonType === 'EpsilonNFA' || isPDA;
 
-        const initialValues = {
-            symbol: edge.data('rawSymbol') || edge.data('label') || '',
-            stackPop: edge.data('stackPop') || '',
-            stackPush: edge.data('stackPush') || ''
-        };
+        const initialValues = this._buildInitialValuesForEdit(edge, isPDA);
 
         return this._showDialog({ title, subtitle, isPDA, allowEpsilon, initialValues, isEdit: true });
     }
@@ -320,6 +316,65 @@ export class TransitionDialog {
             return '\0';
         }
         return raw.charAt(0); 
+    }
+
+    _buildInitialValuesForEdit(edge, isPDA) {
+        const symbol = this._extractEditSymbols(edge, isPDA);
+        if (!isPDA) {
+            return { symbol, stackPop: '', stackPush: '' };
+        }
+
+        let pop = edge.data('rawStackPop') || edge.data('stackPop');
+        let push = edge.data('stackPush') || '';
+
+        if ((!pop || pop === '\\0' || pop === '\0') && edge.data('label')) {
+            const firstLine = String(edge.data('label')).split('\n').map(l => l.trim()).find(Boolean) || '';
+            const match = firstLine.match(/^(.+?)\s*\(\s*(.+?)\s*\/\s*(.*?)\s*\)$/)
+                || firstLine.match(/^(.+?),\s*(.+?)\s*\/\s*(.*)$/);
+            if (match) {
+                pop = match[2].trim();
+                push = match[3].trim();
+            }
+        }
+
+        const normalizedPop = this._normalizeSymbolForInput(pop);
+        const normalizedPush = (!push || push === 'ε' || push === '\\0' || push === '\0') ? '' : String(push);
+        return { symbol, stackPop: normalizedPop, stackPush: normalizedPush };
+    }
+
+    _extractEditSymbols(edge, isPDA) {
+        const rawSymbol = edge.data('rawSymbol');
+        if (rawSymbol && String(rawSymbol).trim()) {
+            return String(rawSymbol).trim();
+        }
+
+        const directSymbol = edge.data('symbol');
+        if (directSymbol !== undefined && directSymbol !== null && String(directSymbol).trim() !== '') {
+            return this._normalizeSymbolForInput(directSymbol);
+        }
+
+        const label = String(edge.data('label') || '').trim();
+        if (!label) return '';
+
+        if (!isPDA) {
+            return label.split(',').map(s => s.trim()).filter(Boolean).join(' ');
+        }
+
+        const lines = label.split('\n').map(l => l.trim()).filter(Boolean);
+        const symbols = lines.map(line => {
+            const match = line.match(/^(.+?)\s*\(\s*(.+?)\s*\/\s*(.*?)\s*\)$/)
+                || line.match(/^(.+?),\s*(.+?)\s*\/\s*(.*)$/);
+            return this._normalizeSymbolForInput(match ? match[1].trim() : line);
+        });
+
+        return [...new Set(symbols)].join(' ');
+    }
+
+    _normalizeSymbolForInput(raw) {
+        if (!raw || raw === 'ε' || raw === '\\0' || raw === '\0') return 'ε';
+        const str = String(raw);
+        if (str.length === 1 && str.charCodeAt(0) === 0) return 'ε';
+        return str;
     }
 
     _escHtml(str) {

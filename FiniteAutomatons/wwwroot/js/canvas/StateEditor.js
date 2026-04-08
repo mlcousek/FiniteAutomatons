@@ -91,9 +91,9 @@ export class StateEditor {
         this.cy.on('tap', 'node', this.nodeClickHandler);
 
         this.keyHandler = (e) => {
-            if ((e.key === 'Delete' || e.key === 'Backspace') && !this._isShowingDialog) {
-                this._handleDeleteKey();
-            }
+            if (e.key !== 'Delete' || this._isShowingDialog || this._isTypingTarget(e)) return;
+            e.preventDefault();
+            this._handleDeleteKey();
         };
         document.addEventListener('keydown', this.keyHandler);
 
@@ -250,6 +250,22 @@ export class StateEditor {
                 this.deleteTransition(elem.id());
             }
         });
+    }
+
+    _isTypingTarget(event) {
+        const isEditableElement = (element) => {
+            if (!element || !(element instanceof HTMLElement)) return false;
+            if (element.isContentEditable) return true;
+
+            const tag = element.tagName;
+            if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || tag === 'OPTION') {
+                return true;
+            }
+
+            return !!element.closest('input, textarea, select, [contenteditable="true"], .cd-dialog');
+        };
+
+        return isEditableElement(event?.target) || isEditableElement(document.activeElement);
     }
 
     async _handleContextMenu(event) {

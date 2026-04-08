@@ -41,6 +41,7 @@ public class InputGenerationController(
         if (!ValidateModel(model)) return RedirectToAction("Index", "Home");
 
         ResetExecutionState(model);
+
         var generatedString = inputGenerationService.GenerateAcceptingString(model, maxLength);
 
         if (generatedString == null)

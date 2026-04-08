@@ -33,7 +33,11 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
 
         var alphabet = GenerateAlphabet(alphabetSize);
         var states = GenerateStates(stateCount, acceptingStateRatio, random);
-        var transitions = GenerateTransitions(type, states, transitionCount, alphabet, random);
+        var effectiveTransitionCount = type == AutomatonType.NPDA
+            ? Math.Max(2, transitionCount)
+            : transitionCount;
+
+        var transitions = GenerateTransitions(type, states, effectiveTransitionCount, alphabet, random);
 
         var viewModel = new AutomatonViewModel
         {
@@ -69,6 +73,10 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
         if (transitionCount < 0)
             return false;
 
+        // Require enough transitions to keep all states reachable from the start state.
+        if (stateCount > 1 && transitionCount < stateCount - 1)
+            return false;
+
         if (alphabetSize < 1)
             return false;
 
@@ -82,7 +90,8 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
     {
         var random = seed.HasValue ? new Random(seed.Value) : this.random;
         var stateCount = random.Next(5, 16);           // 5-15 states
-        var transitionCount = random.Next(4, 26);      // 4-25 transitions
+        var minTransitions = Math.Max(4, stateCount - 1);
+        var transitionCount = random.Next(minTransitions, 26); // minTransitions-25 transitions
         var alphabetSize = random.Next(2, 9);          // 2-8 alphabet size
         var acceptingRatio = 0.2 + random.NextDouble() * 0.3; // 0.2-0.5
 
@@ -150,7 +159,80 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
         FillRemainingBudget(context);
         GuaranteeAllSymbolsPresent(context, transitionCount);
 
+        if (type == AutomatonType.NPDA)
+        {
+            EnsureNpdaNondeterminism(context);
+        }
+
         return context.Transitions;
+    }
+
+    private static void EnsureNpdaNondeterminism(TransitionGenerationContext context)
+    {
+        if (HasNpdaNondeterminism(context.Transitions) || context.Transitions.Count == 0)
+        {
+            return;
+        }
+
+        var source = context.Transitions[context.Random.Next(context.Transitions.Count)];
+        var branch = new Transition
+        {
+            FromStateId = source.FromStateId,
+            ToStateId = source.ToStateId,
+            Symbol = source.Symbol,
+            StackPop = source.StackPop,
+            StackPush = source.StackPush
+        };
+
+        var alternateTarget = context.States
+            .Select(s => s.Id)
+            .FirstOrDefault(id => id != source.ToStateId);
+
+        if (alternateTarget != 0)
+        {
+            branch.ToStateId = alternateTarget;
+        }
+        else
+        {
+            branch.StackPush = string.IsNullOrEmpty(source.StackPush)
+                ? $"{context.Alphabet[0]}{context.Alphabet[0]}"
+                : $"{source.StackPush}{context.Alphabet[0]}";
+        }
+
+        AddOrReplaceNpdaBranch(context, branch);
+    }
+
+    private static bool HasNpdaNondeterminism(List<Transition> transitions)
+    {
+        return transitions
+            .GroupBy(t => (t.FromStateId, t.Symbol, t.StackPop))
+            .Any(g => g.Count() > 1);
+    }
+
+    private static void AddOrReplaceNpdaBranch(TransitionGenerationContext context, Transition branch)
+    {
+        var key = GetTransitionKey(branch, context.Type);
+
+        if (context.AddedTransitions.Contains(key))
+        {
+            branch.StackPush = string.IsNullOrEmpty(branch.StackPush)
+                ? context.Alphabet[context.Random.Next(context.Alphabet.Count)].ToString()
+                : $"{branch.StackPush}{context.Alphabet[context.Random.Next(context.Alphabet.Count)]}";
+
+            key = GetTransitionKey(branch, context.Type);
+        }
+
+        if (context.AddedTransitions.Contains(key))
+        {
+            var replace = context.Transitions[^1];
+            context.AddedTransitions.Remove(GetTransitionKey(replace, context.Type));
+            context.Transitions[^1] = branch;
+            context.AddedTransitions.Add(GetTransitionKey(branch, context.Type));
+            return;
+        }
+
+        context.Transitions.Add(branch);
+        context.AddedTransitions.Add(key);
     }
 
     private static void EnsureGraphConnectivity(TransitionGenerationContext context)
@@ -178,13 +260,13 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
         for (int i = 0; i < context.Budget; i++)
         {
             var transition = GenerateRandomTransition(context.Type, context.States, context.Alphabet,
-                context.AddedTransitions, context.Random);
+                context.Transitions, context.AddedTransitions, context.Random);
 
             if (transition == null)
                 break;
 
             context.Transitions.Add(transition);
-            context.AddedTransitions.Add(GetTransitionKey(transition));
+            context.AddedTransitions.Add(GetTransitionKey(transition, context.Type));
         }
     }
 
@@ -226,14 +308,10 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
         for (int attempt = 0; attempt < maxAttempts && context.Transitions.Count < maxTotal; attempt++)
         {
             var candidate = CreateTransitionCandidate(context, symbol);
-            var key = GetTransitionKey(candidate);
-
-            if (context.AddedTransitions.Contains(key))
+            if (!CanAddTransition(context.Type, candidate, context.Transitions, context.AddedTransitions))
                 continue;
 
-            if (context.Type == AutomatonType.DFA &&
-                context.Transitions.Any(t => t.FromStateId == candidate.FromStateId && t.Symbol == symbol))
-                continue;
+            var key = GetTransitionKey(candidate, context.Type);
 
             context.Transitions.Add(candidate);
             context.AddedTransitions.Add(key);
@@ -265,15 +343,32 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
 
         if (context.Type == AutomatonType.DPDA || context.Type == AutomatonType.NPDA)
         {
-            newCandidate.StackPop = null;
-            newCandidate.StackPush = symbol.ToString();
+            var useStackOperation = context.Random.NextDouble() > 0.3; 
+            if (useStackOperation && context.Alphabet.Count > 0)
+            {
+                var isPop = context.Random.NextDouble() > 0.5;
+                if (isPop)
+                {
+                    newCandidate.StackPop = context.Alphabet[context.Random.Next(context.Alphabet.Count)];
+                    newCandidate.StackPush = "";
+                }
+                else
+                {
+                    newCandidate.StackPop = null;
+                    newCandidate.StackPush = context.Alphabet[context.Random.Next(context.Alphabet.Count)].ToString();
+                }
+            }
         }
 
-        var newKey = GetTransitionKey(newCandidate);
-        if (context.AddedTransitions.Contains(newKey))
+        var newKey = GetTransitionKey(newCandidate, context.Type);
+        var oldKey = GetTransitionKey(replaceable, context.Type);
+        var keysWithoutOld = new HashSet<string>(context.AddedTransitions);
+        keysWithoutOld.Remove(oldKey);
+        var remainingTransitions = context.Transitions.Where(t => !ReferenceEquals(t, replaceable)).ToList();
+
+        if (!CanAddTransition(context.Type, newCandidate, remainingTransitions, keysWithoutOld))
             return;
 
-        var oldKey = GetTransitionKey(replaceable);
         context.AddedTransitions.Remove(oldKey);
         context.AddedTransitions.Add(newKey);
         context.Transitions.Remove(replaceable);
@@ -294,8 +389,21 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
 
         if (context.Type == AutomatonType.DPDA || context.Type == AutomatonType.NPDA)
         {
-            candidate.StackPop = null;
-            candidate.StackPush = symbol.ToString();
+            var useStackOperation = context.Random.NextDouble() > 0.3; // 70% chance to use stack op
+            if (useStackOperation && context.Alphabet.Count > 0)
+            {
+                var isPop = context.Random.NextDouble() > 0.5;
+                if (isPop)
+                {
+                    candidate.StackPop = context.Alphabet[context.Random.Next(context.Alphabet.Count)];
+                    candidate.StackPush = "";
+                }
+                else
+                {
+                    candidate.StackPop = null;
+                    candidate.StackPush = context.Alphabet[context.Random.Next(context.Alphabet.Count)].ToString();
+                }
+            }
         }
 
         return candidate;
@@ -341,9 +449,9 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
                 transition.StackPush = symbol.ToString();
             }
 
-            var key = GetTransitionKey(transition);
-            if (!addedTransitions.Contains(key))
+            if (CanAddTransition(type, transition, transitions, addedTransitions))
             {
+                var key = GetTransitionKey(transition, type);
                 transitions.Add(transition);
                 addedTransitions.Add(key);
                 added++;
@@ -352,14 +460,14 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
 
         if ((type == AutomatonType.DPDA || type == AutomatonType.NPDA) && added < maxToAdd)
         {
-            int addedPairs = CreateMatchingPushPopPairs(states, alphabet, transitions, addedTransitions, random, maxToAdd - added);
+            int addedPairs = CreateMatchingPushPopPairs(type, states, alphabet, transitions, addedTransitions, random, maxToAdd - added);
             added += addedPairs;
         }
 
         return added;
     }
 
-    private static int CreateMatchingPushPopPairs(List<State> states, List<char> alphabet,
+    private static int CreateMatchingPushPopPairs(AutomatonType type, List<State> states, List<char> alphabet,
         List<Transition> transitions, HashSet<string> addedTransitions, Random random, int maxToAdd)
     {
         int pairCount = CalculatePairCount(alphabet.Count);
@@ -370,10 +478,10 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
             var (pushInput, popInput) = SelectPushPopSymbols(alphabet, random);
             char stackSymbol = GenerateStackSymbol(i);
 
-            added += TryAddPushTransition(states, transitions, addedTransitions, random,
+            added += TryAddPushTransition(type, states, transitions, addedTransitions, random,
                 maxToAdd, added, pushInput, stackSymbol);
 
-            added += TryAddPopTransition(states, transitions, addedTransitions, random,
+            added += TryAddPopTransition(type, states, transitions, addedTransitions, random,
                 maxToAdd, added, popInput, stackSymbol);
         }
 
@@ -408,7 +516,7 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
         return (char)('A' + (index % 26));
     }
 
-    private static int TryAddPushTransition(List<State> states, List<Transition> transitions,
+    private static int TryAddPushTransition(AutomatonType type, List<State> states, List<Transition> transitions,
         HashSet<string> addedTransitions, Random random, int maxToAdd, int currentAdded,
         char pushInput, char stackSymbol)
     {
@@ -427,8 +535,8 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
             StackPush = stackSymbol.ToString()
         };
 
-        var key = GetTransitionKey(pushTransition);
-        if (addedTransitions.Contains(key))
+        var key = GetTransitionKey(pushTransition, type);
+        if (!CanAddTransition(type, pushTransition, transitions, addedTransitions))
             return 0;
 
         transitions.Add(pushTransition);
@@ -436,7 +544,7 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
         return 1;
     }
 
-    private static int TryAddPopTransition(List<State> states, List<Transition> transitions,
+    private static int TryAddPopTransition(AutomatonType type, List<State> states, List<Transition> transitions,
         HashSet<string> addedTransitions, Random random, int maxToAdd, int currentAdded,
         char popInput, char stackSymbol)
     {
@@ -455,8 +563,8 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
             StackPush = null
         };
 
-        var key = GetTransitionKey(popTransition);
-        if (addedTransitions.Contains(key))
+        var key = GetTransitionKey(popTransition, type);
+        if (!CanAddTransition(type, popTransition, transitions, addedTransitions))
             return 0;
 
         transitions.Add(popTransition);
@@ -493,14 +601,9 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
                     candidate.StackPush = symbol.ToString();
                 }
 
-                var key = GetTransitionKey(candidate);
-                if (addedTransitions.Contains(key)) continue;
+                if (!CanAddTransition(type, candidate, transitions, addedTransitions)) continue;
 
-                if (type == AutomatonType.DFA)
-                {
-                    if (transitions.Any(t => t.FromStateId == fromState && t.Symbol == symbol))
-                        continue;
-                }
+                var key = GetTransitionKey(candidate, type);
 
                 transitions.Add(candidate);
                 addedTransitions.Add(key);
@@ -516,6 +619,7 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
         AutomatonType type,
         List<State> states,
         List<char> alphabet,
+        List<Transition> transitions,
         HashSet<string> addedTransitions,
         Random random)
     {
@@ -524,12 +628,7 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
         for (int attempt = 0; attempt < maxAttempts; attempt++)
         {
             var transition = CreateRandomTransitionCandidate(type, states, alphabet, random);
-            var key = GetTransitionKey(transition);
-
-            if (addedTransitions.Contains(key))
-                continue;
-
-            if (HasDfaConflict(type, transition, addedTransitions))
+            if (!CanAddTransition(type, transition, transitions, addedTransitions))
                 continue;
 
             return transition;
@@ -606,23 +705,74 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
         return builder.ToString();
     }
 
-    private static bool HasDfaConflict(AutomatonType type, Transition transition, HashSet<string> addedTransitions)
+    private static bool CanAddTransition(AutomatonType type, Transition candidate,
+        List<Transition> transitions, HashSet<string> addedTransitions)
     {
-        if (type != AutomatonType.DFA || transition.Symbol == '\0')
+        var key = GetTransitionKey(candidate, type);
+        if (addedTransitions.Contains(key))
             return false;
 
-        return addedTransitions.Any(existing =>
+        if (type == AutomatonType.DFA)
         {
-            var parts = existing.Split('-');
-            return parts.Length >= 2 &&
-                   parts[0] == transition.FromStateId.ToString() &&
-                   parts[1] == transition.Symbol.ToString();
-        });
+            return !transitions.Any(t => t.FromStateId == candidate.FromStateId && t.Symbol == candidate.Symbol);
+        }
+
+        if (type == AutomatonType.DPDA)
+        {
+            // Formal DPDA determinism: conflicts only when stack-top conditions overlap
+            // for same input symbol, or epsilon/consuming transitions overlap.
+            return !HasDpdaConflict(transitions, candidate);
+        }
+
+        return true;
     }
 
-    private static string GetTransitionKey(Transition transition)
+    private static bool HasDpdaConflict(List<Transition> transitions, Transition candidate)
     {
+        foreach (var existing in transitions.Where(t => t.FromStateId == candidate.FromStateId))
+        {
+            if (!StackConditionsOverlap(existing.StackPop, candidate.StackPop))
+                continue;
+
+            if (existing.Symbol == candidate.Symbol)
+                return true;
+
+            var existingIsEpsilon = existing.Symbol == '\0';
+            var candidateIsEpsilon = candidate.Symbol == '\0';
+            if (existingIsEpsilon ^ candidateIsEpsilon)
+                return true;
+        }
+
+        return false;
+    }
+
+    private static bool StackConditionsOverlap(char? firstStackPop, char? secondStackPop)
+    {
+        if (!firstStackPop.HasValue || firstStackPop.Value == '\0')
+            return true;
+
+        if (!secondStackPop.HasValue || secondStackPop.Value == '\0')
+            return true;
+
+        return firstStackPop.Value == secondStackPop.Value;
+    }
+
+    private static string GetTransitionKey(Transition transition, AutomatonType type)
+    {
+        if (type == AutomatonType.DFA)
+        {
+            return $"{transition.FromStateId}-{transition.Symbol}";
+        }
+
         var pop = transition.StackPop.HasValue ? transition.StackPop.Value.ToString() : "_";
-        return $"{transition.FromStateId}-{transition.Symbol}-{pop}";
+        if (type == AutomatonType.DPDA)
+        {
+            // Keep DPDA deterministic on (state, symbol, stack-pop).
+            return $"{transition.FromStateId}-{transition.Symbol}-{pop}";
+        }
+
+        var push = string.IsNullOrEmpty(transition.StackPush) ? "_" : transition.StackPush;
+        // For NFA/ENFA/NPDA, allow nondeterministic branching and only dedupe exact duplicates.
+        return $"{transition.FromStateId}-{transition.ToStateId}-{transition.Symbol}-{pop}-{push}";
     }
 }

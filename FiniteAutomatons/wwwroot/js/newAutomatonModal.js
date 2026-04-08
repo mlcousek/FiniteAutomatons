@@ -4,7 +4,8 @@
       case 'DFA': return 0;
       case 'NFA': return 1;
       case 'EpsilonNFA': return 2;
-      case 'PDA': return 3;
+      case 'DPDA': return 3;
+      case 'NPDA': return 4;
       default: return 0;
     }
   }

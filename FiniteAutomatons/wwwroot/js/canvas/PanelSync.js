@@ -75,7 +75,10 @@
             });
 
             if (!resp.ok) {
-                console.warn('PanelSync: sync API error', resp.status);
+                const errorMessage = await this._readErrorMessage(resp);
+                const message = errorMessage || `Sync failed (${resp.status}).`;
+                console.warn('PanelSync: sync API error', resp.status, message);
+                canvas._showErrorMessage?.(message);
                 return;
             }
 
@@ -86,7 +89,17 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body
-            }).catch(e => console.warn('PanelSync: save failed', e));
+            }).then(async saveResp => {
+                if (!saveResp.ok) {
+                    const errorMessage = await this._readErrorMessage(saveResp);
+                    const message = errorMessage || `Save failed (${saveResp.status}).`;
+                    console.warn('PanelSync: save API error', saveResp.status, message);
+                    canvas._showErrorMessage?.(message);
+                }
+            }).catch(e => {
+                console.warn('PanelSync: save failed', e);
+                canvas._showErrorMessage?.('Unable to save automaton changes.');
+            });
 
             clearTimeout(abortTimer);
             this._currentAbort = null;
@@ -102,9 +115,33 @@
         }
     }
 
+    async _readErrorMessage(response) {
+        try {
+            const contentType = response.headers?.get('content-type') || '';
+            if (contentType.includes('application/json')) {
+                const json = await response.json();
+                if (typeof json === 'string') {
+                    return json;
+                }
+
+                if (json && typeof json === 'object') {
+                    return json.message || json.error || null;
+                }
+
+                return null;
+            }
+
+            const text = await response.text();
+            return text || null;
+        } catch (e) {
+            console.debug('PanelSync: failed to parse error response', e);
+            return null;
+        }
+    }
+
     _buildRequest(canvas, cy) {
         const type = canvas.automatonType || 'DFA';
-        const isPDA = (type === 'PDA');
+        const isPDA = (type === 'PDA' || type === 'DPDA' || type === 'NPDA');
 
         const states = cy.nodes()
             .filter(n => !n.hasClass('dummy'))
@@ -126,7 +163,9 @@
                 if (edgePDA) {
                     const lines = label.split('\n').map(l => l.trim()).filter(Boolean);
                     for (const line of lines) {
-                        const m = line.match(/^(.+?),\s*(.+?)\/(.*)$/);
+                        const groupedMatch = line.match(/^(.+?)\s*\(\s*(.+?)\s*\/\s*(.*?)\s*\)$/);
+                        const legacyMatch = line.match(/^(.+?),\s*(.+?)\s*\/\s*(.*)$/);
+                        const m = groupedMatch || legacyMatch;
                         if (m) {
                             transitions.push({
                                 fromStateId: fromId, toStateId: toId,
@@ -293,7 +332,7 @@
             if (t.isPDA) {
                 const pop = t.stackPopDisplay ?? 'ε';
                 const push = t.stackPush ? t.stackPush : '-';
-                text = `q${t.fromStateId} \u2014 ${t.symbolDisplay}, ${pop}/${push} \u2192 q${t.toStateId}`;
+                text = `q${t.fromStateId} \u2014 ${t.symbolDisplay} (${pop}/${push}) \u2192 q${t.toStateId}`;
             } else {
                 text = `q${t.fromStateId} \u2014 ${t.symbolDisplay} \u2192 q${t.toStateId}`;
             }

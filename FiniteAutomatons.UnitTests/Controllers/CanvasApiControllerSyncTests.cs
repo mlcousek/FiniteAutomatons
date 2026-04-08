@@ -74,9 +74,9 @@ public class CanvasApiControllerSyncTests
     }
 
     [Fact]
-    public void Sync_DFA_DuplicateSymbolTransitions_AlphabetHasDistinct()
+    public void Sync_NFA_DuplicateSymbolTransitions_AlphabetHasDistinct()
     {
-        var req = BuildDfaRequest(
+        var req = BuildRequest("NFA",
             states: [new() { Id = 0, IsStart = true }, new() { Id = 1 }],
             transitions: [
                 new() { FromStateId = 0, ToStateId = 1, Symbol = "a" },
@@ -86,6 +86,36 @@ public class CanvasApiControllerSyncTests
         var resp = GetResponse(req);
         resp.Alphabet.Count.ShouldBe(1);
         resp.Alphabet.ShouldContain("a");
+    }
+
+    [Fact]
+    public void Sync_DfaNondeterministicTransitionSet_ReturnsConflict()
+    {
+        var req = BuildDfaRequest(
+            states: [new() { Id = 0, IsStart = true }, new() { Id = 1 }, new() { Id = 2 }],
+            transitions: [
+                new() { FromStateId = 0, ToStateId = 1, Symbol = "a" },
+                new() { FromStateId = 0, ToStateId = 2, Symbol = "a" }
+            ]);
+
+        var result = controller.Sync(req);
+        var conflict = result.ShouldBeOfType<ConflictObjectResult>();
+        conflict.Value.ShouldBeOfType<string>().ShouldContain("deterministic");
+    }
+
+    [Fact]
+    public void Sync_DpdaEpsilonAndConsumingOverlap_ReturnsConflict()
+    {
+        var req = BuildRequest("PDA",
+            states: [new() { Id = 0, IsStart = true }, new() { Id = 1 }, new() { Id = 2 }],
+            transitions: [
+                new() { FromStateId = 0, ToStateId = 1, Symbol = "\\0", StackPop = "\\0", StackPush = "Z" },
+                new() { FromStateId = 0, ToStateId = 2, Symbol = "a", StackPop = "Z", StackPush = "" }
+            ]);
+
+        var result = controller.Sync(req);
+        var conflict = result.ShouldBeOfType<ConflictObjectResult>();
+        conflict.Value.ShouldBeOfType<string>().ShouldContain("DPDA");
     }
 
     [Fact]

@@ -1,12 +1,19 @@
 ﻿using FiniteAutomatons.Core.Models.DoMain;
+using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Interfaces;
 using Microsoft.Extensions.Logging;
+using System.Text.Json;
 
 namespace FiniteAutomatons.Services.Services;
 
 public class InputGenerationService(ILogger<InputGenerationService> logger, IAutomatonBuilderService automatonBuilderService) : IInputGenerationService
 {
+    private const char BottomOfStack = '#';
+    private const int MaxPdaAcceptingSearchCandidates = 6000;
+    private const int MaxPdaRejectingSearchCandidates = 6000;
+    private const int MaxPdaExactEnumerationLength = 6;
+
     private readonly ILogger<InputGenerationService> logger = logger;
     private readonly IAutomatonBuilderService automatonBuilderService = automatonBuilderService;
 
@@ -46,16 +53,45 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
     {
         LogAcceptingStringGenerationStart(automaton);
 
+        if (IsPdaType(automaton.Type))
+        {
+            if (!ValidatePdaForAcceptingString(automaton))
+                return null;
+
+            return GenerateAcceptingStringForPda(automaton, maxLength);
+        }
+
         var (IsValid, StartState, AcceptingStates) = ValidateAutomatonForAcceptingString(automaton);
         if (!IsValid)
             return null;
 
-        if (automaton.Type == AutomatonType.DPDA || automaton.Type == AutomatonType.NPDA)
+        return GenerateAcceptingStringViaBfs(automaton, StartState!, AcceptingStates!, maxLength);
+    }
+
+    private bool ValidatePdaForAcceptingString(AutomatonViewModel automaton)
+    {
+        if (automaton.States == null || automaton.Transitions == null)
         {
-            return GenerateAcceptingStringForPda(automaton, maxLength);
+            logger.LogWarning("Cannot generate accepting string for PDA - no states or transitions");
+            return false;
         }
 
-        return GenerateAcceptingStringViaBfs(automaton, StartState!, AcceptingStates!, maxLength);
+        var startState = automaton.States.FirstOrDefault(s => s.IsStart);
+        if (startState == null)
+        {
+            logger.LogWarning("Cannot generate accepting string for PDA - no start state");
+            return false;
+        }
+
+        var requiresAcceptingState = automaton.AcceptanceMode is PDAAcceptanceMode.FinalStateOnly or PDAAcceptanceMode.FinalStateAndEmptyStack;
+        if (requiresAcceptingState && !automaton.States.Any(s => s.IsAccepting))
+        {
+            logger.LogWarning("Cannot generate accepting string for PDA - mode {AcceptanceMode} requires an accepting state",
+                automaton.AcceptanceMode);
+            return false;
+        }
+
+        return true;
     }
 
     private (bool IsValid, State? StartState, HashSet<int>? AcceptingStates) ValidateAutomatonForAcceptingString(AutomatonViewModel automaton)
@@ -86,64 +122,164 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
     private string? GenerateAcceptingStringForPda(AutomatonViewModel automaton, int maxLength)
     {
         var alphabet = automaton.Alphabet?.Where(c => c != '\0').ToList() ?? [];
+        var initialStackBottomFirst = DeserializeInitialStackBottomFirst(automaton.InitialStackSerialized);
         var pda = automaton.Type == AutomatonType.DPDA
             ? (Automaton)automatonBuilderService.CreateDPDA(automaton)
             : automatonBuilderService.CreateNPDA(automaton);
 
-        if (TryEmptyStringForPda(pda))
+        if (TryEmptyStringForPda(pda, initialStackBottomFirst))
             return string.Empty;
 
-        return SearchPdaAcceptingString(pda, alphabet, maxLength);
+        return SearchPdaAcceptingString(automaton, pda, alphabet, maxLength, initialStackBottomFirst);
     }
 
-    private bool TryEmptyStringForPda(Automaton pda)
+    private bool TryEmptyStringForPda(Automaton pda, List<char>? initialStackBottomFirst)
     {
-        try
+        if (TryEvaluatePdaCandidate(pda, string.Empty, initialStackBottomFirst, out var isAccepted) && isAccepted)
         {
-            if (pda.Execute(string.Empty))
-            {
-                logger.LogInformation("Found accepting empty string for PDA");
-                return true;
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "PDA simulation failed while checking empty string");
+            logger.LogInformation("Found accepting empty string for PDA");
+            return true;
         }
 
         return false;
     }
 
-    private string? SearchPdaAcceptingString(Automaton pda, List<char> alphabet, int maxLength)
+    private string? SearchPdaAcceptingString(AutomatonViewModel automaton, Automaton pda, List<char> alphabet, int maxLength,
+        List<char>? initialStackBottomFirst)
     {
-        for (int len = 1; len <= maxLength; len++)
-        {
-            if (alphabet.Count == 0)
-                break;
+        int checkedCandidates = 0;
 
-            foreach (var candidate in EnumerateStrings(alphabet, len))
+        foreach (var candidate in BuildModeAwarePdaAcceptingCandidates(automaton, alphabet, maxLength, initialStackBottomFirst))
+        {
+            checkedCandidates++;
+            if (TryPdaCandidate(pda, candidate, initialStackBottomFirst))
+                return candidate;
+
+            if (checkedCandidates >= MaxPdaAcceptingSearchCandidates)
             {
-                if (TryPdaCandidate(pda, candidate))
-                    return candidate;
+                logger.LogWarning("Stopped PDA accepting search after {Checked} candidates", checkedCandidates);
+                return null;
             }
         }
 
-        logger.LogWarning("No accepting PDA string found within length {MaxLength}", maxLength);
+        var random = new Random();
+        foreach (var candidate in EnumeratePdaSearchCandidates(alphabet, maxLength, MaxPdaAcceptingSearchCandidates - checkedCandidates, random))
+        {
+            checkedCandidates++;
+            if (TryPdaCandidate(pda, candidate, initialStackBottomFirst))
+                return candidate;
+        }
+
+        logger.LogWarning("No accepting PDA string found within length {MaxLength} after {Checked} candidates",
+            maxLength, checkedCandidates);
         return null;
     }
 
-    private bool TryPdaCandidate(Automaton pda, string candidate)
+    private IEnumerable<string> BuildModeAwarePdaAcceptingCandidates(AutomatonViewModel automaton, List<char> alphabet,
+        int maxLength, List<char>? initialStackBottomFirst)
+    {
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+
+        if ((automaton.AcceptanceMode is PDAAcceptanceMode.FinalStateOnly or PDAAcceptanceMode.FinalStateAndEmptyStack)
+            && automaton.States != null)
+        {
+            var startState = automaton.States.FirstOrDefault(s => s.IsStart);
+            var acceptingStates = automaton.States.Where(s => s.IsAccepting).Select(s => s.Id).ToHashSet();
+
+            if (startState != null && acceptingStates.Count > 0)
+            {
+                var statePathCandidate = GenerateAcceptingStringViaBfs(automaton, startState, acceptingStates, maxLength);
+                if (!string.IsNullOrEmpty(statePathCandidate) && statePathCandidate.Length <= maxLength && seen.Add(statePathCandidate))
+                {
+                    yield return statePathCandidate;
+                }
+            }
+        }
+
+        if ((automaton.AcceptanceMode is PDAAcceptanceMode.EmptyStackOnly or PDAAcceptanceMode.FinalStateAndEmptyStack)
+            && initialStackBottomFirst is { Count: > 1 })
+        {
+            var stackDrainingCandidate = BuildStackDrainingCandidate(automaton, initialStackBottomFirst, maxLength);
+            if (!string.IsNullOrEmpty(stackDrainingCandidate) && seen.Add(stackDrainingCandidate))
+            {
+                yield return stackDrainingCandidate;
+            }
+        }
+
+        var popCandidate = automaton.Transitions?
+            .FirstOrDefault(t => t.Symbol != '\0' && t.StackPop.HasValue && t.StackPop.Value != '\0')
+            ?.Symbol;
+        if (popCandidate.HasValue)
+        {
+            var candidate = popCandidate.Value.ToString();
+            if (candidate.Length <= maxLength && seen.Add(candidate))
+            {
+                yield return candidate;
+            }
+        }
+
+        foreach (var symbol in alphabet.Take(Math.Min(3, alphabet.Count)))
+        {
+            var candidate = symbol.ToString();
+            if (candidate.Length <= maxLength && seen.Add(candidate))
+            {
+                yield return candidate;
+            }
+        }
+    }
+
+    private static string? BuildStackDrainingCandidate(AutomatonViewModel automaton, List<char> initialStackBottomFirst, int maxLength)
+    {
+        if (automaton.Transitions == null || initialStackBottomFirst.Count <= 1)
+            return null;
+
+        var consumingTransitions = automaton.Transitions.Where(t => t.Symbol != '\0').ToList();
+        if (consumingTransitions.Count == 0)
+            return null;
+
+        var symbolsToPopTopFirst = initialStackBottomFirst.Skip(1).Reverse();
+        var candidate = new List<char>();
+
+        foreach (var stackSymbol in symbolsToPopTopFirst)
+        {
+            var popTransition = consumingTransitions.FirstOrDefault(t => t.StackPop == stackSymbol);
+            if (popTransition == null)
+                return null;
+
+            candidate.Add(popTransition.Symbol);
+            if (candidate.Count > maxLength)
+                return null;
+        }
+
+        return candidate.Count > 0 ? new string([.. candidate]) : null;
+    }
+
+    private bool TryPdaCandidate(Automaton pda, string candidate, List<char>? initialStackBottomFirst)
+    {
+        if (!TryEvaluatePdaCandidate(pda, candidate, initialStackBottomFirst, out var isAccepted))
+            return false;
+
+        if (isAccepted)
+        {
+            if (logger.IsEnabled(LogLevel.Information))
+            {
+                logger.LogInformation("Found accepting PDA string: '{String}'", candidate);
+            }
+            return true;
+        }
+
+        return false;
+    }
+
+    private bool TryEvaluatePdaCandidate(Automaton pda, string candidate, List<char>? initialStackBottomFirst, out bool isAccepted)
     {
         try
         {
-            if (pda.Execute(candidate))
-            {
-                if (logger.IsEnabled(LogLevel.Information))
-                {
-                    logger.LogInformation("Found accepting PDA string: '{String}'", candidate);
-                }
-                return true;
-            }
+            var initialStack = BuildInitialStack(initialStackBottomFirst);
+            var executionState = pda.StartExecution(candidate, initialStack);
+            pda.ExecuteAll(executionState);
+            isAccepted = executionState.IsAccepted == true;
+            return true;
         }
         catch (Exception ex)
         {
@@ -151,9 +287,61 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
             {
                 logger.LogDebug(ex, "PDA simulation error for candidate '{Candidate}'", candidate);
             }
+            isAccepted = false;
+            return false;
+        }
+    }
+
+    private List<char>? DeserializeInitialStackBottomFirst(string? initialStackSerialized)
+    {
+        if (string.IsNullOrWhiteSpace(initialStackSerialized))
+            return null;
+
+        try
+        {
+            var raw = JsonSerializer.Deserialize<List<char>>(initialStackSerialized) ?? [];
+            if (raw.Count == 0)
+                return null;
+
+            return NormalizeInitialStackBottomFirst(raw);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to deserialize initial stack for PDA input generation. Falling back to default stack.");
+            return null;
+        }
+    }
+
+    private static Stack<char>? BuildInitialStack(List<char>? initialStackBottomFirst)
+    {
+        return initialStackBottomFirst is { Count: > 0 }
+            ? new Stack<char>(initialStackBottomFirst)
+            : null;
+    }
+
+    private static List<char> NormalizeInitialStackBottomFirst(List<char> raw)
+    {
+        var normalized = raw.Where(c => c != '\0' && c != 'ε').ToList();
+
+        if (normalized.Count == 0)
+            return [BottomOfStack];
+
+        if (normalized[0] == BottomOfStack)
+            return normalized;
+
+        if (normalized[^1] == BottomOfStack)
+        {
+            normalized.Reverse();
+            return normalized;
         }
 
-        return false;
+        normalized.Insert(0, BottomOfStack);
+        return normalized;
+    }
+
+    private static bool IsPdaType(AutomatonType type)
+    {
+        return type == AutomatonType.DPDA || type == AutomatonType.NPDA;
     }
 
     private string? GenerateAcceptingStringViaBfs(AutomatonViewModel automaton, State startState, HashSet<int> acceptingStates, int maxLength)
@@ -239,14 +427,17 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
     {
         LogRandomAcceptingGenerationStart(automaton, minLength, maxLength, maxAttempts);
 
+        if (IsPdaType(automaton.Type))
+        {
+            if (!ValidatePdaForAcceptingString(automaton))
+                return null;
+
+            return GenerateRandomAcceptingStringForPda(automaton, minLength, maxLength, maxAttempts, seed);
+        }
+
         var (IsValid, StartState, AcceptingStates) = ValidateAutomatonForRandomAccepting(automaton);
         if (!IsValid)
             return null;
-
-        if (automaton.Type == AutomatonType.DPDA || automaton.Type == AutomatonType.NPDA)
-        {
-            return GenerateRandomAcceptingStringForPda(automaton, minLength, maxLength, maxAttempts, seed);
-        }
 
         return PerformRandomWalkAttempts(StartState!, AcceptingStates!,
             automaton.Transitions!, minLength, maxLength, maxAttempts, seed);
@@ -364,13 +555,14 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
             return null;
         }
 
+        var initialStackBottomFirst = DeserializeInitialStackBottomFirst(automaton.InitialStackSerialized);
         var pda = automaton.Type == AutomatonType.DPDA
             ? (Automaton)automatonBuilderService.CreateDPDA(automaton)
             : automatonBuilderService.CreateNPDA(automaton);
         var random = seed.HasValue ? new Random(seed.Value) : new Random();
 
-        var emptyStringFallback = CheckEmptyStringForPda(pda);
-        var result = TryRandomPdaCandidates(pda, alphabet, minLength, maxLength, maxAttempts, random);
+        var emptyStringFallback = CheckEmptyStringForPda(pda, initialStackBottomFirst);
+        var result = TryRandomPdaCandidates(pda, alphabet, minLength, maxLength, maxAttempts, random, initialStackBottomFirst);
 
         return result ?? ReturnPdaFallbackOrNull(emptyStringFallback, maxAttempts);
     }
@@ -380,32 +572,25 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
         return [.. automaton.Alphabet.Where(c => c != '\0')];
     }
 
-    private string? CheckEmptyStringForPda(Automaton pda)
+    private string? CheckEmptyStringForPda(Automaton pda, List<char>? initialStackBottomFirst)
     {
-        try
+        if (TryEvaluatePdaCandidate(pda, string.Empty, initialStackBottomFirst, out var isAccepted) && isAccepted)
         {
-            if (pda.Execute(string.Empty))
-            {
-                logger.LogInformation("Empty string is accepting for PDA");
-                return string.Empty;
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.LogDebug(ex, "PDA execution failed for empty string");
+            logger.LogInformation("Empty string is accepting for PDA");
+            return string.Empty;
         }
 
         return null;
     }
 
     private string? TryRandomPdaCandidates(Automaton pda, List<char> alphabet,
-        int minLength, int maxLength, int maxAttempts, Random random)
+        int minLength, int maxLength, int maxAttempts, Random random, List<char>? initialStackBottomFirst)
     {
         for (int attempt = 0; attempt < maxAttempts; attempt++)
         {
             var candidate = GenerateRandomStringFromAlphabet(alphabet, minLength, maxLength, random);
 
-            if (TryPdaCandidateExecution(pda, candidate, attempt))
+            if (TryPdaCandidateExecution(pda, candidate, attempt, initialStackBottomFirst))
                 return candidate;
         }
 
@@ -425,26 +610,19 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
         return new string(chars);
     }
 
-    private bool TryPdaCandidateExecution(Automaton pda, string candidate, int attempt)
+    private bool TryPdaCandidateExecution(Automaton pda, string candidate, int attempt, List<char>? initialStackBottomFirst)
     {
-        try
+        if (!TryEvaluatePdaCandidate(pda, candidate, initialStackBottomFirst, out var isAccepted))
+            return false;
+
+        if (isAccepted && candidate.Length > 0)
         {
-            if (pda.Execute(candidate) && candidate.Length > 0)
+            if (logger.IsEnabled(LogLevel.Information))
             {
-                if (logger.IsEnabled(LogLevel.Information))
-                {
-                    logger.LogInformation("Found random accepting PDA string on attempt {Attempt}: '{String}'",
-                        attempt + 1, candidate);
-                }
-                return true;
+                logger.LogInformation("Found random accepting PDA string on attempt {Attempt}: '{String}'",
+                    attempt + 1, candidate);
             }
-        }
-        catch (Exception ex)
-        {
-            if (logger.IsEnabled(LogLevel.Debug))
-            {
-                logger.LogDebug(ex, "PDA execution error for candidate '{Candidate}'", candidate);
-            }
+            return true;
         }
 
         return false;
@@ -587,19 +765,37 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
     {
         logger.LogInformation("Generating rejecting string for PDA");
 
+        var initialStackBottomFirst = DeserializeInitialStackBottomFirst(automaton.InitialStackSerialized);
         var pda = automaton.Type == AutomatonType.DPDA
             ? (Automaton)automatonBuilderService.CreateDPDA(automaton)
             : automatonBuilderService.CreateNPDA(automaton);
 
-        var result = SearchPdaRejectingString(pda, alphabet, maxLength);
+        var result = SearchPdaRejectingString(automaton, pda, alphabet, maxLength, initialStackBottomFirst);
         if (result != null)
             return result;
 
-        return GenerateFallbackPdaRejectingString(pda, alphabet, maxLength);
+        return GenerateFallbackPdaRejectingString(pda, alphabet, maxLength, initialStackBottomFirst);
     }
 
-    private string? SearchPdaRejectingString(Automaton pda, List<char> alphabet, int maxLength)
+    private string? SearchPdaRejectingString(AutomatonViewModel automaton, Automaton pda, List<char> alphabet, int maxLength,
+        List<char>? initialStackBottomFirst)
     {
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        int checkedCandidates = 0;
+
+        foreach (var candidate in BuildModeAwarePdaRejectingCandidates(automaton, alphabet, maxLength, initialStackBottomFirst))
+        {
+            checkedCandidates++;
+            if (seen.Add(candidate) && TryRejectingCandidate(pda, candidate, initialStackBottomFirst))
+                return candidate;
+
+            if (checkedCandidates >= MaxPdaRejectingSearchCandidates)
+            {
+                logger.LogWarning("Stopped PDA rejecting search after {Checked} candidates", checkedCandidates);
+                return null;
+            }
+        }
+
         var strategies = new List<Func<string>>
         {
             () => TryUnbalancedParenthesesPattern(alphabet, maxLength),
@@ -611,11 +807,91 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
         foreach (var strategy in strategies)
         {
             var candidate = strategy();
-            if (TryRejectingCandidate(pda, candidate))
+            checkedCandidates++;
+            if (candidate.Length > 0 && seen.Add(candidate) && TryRejectingCandidate(pda, candidate, initialStackBottomFirst))
+                return candidate;
+
+            if (checkedCandidates >= MaxPdaRejectingSearchCandidates)
+            {
+                logger.LogWarning("Stopped PDA rejecting search after {Checked} candidates", checkedCandidates);
+                return null;
+            }
+        }
+
+        var random = new Random();
+        foreach (var candidate in EnumeratePdaSearchCandidates(alphabet, Math.Min(maxLength, 12),
+            MaxPdaRejectingSearchCandidates - checkedCandidates, random))
+        {
+            checkedCandidates++;
+            if (seen.Add(candidate) && TryRejectingCandidate(pda, candidate, initialStackBottomFirst))
                 return candidate;
         }
 
+        logger.LogWarning("No rejecting PDA string found within length {MaxLength} after {Checked} candidates",
+            maxLength, checkedCandidates);
         return null;
+    }
+
+    private IEnumerable<string> BuildModeAwarePdaRejectingCandidates(AutomatonViewModel automaton, List<char> alphabet,
+        int maxLength, List<char>? initialStackBottomFirst)
+    {
+        if (alphabet.Count == 0 || maxLength <= 0)
+            yield break;
+
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var consumingTransitions = automaton.Transitions?.Where(t => t.Symbol != '\0').ToList() ?? [];
+
+        if (automaton.AcceptanceMode is PDAAcceptanceMode.EmptyStackOnly or PDAAcceptanceMode.FinalStateAndEmptyStack)
+        {
+            var pushTransition = consumingTransitions.FirstOrDefault(t => !string.IsNullOrEmpty(t.StackPush));
+            if (pushTransition != null)
+            {
+                var candidate = pushTransition.Symbol.ToString();
+                if (candidate.Length <= maxLength && seen.Add(candidate))
+                {
+                    yield return candidate;
+                }
+            }
+        }
+
+        if (automaton.AcceptanceMode is PDAAcceptanceMode.FinalStateOnly or PDAAcceptanceMode.FinalStateAndEmptyStack)
+        {
+            var nonAcceptingStates = automaton.States?.Where(s => !s.IsAccepting).Select(s => s.Id).ToHashSet() ?? [];
+            var nonAcceptingTransition = consumingTransitions.FirstOrDefault(t => nonAcceptingStates.Contains(t.ToStateId));
+            if (nonAcceptingTransition != null)
+            {
+                var candidate = nonAcceptingTransition.Symbol.ToString();
+                if (candidate.Length <= maxLength && seen.Add(candidate))
+                {
+                    yield return candidate;
+                }
+            }
+        }
+
+        if (initialStackBottomFirst is { Count: > 1 })
+        {
+            var top = initialStackBottomFirst[^1];
+            var mismatchPop = consumingTransitions
+                .FirstOrDefault(t => t.StackPop.HasValue && t.StackPop.Value != '\0' && t.StackPop.Value != top);
+
+            if (mismatchPop != null)
+            {
+                var candidate = mismatchPop.Symbol.ToString();
+                if (candidate.Length <= maxLength && seen.Add(candidate))
+                {
+                    yield return candidate;
+                }
+            }
+        }
+
+        foreach (var symbol in alphabet.Take(Math.Min(3, alphabet.Count)))
+        {
+            var candidate = symbol.ToString();
+            if (candidate.Length <= maxLength && seen.Add(candidate))
+            {
+                yield return candidate;
+            }
+        }
     }
 
     private static string TryUnbalancedParenthesesPattern(List<char> alphabet, int maxLength)
@@ -651,24 +927,22 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
         return result + alphabet[0];
     }
 
-    private bool TryRejectingCandidate(Automaton pda, string candidate)
+    private bool TryRejectingCandidate(Automaton pda, string candidate, List<char>? initialStackBottomFirst)
     {
-        try
-        {
-            if (!pda.Execute(candidate))
-            {
-                if (logger.IsEnabled(LogLevel.Information))
-                {
-                    logger.LogInformation("Found rejecting PDA string: '{String}'", candidate);
-                }
-                return true;
-            }
-        }
-        catch (Exception ex)
+        if (!TryEvaluatePdaCandidate(pda, candidate, initialStackBottomFirst, out var isAccepted))
         {
             if (logger.IsEnabled(LogLevel.Debug))
             {
-                logger.LogDebug(ex, "PDA execution error for rejecting candidate '{Candidate}' - treating as rejecting", candidate);
+                logger.LogDebug("PDA execution failed for rejecting candidate '{Candidate}' - treating as rejecting", candidate);
+            }
+            return true;
+        }
+
+        if (!isAccepted)
+        {
+            if (logger.IsEnabled(LogLevel.Information))
+            {
+                logger.LogInformation("Found rejecting PDA string: '{String}'", candidate);
             }
             return true;
         }
@@ -676,19 +950,17 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
         return false;
     }
 
-    private string? GenerateFallbackPdaRejectingString(Automaton pda, List<char> alphabet, int maxLength)
+    private string? GenerateFallbackPdaRejectingString(Automaton pda, List<char> alphabet, int maxLength, List<char>? initialStackBottomFirst)
     {
-        for (int len = 1; len <= Math.Min(maxLength, 10); len++)
+        var random = new Random();
+        foreach (var candidate in EnumeratePdaSearchCandidates(alphabet, Math.Min(maxLength, 12), 1200, random))
         {
-            foreach (var candidate in EnumerateStrings(alphabet, len))
-            {
-                if (TryRejectingCandidate(pda, candidate))
-                    return candidate;
-            }
+            if (TryRejectingCandidate(pda, candidate, initialStackBottomFirst))
+                return candidate;
         }
 
         logger.LogWarning("No rejecting PDA string found within length {MaxLength}", maxLength);
-        return alphabet[0].ToString();
+        return null;
     }
 
     private string? GenerateFallbackRejectingString(AutomatonViewModel automaton, List<char> alphabet, int maxLength)
@@ -1074,6 +1346,44 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
             result[i] = alphabet[random.Next(alphabet.Count)];
         }
         return new string(result);
+    }
+
+    private static IEnumerable<string> EnumeratePdaSearchCandidates(List<char> alphabet, int maxLength, int maxCandidates, Random random)
+    {
+        if (alphabet.Count == 0 || maxLength <= 0 || maxCandidates <= 0)
+            yield break;
+
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        int yielded = 0;
+        int exactLengthLimit = Math.Min(maxLength, MaxPdaExactEnumerationLength);
+
+        for (int len = 1; len <= exactLengthLimit && yielded < maxCandidates; len++)
+        {
+            foreach (var candidate in EnumerateStrings(alphabet, len))
+            {
+                if (!seen.Add(candidate))
+                    continue;
+
+                yield return candidate;
+                yielded++;
+                if (yielded >= maxCandidates)
+                    yield break;
+            }
+        }
+
+        int randomAttempts = 0;
+        int maxRandomAttempts = maxCandidates * 6;
+
+        while (yielded < maxCandidates && randomAttempts < maxRandomAttempts)
+        {
+            randomAttempts++;
+            var candidate = GenerateRandomStringFromAlphabet(alphabet, 1, maxLength, random);
+            if (!seen.Add(candidate))
+                continue;
+
+            yield return candidate;
+            yielded++;
+        }
     }
 
     private static IEnumerable<string> EnumerateStrings(List<char> alphabet, int length)

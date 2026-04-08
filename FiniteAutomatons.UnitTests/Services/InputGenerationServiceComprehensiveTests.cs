@@ -3,6 +3,7 @@ using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Services;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;
+using System.Diagnostics;
 
 namespace FiniteAutomatons.UnitTests.Services;
 
@@ -506,6 +507,64 @@ public class InputGenerationServiceComprehensiveTests
         var result = service.GenerateRejectingString(automaton, 10);
 
         result.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void PDA_GenerateAcceptingString_LargeDpdaSearchSpace_CompletesWithoutHanging()
+    {
+        var automaton = new AutomatonViewModel
+        {
+            Type = AutomatonType.DPDA,
+            States =
+            [
+                new() { Id = 1, IsStart = true, IsAccepting = false },
+                new() { Id = 2, IsStart = false, IsAccepting = true }
+            ],
+            Transitions =
+            [
+                new() { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = null, StackPush = "A" },
+                new() { FromStateId = 1, ToStateId = 1, Symbol = 'b', StackPop = null, StackPush = "B" },
+                new() { FromStateId = 1, ToStateId = 1, Symbol = 'c', StackPop = null, StackPush = "C" },
+                new() { FromStateId = 1, ToStateId = 1, Symbol = 'd', StackPop = null, StackPush = "D" },
+                new() { FromStateId = 1, ToStateId = 1, Symbol = 'e', StackPop = null, StackPush = "E" },
+                new() { FromStateId = 1, ToStateId = 1, Symbol = 'f', StackPop = null, StackPush = "F" }
+            ],
+            AcceptanceMode = PDAAcceptanceMode.FinalStateOnly
+        };
+
+        var sw = Stopwatch.StartNew();
+        var accepting = service.GenerateAcceptingString(automaton, 40);
+        sw.Stop();
+
+        accepting.ShouldBeNull();
+        sw.Elapsed.ShouldBeLessThan(TimeSpan.FromSeconds(5));
+    }
+
+    [Fact]
+    public void PDA_GenerateRejectingString_LargeNpdaSearchSpace_CompletesWithoutHanging()
+    {
+        var automaton = new AutomatonViewModel
+        {
+            Type = AutomatonType.NPDA,
+            States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
+            Transitions =
+            [
+                new() { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = null, StackPush = null },
+                new() { FromStateId = 1, ToStateId = 1, Symbol = 'b', StackPop = null, StackPush = null },
+                new() { FromStateId = 1, ToStateId = 1, Symbol = 'c', StackPop = null, StackPush = null },
+                new() { FromStateId = 1, ToStateId = 1, Symbol = 'd', StackPop = null, StackPush = null },
+                new() { FromStateId = 1, ToStateId = 1, Symbol = 'e', StackPop = null, StackPush = null },
+                new() { FromStateId = 1, ToStateId = 1, Symbol = 'f', StackPop = null, StackPush = null }
+            ],
+            AcceptanceMode = PDAAcceptanceMode.FinalStateOnly
+        };
+
+        var sw = Stopwatch.StartNew();
+        var rejecting = service.GenerateRejectingString(automaton, 40);
+        sw.Stop();
+
+        rejecting.ShouldBeNull();
+        sw.Elapsed.ShouldBeLessThan(TimeSpan.FromSeconds(5));
     }
 
     #endregion

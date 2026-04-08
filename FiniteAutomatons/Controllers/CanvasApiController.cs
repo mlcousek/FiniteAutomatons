@@ -1,4 +1,5 @@
 ﻿using FiniteAutomatons.Core.Models.Api;
+using FiniteAutomatons.Services.Services;
 using FiniteAutomatons.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
@@ -27,6 +28,12 @@ public class CanvasApiController(
         try
         {
             var vm = canvasMappingService.BuildAutomatonViewModel(request);
+            var determinismError = DeterminismValidationHelper.GetDeterminismError(vm);
+            if (!string.IsNullOrWhiteSpace(determinismError))
+            {
+                return Conflict(determinismError);
+            }
+
             var response = canvasMappingService.BuildSyncResponse(request);
 
             try
@@ -59,6 +66,12 @@ public class CanvasApiController(
         try
         {
             var model = canvasMappingService.BuildAutomatonViewModel(request);
+            var determinismError = DeterminismValidationHelper.GetDeterminismError(model);
+            if (!string.IsNullOrWhiteSpace(determinismError))
+            {
+                return Conflict(determinismError);
+            }
+
             var json = JsonSerializer.Serialize(model);
             HttpContext.Session.SetString(SessionKey, json);
             if (logger.IsEnabled(LogLevel.Information))

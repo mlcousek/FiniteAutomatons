@@ -9,6 +9,8 @@ namespace FiniteAutomatons.Services.Services;
 
 public class AutomatonExecutionService(IAutomatonBuilderService builderService, ILogger<AutomatonExecutionService> logger) : IAutomatonExecutionService
 {
+    private const char BottomOfStack = '#';
+
     private readonly IAutomatonBuilderService builderService = builderService;
     private readonly ILogger<AutomatonExecutionService> logger = logger;
 
@@ -180,8 +182,22 @@ public class AutomatonExecutionService(IAutomatonBuilderService builderService, 
         }
         else if (model.Type == AutomatonType.NPDA)
         {
-            model.CurrentStateId = null;
-            model.CurrentStates = null;
+            if (state is NPDAExecutionState npdaState)
+            {
+                var activeStateIds = npdaState.Configurations
+                    .Select(c => c.StateId)
+                    .Distinct()
+                    .OrderBy(id => id)
+                    .ToList();
+
+                model.CurrentStates = [.. activeStateIds];
+                model.CurrentStateId = activeStateIds.Count == 1 ? activeStateIds[0] : null;
+            }
+            else
+            {
+                model.CurrentStateId = null;
+                model.CurrentStates = [];
+            }
         }
         else
         {
@@ -203,6 +219,14 @@ public class AutomatonExecutionService(IAutomatonBuilderService builderService, 
                 hs.Select(c => new PDAConfigurationDto { StateId = c.StateId, Stack = SerializeImmutableStack(c.Stack) }).ToList()
             ).ToList();
             model.StateHistorySerialized = JsonSerializer.Serialize(historyDtos);
+
+            // Keep stack panel populated using a deterministic representative active configuration.
+            var representativeConfig = npdaState.Configurations
+                .OrderBy(c => c.StateId)
+                .FirstOrDefault();
+            model.StackSerialized = representativeConfig is null
+                ? null
+                : JsonSerializer.Serialize(SerializeImmutableStack(representativeConfig.Stack));
         }
         else
         {
@@ -238,8 +262,33 @@ public class AutomatonExecutionService(IAutomatonBuilderService builderService, 
                     }
                 }
             }
-            model.CurrentStateId = null;
-            model.CurrentStates = null;
+
+            if (!string.IsNullOrEmpty(model.NPDAConfigurationsSerialized))
+            {
+                try
+                {
+                    var configDtos = JsonSerializer.Deserialize<List<PDAConfigurationDto>>(model.NPDAConfigurationsSerialized) ?? [];
+                    var activeStateIds = configDtos
+                        .Select(c => c.StateId)
+                        .Distinct()
+                        .OrderBy(id => id)
+                        .ToList();
+
+                    model.CurrentStates = [.. activeStateIds];
+                    model.CurrentStateId = activeStateIds.Count == 1 ? activeStateIds[0] : null;
+                }
+                catch (Exception ex)
+                {
+                    logger.LogWarning(ex, "Failed to deserialize NPDA configurations while initializing current states.");
+                    model.CurrentStateId = null;
+                    model.CurrentStates = [];
+                }
+            }
+            else
+            {
+                model.CurrentStateId = null;
+                model.CurrentStates = [];
+            }
         }
         else
         {
@@ -340,8 +389,10 @@ public class AutomatonExecutionService(IAutomatonBuilderService builderService, 
         {
             try
             {
-                var stackArray = JsonSerializer.Deserialize<List<char>>(model.InitialStackSerialized) ?? [];
-                initialStack = new Stack<char>(stackArray.AsEnumerable().Reverse());
+                var rawStack = JsonSerializer.Deserialize<List<char>>(model.InitialStackSerialized) ?? [];
+                var normalizedBottomFirst = NormalizeInitialStackBottomFirst(rawStack);
+                model.InitialStackSerialized = JsonSerializer.Serialize(normalizedBottomFirst);
+                initialStack = new Stack<char>(normalizedBottomFirst);
             }
             catch (Exception ex)
             {
@@ -356,6 +407,28 @@ public class AutomatonExecutionService(IAutomatonBuilderService builderService, 
             logger.LogInformation("Reset to start state, position: {Position}", model.Position);
         }
         return model;
+    }
+
+    private static List<char> NormalizeInitialStackBottomFirst(List<char> raw)
+    {
+        var normalized = raw.Where(c => c != '\0' && c != 'ε').ToList();
+
+        if (normalized.Count == 0)
+            return [BottomOfStack];
+
+        if (normalized[0] == BottomOfStack)
+            return normalized;
+
+        // Legacy/alternate order where stack was serialized top-first.
+        if (normalized[^1] == BottomOfStack)
+        {
+            normalized.Reverse();
+            return normalized;
+        }
+
+        // User omitted bottom marker; enforce invariant expected by PDA acceptance checks.
+        normalized.Insert(0, BottomOfStack);
+        return normalized;
     }
 
     public AutomatonViewModel ResetExecution(AutomatonViewModel model)

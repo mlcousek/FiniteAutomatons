@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Shouldly;
+using System.Text.Json;
 
 namespace FiniteAutomatons.UnitTests.Services;
 
@@ -84,6 +85,32 @@ public class AutomatonExecutionServiceTests
         model.Position.ShouldBe(0);
         model.CurrentStateId.ShouldBe(1);
         model.IsAccepted.ShouldBeNull();
+    }
+
+    [Fact]
+    public void BackToStart_DPDA_InitialStack_MissingBottomMarker_AddsHashAtBottom()
+    {
+        var svc = CreateService();
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.DPDA,
+            States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
+            Transitions = [],
+            Input = string.Empty,
+            InitialStackSerialized = "[\"X\",\"Y\"]"
+        };
+
+        svc.BackToStart(model);
+
+        model.StackSerialized.ShouldNotBeNull();
+        var stackTopFirst = JsonSerializer.Deserialize<List<char>>(model.StackSerialized!);
+        stackTopFirst.ShouldNotBeNull();
+        stackTopFirst!.Count.ShouldBe(3);
+        stackTopFirst[^1].ShouldBe('#');
+
+        var initialBottomFirst = JsonSerializer.Deserialize<List<char>>(model.InitialStackSerialized!);
+        initialBottomFirst.ShouldNotBeNull();
+        initialBottomFirst![0].ShouldBe('#');
     }
 
     [Fact]

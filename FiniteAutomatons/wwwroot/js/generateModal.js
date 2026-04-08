@@ -195,9 +195,11 @@
 
     const familySelect = document.getElementById('generateFamilySelect');
     const optionSelect = document.getElementById('generateOptionSelect');
+    const familyInput = document.getElementById('generateFamilyInput');
 
     function populateOptionsForFamily(family) {
         if (!optionSelect) return;
+        if (familyInput) familyInput.value = family;
         optionSelect.innerHTML = '';
         if (family === 'DFA') {
             optionSelect.appendChild(new Option('Random DFA', 'random-dfa'));

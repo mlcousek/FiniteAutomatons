@@ -24,6 +24,9 @@ public class InputGenerationIntegrationTests(IntegrationTestsFixture fixture) : 
             new("AcceptanceMode", ((int)m.AcceptanceMode).ToString())
         };
 
+        if (!string.IsNullOrWhiteSpace(m.InitialStackSerialized))
+            list.Add(new("InitialStackSerialized", m.InitialStackSerialized));
+
         if (m.CurrentStateId.HasValue)
             list.Add(new("CurrentStateId", m.CurrentStateId.Value.ToString()));
 

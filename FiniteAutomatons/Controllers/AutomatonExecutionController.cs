@@ -13,52 +13,67 @@ public class AutomatonExecutionController(IAutomatonTempDataService tempDataServ
     [HttpPost]
     public IActionResult Start([FromForm] AutomatonViewModel model)
     {
-        model.HasExecuted = true;
-        var updated = executionService.BackToStart(model);
-        updated.HasExecuted = true;
-        return ProcessExecutionResult(updated);
+        return ExecuteWithHandledDeterminismError(model, m =>
+        {
+            var updated = executionService.BackToStart(m);
+            updated.HasExecuted = true;
+            return updated;
+        });
     }
 
     [HttpPost]
     public IActionResult StepForward([FromForm] AutomatonViewModel model)
     {
-        model.HasExecuted = true;
-        var updated = executionService.ExecuteStepForward(model);
-        updated.HasExecuted = true;
-        return ProcessExecutionResult(updated);
+        return ExecuteWithHandledDeterminismError(model, m =>
+        {
+            var updated = executionService.ExecuteStepForward(m);
+            updated.HasExecuted = true;
+            return updated;
+        });
     }
 
     [HttpPost]
     public IActionResult StepBackward([FromForm] AutomatonViewModel model)
     {
-        var updated = executionService.ExecuteStepBackward(model);
-        updated.HasExecuted = model.HasExecuted || updated.Position > 0;
-        return ProcessExecutionResult(updated);
+        return ExecuteWithHandledDeterminismError(model, m =>
+        {
+            var updated = executionService.ExecuteStepBackward(m);
+            updated.HasExecuted = m.HasExecuted || updated.Position > 0;
+            return updated;
+        });
     }
 
     [HttpPost]
     public IActionResult ExecuteAll([FromForm] AutomatonViewModel model)
     {
-        model.HasExecuted = true;
-        var updated = executionService.ExecuteAll(model);
-        updated.HasExecuted = true;
-        return ProcessExecutionResult(updated);
+        return ExecuteWithHandledDeterminismError(model, m =>
+        {
+            var updated = executionService.ExecuteAll(m);
+            updated.HasExecuted = true;
+            return updated;
+        });
     }
 
     [HttpPost]
     public IActionResult BackToStart([FromForm] AutomatonViewModel model)
     {
-        var updated = executionService.BackToStart(model);
-        updated.HasExecuted = model.HasExecuted || model.Position > 0 || model.Result != null;
-        return ProcessExecutionResult(updated);
+        return ExecuteWithHandledDeterminismError(model, m =>
+        {
+            var updated = executionService.BackToStart(m);
+            updated.HasExecuted = m.HasExecuted || m.Position > 0 || m.Result != null;
+            return updated;
+        });
     }
 
     [HttpPost]
     public IActionResult Reset([FromForm] AutomatonViewModel model)
     {
-        var updated = executionService.ResetExecution(model);
-        updated.HasExecuted = false;
-        return ProcessExecutionResult(updated);
+        return ExecuteWithHandledDeterminismError(model, m =>
+        {
+            var updated = executionService.ResetExecution(m);
+            updated.HasExecuted = false;
+            return updated;
+        });
     }
 
     [HttpPost]
@@ -107,5 +122,35 @@ public class AutomatonExecutionController(IAutomatonTempDataService tempDataServ
 
         tempDataService.StoreCustomAutomaton(TempData, model);
         return RedirectToAction("Index", "Home");
+    }
+
+    private IActionResult ExecuteWithHandledDeterminismError(
+        AutomatonViewModel model,
+        Func<AutomatonViewModel, AutomatonViewModel> operation)
+    {
+        try
+        {
+            return ProcessExecutionResult(operation(model));
+        }
+        catch (InvalidOperationException ex) when (model.Type == AutomatonType.DPDA &&
+            ex.Message.Contains("DPDA determinism violated", StringComparison.OrdinalIgnoreCase))
+        {
+            if (TempData == null)
+            {
+                ModelState.AddModelError(
+                    string.Empty,
+                    "Cannot simulate as DPDA because the automaton is nondeterministic. " +
+                    "Switch to NPDA or make transitions deterministic.");
+                return View("../Home/Index", model);
+            }
+
+            tempDataService.StoreErrorMessage(
+                TempData,
+                "Cannot simulate as DPDA because the automaton is nondeterministic. " +
+                "Switch to NPDA or make transitions deterministic.");
+
+            tempDataService.StoreCustomAutomaton(TempData, model);
+            return RedirectToAction("Index", "Home");
+        }
     }
 }

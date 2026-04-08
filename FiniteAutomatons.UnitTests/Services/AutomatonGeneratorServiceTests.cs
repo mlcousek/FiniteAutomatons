@@ -44,6 +44,14 @@ public class AutomatonGeneratorServiceTests
     }
 
     [Fact]
+    public void ValidateGenerationParameters_TooFewTransitionsForConnectivity_ReturnsFalse()
+    {
+        var result = service.ValidateGenerationParameters(AutomatonType.DPDA, 6, 4, 3);
+
+        result.ShouldBeFalse();
+    }
+
+    [Fact]
     public void GenerateRandomAutomaton_DFA_CreatesValidAutomaton()
     {
         // Arrange
@@ -143,6 +151,22 @@ public class AutomatonGeneratorServiceTests
 
         Should.Throw<ArgumentException>(() =>
             service.GenerateRandomAutomaton(AutomatonType.DFA, 3, 10, 2));
+
+        Should.Throw<ArgumentException>(() =>
+            service.GenerateRandomAutomaton(AutomatonType.NPDA, 7, 3, 3));
+    }
+
+    [Fact]
+    public void GenerateRandomParameters_AlwaysProvideConnectivityCapableTransitions()
+    {
+        for (int seed = 50; seed < 200; seed++)
+        {
+            var (stateCount, transitionCount, alphabetSize, _) = service.GenerateRandomParameters(seed);
+
+            stateCount.ShouldBeGreaterThanOrEqualTo(1);
+            transitionCount.ShouldBeGreaterThanOrEqualTo(Math.Max(0, stateCount - 1));
+            alphabetSize.ShouldBeGreaterThanOrEqualTo(1);
+        }
     }
 
     [Theory]
@@ -211,12 +235,98 @@ public class AutomatonGeneratorServiceTests
             t.StackPush?.Length.ShouldBeGreaterThan(0);
         }
 
-        // Ensure determinism: no two transitions share the same (FromStateId, Symbol, StackPop)
-        var duplicates = result.Transitions
-            .GroupBy(x => (x.FromStateId, x.Symbol, Pop: x.StackPop ?? null))
-            .Where(g => g.Count() > 1)
-            .ToList();
+        DeterminismValidationHelper.GetDeterminismError(result).ShouldBeNull();
+    }
 
-        duplicates.ShouldBeEmpty();
+    [Fact]
+    public void GenerateRandomAutomaton_DPDA_AcrossManySeeds_RemainsDeterministic()
+    {
+        for (int seed = 7000; seed < 7050; seed++)
+        {
+            var model = service.GenerateRandomAutomaton(AutomatonType.DPDA, 6, 18, 4, 0.3, seed);
+            var determinismError = DeterminismValidationHelper.GetDeterminismError(model);
+            determinismError.ShouldBeNull($"Seed {seed} produced a nondeterministic DPDA: {determinismError}");
+        }
+    }
+
+    [Fact]
+    public void DpdaDeterminismDefinition_AllowsSameSymbolForDifferentStackTop()
+    {
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.DPDA,
+            States =
+            [
+                new() { Id = 1, IsStart = true, IsAccepting = false },
+                new() { Id = 2, IsStart = false, IsAccepting = true },
+                new() { Id = 3, IsStart = false, IsAccepting = true }
+            ],
+            Transitions =
+            [
+                new() { FromStateId = 1, ToStateId = 2, Symbol = 'a', StackPop = 'A', StackPush = null },
+                new() { FromStateId = 1, ToStateId = 3, Symbol = 'a', StackPop = 'B', StackPush = null }
+            ]
+        };
+
+        var determinismError = DeterminismValidationHelper.GetDeterminismError(model);
+        determinismError.ShouldBeNull("By formal DPDA definition, same input symbol is allowed when stack-top cases are disjoint.");
+    }
+
+    [Fact]
+    public void GenerateRandomAutomaton_NPDA_AlwaysGeneratesNondeterministicBranching()
+    {
+        for (int seed = 5000; seed < 5030; seed++)
+        {
+            var model = service.GenerateRandomAutomaton(AutomatonType.NPDA, 4, 10, 2, 0.3, seed);
+
+            var branching = model.Transitions
+                .GroupBy(t => (t.FromStateId, t.Symbol, Pop: t.StackPop))
+                .Any(g => g.Count() > 1);
+
+            branching.ShouldBeTrue();
+        }
+    }
+
+    [Theory]
+    [InlineData(AutomatonType.DFA)]
+    [InlineData(AutomatonType.NFA)]
+    [InlineData(AutomatonType.EpsilonNFA)]
+    [InlineData(AutomatonType.DPDA)]
+    [InlineData(AutomatonType.NPDA)]
+    public void GenerateRandomAutomaton_AllStatesReachableFromStart_AcrossSeeds(AutomatonType type)
+    {
+        for (int seed = 8100; seed < 8130; seed++)
+        {
+            var model = service.GenerateRandomAutomaton(type, 8, 14, 4, 0.3, seed);
+            var reachable = GetReachableStates(model);
+
+            reachable.Count.ShouldBe(model.States.Count,
+                $"All states should be reachable from start for {type}. Seed={seed} reachable={reachable.Count} total={model.States.Count}");
+        }
+    }
+
+    private static HashSet<int> GetReachableStates(AutomatonViewModel model)
+    {
+        var start = model.States.FirstOrDefault(s => s.IsStart);
+        if (start == null)
+            return [];
+
+        var reachable = new HashSet<int> { start.Id };
+        var queue = new Queue<int>();
+        queue.Enqueue(start.Id);
+
+        while (queue.Count > 0)
+        {
+            var current = queue.Dequeue();
+            foreach (var target in model.Transitions.Where(t => t.FromStateId == current).Select(t => t.ToStateId))
+            {
+                if (!reachable.Add(target))
+                    continue;
+
+                queue.Enqueue(target);
+            }
+        }
+
+        return reachable;
     }
 }

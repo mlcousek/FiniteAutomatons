@@ -150,6 +150,7 @@
                                 <input type="hidden" name="IsAccepted" value="@(Model.IsAccepted.HasValue ? Model.IsAccepted.Value.ToString().ToLowerInvariant() : "")" />
                                 <input type="hidden" name="StateHistorySerialized" value="@Model.StateHistorySerialized" />
                                 <input type="hidden" name="StackSerialized" value="@Model.StackSerialized" />
+                                <input type="hidden" name="NPDAConfigurationsSerialized" value="@Model.NPDAConfigurationsSerialized" />
                                 <input type="hidden" name="IsCustomAutomaton" value="@Model.IsCustomAutomaton.ToString().ToLowerInvariant()" />
                                 if (Model.States != null)
                                 {
@@ -260,6 +261,7 @@
                 <input type="hidden" asp-for="IsAccepted" />
                 <input type="hidden" asp-for="StateHistorySerialized" />
                 <input type="hidden" asp-for="StackSerialized" />
+                <input type="hidden" asp-for="NPDAConfigurationsSerialized" />
                 <input type="hidden" asp-for="IsCustomAutomaton" />
                 <input type="hidden" name="targetType" id="targetTypeField" />
                 @if (Model.States != null)
@@ -309,10 +311,10 @@
             <div class="bottom-left-controls">
                 <div class="control-section input-section">
                     <div class="section-header-custom">
-                        <h2>INPUT</h2>
+                        <h2>INPUT @if (Model?.Type == AutomatonType.DPDA || Model?.Type == AutomatonType.NPDA) { <text>&amp; INITIAL STACK</text> }</h2>
                     </div>
-                    <div class="control-content-left">
-                        <div style="position:relative; display:flex; align-items:stretch;">
+                    <div class="control-content-left" style="display:flex; gap:0.5rem; align-items:stretch; width:100%;">
+                        <div style="flex:2; position:relative; display:flex; align-items:stretch;">
                             <input type="text" class="input-field" name="Input" id="inputField"
                                placeholder="Enter input string..."
                                value="@(Model != null ? Model.Input : "")"
@@ -328,17 +330,8 @@
                                 <i class="fas fa-keyboard"></i>
                             </button>
                         </div>
-                    </div>
-                </div>
-                
-                @if (Model?.Type == AutomatonType.DPDA || Model?.Type == AutomatonType.NPDA)
-                {
-                <div class="control-section input-section">
-                    <div class="section-header-custom">
-                        <h2>INITIAL STACK</h2>
-                    </div>
-                    <div class="control-content-left">
-                        @{
+                        @if (Model?.Type == AutomatonType.DPDA || Model?.Type == AutomatonType.NPDA)
+                        {
                             string stackDisplay = "";
                             if (!string.IsNullOrEmpty(Model.InitialStackSerialized))
                             {
@@ -352,33 +345,20 @@
                                 }
                                 catch { /* ignore */ }
                             }
+                            <div style="flex:1; display:flex;">
+                                <input type="text" class="input-field" id="initialStackDisplayField"
+                                   placeholder="Stack (bottom-first)..."
+                                   value="@stackDisplay"
+                                   @(Model.HasExecuted ? "readonly" : "")
+                                   style="padding: 0.75rem 1rem; flex:1;"
+                                   maxlength="100"
+                                   title="Comma-separated stack symbols, bottom-first (e.g., #,X,Y means # at bottom, Y at top)"
+                                   oninput="updateInitialStackSerialized()" />
+                                <input type="hidden" name="InitialStackSerialized" id="initialStackSerialized" value="@Model.InitialStackSerialized" />
+                            </div>
                         }
-                        <input type="text" class="input-field" id="initialStackDisplayField"
-                           placeholder="Enter stack symbols (bottom-first, e.g., #,X,Y)..."
-                           value="@stackDisplay"
-                           @(Model.HasExecuted ? "readonly" : "")
-                           style="padding: 0.75rem 3rem;"
-                           maxlength="100"
-                           title="Comma-separated stack symbols, bottom-first (e.g., #,X,Y means # at bottom, Y at top)"
-                           oninput="updateInitialStackSerialized()" />
-                        <input type="hidden" name="InitialStackSerialized" id="initialStackSerialized" value="@Model.InitialStackSerialized" />
                     </div>
                 </div>
-                
-                <!-- Acceptance Mode Section (PDA only) -->
-                <div class="control-section">
-                    <div class="section-header-custom">
-                        <h2>ACCEPTANCE MODE</h2>
-                    </div>
-                    <div class="control-content type-buttons" style="display:flex; flex-wrap:wrap; gap:0.5rem; justify-content:center;">
-                        <select name="AcceptanceMode" id="acceptanceModeSelect" class="modern-input" style="min-width:250px; padding:0.5rem;" @(Model.HasExecuted ? "disabled" : "")>
-                            <option value="0" selected="@(Model.AcceptanceMode == PDAAcceptanceMode.FinalStateAndEmptyStack)">Final State + Empty Stack</option>
-                            <option value="1" selected="@(Model.AcceptanceMode == PDAAcceptanceMode.FinalStateOnly)">Final State Only</option>
-                            <option value="2" selected="@(Model.AcceptanceMode == PDAAcceptanceMode.EmptyStackOnly)">Empty Stack Only</option>
-                        </select>
-                    </div>
-                </div>
-                }
             </div>
 
             <div class="bottom-right-controls">
@@ -480,7 +460,34 @@
                         <button type="button" class="control-btn type-btn @(Model != null && Model.Type == AutomatonType.NPDA ? "active" : "")" data-type="NPDA">NPDA</button>
                     </div>
                 </div>
-                @if (Model?.Type == AutomatonType.DFA && analysis != null && analysis.SupportsMinimization)
+                @if (Model?.Type == AutomatonType.DPDA || Model?.Type == AutomatonType.NPDA)
+                {
+                <div class="control-section minimize-section">
+                    <div class="section-header-custom">
+                        <h2>ACCEPTANCE MODE</h2>
+                    </div>
+                    <div class="control-content-right" style="display:flex; flex-wrap:wrap; gap:0.5rem; justify-content:center;">
+                        @if (Model.HasExecuted)
+                        {
+                            <select id="acceptanceModeSelect" class="modern-input" style="min-width:200px; padding:0.5rem;" disabled>
+                                <option value="0" selected="@(Model.AcceptanceMode == PDAAcceptanceMode.FinalStateAndEmptyStack)">Final State + Empty Stack</option>
+                                <option value="1" selected="@(Model.AcceptanceMode == PDAAcceptanceMode.FinalStateOnly)">Final State Only</option>
+                                <option value="2" selected="@(Model.AcceptanceMode == PDAAcceptanceMode.EmptyStackOnly)">Empty Stack Only</option>
+                            </select>
+                            <input type="hidden" name="AcceptanceMode" value="@((int)Model.AcceptanceMode)" />
+                        }
+                        else
+                        {
+                            <select name="AcceptanceMode" id="acceptanceModeSelect" class="modern-input" style="min-width:200px; padding:0.5rem;">
+                                <option value="0" selected="@(Model.AcceptanceMode == PDAAcceptanceMode.FinalStateAndEmptyStack)">Final State + Empty Stack</option>
+                                <option value="1" selected="@(Model.AcceptanceMode == PDAAcceptanceMode.FinalStateOnly)">Final State Only</option>
+                                <option value="2" selected="@(Model.AcceptanceMode == PDAAcceptanceMode.EmptyStackOnly)">Empty Stack Only</option>
+                            </select>
+                        }
+                    </div>
+                </div>
+                }
+                else if (Model?.Type == AutomatonType.DFA && analysis != null && analysis.SupportsMinimization)
                 {
                 <div class="control-section minimize-section">
                     <div class="section-header-custom">
