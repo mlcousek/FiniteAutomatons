@@ -127,7 +127,7 @@
 
                     <!-- Custom Regex Input -->
                     <div class="regex-custom-section">
-                        <form id="regexCustomForm" asp-controller="Regex" asp-action="BuildFromRegex" method="post">
+                        <form id="regexCustomForm" asp-controller="Regex" asp-action="BuildFromRegex" method="post" class="modern-form">
                             @Html.AntiForgeryToken()
                             <div class="form-group">
                                 <label for="regexInput" class="form-label">
@@ -160,7 +160,7 @@
                     </div>
 
                     <!-- Preset Examples -->
-                    <form id="regexPresetForm" asp-controller="Regex" asp-action="BuildFromPreset" method="post">
+                    <form id="regexPresetForm" asp-controller="Regex" asp-action="BuildFromPreset" method="post" class="modern-form">
                         @Html.AntiForgeryToken()
                         <div class="form-group">
                             <label for="regexPresetSelect" class="form-label">

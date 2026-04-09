@@ -1,4 +1,4 @@
-import { AutomatonCanvas } from './canvas/AutomatonCanvas.js';
+﻿import { AutomatonCanvas } from './canvas/AutomatonCanvas.js';
 import { CanvasFormSync } from './canvas/CanvasFormSync.js';
 import { PanelSync } from './canvas/PanelSync.js';
 import { CanvasLayoutCache } from './canvas/CanvasLayoutCache.js';
@@ -18,6 +18,7 @@ export function initAutomatonCanvas() {
             readOnly: true,
             enablePanZoom: true,
             layoutName: 'dagre',
+            useBranchColorsForNondeterminism: true,
             minZoom: 0.3,
             maxZoom: 3,
             wheelSensitivity: 0.2

@@ -1,4 +1,4 @@
-import { AutomatonRenderer } from './AutomatonRenderer.js';
+﻿import { AutomatonRenderer } from './AutomatonRenderer.js';
 import { LayoutEngine } from './LayoutEngine.js';
 import { CanvasInteractionHandler } from './CanvasInteractionHandler.js';
 import { EditModeManager } from './EditModeManager.js';
@@ -22,6 +22,7 @@ export class AutomatonCanvas {
             zoomOnWheel: options.zoomOnWheel ?? false,
             layoutName: options.layoutName ?? 'dagre',
             styleOverrides: options.styleOverrides ?? {},
+            useBranchColorsForNondeterminism: options.useBranchColorsForNondeterminism ?? true,
             minZoom: options.minZoom ?? 0.3,
             maxZoom: options.maxZoom ?? 3,
             wheelSensitivity: options.wheelSensitivity ?? 0.2,
@@ -230,7 +231,10 @@ export class AutomatonCanvas {
             node.ungrabify();
         });
 
-        const isNondet = (this.automatonType === 'NFA' || this.automatonType === 'EpsilonNFA') && stateIds.length > 1;
+        const automatonTypeUpper = (this.automatonType || '').toUpperCase();
+        const isNondet = this.options.useBranchColorsForNondeterminism !== false
+            && (automatonTypeUpper === 'NFA' || automatonTypeUpper === 'EPSILONNFA' || automatonTypeUpper === 'NPDA')
+            && stateIds.length > 1;
 
         const palette = [
             '#e63946', '#2a9d8f', '#f4a261', '#6a4c93', '#1d3557', '#ffb703',

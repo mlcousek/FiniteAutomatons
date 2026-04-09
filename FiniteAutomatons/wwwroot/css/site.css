@@ -695,17 +695,35 @@ font-size: 1.2rem;
 }
 
 /* Highlight for active/current states in the list */
-.state-item.state-active {
+.state-item.state-active, .transition-item.active:not([class*="active-branch-"]) {
   border: 3px solid #0078D4; /* bold colored outline */
   box-shadow: 0 0 10px rgba(0,120,212,0.25);
   background-color: rgba(0,120,212,0.08); /* light filled area */
   font-weight: 700;
 }
 
-.state-item.state-active .state-id {
-color: #005a9e;
+.state-item.state-active .state-id, .transition-item.active:not([class*="active-branch-"]) .transition-text {
+  color: #005a9e;
   font-weight: 800;
 }
+
+/* Nondeterminism Branch Colors for Left Panel */
+.state-item.active-branch-0, .transition-item.active-branch-0 { border-color: #e63946; background-color: rgba(230, 57, 70, 0.1); box-shadow: 0 0 10px rgba(230, 57, 70, 0.25); }
+.state-item.active-branch-1, .transition-item.active-branch-1 { border-color: #2a9d8f; background-color: rgba(42, 157, 143, 0.1); box-shadow: 0 0 10px rgba(42, 157, 143, 0.25); }
+.state-item.active-branch-2, .transition-item.active-branch-2 { border-color: #f4a261; background-color: rgba(244, 162, 97, 0.1); box-shadow: 0 0 10px rgba(244, 162, 97, 0.25); }
+.state-item.active-branch-3, .transition-item.active-branch-3 { border-color: #6a4c93; background-color: rgba(106, 76, 147, 0.1); box-shadow: 0 0 10px rgba(106, 76, 147, 0.25); }
+.state-item.active-branch-4, .transition-item.active-branch-4 { border-color: #1d3557; background-color: rgba(29, 53, 87, 0.1); box-shadow: 0 0 10px rgba(29, 53, 87, 0.25); }
+.state-item.active-branch-5, .transition-item.active-branch-5 { border-color: #ffb703; background-color: rgba(255, 183, 3, 0.1); box-shadow: 0 0 10px rgba(255, 183, 3, 0.25); }
+.state-item.active-branch-6, .transition-item.active-branch-6 { border-color: #8ac926; background-color: rgba(138, 201, 38, 0.1); box-shadow: 0 0 10px rgba(138, 201, 38, 0.25); }
+.state-item.active-branch-7, .transition-item.active-branch-7 { border-color: #1982c4; background-color: rgba(25, 130, 196, 0.1); box-shadow: 0 0 10px rgba(25, 130, 196, 0.25); }
+.state-item.active-branch-8, .transition-item.active-branch-8 { border-color: #ff6b6b; background-color: rgba(255, 107, 107, 0.1); box-shadow: 0 0 10px rgba(255, 107, 107, 0.25); }
+.state-item.active-branch-9, .transition-item.active-branch-9 { border-color: #4cc9f0; background-color: rgba(76, 201, 240, 0.1); box-shadow: 0 0 10px rgba(76, 201, 240, 0.25); }
+.state-item.active-branch-10, .transition-item.active-branch-10 { border-color: #f72585; background-color: rgba(247, 37, 133, 0.1); box-shadow: 0 0 10px rgba(247, 37, 133, 0.25); }
+.state-item.active-branch-11, .transition-item.active-branch-11 { border-color: #7209b7; background-color: rgba(114, 9, 183, 0.1); box-shadow: 0 0 10px rgba(114, 9, 183, 0.25); }
+.state-item.active-branch-12, .transition-item.active-branch-12 { border-color: #3a0ca3; background-color: rgba(58, 12, 163, 0.1); box-shadow: 0 0 10px rgba(58, 12, 163, 0.25); }
+.state-item.active-branch-13, .transition-item.active-branch-13 { border-color: #4361ee; background-color: rgba(67, 97, 238, 0.1); box-shadow: 0 0 10px rgba(67, 97, 238, 0.25); }
+.state-item.active-branch-14, .transition-item.active-branch-14 { border-color: #2ec4b6; background-color: rgba(46, 196, 182, 0.1); box-shadow: 0 0 10px rgba(46, 196, 182, 0.25); }
+.state-item.active-branch-15, .transition-item.active-branch-15 { border-color: #ffd166; background-color: rgba(255, 209, 102, 0.1); box-shadow: 0 0 10px rgba(255, 209, 102, 0.25); }
 
 .state-id {
   font-weight: 600;
@@ -1011,14 +1029,14 @@ border-top: 3px solid #000;
 }
 
 /* Highlight for active/current transitions in the list */
-.transition-item.active {
+.transition-item.active:not([class*="active-branch-"]) {
   border: 3px solid #f28c28; /* bold orange outline */
   box-shadow: 0 0 10px rgba(242,140,40,0.18);
   background-color: rgba(242,140,40,0.06); /* light filled area */
   font-weight: 700;
 }
 
-.transition-item.active .transition-text {
+.transition-item.active:not([class*="active-branch-"]) .transition-text {
   color: #c95a00;
   font-weight: 700;
 }

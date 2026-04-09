@@ -116,20 +116,22 @@ export function initPanelDragAndLock(containerId){
 }
 
 function collectCurrentStates(){
-    const ids = new Set();
+    const idsMap = new Map();
+
     const cur = getInputValue('CurrentStateId');
-    if (cur) ids.add(String(cur).trim());
+    if (cur) idsMap.set(String(cur).trim(), true);
+
     document.querySelectorAll('input[name^="CurrentStates["]').forEach(inp => {
-        if (inp && inp.value) ids.add(String(inp.value).trim());
+        if (inp && inp.value) idsMap.set(String(inp.value).trim(), true);
     });
 
-    if (ids.size === 0) {
+    if (idsMap.size === 0) {
         document.querySelectorAll('.state-item.state-active').forEach(el => {
-            if (el.dataset && el.dataset.stateId) ids.add(String(el.dataset.stateId).trim());
+            if (el.dataset && el.dataset.stateId) idsMap.set(String(el.dataset.stateId).trim(), true);
         });
     }
 
-    return ids;
+    return Array.from(idsMap.keys());
 }
 
 export function highlightCanvasState(){
@@ -162,19 +164,32 @@ function valuesEqual(a, b){
 
 export function highlightLeftPanel(){
     document.querySelectorAll('.transition-item.active').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.state-item.state-active').forEach(el => el.classList.remove('state-active'));
+
+    for (let i = 0; i < 16; i++) {
+        document.querySelectorAll(`.transition-item.active-branch-${i}`).forEach(el => el.classList.remove(`active-branch-${i}`));
+        document.querySelectorAll(`.state-item.active-branch-${i}`).forEach(el => el.classList.remove(`active-branch-${i}`));
+    }
 
     const activeIds = collectCurrentStates();
-    if (activeIds.size === 0) return;
+    if (activeIds.length === 0) return;
 
-    document.querySelectorAll('.transition-item').forEach(t => {
-        const fromRaw = t.getAttribute('data-from');
-        if (!fromRaw) return;
-        
-        for (const id of activeIds){
-            if (valuesEqual(id, fromRaw)) {
+    const isNonted = activeIds.length > 1;
+
+    activeIds.forEach((id, idx) => {
+        const cls = isNonted ? `active-branch-${idx % 16}` : null;
+
+        document.querySelectorAll(`.state-item[data-state-id="${id}"]`).forEach(el => {
+            el.classList.add('state-active');
+            if (cls) el.classList.add(cls);
+        });
+
+        document.querySelectorAll('.transition-item').forEach(t => {
+            const fromRaw = t.getAttribute('data-from');
+            if (fromRaw && valuesEqual(id, fromRaw)) {
                 t.classList.add('active');
-                break;
+                if (cls) t.classList.add(cls);
             }
-        }
+        });
     });
 }
