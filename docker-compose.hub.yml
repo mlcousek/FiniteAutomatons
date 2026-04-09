@@ -1,0 +1,36 @@
+services:
+  finiteautomatonsdb:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: finiteautomatonsdb
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${SA_PASSWORD:-MyStrong_Password123!}
+    ports:
+      - "${DB_PORT:-8002}:1433"
+    volumes:
+      - finiteautomatons_mssql_data:/var/opt/mssql
+    networks:
+      - finite_automatons_app
+
+  finite_automatons:
+    image: ${APP_IMAGE:-mlcousek/finiteautomatons:latest}
+    container_name: finite_automatons
+    restart: unless-stopped
+    depends_on:
+      - finiteautomatonsdb
+    ports:
+      - "${APP_PORT:-8001}:8080"
+    volumes:
+      - ./dataprotection-keys:/home/app/.aspnet/DataProtection-Keys
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ASPNETCORE_HTTP_PORTS: "8080"
+      ConnectionStrings__finiteautomatonsdb: "Server=finiteautomatonsdb,1433;Database=${DB_NAME:-FiniteAutomatonsDb};User Id=sa;Password=${SA_PASSWORD:-MyStrong_Password123!};TrustServerCertificate=True;Encrypt=False"
+    networks:
+      - finite_automatons_app
+
+networks:
+  finite_automatons_app:
+
+volumes:
+  finiteautomatons_mssql_data:

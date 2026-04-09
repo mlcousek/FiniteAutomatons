@@ -1,0 +1,7 @@
+@model AutomatonViewModel
+@{
+    ViewData["Title"] = "Create Automaton";
+    var vm = Model ?? new AutomatonViewModel();
+}
+
+@await Html.PartialAsync("~/Views/Home/Index.cshtml", vm)
