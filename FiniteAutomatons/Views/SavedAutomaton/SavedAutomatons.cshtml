@@ -5,6 +5,24 @@
     var groups = ViewData["Groups"] as List<SavedAutomatonGroup> ?? new List<SavedAutomatonGroup>();
     var sharedGroups = ViewData["SharedGroups"] as List<SharedAutomatonGroup> ?? new List<SharedAutomatonGroup>();
     var selectedGroup = ViewData["SelectedGroupId"] as int?;
+
+    static string TruncateText(string? value, int maxLength)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return string.Empty;
+
+        return value.Length <= maxLength
+            ? value
+            : value[..maxLength] + "...";
+    }
+
+    static string ToUtcIso(DateTime dateTime)
+    {
+        var utc = dateTime.Kind == DateTimeKind.Utc
+            ? dateTime
+            : DateTime.SpecifyKind(dateTime, DateTimeKind.Utc);
+        return utc.ToString("o");
+    }
 }
 
 <div class="container mt-3">
@@ -70,22 +88,29 @@
                 </select>
             </form>
         </div>
-        <div class="col-md-4 text-end">
+        <div class="col-md-4">
+            <div class="d-flex justify-content-end align-items-center gap-1 flex-nowrap" style="white-space: nowrap;">
             <button type="button" class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#createGroupModal">Create Group</button>
             @if (selectedGroup.HasValue)
             {
-                <a asp-action="ExportGroup" asp-controller="SavedAutomaton" asp-route-groupId="@selectedGroup.Value" class="btn btn-sm btn-primary ms-2">
+                <a asp-action="ExportGroup" asp-controller="SavedAutomaton" asp-route-groupId="@selectedGroup.Value" class="btn btn-sm btn-primary ms-1">
                     <i class="fas fa-file-export"></i> Export Group
                 </a>
-                <button type="button" class="btn btn-sm btn-primary ms-1" data-bs-toggle="modal" data-bs-target="#importGroupModal">
-                    <i class="fas fa-file-import"></i> Import Group
-                </button>
-                <form asp-action="DeleteGroup" asp-controller="SavedAutomaton" method="post" class="d-inline ms-1" onsubmit="return confirm('Delete this group? This will ungroup all automatons.');">
+                <form asp-action="ImportGroup" asp-controller="SavedAutomaton" method="post" enctype="multipart/form-data" class="d-inline ms-1" id="savedGroupImportForm">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="groupId" value="@selectedGroup.Value" />
+                    <input type="file" id="savedGroupImportInput" name="file" accept=".json,.txt" style="display:none;" />
+                    <button type="button" class="btn btn-sm btn-primary" id="savedGroupImportBtn">
+                        <i class="fas fa-file-import"></i> Import
+                    </button>
+                </form>
+                <form asp-action="DeleteGroup" asp-controller="SavedAutomaton" method="post" class="d-inline-flex ms-1" onsubmit="return confirm('Delete this group? This will ungroup all automatons.');">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="id" value="@selectedGroup.Value" />
                     <button type="submit" class="btn btn-sm btn-outline-danger">Delete Group</button>
                 </form>
             }
+            </div>
         </div>
     </div>
 
@@ -112,17 +137,23 @@
                                      title="Click to enlarge" />
                             </div>
                         }
-                        <div class="flex-grow-1">
-                            <h5 class="mb-1">@item.Name</h5>
+                        <div class="flex-grow-1" style="min-width: 0;">
+                            <h5 class="mb-1 text-truncate" title="@item.Name">@TruncateText(item.Name, 60)</h5>
                             @if (!string.IsNullOrWhiteSpace(item.Description))
                             {
-                                <p class="mb-1 text-muted">@item.Description</p>
+                                <p class="mb-1 text-muted text-truncate" title="@item.Description">@TruncateText(item.Description, 100)</p>
                             }
                             <small class="text-muted">
-                                Created: @item.CreatedAt.ToLocalTime().ToString("g")
+                                Created: <span class="js-local-datetime" data-utc="@ToUtcIso(item.CreatedAt)">@item.CreatedAt</span>
                                 @if (item.Assignments != null && item.Assignments.Count > 0)
                                 {
-                                    <text>• Groups: @string.Join(", ", item.Assignments.Select(a => a.Group?.Name ?? a.GroupId.ToString()))</text>
+                                    var groupsText = string.Join(", ", item.Assignments.Select(a => a.Group?.Name ?? a.GroupId.ToString()));
+                                    <text>
+                                        • Groups:
+                                        <span class="d-inline-block align-middle text-truncate" style="max-width: 480px;" title="@groupsText">
+                                            @TruncateText(groupsText, 80)
+                                        </span>
+                                    </text>
                                 }
                             </small>
                         </div>
@@ -135,20 +166,32 @@
                                 var hasState = item.SaveMode == AutomatonSaveMode.WithState;
                             }
 
-                            <a asp-controller="SavedAutomaton" asp-action="Load" asp-route-id="@item.Id" asp-route-mode="structure" class="btn btn-sm btn-primary mb-1">Load</a>
+                            <a asp-controller="SavedAutomaton" asp-action="Load" asp-route-id="@item.Id" asp-route-mode="structure" class="btn btn-sm btn-primary mb-1">
+                                <i class="fas fa-upload"></i> Load
+                            </a>
                             
                             @if (hasInput)
                             {
-                                <a asp-controller="SavedAutomaton" asp-action="Load" asp-route-id="@item.Id" asp-route-mode="input" class="btn btn-sm btn-info mb-1">Load with Input</a>
+                                <a asp-controller="SavedAutomaton" asp-action="Load" asp-route-id="@item.Id" asp-route-mode="input" class="btn btn-sm btn-info mb-1">
+                                    <i class="fas fa-keyboard"></i> Load with Input
+                                </a>
                             }
                             
                             @if (hasState)
                             {
-                                <a asp-controller="SavedAutomaton" asp-action="Load" asp-route-id="@item.Id" asp-route-mode="state" class="btn btn-sm btn-outline-primary mb-1">Load as State</a>
+                                <a asp-controller="SavedAutomaton" asp-action="Load" asp-route-id="@item.Id" asp-route-mode="state" class="btn btn-sm btn-outline-primary mb-1">
+                                    <i class="fas fa-play-circle"></i> Load as State
+                                </a>
                             }
                             
-                            <button type="button" class="btn btn-sm btn-outline-info mb-1" data-bs-toggle="modal" data-bs-target="#exportModal" data-automaton-id="@item.Id" data-automaton-name="@item.Name">
-                                <i class="fas fa-download"></i> Export
+                            <button type="button" class="btn btn-sm btn-outline-secondary mb-1 ms-1"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#exportModal"
+                                    data-automaton-id="@item.Id"
+                                    data-automaton-name="@item.Name"
+                                    data-automaton-has-input="@(hasInput ? "true" : "false")"
+                                    data-automaton-has-state="@(hasState ? "true" : "false")">
+                                <i class="fas fa-file-export"></i> Export
                             </button>
                             <button type="button" class="btn btn-sm btn-outline-success mb-1" data-bs-toggle="modal" data-bs-target="#shareModal" data-automaton-id="@item.Id" data-automaton-name="@item.Name">
                                 <i class="fas fa-share-alt"></i> Share
@@ -166,7 +209,9 @@
                             <form asp-action="Delete" asp-controller="SavedAutomaton" method="post" class="d-inline">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="id" value="@item.Id" />
-                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this saved automaton?');">Delete</button>
+                                <button type="submit" class="btn btn-sm btn-danger mb-1" onclick="return confirm('Delete this saved automaton?');">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
                             </form>
                         </div>
                     </div>
@@ -216,11 +261,14 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body py-4 px-4">
-                    <p class="mb-3">Export <strong id="exportAutomatonName"></strong>:</p>
+                    <p class="mb-3">
+                        Export
+                        <strong id="exportAutomatonName" class="d-inline-block align-middle text-truncate" style="max-width: 680px;"></strong>:
+                    </p>
                     <input type="hidden" id="exportAutomatonId" value="" />
                     
                     <div class="row g-3">
-                        <div class="col-md-6">
+                        <div class="col-md-6" id="exportStructureSection">
                             <h6 class="mb-2">Structure Only</h6>
                             <p class="text-muted small">Export automaton structure (states and transitions)</p>
                             <div class="d-grid gap-2">
@@ -233,7 +281,7 @@
                             </div>
                         </div>
                         
-                        <div class="col-md-6">
+                        <div class="col-md-6" id="exportWithInputSection">
                             <h6 class="mb-2">With Input</h6>
                             <p class="text-muted small">Export structure + input string (no execution state)</p>
                             <div class="d-grid gap-2">
@@ -243,7 +291,7 @@
                             </div>
                         </div>
                         
-                        <div class="col-12 mt-4">
+                        <div class="col-12 mt-4" id="exportWithStateSection">
                             <h6 class="mb-2">Full Execution State</h6>
                             <p class="text-muted small">Export everything (structure, input, position, current states, history)</p>
                             <div class="d-grid">
@@ -261,38 +309,6 @@
         </div>
     </div>
 
-    <div class="modal fade" id="importGroupModal" tabindex="-1" aria-labelledby="importGroupModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <form asp-action="ImportGroup" asp-controller="SavedAutomaton" method="post" enctype="multipart/form-data">
-                    @Html.AntiForgeryToken()
-                    @if (selectedGroup.HasValue)
-                    {
-                        <input type="hidden" name="groupId" value="@selectedGroup.Value" />
-                    }
-                    <div class="modal-header py-3 px-4">
-                        <h5 class="modal-title mb-0" id="importGroupModalLabel">Import Group</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body py-4 px-4">
-                        <p class="mb-3">Upload a JSON file containing the group export:</p>
-                        <div class="mb-3">
-                            <label for="groupFile" class="form-label">Choose file</label>
-                            <input type="file" class="form-control" id="groupFile" name="file" accept=".json" required />
-                        </div>
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle"></i> The file should contain all automatons from the exported group.
-                        </div>
-                    </div>
-                    <div class="modal-footer py-3 px-4">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Import</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
     <div class="modal fade" id="shareModal" tabindex="-1" aria-labelledby="shareModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -304,7 +320,11 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
                     <div class="modal-body py-4 px-4">
-                        <p class="mb-3">Share <strong id="shareAutomatonName"></strong> to a collaborative group:</p>
+                        <p class="mb-3">
+                            Share
+                            <strong id="shareAutomatonName" class="d-inline-block align-middle text-truncate" style="max-width: 420px;"></strong>
+                            to a collaborative group:
+                        </p>
                         
                         @if (sharedGroups.Count > 0)
                         {
@@ -353,6 +373,35 @@
 </div>
 
 <script>
+    (function () {
+        var nodes = document.querySelectorAll('.js-local-datetime[data-utc]');
+        nodes.forEach(function (el) {
+            var raw = el.getAttribute('data-utc');
+            if (!raw) return;
+            var dt = new Date(raw);
+            if (Number.isNaN(dt.getTime())) return;
+            el.textContent = dt.toLocaleString();
+            el.title = dt.toLocaleString();
+        });
+    })();
+
+    (function() {
+        var importBtn = document.getElementById('savedGroupImportBtn');
+        var importInput = document.getElementById('savedGroupImportInput');
+        var importForm = document.getElementById('savedGroupImportForm');
+        if (!importBtn || !importInput || !importForm) return;
+
+        importBtn.addEventListener('click', function() {
+            importInput.click();
+        });
+
+        importInput.addEventListener('change', function() {
+            if (importInput.files && importInput.files.length > 0) {
+                importForm.submit();
+            }
+        });
+    })();
+
     (function(){
         var lightbox = document.getElementById('thumbLightbox');
         var lightboxImg = document.getElementById('thumbLightboxImg');
@@ -409,10 +458,37 @@
             var button = event.relatedTarget;
             var automatonId = button.getAttribute('data-automaton-id');
             var automatonName = button.getAttribute('data-automaton-name');
+            var hasInput = button.getAttribute('data-automaton-has-input') === 'true';
+            var hasState = button.getAttribute('data-automaton-has-state') === 'true';
             var input = document.getElementById('exportAutomatonId');
             var nameDisplay = document.getElementById('exportAutomatonName');
+            var structureSection = document.getElementById('exportStructureSection');
+            var inputSection = document.getElementById('exportWithInputSection');
+            var stateSection = document.getElementById('exportWithStateSection');
+
             if (input) input.value = automatonId || '';
-            if (nameDisplay) nameDisplay.textContent = automatonName || '';
+            if (nameDisplay) {
+                nameDisplay.textContent = automatonName || '';
+                nameDisplay.title = automatonName || '';
+            }
+
+            if (inputSection) {
+                inputSection.style.display = hasInput ? '' : 'none';
+            }
+
+            if (stateSection) {
+                stateSection.style.display = hasState ? '' : 'none';
+            }
+
+            if (structureSection) {
+                if (hasInput) {
+                    structureSection.classList.remove('col-12');
+                    structureSection.classList.add('col-md-6');
+                } else {
+                    structureSection.classList.remove('col-md-6');
+                    structureSection.classList.add('col-12');
+                }
+            }
         });
     })();
 
@@ -440,7 +516,10 @@
             var input = document.getElementById('shareAutomatonId');
             var nameDisplay = document.getElementById('shareAutomatonName');
             if (input) input.value = automatonId || '';
-            if (nameDisplay) nameDisplay.textContent = automatonName || '';
+            if (nameDisplay) {
+                nameDisplay.textContent = automatonName || '';
+                nameDisplay.title = automatonName || '';
+            }
         });
     })();
 </script>

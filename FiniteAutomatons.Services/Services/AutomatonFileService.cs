@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.Database;
+﻿using FiniteAutomatons.Core.Models.Database;
 using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.DTOs;
@@ -10,12 +10,18 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace FiniteAutomatons.Services.Services;
 
 public class AutomatonFileService(ILogger<AutomatonFileService> logger) : IAutomatonFileService
 {
     private static readonly JsonSerializerOptions s_indentedSerializerOptions = new() { WriteIndented = true };
+    private static readonly JsonSerializerOptions s_exportSerializerOptions = new()
+    {
+        WriteIndented = true,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+    };
     private static readonly JsonSerializerOptions s_caseInsensitiveDeserializerOptions = new() { PropertyNameCaseInsensitive = true };
 
     private readonly ILogger<AutomatonFileService> logger = logger;
@@ -190,7 +196,8 @@ public class AutomatonFileService(ILogger<AutomatonFileService> logger) : IAutom
     public (string FileName, string Content) ExportJsonWithState(AutomatonViewModel model)
     {
         model = model ?? throw new ArgumentNullException(nameof(model));
-        var content = JsonSerializer.Serialize(model, s_indentedSerializerOptions);
+        var exportModel = CreateExportDto(model, includeExecutionState: true);
+        var content = JsonSerializer.Serialize(exportModel, s_exportSerializerOptions);
         var name = $"automaton-withstate-{DateTime.UtcNow:yyyyMMddHHmmss}.json";
         return (name, content);
     }
@@ -198,23 +205,8 @@ public class AutomatonFileService(ILogger<AutomatonFileService> logger) : IAutom
     public (string FileName, string Content) ExportWithInput(AutomatonViewModel model)
     {
         model = model ?? throw new ArgumentNullException(nameof(model));
-
-        var exportModel = new AutomatonViewModel
-        {
-            Type = model.Type,
-            States = model.States,
-            Transitions = model.Transitions,
-            Input = model.Input,
-            IsCustomAutomaton = model.IsCustomAutomaton,
-            Position = 0,
-            CurrentStateId = null,
-            CurrentStates = null,
-            IsAccepted = null,
-            StateHistorySerialized = string.Empty,
-            StackSerialized = null
-        };
-
-        var content = JsonSerializer.Serialize(exportModel, s_indentedSerializerOptions);
+        var exportModel = CreateExportDto(model, includeExecutionState: false);
+        var content = JsonSerializer.Serialize(exportModel, s_exportSerializerOptions);
         var name = $"automaton-withinput-{DateTime.UtcNow:yyyyMMddHHmmss}.json";
         return (name, content);
     }
@@ -227,10 +219,62 @@ public class AutomatonFileService(ILogger<AutomatonFileService> logger) : IAutom
         {
             logger.LogWarning("Exporting automaton with execution state but no input provided");
         }
-
-        var content = JsonSerializer.Serialize(model, s_indentedSerializerOptions);
+        var exportModel = CreateExportDto(model, includeExecutionState: true);
+        var content = JsonSerializer.Serialize(exportModel, s_exportSerializerOptions);
         var name = $"automaton-execution-{DateTime.UtcNow:yyyyMMddHHmmss}.json";
         return (name, content);
+    }
+
+    private static ExportAutomatonDto CreateExportDto(AutomatonViewModel model, bool includeExecutionState)
+    {
+        var isPDA = model.Type == AutomatonType.DPDA || model.Type == AutomatonType.NPDA;
+        var dto = new ExportAutomatonDto
+        {
+            Type = model.Type,
+            TypeDisplayName = model.TypeDisplayName,
+            States = model.States,
+            Transitions = model.Transitions,
+            Input = model.Input,
+            IsCustomAutomaton = model.IsCustomAutomaton,
+            InitialStackSerialized = isPDA ? model.InitialStackSerialized : null,
+            AcceptanceMode = isPDA ? model.AcceptanceMode : null,
+            SourceRegex = model.Type == AutomatonType.DFA || model.Type == AutomatonType.NFA || model.Type == AutomatonType.EpsilonNFA ? model.SourceRegex : null
+        };
+
+        if (includeExecutionState)
+        {
+            dto.HasExecuted = model.HasExecuted;
+            dto.Position = model.Position;
+            dto.CurrentStateId = model.CurrentStateId;
+            dto.CurrentStates = model.CurrentStates;
+            dto.IsAccepted = model.IsAccepted;
+            dto.StateHistorySerialized = model.StateHistorySerialized;
+            dto.StackSerialized = isPDA ? model.StackSerialized : null;
+            dto.NPDAConfigurationsSerialized = model.Type == AutomatonType.NPDA ? model.NPDAConfigurationsSerialized : null;
+        }
+
+        return dto;
+    }
+
+    private sealed class ExportAutomatonDto
+    {
+        public AutomatonType Type { get; set; }
+        public string TypeDisplayName { get; set; } = string.Empty;
+        public List<State> States { get; set; } = [];
+        public List<Transition> Transitions { get; set; } = [];
+        public string Input { get; set; } = string.Empty;
+        public bool IsCustomAutomaton { get; set; }
+        public string? SourceRegex { get; set; }
+        public string? InitialStackSerialized { get; set; }
+        public PDAAcceptanceMode? AcceptanceMode { get; set; }
+        public bool? HasExecuted { get; set; }
+        public int? Position { get; set; }
+        public int? CurrentStateId { get; set; }
+        public HashSet<int>? CurrentStates { get; set; }
+        public bool? IsAccepted { get; set; }
+        public string? StateHistorySerialized { get; set; }
+        public string? StackSerialized { get; set; }
+        public string? NPDAConfigurationsSerialized { get; set; }
     }
 
     public (string FileName, string Content) ExportText(AutomatonViewModel model)

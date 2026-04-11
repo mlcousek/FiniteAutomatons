@@ -1,6 +1,10 @@
 ﻿using FiniteAutomatons.Core.Models.Database;
+using FiniteAutomatons.Core.Models.DoMain;
+using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.DTOs;
+using FiniteAutomatons.Core.Models.Serialization;
 using FiniteAutomatons.Core.Models.ViewModel;
+using FiniteAutomatons.Core.Utilities;
 using FiniteAutomatons.Services.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -205,58 +209,37 @@ public class ImportExportController(
         if (upload == null)
             return BadRequest("No file uploaded");
 
-        using var stream = upload.OpenReadStream();
-        // Ensure stream is readable from start
-        if (stream.CanSeek) stream.Position = 0;
-        GroupExportDto? dto;
-        try
+        string content;
+        using (var reader = new StreamReader(upload.OpenReadStream()))
         {
-            dto = await JsonSerializer.DeserializeAsync<GroupExportDto>(stream);
+            content = await reader.ReadToEndAsync();
         }
-        catch (Exception ex)
+
+        if (string.IsNullOrWhiteSpace(content))
         {
-            TempData["Error"] = "Failed to parse group export file: " + ex.Message;
+            TempData["Error"] = "Import file is empty.";
             return RedirectToAction("Group", "SharedAutomaton", new { id = groupId });
         }
 
-        if (dto == null || dto.Automatons == null || dto.Automatons.Count == 0)
+        var imports = ResolveGroupImports(content, upload.FileName);
+        if (imports.Count == 0)
         {
             TempData["Error"] = "No automatons found in import file.";
             return RedirectToAction("Group", "SharedAutomaton", new { id = groupId });
         }
 
         var created = 0;
-        foreach (var item in dto.Automatons)
+        foreach (var item in imports)
         {
             try
             {
-                if (item == null) continue;
-                if (item.Content == null)
-                {
-                    // skip invalid automaton entries
-                    continue;
-                }
-                var model = new AutomatonViewModel
-                {
-                    Type = item.Content.Type,
-                    States = item.Content.States ?? [],
-                    Transitions = item.Content.Transitions ?? [],
-                    IsCustomAutomaton = true,
-                    SourceRegex = null
-                };
-
-                if (item.ExecutionState != null)
-                {
-                    model.Input = item.ExecutionState.Input ?? string.Empty;
-                    model.Position = item.ExecutionState.Position;
-                    model.CurrentStateId = item.ExecutionState.CurrentStateId;
-                    model.CurrentStates = item.ExecutionState.CurrentStates != null ? [.. item.ExecutionState.CurrentStates] : null;
-                    model.IsAccepted = item.ExecutionState.IsAccepted;
-                    model.StateHistorySerialized = item.ExecutionState.StateHistorySerialized ?? string.Empty;
-                    model.StackSerialized = item.ExecutionState.StackSerialized;
-                }
-
-                await sharedAutomatonService.SaveAsync(user.Id, groupId, item.Name, item.Description, model, item.HasExecutionState);
+                await sharedAutomatonService.SaveAsync(
+                    user.Id,
+                    groupId,
+                    item.Name,
+                    item.Description,
+                    item.Model,
+                    item.SaveWithExecutionState);
                 created++;
             }
             catch
@@ -269,6 +252,177 @@ public class ImportExportController(
         TempData["CreateGroupSuccess"] = "1";
         return RedirectToAction("Group", "SharedAutomaton", new { id = groupId });
     }
+
+    private static List<ImportCandidate> ResolveGroupImports(string content, string fileName)
+    {
+        var imports = new List<ImportCandidate>();
+        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+
+        try
+        {
+            var dto = JsonSerializer.Deserialize<GroupExportDto>(content, options);
+            if (dto?.Automatons != null && dto.Automatons.Count > 0)
+            {
+                foreach (var item in dto.Automatons)
+                {
+                    if (item?.Content == null)
+                        continue;
+
+                    var model = new AutomatonViewModel
+                    {
+                        Type = item.Content.Type,
+                        States = item.Content.States ?? [],
+                        Transitions = item.Content.Transitions ?? [],
+                        IsCustomAutomaton = true,
+                        SourceRegex = null
+                    };
+
+                    if (item.ExecutionState != null)
+                    {
+                        model.Input = item.ExecutionState.Input ?? string.Empty;
+                        model.Position = item.ExecutionState.Position;
+                        model.CurrentStateId = item.ExecutionState.CurrentStateId;
+                        model.CurrentStates = item.ExecutionState.CurrentStates != null ? [.. item.ExecutionState.CurrentStates] : null;
+                        model.IsAccepted = item.ExecutionState.IsAccepted;
+                        model.StateHistorySerialized = item.ExecutionState.StateHistorySerialized ?? string.Empty;
+                        model.StackSerialized = item.ExecutionState.StackSerialized;
+                    }
+
+                    imports.Add(new ImportCandidate(
+                        string.IsNullOrWhiteSpace(item.Name) ? "Imported" : item.Name,
+                        item.Description,
+                        model,
+                        item.HasExecutionState));
+                }
+
+                if (imports.Count > 0)
+                    return imports;
+            }
+        }
+        catch (JsonException)
+        {
+        }
+
+        try
+        {
+            var vm = JsonSerializer.Deserialize<AutomatonViewModel>(content, options);
+            if (vm != null && vm.States.Count > 0)
+            {
+                vm.IsCustomAutomaton = true;
+                vm.NormalizeEpsilonTransitions();
+                imports.Add(new ImportCandidate(
+                    GetImportName(fileName),
+                    null,
+                    vm,
+                    HasExecutionState(vm)));
+
+                return imports;
+            }
+        }
+        catch (JsonException)
+        {
+        }
+
+        try
+        {
+            var payload = JsonSerializer.Deserialize<AutomatonPayloadDto>(content, options);
+            if (payload != null && payload.States != null && payload.States.Count > 0)
+            {
+                imports.Add(new ImportCandidate(
+                    GetImportName(fileName),
+                    null,
+                    new AutomatonViewModel
+                    {
+                        Type = payload.Type,
+                        States = payload.States,
+                        Transitions = payload.Transitions ?? [],
+                        IsCustomAutomaton = true
+                    },
+                    false));
+
+                return imports;
+            }
+        }
+        catch (JsonException)
+        {
+        }
+
+        if (AutomatonJsonSerializer.TryDeserialize(content, out var jsonAutomaton, out _)
+            && jsonAutomaton != null)
+        {
+            imports.Add(new ImportCandidate(
+                GetImportName(fileName),
+                null,
+                CreateViewModelFromAutomaton(jsonAutomaton),
+                false));
+            return imports;
+        }
+
+        if (AutomatonCustomTextSerializer.TryDeserialize(content, out var textAutomaton, out _)
+            && textAutomaton != null)
+        {
+            imports.Add(new ImportCandidate(
+                GetImportName(fileName),
+                null,
+                CreateViewModelFromAutomaton(textAutomaton),
+                false));
+        }
+
+        return imports;
+    }
+
+    private static AutomatonViewModel CreateViewModelFromAutomaton(Automaton automaton)
+    {
+        var model = new AutomatonViewModel
+        {
+            Type = automaton switch
+            {
+                EpsilonNFA => AutomatonType.EpsilonNFA,
+                NFA => AutomatonType.NFA,
+                DFA => AutomatonType.DFA,
+                DPDA => AutomatonType.DPDA,
+                NPDA => AutomatonType.NPDA,
+                _ => AutomatonType.DFA
+            },
+            States = [.. automaton.States.Select(s => new State
+            {
+                Id = s.Id,
+                IsStart = s.IsStart,
+                IsAccepting = s.IsAccepting
+            })],
+            Transitions = [.. automaton.Transitions.Select(t => new Transition
+            {
+                FromStateId = t.FromStateId,
+                ToStateId = t.ToStateId,
+                Symbol = t.Symbol,
+                StackPop = t.StackPop,
+                StackPush = t.StackPush
+            })],
+            IsCustomAutomaton = true
+        };
+
+        model.NormalizeEpsilonTransitions();
+        return model;
+    }
+
+    private static bool HasExecutionState(AutomatonViewModel model)
+    {
+        return model.HasExecuted
+            || model.Position > 0
+            || model.CurrentStateId.HasValue
+            || (model.CurrentStates != null && model.CurrentStates.Count > 0)
+            || model.IsAccepted.HasValue
+            || !string.IsNullOrWhiteSpace(model.StateHistorySerialized)
+            || !string.IsNullOrWhiteSpace(model.StackSerialized);
+    }
+
+    private static string GetImportName(string fileName)
+    {
+        var raw = Path.GetFileNameWithoutExtension(fileName);
+        return string.IsNullOrWhiteSpace(raw) ? "Imported" : raw;
+    }
+
+    private sealed record ImportCandidate(string Name, string? Description, AutomatonViewModel Model, bool SaveWithExecutionState);
 
     private static string SanitizeFileName(string name)
     {

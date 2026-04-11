@@ -6,6 +6,24 @@
     var pendingInvitations = ViewData["PendingInvitations"] as List<SharedAutomatonGroupInvitation>;
     var groupRoles = ViewData["GroupRoles"] as Dictionary<int, SharedGroupRole?> ?? new Dictionary<int, SharedGroupRole?>();
     var ownerEmails = ViewData["OwnerEmails"] as Dictionary<string, string> ?? new Dictionary<string, string>();
+
+    static string TruncateText(string? value, int maxLength)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return string.Empty;
+
+        return value.Length <= maxLength
+            ? value
+            : value[..maxLength] + "...";
+    }
+
+    static string ToUtcIso(DateTime dateTime)
+    {
+        var utc = dateTime.Kind == DateTimeKind.Utc
+            ? dateTime
+            : DateTime.SpecifyKind(dateTime, DateTimeKind.Utc);
+        return utc.ToString("o");
+    }
 }
 
 <div class="container mt-3">
@@ -112,19 +130,21 @@
                 var role = roleNullable ?? SharedGroupRole.Viewer;
                 <div class="list-group-item">
                     <div class="d-flex justify-content-between align-items-start">
-                        <div class="flex-grow-1">
+                        <div class="flex-grow-1" style="min-width: 0;">
                             <h5 class="mb-1">
-                                <a asp-action="Group" asp-controller="SharedAutomaton" asp-route-id="@g.Id" class="text-decoration-none text-reset">
-                                    @g.Name
+                                <a asp-action="Group" asp-controller="SharedAutomaton" asp-route-id="@g.Id" class="text-decoration-none text-reset d-inline-block text-truncate align-middle" style="max-width: 700px;" title="@g.Name">
+                                    @TruncateText(g.Name, 70)
                                 </a>
                             </h5>
                             @if (!string.IsNullOrWhiteSpace(g.Description))
                             {
-                                <p class="mb-1 text-muted">@g.Description</p>
+                                <p class="mb-1 text-muted text-truncate" title="@g.Description">@TruncateText(g.Description, 120)</p>
                             }
+                            @{ var ownerText = ownerEmails.ContainsKey(g.UserId) ? ownerEmails[g.UserId] : g.UserId; }
                             <small class="text-muted">
-                                <i class="fas fa-user"></i> Owner: <strong>@(ownerEmails.ContainsKey(g.UserId) ? ownerEmails[g.UserId] : g.UserId)</strong>
-                                • <i class="fas fa-clock"></i> @g.CreatedAt.ToLocalTime().ToString("g")
+                                <i class="fas fa-user"></i> Owner:
+                                <strong class="d-inline-block align-middle text-truncate" style="max-width: 280px;" title="@ownerText">@TruncateText(ownerText, 40)</strong>
+                                • <i class="fas fa-clock"></i> <span class="js-local-datetime" data-utc="@ToUtcIso(g.CreatedAt)">@g.CreatedAt</span>
                             </small>
                         </div>
 
@@ -171,3 +191,17 @@
     font-size: 0.75rem;
 }
 </style>
+
+<script>
+    (function () {
+        var nodes = document.querySelectorAll('.js-local-datetime[data-utc]');
+        nodes.forEach(function (el) {
+            var raw = el.getAttribute('data-utc');
+            if (!raw) return;
+            var dt = new Date(raw);
+            if (Number.isNaN(dt.getTime())) return;
+            el.textContent = dt.toLocaleString();
+            el.title = dt.toLocaleString();
+        });
+    })();
+</script>

@@ -374,66 +374,96 @@ public class SavedAutomatonController(
         var group = await savedAutomatonService.GetGroupAsync(groupId);
         if (group == null) return NotFound();
 
-        var (ok, importData, error) = await fileService.ImportGroupAsync(file);
-
-        if (!ok || importData == null)
-        {
-            TempData["CreateGroupResult"] = error ?? "Failed to import group.";
-            TempData["CreateGroupSuccess"] = "0";
-            return RedirectToAction("Index", new { groupId });
-        }
-
         var importedCount = 0;
         var failedCount = 0;
 
-        foreach (var auto in importData.Automatons)
+        var (ok, importData, _) = await fileService.ImportGroupAsync(file);
+
+        if (ok && importData != null)
         {
+            foreach (var auto in importData.Automatons)
+            {
+                try
+                {
+                    var model = new AutomatonViewModel
+                    {
+                        Type = auto.Content?.Type ?? AutomatonType.DFA,
+                        States = auto.Content?.States ?? [],
+                        Transitions = auto.Content?.Transitions ?? [],
+                        IsCustomAutomaton = true
+                    };
+
+                    bool saveExecutionState = false;
+
+                    if (auto.ExecutionState != null)
+                    {
+                        model.Input = auto.ExecutionState.Input ?? string.Empty;
+
+                        if (auto.HasExecutionState)
+                        {
+                            saveExecutionState = true;
+                            model.Position = auto.ExecutionState.Position;
+                            model.CurrentStateId = auto.ExecutionState.CurrentStateId;
+                            model.CurrentStates = auto.ExecutionState.CurrentStates != null ? [.. auto.ExecutionState.CurrentStates] : null;
+                            model.IsAccepted = auto.ExecutionState.IsAccepted;
+                            model.StateHistorySerialized = auto.ExecutionState.StateHistorySerialized ?? string.Empty;
+                            model.StackSerialized = auto.ExecutionState.StackSerialized;
+                        }
+                    }
+
+                    await savedAutomatonService.SaveAsync(
+                        user.Id,
+                        auto.Name ?? "Imported",
+                        auto.Description,
+                        model,
+                        saveExecutionState,
+                        groupId);
+
+                    importedCount++;
+                }
+                catch
+                {
+                    failedCount++;
+                }
+            }
+        }
+        else
+        {
+            var (singleOk, singleModel, singleError) = await fileService.LoadViewModelWithStateAsync(file);
+            if (!singleOk || singleModel == null)
+            {
+                TempData["CreateGroupResult"] = singleError ?? "Failed to import file.";
+                TempData["CreateGroupSuccess"] = "0";
+                return RedirectToAction("Index", new { groupId });
+            }
+
             try
             {
-                var model = new AutomatonViewModel
-                {
-                    Type = auto.Content?.Type ?? AutomatonType.DFA,
-                    States = auto.Content?.States ?? [],
-                    Transitions = auto.Content?.Transitions ?? [],
-                    IsCustomAutomaton = true
-                };
+                var importName = Path.GetFileNameWithoutExtension(file.FileName);
+                if (string.IsNullOrWhiteSpace(importName))
+                    importName = "Imported";
 
-                // Determine save mode and populate model based on execution state
-                bool saveExecutionState = false;
+                var saveExecutionState = singleModel.HasExecuted
+                    || singleModel.Position > 0
+                    || singleModel.CurrentStateId.HasValue
+                    || (singleModel.CurrentStates != null && singleModel.CurrentStates.Count > 0)
+                    || singleModel.IsAccepted.HasValue
+                    || !string.IsNullOrWhiteSpace(singleModel.StateHistorySerialized)
+                    || !string.IsNullOrWhiteSpace(singleModel.StackSerialized);
 
-                if (auto.ExecutionState != null)
-                {
-                    // Populate input
-                    model.Input = auto.ExecutionState.Input ?? string.Empty;
-
-                    if (auto.HasExecutionState)
-                    {
-                        // Full execution state
-                        saveExecutionState = true;
-                        model.Position = auto.ExecutionState.Position;
-                        model.CurrentStateId = auto.ExecutionState.CurrentStateId;
-                        model.CurrentStates = auto.ExecutionState.CurrentStates != null ? [.. auto.ExecutionState.CurrentStates] : null;
-                        model.IsAccepted = auto.ExecutionState.IsAccepted;
-                        model.StateHistorySerialized = auto.ExecutionState.StateHistorySerialized ?? string.Empty;
-                        model.StackSerialized = auto.ExecutionState.StackSerialized;
-                    }
-                }
-
-                var saved = await savedAutomatonService.SaveAsync(
+                await savedAutomatonService.SaveAsync(
                     user.Id,
-                    auto.Name ?? "Imported",
-                    auto.Description,
-                    model,
+                    importName,
+                    null,
+                    singleModel,
                     saveExecutionState,
                     groupId);
 
-                await Task.Delay(10);
-
-                importedCount++;
+                importedCount = 1;
             }
             catch
             {
-                failedCount++;
+                failedCount = 1;
             }
         }
 

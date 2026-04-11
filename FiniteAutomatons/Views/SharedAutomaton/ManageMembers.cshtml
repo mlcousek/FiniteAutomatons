@@ -7,6 +7,14 @@
     var inviteLink = ViewBag.InviteLink as string;
     var userRole = ViewBag.UserRole as SharedGroupRole?;
     var userEmails = ViewBag.UserEmails as Dictionary<string, string> ?? new Dictionary<string, string>();
+
+    static string ToUtcIso(DateTime dateTime)
+    {
+        var utc = dateTime.Kind == DateTimeKind.Utc
+            ? dateTime
+            : DateTime.SpecifyKind(dateTime, DateTimeKind.Utc);
+        return utc.ToString("o");
+    }
 }
 
 <div class="container mt-3">
@@ -83,7 +91,7 @@
                                     }
                                 </td>
                                 <td>
-                                    <small>@member.JoinedAt.ToLocalTime().ToString("g")</small>
+                                    <small class="js-local-datetime" data-utc="@ToUtcIso(member.JoinedAt)">@member.JoinedAt</small>
                                 </td>
                                 <td>
                                     <small>@(member.InvitedByUserId != null && userEmails.ContainsKey(member.InvitedByUserId) ? userEmails[member.InvitedByUserId] : member.InvitedByUserId ?? "Link")</small>
@@ -136,10 +144,17 @@
                                     <td><strong>@inv.Email</strong></td>
                                     <td><span class="badge bg-secondary">@inv.Role</span></td>
                                     <td><small>@(inv.InvitedByUserId != null && userEmails.ContainsKey(inv.InvitedByUserId) ? userEmails[inv.InvitedByUserId] : inv.InvitedByUserId ?? "Unknown")</small></td>
-                                    <td><small>@inv.CreatedAt.ToLocalTime().ToString("g")</small></td>
+                                    <td><small class="js-local-datetime" data-utc="@ToUtcIso(inv.CreatedAt)">@inv.CreatedAt</small></td>
                                     <td>
                                         <small class="@(inv.ExpiresAt.HasValue && inv.ExpiresAt.Value < DateTime.UtcNow ? "text-danger" : "")">
-                                            @(inv.ExpiresAt?.ToLocalTime().ToString("g") ?? "Never")
+                                            @if (inv.ExpiresAt.HasValue)
+                                            {
+                                                <span class="js-local-datetime" data-utc="@ToUtcIso(inv.ExpiresAt.Value)">@inv.ExpiresAt.Value</span>
+                                            }
+                                            else
+                                            {
+                                                <text>Never</text>
+                                            }
                                         </small>
                                     </td>
                                     <td>
@@ -302,4 +317,16 @@ function updateMemberRole(groupId, memberUserId, newRole) {
     document.body.appendChild(form);
     form.submit();
 }
+
+(function () {
+    var nodes = document.querySelectorAll('.js-local-datetime[data-utc]');
+    nodes.forEach(function (el) {
+        var raw = el.getAttribute('data-utc');
+        if (!raw) return;
+        var dt = new Date(raw);
+        if (Number.isNaN(dt.getTime())) return;
+        el.textContent = dt.toLocaleString();
+        el.title = dt.toLocaleString();
+    });
+})();
 </script>

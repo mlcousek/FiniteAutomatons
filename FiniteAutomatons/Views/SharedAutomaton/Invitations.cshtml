@@ -1,7 +1,15 @@
-@using FiniteAutomatons.Core.Models.Database
+ï»¿@using FiniteAutomatons.Core.Models.Database
 @model List<SharedAutomatonGroupInvitation>
 @{
     ViewData["Title"] = "Group Invitations";
+
+    static DateTime ToDisplayLocalTime(DateTime utcStored)
+    {
+        var utc = utcStored.Kind == DateTimeKind.Utc
+            ? utcStored
+            : DateTime.SpecifyKind(utcStored, DateTimeKind.Utc);
+        return utc.ToLocalTime();
+    }
 }
 
 <div class="container mt-3">
@@ -36,12 +44,12 @@
                             }
                             <small class="text-muted">
                                 <i class="fas fa-user"></i> Invited by: <strong>@invitation.InvitedByUserId</strong>
-                                • <i class="fas fa-clock"></i> @invitation.CreatedAt.ToLocalTime().ToString("g")
+                                â€¢ <i class="fas fa-clock"></i> @ToDisplayLocalTime(invitation.CreatedAt).ToString("g")
                                 @if (invitation.ExpiresAt.HasValue)
                                 {
-                                    <text>• <i class="fas fa-hourglass-end"></i> Expires: @invitation.ExpiresAt.Value.ToLocalTime().ToString("g")</text>
+                                    <text>â€¢ <i class="fas fa-hourglass-end"></i> Expires: @ToDisplayLocalTime(invitation.ExpiresAt.Value).ToString("g")</text>
                                 }
-                                • <i class="fas fa-shield-alt"></i> Role: <strong>@invitation.Role</strong>
+                                â€¢ <i class="fas fa-shield-alt"></i> Role: <strong>@invitation.Role</strong>
                             </small>
                         </div>
 

@@ -7,11 +7,33 @@
     var creatorEmails = ViewData["CreatorEmails"] as Dictionary<string, string> ?? new Dictionary<string, string>();
     var userRole = ViewData["UserRole"] as SharedGroupRole?;
     var currentUserId = ViewData["CurrentUserId"] as string ?? User.Identity?.Name;
+
+    static string TruncateText(string? value, int maxLength)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return string.Empty;
+
+        return value.Length <= maxLength
+            ? value
+            : value[..maxLength] + "...";
+    }
+
+    static string ToUtcIso(DateTime dateTime)
+    {
+        var utc = dateTime.Kind == DateTimeKind.Utc
+            ? dateTime
+            : DateTime.SpecifyKind(dateTime, DateTimeKind.Utc);
+        return utc.ToString("o");
+    }
 }
 
 <div class="container mt-3">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2><i class="fas fa-folder-open"></i> Group: @group?.Name</h2>
+        <h2>
+            <i class="fas fa-folder-open"></i>
+            Group:
+            <span class="d-inline-block align-middle text-truncate" style="max-width: 900px;" title="@group?.Name">@TruncateText(group?.Name, 70)</span>
+        </h2>
         <div>
             <a asp-action="Index" asp-controller="SharedAutomaton" class="btn btn-sm btn-outline-secondary">
                 <i class="fas fa-arrow-left"></i> Back to Groups
@@ -21,10 +43,10 @@
 
     @if (!string.IsNullOrWhiteSpace(group?.Description))
     {
-        <p class="text-muted">@group.Description</p>
+        <p class="text-muted text-truncate" style="max-width: 1200px;" title="@group.Description">@TruncateText(group.Description, 150)</p>
     }
 
-    <div class="mb-3">
+    <div class="mb-3 d-flex justify-content-end align-items-center gap-2 flex-wrap">
         @if (userRole.HasValue && userRole.Value >= SharedGroupRole.Admin && group != null)
         {
             <a asp-action="ManageMembers" asp-route-groupId="@group.Id" class="btn btn-sm btn-primary">
@@ -39,11 +61,11 @@
 
             @if (userRole.HasValue && userRole.Value >= SharedGroupRole.Contributor)
             {
-                <form asp-controller="ImportExport" asp-action="ImportGroup" method="post" enctype="multipart/form-data" class="d-inline ms-2">
+                <form asp-controller="ImportExport" asp-action="ImportGroup" method="post" enctype="multipart/form-data" class="d-inline ms-2" id="importGroupOrAutomatonForm">
                     @Html.AntiForgeryToken()
-                    <input type="file" name="upload" accept="application/json" required style="display:inline-block;vertical-align:middle;" />
+                    <input type="file" id="importGroupOrAutomatonInput" name="upload" accept=".json,.txt" required style="display:none;" />
                     <input type="hidden" name="groupId" value="@group.Id" />
-                    <button type="submit" class="btn btn-sm btn-outline-success">Import Group</button>
+                    <button type="button" class="btn btn-sm btn-outline-success" id="importGroupOrAutomatonBtn">Import</button>
                 </form>
             }
         }
@@ -70,15 +92,17 @@
                                      title="Click to enlarge" />
                             </div>
                         }
-                        <div class="flex-grow-1">
-                            <h5 class="mb-1">@item.Name</h5>
+                        <div class="flex-grow-1" style="min-width: 0;">
+                            <h5 class="mb-1 text-truncate" title="@item.Name">@TruncateText(item.Name, 70)</h5>
                             @if (!string.IsNullOrWhiteSpace(item.Description))
                             {
-                                <p class="mb-1 text-muted">@item.Description</p>
+                                <p class="mb-1 text-muted text-truncate" title="@item.Description">@TruncateText(item.Description, 110)</p>
                             }
+                            @{ var creatorText = creatorEmails.ContainsKey(item.CreatedByUserId) ? creatorEmails[item.CreatedByUserId] : item.CreatedByUserId; }
                             <small class="text-muted">
-                                <i class="fas fa-user"></i> Created by: <strong>@(creatorEmails.ContainsKey(item.CreatedByUserId) ? creatorEmails[item.CreatedByUserId] : item.CreatedByUserId)</strong>
-                                • <i class="fas fa-clock"></i> @item.CreatedAt.ToLocalTime().ToString("g")
+                                <i class="fas fa-user"></i> Created by:
+                                <strong class="d-inline-block align-middle text-truncate" style="max-width: 280px;" title="@creatorText">@TruncateText(creatorText, 40)</strong>
+                                • <i class="fas fa-clock"></i> <span class="js-local-datetime" data-utc="@ToUtcIso(item.CreatedAt)">@item.CreatedAt</span>
                             </small>
                         </div>
                         <div class="text-end ms-3">
@@ -126,6 +150,35 @@
 </div>
 
 <script>
+    (function () {
+        var nodes = document.querySelectorAll('.js-local-datetime[data-utc]');
+        nodes.forEach(function (el) {
+            var raw = el.getAttribute('data-utc');
+            if (!raw) return;
+            var dt = new Date(raw);
+            if (Number.isNaN(dt.getTime())) return;
+            el.textContent = dt.toLocaleString();
+            el.title = dt.toLocaleString();
+        });
+    })();
+
+    (function() {
+        var importBtn = document.getElementById('importGroupOrAutomatonBtn');
+        var importInput = document.getElementById('importGroupOrAutomatonInput');
+        var importForm = document.getElementById('importGroupOrAutomatonForm');
+        if (!importBtn || !importInput || !importForm) return;
+
+        importBtn.addEventListener('click', function() {
+            importInput.click();
+        });
+
+        importInput.addEventListener('change', function() {
+            if (importInput.files && importInput.files.length > 0) {
+                importForm.submit();
+            }
+        });
+    })();
+
     (function(){
         var lightbox = document.getElementById('thumbLightbox');
         var lightboxImg = document.getElementById('thumbLightboxImg');

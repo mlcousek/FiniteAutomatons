@@ -1018,6 +1018,27 @@ public class AutomatonFileServiceTests
     }
 
     [Fact]
+    public void ExportWithInput_Dfa_OmitsPdaOnlyFields()
+    {
+        var svc = Create();
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.DFA,
+            States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
+            Transitions = [new() { FromStateId = 1, ToStateId = 1, Symbol = 'a' }],
+            Input = "abc"
+        };
+
+        var (_, content) = svc.ExportWithInput(model);
+
+        using var json = JsonDocument.Parse(content);
+        json.RootElement.TryGetProperty("AcceptanceMode", out _).ShouldBeFalse();
+        json.RootElement.TryGetProperty("StackSerialized", out _).ShouldBeFalse();
+        json.RootElement.TryGetProperty("InitialStackSerialized", out _).ShouldBeFalse();
+        json.RootElement.TryGetProperty("NPDAConfigurationsSerialized", out _).ShouldBeFalse();
+    }
+
+    [Fact]
     public void ExportWithExecutionState_HasExecutedTrue_Preserved()
     {
         var svc = Create();
@@ -1037,6 +1058,33 @@ public class AutomatonFileServiceTests
         var exported = JsonSerializer.Deserialize<AutomatonViewModel>(content);
         exported!.HasExecuted.ShouldBeTrue();
         exported.Position.ShouldBe(4);
+    }
+
+    [Fact]
+    public void ExportWithExecutionState_Dfa_OmitsPdaOnlyFields()
+    {
+        var svc = Create();
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.DFA,
+            States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
+            Transitions = [new() { FromStateId = 1, ToStateId = 1, Symbol = 'a' }],
+            Input = "abc",
+            HasExecuted = true,
+            Position = 2,
+            CurrentStateId = 1,
+            StateHistorySerialized = "[1,1]"
+        };
+
+        var (_, content) = svc.ExportWithExecutionState(model);
+
+        using var json = JsonDocument.Parse(content);
+        json.RootElement.TryGetProperty("AcceptanceMode", out _).ShouldBeFalse();
+        json.RootElement.TryGetProperty("StackSerialized", out _).ShouldBeFalse();
+        json.RootElement.TryGetProperty("InitialStackSerialized", out _).ShouldBeFalse();
+        json.RootElement.TryGetProperty("NPDAConfigurationsSerialized", out _).ShouldBeFalse();
+        json.RootElement.TryGetProperty("TypeDisplayName", out var typeDisplayName).ShouldBeTrue();
+        typeDisplayName.GetString().ShouldBe("Deterministic Finite Automaton (DFA)");
     }
 
     #endregion

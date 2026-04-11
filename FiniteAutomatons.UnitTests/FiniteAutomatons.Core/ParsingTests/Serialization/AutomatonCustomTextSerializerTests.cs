@@ -251,6 +251,58 @@ public class AutomatonCustomTextSerializerTests
     }
 
     [Fact]
+    public void Serialize_And_Deserialize_DPDA_WorksWithStackTransitions()
+    {
+        var dpda = new DPDA();
+        dpda.AddState(new State { Id = 1, IsStart = true, IsAccepting = false });
+        dpda.AddState(new State { Id = 2, IsStart = false, IsAccepting = true });
+        dpda.AddTransition(new Transition
+        {
+            FromStateId = 1,
+            ToStateId = 2,
+            Symbol = 'a',
+            StackPop = '#',
+            StackPush = "X#"
+        });
+        dpda.SetStartState(1);
+
+        var text = AutomatonCustomTextSerializer.Serialize(dpda);
+        var deserialized = AutomatonCustomTextSerializer.Deserialize(text);
+
+        deserialized.ShouldBeOfType<DPDA>();
+        deserialized.Transitions.Count.ShouldBe(1);
+        deserialized.Transitions[0].StackPop.ShouldBe('#');
+        deserialized.Transitions[0].StackPush.ShouldBe("X#");
+    }
+
+    [Fact]
+    public void TryDeserialize_ExplicitType_Npda_PreservedEvenWhenDeterministic()
+    {
+        string text = @"$type:
+                NPDA
+
+                $states:
+                q0
+                q1
+
+                $initial:
+                q0
+
+                $accepting:
+                q1
+
+                $transitions:
+                q0:a,#/X#>q1";
+
+        var ok = AutomatonCustomTextSerializer.TryDeserialize(text, out var automaton, out var errors);
+
+        ok.ShouldBeTrue(string.Join(';', errors));
+        automaton.ShouldBeOfType<NPDA>();
+        automaton!.Transitions[0].StackPop.ShouldBe('#');
+        automaton.Transitions[0].StackPush.ShouldBe("X#");
+    }
+
+    [Fact]
     public void Deserialize_IgnoresCommentsAndBlankLines()
     {
         string text = @"# This is a DFA example

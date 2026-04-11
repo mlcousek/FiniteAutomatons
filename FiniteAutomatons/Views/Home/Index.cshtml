@@ -1,4 +1,4 @@
-@model AutomatonViewModel
+﻿@model AutomatonViewModel
 @{
     ViewData["Title"] = "Home";
     var hasExecuted = Model != null && Model.HasExecuted;
@@ -137,90 +137,38 @@
                         <i class="fas fa-file-import"></i>
                     </button>
                     
-                    @{ 
-                        void RenderAutomatonHiddenFieldsForForm()
-                        {
-                            if (Model != null)
-                            {
-                                <input type="hidden" name="Type" value="@Model.Type" />
-                                <input type="hidden" name="Input" value="@Model.Input" />
-                                <input type="hidden" name="HasExecuted" value="@Model.HasExecuted.ToString().ToLowerInvariant()" />
-                                <input type="hidden" name="Position" value="@Model.Position" />
-                                <input type="hidden" name="CurrentStateId" value="@(Model.CurrentStateId.HasValue ? Model.CurrentStateId.ToString() : "")" />
-                                <input type="hidden" name="IsAccepted" value="@(Model.IsAccepted.HasValue ? Model.IsAccepted.Value.ToString().ToLowerInvariant() : "")" />
-                                <input type="hidden" name="StateHistorySerialized" value="@Model.StateHistorySerialized" />
-                                <input type="hidden" name="StackSerialized" value="@Model.StackSerialized" />
-                                <input type="hidden" name="NPDAConfigurationsSerialized" value="@Model.NPDAConfigurationsSerialized" />
-                                <input type="hidden" name="IsCustomAutomaton" value="@Model.IsCustomAutomaton.ToString().ToLowerInvariant()" />
-                                if (Model.States != null)
-                                {
-                                    for (int i = 0; i < Model.States.Count; i++)
-                                    {
-                                        <input type="hidden" name="States.Index" value="@i" />
-                                        <input type="hidden" name="States[@i].Id" value="@Model.States[i].Id" />
-                                        <input type="hidden" name="States[@i].IsStart" value="@Model.States[i].IsStart.ToString().ToLowerInvariant()" />
-                                        <input type="hidden" name="States[@i].IsAccepting" value="@Model.States[i].IsAccepting.ToString().ToLowerInvariant()" />
-                                    }
-                                }
-                                if (Model.Transitions != null)
-                                {
-                                    for (int i = 0; i < Model.Transitions.Count; i++)
-                                    {
-                                        <input type="hidden" name="Transitions.Index" value="@i" />
-                                        <input type="hidden" name="Transitions[@i].FromStateId" value="@Model.Transitions[i].FromStateId" />
-                                        <input type="hidden" name="Transitions[@i].ToStateId" value="@Model.Transitions[i].ToStateId" />
-                                        <input type="hidden" name="Transitions[@i].Symbol" value="@(Model.Transitions[i].Symbol == '\0' ? "\\0" : Model.Transitions[i].Symbol.ToString())" />
-                                        if (Model.Type == AutomatonType.DPDA || Model.Type == AutomatonType.NPDA)
-                                        {
-                                            if (Model.Transitions[i].StackPop.HasValue)
-                                            {
-                                                var pop = Model.Transitions[i].StackPop!.Value;
-                                                var stackPopValue = pop == '\0' ? "\\0" : pop.ToString();
-                                                <input type="hidden" name="Transitions[@i].StackPop" value="@stackPopValue" />
-                                            }
-                                            if (!string.IsNullOrEmpty(Model.Transitions[i].StackPush))
-                                            {
-                                                <input type="hidden" name="Transitions[@i].StackPush" value="@Model.Transitions[i].StackPush" />
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
                     <div class="btn-group" style="display:flex; align-items:stretch; margin: 0;">
                         <button type="button" class="dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Export Automaton" @(Model == null ? "disabled" : "") style="background: transparent; border: none; padding: 0.5rem; color: inherit; display:flex; align-items:center; justify-content:center; border-radius:4px; height: 100%;">
                             <i class="fas fa-file-export"></i>
                         </button>
                         <ul class="dropdown-menu">
                             <li>
-                                <form asp-controller="ImportExport" asp-action="ExportJson" method="post" class="m-0 p-0">
-                                    @{ RenderAutomatonHiddenFieldsForForm(); }
-                                    <button type="submit" class="dropdown-item" @(Model == null ? "disabled" : "") style="border:none; padding:0.25rem 1rem; width:100%; text-align:left; background:transparent;">
-                                        <i class="fas fa-file-export"></i>
-                                        Export JSON
-                                    </button>
-                                </form>
+                                <button type="submit" form="automatonForm" formaction="@Url.Action("ExportText", "ImportExport")" class="dropdown-item" @(Model == null ? "disabled" : "") style="border:none; padding:0.25rem 1rem; width:100%; text-align:left; background:transparent;">
+                                    <i class="fas fa-file-download"></i>
+                                     Export Text
+                                </button>
                             </li>
                             <li>
-                                <form asp-controller="ImportExport" asp-action="ExportText" method="post" class="m-0 p-0">
-                                    @{ RenderAutomatonHiddenFieldsForForm(); }
-                                    <button type="submit" class="dropdown-item" @(Model == null ? "disabled" : "") style="border:none; padding:0.25rem 1rem; width:100%; text-align:left; background:transparent;">
-                                        <i class="fas fa-file-download"></i>
-                                        Export Text
-                                    </button>
-                                </form>
+                                <button type="submit" form="automatonForm" formaction="@Url.Action("ExportJson", "ImportExport")" class="dropdown-item" @(Model == null ? "disabled" : "") style="border:none; padding:0.25rem 1rem; width:100%; text-align:left; background:transparent;">
+                                    <i class="fas fa-file-export"></i>
+                                     Export JSON
+                                </button>
                             </li>
-                            <li>
-                                <form asp-controller="ImportExport" asp-action="ExportJsonWithState" method="post" class="m-0 p-0">
-                                    @{ RenderAutomatonHiddenFieldsForForm(); }
-                                    <button type="submit" class="dropdown-item" @(Model == null ? "disabled" : "") style="border:none; padding:0.25rem 1rem; width:100%; text-align:left; background:transparent;">
-                                        <i class="fas fa-file-archive"></i>
-                                        Export With State
-                                    </button>
-                                </form>
+                            <li id="exportWithInputLi" style="display: @(string.IsNullOrEmpty(Model?.Input) ? "none" : "block");">
+                                <button type="submit" form="automatonForm" formaction="@Url.Action("ExportWithInput", "ImportExport")" class="dropdown-item" @(Model == null ? "disabled" : "") style="border:none; padding:0.25rem 1rem; width:100%; text-align:left; background:transparent;">
+                                    <i class="fas fa-file-download"></i>
+                                     Export With Input (JSON)
+                                </button>
                             </li>
+                            @if (hasExecuted)
+                            {
+                            <li id="exportWithStateLi">
+                                <button type="submit" form="automatonForm" formaction="@Url.Action("ExportJsonWithState", "ImportExport")" class="dropdown-item" @(Model == null ? "disabled" : "") style="border:none; padding:0.25rem 1rem; width:100%; text-align:left; background:transparent;">
+                                    <i class="fas fa-file-archive"></i>
+                                     Export With State (JSON)
+                                </button>
+                            </li>
+                            }
                         </ul>
                     </div>
 
@@ -320,7 +268,8 @@
                                value="@(Model != null ? Model.Input : "")"
                                @(Model != null && Model.HasExecuted ? "readonly" : "")
                                style="flex:1; @(hasExecuted ? "padding: 0.75rem 1rem; border-radius: 6px;" : "padding: 0.75rem 1rem; border-radius: 6px 0 0 6px; border-right: none;")"
-                               maxlength="100" />
+                               maxlength="100"
+                               oninput="var el = document.getElementById('exportWithInputLi'); if(el) el.style.display = this.value ? 'block' : 'none';" />
                             <button id="generateInputModalBtn" type="button"
                                     class="control-btn"
                                     style="border-radius: 0 6px 6px 0; padding: 0 1rem; white-space: nowrap; display: @(hasExecuted ? "none" : "flex"); align-items: center; gap: 0.4rem;"

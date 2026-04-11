@@ -1,7 +1,15 @@
-@using FiniteAutomatons.Core.Models.Database
+﻿@using FiniteAutomatons.Core.Models.Database
 @{
     ViewData["Title"] = "Accept Invitation";
     var invitation = ViewBag.Invitation as SharedAutomatonGroupInvitation;
+
+    static DateTime ToDisplayLocalTime(DateTime utcStored)
+    {
+        var utc = utcStored.Kind == DateTimeKind.Utc
+            ? utcStored
+            : DateTime.SpecifyKind(utcStored, DateTimeKind.Utc);
+        return utc.ToLocalTime();
+    }
 }
 
 <div class="container mt-5">
@@ -33,7 +41,7 @@
                     else if (invitation.ExpiresAt.HasValue && invitation.ExpiresAt.Value < DateTime.UtcNow)
                     {
                         <div class="alert alert-danger">
-                            <i class="fas fa-clock"></i> This invitation has expired on @invitation.ExpiresAt.Value.ToLocalTime().ToString("g")
+                            <i class="fas fa-clock"></i> This invitation has expired on @ToDisplayLocalTime(invitation.ExpiresAt.Value).ToString("g")
                         </div>
                         <a asp-action="Index" asp-controller="Home" class="btn btn-secondary">
                             <i class="fas fa-home"></i> Go Home
@@ -71,13 +79,13 @@
                             </div>
                             <div class="row mb-3">
                                 <div class="col-4 text-muted"><strong>Invited on:</strong></div>
-                                <div class="col-8">@invitation.CreatedAt.ToLocalTime().ToString("g")</div>
+                                <div class="col-8">@ToDisplayLocalTime(invitation.CreatedAt).ToString("g")</div>
                             </div>
                             @if (invitation.ExpiresAt.HasValue)
                             {
                                 <div class="row">
                                     <div class="col-4 text-muted"><strong>Expires:</strong></div>
-                                    <div class="col-8 text-warning">@invitation.ExpiresAt.Value.ToLocalTime().ToString("g")</div>
+                                    <div class="col-8 text-warning">@ToDisplayLocalTime(invitation.ExpiresAt.Value).ToString("g")</div>
                                 </div>
                             }
                         </div>
