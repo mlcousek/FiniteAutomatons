@@ -16,8 +16,50 @@ public class MockAutomatonFileService : IAutomatonFileService
     public Task<(bool Ok, AutomatonViewModel? Model, string? Error)> LoadFromFileAsync(IFormFile file)
         => Task.FromResult<(bool, AutomatonViewModel?, string?)>((false, null, "Not implemented in mock"));
 
-    public Task<(bool Ok, AutomatonViewModel? Model, string? Error)> LoadViewModelWithStateAsync(IFormFile file)
-        => Task.FromResult<(bool, AutomatonViewModel?, string?)>((false, null, "Not implemented in mock"));
+    public async Task<(bool Ok, AutomatonViewModel? Model, string? Error)> LoadViewModelWithStateAsync(IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+            return (false, null, "No file uploaded.");
+
+        using var reader = new StreamReader(file.OpenReadStream(), Encoding.UTF8);
+        var content = await reader.ReadToEndAsync();
+
+        if (string.IsNullOrWhiteSpace(content))
+            return (false, null, "No file uploaded.");
+
+        JsonDocument? doc = null;
+        try
+        {
+            doc = JsonDocument.Parse(content);
+        }
+        catch (JsonException)
+        {
+            return (false, null, "Failed to import group.");
+        }
+
+        using (doc)
+        {
+            if (doc.RootElement.ValueKind == JsonValueKind.Object &&
+                doc.RootElement.TryGetProperty("Automatons", out _))
+            {
+                return (false, null, "Invalid group export file.");
+            }
+        }
+
+        try
+        {
+            var vm = JsonSerializer.Deserialize<AutomatonViewModel>(content, s_caseInsensitiveOptions);
+            if (vm == null)
+                return (false, null, "Failed to import group.");
+
+            vm.IsCustomAutomaton = true;
+            return (true, vm, null);
+        }
+        catch (JsonException)
+        {
+            return (false, null, "Failed to import group.");
+        }
+    }
 
     public (string FileName, string Content) ExportJson(AutomatonViewModel model)
     {

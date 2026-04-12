@@ -42,8 +42,10 @@ public class AutomatonExecutionService(IAutomatonBuilderService builderService, 
             }
             else
             {
-                dpdaState.Stack = new Stack<char>();
-                dpdaState.Stack.Push('#');
+                var initialStackBottomFirst = DeserializeInitialStackBottomFirst(model.InitialStackSerialized);
+                dpdaState.Stack = initialStackBottomFirst is { Count: > 0 }
+                    ? new Stack<char>(initialStackBottomFirst)
+                    : new Stack<char>([BottomOfStack]);
             }
             if (!string.IsNullOrEmpty(model.StateHistorySerialized))
             {
@@ -120,6 +122,19 @@ public class AutomatonExecutionService(IAutomatonBuilderService builderService, 
                     logger.LogWarning(ex, "Failed to deserialize NPDA history");
                 }
             }
+
+            if (string.IsNullOrEmpty(model.NPDAConfigurationsSerialized))
+            {
+                var startStateId = model.States?.FirstOrDefault(s => s.IsStart)?.Id ?? 0;
+                var initialStackBottomFirst = DeserializeInitialStackBottomFirst(model.InitialStackSerialized) ?? [BottomOfStack];
+                var stack = System.Collections.Immutable.ImmutableStack<char>.Empty;
+
+                foreach (var symbol in initialStackBottomFirst)
+                    stack = stack.Push(symbol);
+
+                npdaState.Configurations = [new PDAConfiguration(startStateId, stack)];
+            }
+
             state = npdaState;
         }
         else if (model.Type == AutomatonType.DFA)
@@ -252,7 +267,11 @@ public class AutomatonExecutionService(IAutomatonBuilderService builderService, 
                 {
                     try
                     {
-                        var tempState = (NPDAExecutionState)automaton.StartExecution("");
+                        var initialStackBottomFirst = DeserializeInitialStackBottomFirst(model.InitialStackSerialized);
+                        var initialStack = initialStackBottomFirst is { Count: > 0 }
+                            ? new Stack<char>(initialStackBottomFirst)
+                            : null;
+                        var tempState = (NPDAExecutionState)automaton.StartExecution("", initialStack);
                         var configDtos = tempState.Configurations.Select(c => new PDAConfigurationDto { StateId = c.StateId, Stack = SerializeImmutableStack(c.Stack) }).ToList();
                         model.NPDAConfigurationsSerialized = JsonSerializer.Serialize(configDtos);
                     }
@@ -429,6 +448,23 @@ public class AutomatonExecutionService(IAutomatonBuilderService builderService, 
         // User omitted bottom marker; enforce invariant expected by PDA acceptance checks.
         normalized.Insert(0, BottomOfStack);
         return normalized;
+    }
+
+    private List<char>? DeserializeInitialStackBottomFirst(string? serialized)
+    {
+        if (string.IsNullOrWhiteSpace(serialized))
+            return null;
+
+        try
+        {
+            var raw = JsonSerializer.Deserialize<List<char>>(serialized) ?? [];
+            return raw.Count == 0 ? null : NormalizeInitialStackBottomFirst(raw);
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to deserialize initial stack; using default stack.");
+            return null;
+        }
     }
 
     public AutomatonViewModel ResetExecution(AutomatonViewModel model)

@@ -2,6 +2,7 @@
 using FiniteAutomatons.Core.Models.ViewModel;
 using Shouldly;
 using System.Net;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace FiniteAutomatons.IntegrationTests.AutomationExecution;
@@ -169,6 +170,54 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
         ExtractPosition(html).ShouldBe(4);
         ExtractIsAccepted(html).ShouldBe(true);
         html.ShouldContain("ACCEPTED", Case.Insensitive);
+    }
+
+    [Fact]
+    public async Task ExecuteAll_DPDA_WithConfiguredInitialStack_ShouldApplyInitialStack()
+    {
+        var client = GetHttpClient();
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.DPDA,
+            States = [new() { Id = 1, IsStart = true, IsAccepting = false }],
+            Transitions = [new() { FromStateId = 1, ToStateId = 1, Symbol = 'x', StackPop = 'X', StackPush = null }],
+            Input = "x",
+            IsCustomAutomaton = true,
+            AcceptanceMode = PDAAcceptanceMode.EmptyStackOnly,
+            InitialStackSerialized = JsonSerializer.Serialize(new List<char> { '#', 'X' })
+        };
+
+        var response = await PostAsync(client, "/AutomatonExecution/ExecuteAll", model);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var html = await response.Content.ReadAsStringAsync();
+        ExtractIsAccepted(html).ShouldBe(true);
+    }
+
+    [Fact]
+    public async Task ExecuteAll_NPDA_WithConfiguredInitialStack_ShouldApplyInitialStack()
+    {
+        var client = GetHttpClient();
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.NPDA,
+            States =
+            [
+                new() { Id = 1, IsStart = true, IsAccepting = false },
+                new() { Id = 2, IsStart = false, IsAccepting = true }
+            ],
+            Transitions = [new() { FromStateId = 1, ToStateId = 2, Symbol = 'a', StackPop = 'X', StackPush = null }],
+            Input = "a",
+            IsCustomAutomaton = true,
+            AcceptanceMode = PDAAcceptanceMode.FinalStateOnly,
+            InitialStackSerialized = JsonSerializer.Serialize(new List<char> { '#', 'X' })
+        };
+
+        var response = await PostAsync(client, "/AutomatonExecution/ExecuteAll", model);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var html = await response.Content.ReadAsStringAsync();
+        ExtractIsAccepted(html).ShouldBe(true);
     }
 
     [Fact]
@@ -643,6 +692,212 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var html = await response.Content.ReadAsStringAsync();
         ExtractIsAccepted(html).ShouldBe(true);
+    }
+
+    [Fact]
+    public async Task ExecuteAll_NPDA_FinalStateOnly_AcceptsWithNonEmptyStack()
+    {
+        var client = GetHttpClient();
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.NPDA,
+            States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
+            Transitions = [new() { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '\0', StackPush = "X" }],
+            Input = "a",
+            IsCustomAutomaton = true,
+            AcceptanceMode = PDAAcceptanceMode.FinalStateOnly
+        };
+
+        var response = await PostAsync(client, "/AutomatonExecution/ExecuteAll", model);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var html = await response.Content.ReadAsStringAsync();
+        ExtractIsAccepted(html).ShouldBe(true);
+    }
+
+    [Fact]
+    public async Task ExecuteAll_NPDA_EmptyStackOnly_AcceptsInNonAcceptingState()
+    {
+        var client = GetHttpClient();
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.NPDA,
+            States = [new() { Id = 1, IsStart = true, IsAccepting = false }],
+            Transitions =
+            [
+                new() { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '\0', StackPush = "X" },
+                new() { FromStateId = 1, ToStateId = 1, Symbol = 'b', StackPop = 'X', StackPush = null }
+            ],
+            Input = "ab",
+            IsCustomAutomaton = true,
+            AcceptanceMode = PDAAcceptanceMode.EmptyStackOnly
+        };
+
+        var response = await PostAsync(client, "/AutomatonExecution/ExecuteAll", model);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var html = await response.Content.ReadAsStringAsync();
+        ExtractIsAccepted(html).ShouldBe(true);
+    }
+
+    [Fact]
+    public async Task ExecuteAll_NPDA_FinalStateAndEmptyStack_BothConditionsMet_ShouldAccept()
+    {
+        var client = GetHttpClient();
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.NPDA,
+            States =
+            [
+                new() { Id = 1, IsStart = true, IsAccepting = false },
+                new() { Id = 2, IsStart = false, IsAccepting = true }
+            ],
+            Transitions =
+            [
+                new() { FromStateId = 1, ToStateId = 2, Symbol = 'a', StackPop = '\0', StackPush = "X" },
+                new() { FromStateId = 2, ToStateId = 2, Symbol = 'b', StackPop = 'X', StackPush = null }
+            ],
+            Input = "ab",
+            IsCustomAutomaton = true,
+            AcceptanceMode = PDAAcceptanceMode.FinalStateAndEmptyStack
+        };
+
+        var response = await PostAsync(client, "/AutomatonExecution/ExecuteAll", model);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var html = await response.Content.ReadAsStringAsync();
+        ExtractIsAccepted(html).ShouldBe(true);
+    }
+
+    [Fact]
+    public async Task ExecuteAll_NPDA_FinalStateAndEmptyStack_OnlyFinalState_ShouldReject()
+    {
+        var client = GetHttpClient();
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.NPDA,
+            States =
+            [
+                new() { Id = 1, IsStart = true, IsAccepting = false },
+                new() { Id = 2, IsStart = false, IsAccepting = true }
+            ],
+            Transitions = [new() { FromStateId = 1, ToStateId = 2, Symbol = 'a', StackPop = '\0', StackPush = "X" }],
+            Input = "a",
+            IsCustomAutomaton = true,
+            AcceptanceMode = PDAAcceptanceMode.FinalStateAndEmptyStack
+        };
+
+        var response = await PostAsync(client, "/AutomatonExecution/ExecuteAll", model);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var html = await response.Content.ReadAsStringAsync();
+        ExtractIsAccepted(html).ShouldBe(false);
+    }
+
+    [Fact]
+    public async Task ExecuteAll_NPDA_FinalStateAndEmptyStack_OnlyEmptyStack_ShouldReject()
+    {
+        var client = GetHttpClient();
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.NPDA,
+            States = [new() { Id = 1, IsStart = true, IsAccepting = false }],
+            Transitions =
+            [
+                new() { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '\0', StackPush = "X" },
+                new() { FromStateId = 1, ToStateId = 1, Symbol = 'b', StackPop = 'X', StackPush = null }
+            ],
+            Input = "ab",
+            IsCustomAutomaton = true,
+            AcceptanceMode = PDAAcceptanceMode.FinalStateAndEmptyStack
+        };
+
+        var response = await PostAsync(client, "/AutomatonExecution/ExecuteAll", model);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var html = await response.Content.ReadAsStringAsync();
+        ExtractIsAccepted(html).ShouldBe(false);
+    }
+
+    [Fact]
+    public async Task ExecuteAll_DPDA_WithTopFirstInitialStackSerialization_ShouldNormalizeAndAccept()
+    {
+        var client = GetHttpClient();
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.DPDA,
+            States = [new() { Id = 1, IsStart = true, IsAccepting = false }],
+            Transitions = [new() { FromStateId = 1, ToStateId = 1, Symbol = 'x', StackPop = 'X', StackPush = null }],
+            Input = "x",
+            IsCustomAutomaton = true,
+            AcceptanceMode = PDAAcceptanceMode.EmptyStackOnly,
+            // Legacy top-first order should be normalized to bottom-first (#, X)
+            InitialStackSerialized = JsonSerializer.Serialize(new List<char> { 'X', '#' })
+        };
+
+        var response = await PostAsync(client, "/AutomatonExecution/ExecuteAll", model);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var html = await response.Content.ReadAsStringAsync();
+        ExtractIsAccepted(html).ShouldBe(true);
+    }
+
+    [Fact]
+    public async Task ExecuteAll_NPDA_NoValidBranch_ShouldReject()
+    {
+        var client = GetHttpClient();
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.NPDA,
+            States =
+            [
+                new() { Id = 1, IsStart = true, IsAccepting = true },
+                new() { Id = 2, IsStart = false, IsAccepting = true }
+            ],
+            Transitions =
+            [
+                new() { FromStateId = 1, ToStateId = 2, Symbol = 'a', StackPop = 'X', StackPush = null }
+            ],
+            Input = "a",
+            IsCustomAutomaton = true,
+            AcceptanceMode = PDAAcceptanceMode.FinalStateOnly
+        };
+
+        var response = await PostAsync(client, "/AutomatonExecution/ExecuteAll", model);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var html = await response.Content.ReadAsStringAsync();
+        ExtractIsAccepted(html).ShouldBe(false);
+    }
+
+    [Fact]
+    public async Task ExecuteAll_NondeterministicDpda_ShouldShowDeterminismError()
+    {
+        var client = GetHttpClient();
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.DPDA,
+            States =
+            [
+                new() { Id = 1, IsStart = true, IsAccepting = false },
+                new() { Id = 2, IsStart = false, IsAccepting = true },
+                new() { Id = 3, IsStart = false, IsAccepting = true }
+            ],
+            Transitions =
+            [
+                new() { FromStateId = 1, ToStateId = 2, Symbol = 'a', StackPop = 'X', StackPush = null },
+                new() { FromStateId = 1, ToStateId = 3, Symbol = 'a', StackPop = 'X', StackPush = null }
+            ],
+            Input = "a",
+            IsCustomAutomaton = true,
+            InitialStackSerialized = JsonSerializer.Serialize(new List<char> { '#', 'X' })
+        };
+
+        var response = await PostAsync(client, "/AutomatonExecution/ExecuteAll", model);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var html = await response.Content.ReadAsStringAsync();
+        html.ShouldContain("Cannot simulate as DPDA because the automaton is nondeterministic", Case.Insensitive);
     }
 }
 

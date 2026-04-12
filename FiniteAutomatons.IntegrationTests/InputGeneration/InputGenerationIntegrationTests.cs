@@ -2,6 +2,7 @@
 using FiniteAutomatons.Core.Models.ViewModel;
 using Shouldly;
 using System.Net;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace FiniteAutomatons.IntegrationTests.InputGeneration;
@@ -70,6 +71,12 @@ public class InputGenerationIntegrationTests(IntegrationTestsFixture fixture) : 
     {
         var m = Regex.Match(html, "id=\"inputField\"[^>]*value=\"([^\"]*)\"", RegexOptions.IgnoreCase);
         return m.Success ? m.Groups[1].Value : string.Empty;
+    }
+
+    private static bool? ExtractIsAccepted(string html)
+    {
+        var m = Regex.Match(html, "name=\"IsAccepted\"[^>]*value=\"(true|false)\"", RegexOptions.IgnoreCase);
+        return m.Success ? bool.Parse(m.Groups[1].Value) : null;
     }
 
     private static AutomatonViewModel BuildSimpleDfa() => new()
@@ -551,6 +558,158 @@ public class InputGenerationIntegrationTests(IntegrationTestsFixture fixture) : 
         var response = await client.PostAsync("/InputGeneration/GenerateAcceptingString", new FormUrlEncodedContent(formData));
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task NPDA_FinalStateOnly_GenerateAcceptingString_AndExecuteAll_ShouldAccept()
+    {
+        var client = GetHttpClient();
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.NPDA,
+            States =
+            [
+                new() { Id = 1, IsStart = true, IsAccepting = false },
+                new() { Id = 2, IsStart = false, IsAccepting = true }
+            ],
+            Transitions = [new() { FromStateId = 1, ToStateId = 2, Symbol = 'a', StackPop = '\0', StackPush = "X" }],
+            AcceptanceMode = PDAAcceptanceMode.FinalStateOnly,
+            IsCustomAutomaton = true
+        };
+
+        var genResponse = await client.PostAsync("/InputGeneration/GenerateAcceptingString",
+            new FormUrlEncodedContent(BuildForm(model, new Dictionary<string, string> { ["maxLength"] = "8" })));
+        genResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var generatedInput = ExtractInputValue(await genResponse.Content.ReadAsStringAsync());
+        generatedInput.ShouldBe("a");
+
+        model.Input = generatedInput;
+        var execResponse = await client.PostAsync("/AutomatonExecution/ExecuteAll", new FormUrlEncodedContent(BuildForm(model)));
+        execResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        ExtractIsAccepted(await execResponse.Content.ReadAsStringAsync()).ShouldBe(true);
+    }
+
+    [Fact]
+    public async Task NPDA_EmptyStackOnly_GenerateAcceptingString_AndExecuteAll_ShouldAccept()
+    {
+        var client = GetHttpClient();
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.NPDA,
+            States = [new() { Id = 1, IsStart = true, IsAccepting = false }],
+            Transitions =
+            [
+                new() { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '\0', StackPush = "X" },
+                new() { FromStateId = 1, ToStateId = 1, Symbol = 'b', StackPop = 'X', StackPush = null }
+            ],
+            AcceptanceMode = PDAAcceptanceMode.EmptyStackOnly,
+            IsCustomAutomaton = true
+        };
+
+        var genResponse = await client.PostAsync("/InputGeneration/GenerateAcceptingString",
+            new FormUrlEncodedContent(BuildForm(model, new Dictionary<string, string> { ["maxLength"] = "10" })));
+        genResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var generatedInput = ExtractInputValue(await genResponse.Content.ReadAsStringAsync());
+        generatedInput.ShouldNotBeNull();
+
+        model.Input = generatedInput;
+        var execResponse = await client.PostAsync("/AutomatonExecution/ExecuteAll", new FormUrlEncodedContent(BuildForm(model)));
+        execResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        ExtractIsAccepted(await execResponse.Content.ReadAsStringAsync()).ShouldBe(true);
+    }
+
+    [Fact]
+    public async Task NPDA_FinalStateAndEmptyStack_GenerateAcceptingString_AndExecuteAll_ShouldAccept()
+    {
+        var client = GetHttpClient();
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.NPDA,
+            States =
+            [
+                new() { Id = 1, IsStart = true, IsAccepting = false },
+                new() { Id = 2, IsStart = false, IsAccepting = true }
+            ],
+            Transitions =
+            [
+                new() { FromStateId = 1, ToStateId = 2, Symbol = 'a', StackPop = '\0', StackPush = "X" },
+                new() { FromStateId = 2, ToStateId = 2, Symbol = 'b', StackPop = 'X', StackPush = null }
+            ],
+            AcceptanceMode = PDAAcceptanceMode.FinalStateAndEmptyStack,
+            IsCustomAutomaton = true
+        };
+
+        var genResponse = await client.PostAsync("/InputGeneration/GenerateAcceptingString",
+            new FormUrlEncodedContent(BuildForm(model, new Dictionary<string, string> { ["maxLength"] = "8" })));
+        genResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var generatedInput = ExtractInputValue(await genResponse.Content.ReadAsStringAsync());
+        generatedInput.ShouldBe("ab");
+
+        model.Input = generatedInput;
+        var execResponse = await client.PostAsync("/AutomatonExecution/ExecuteAll", new FormUrlEncodedContent(BuildForm(model)));
+        execResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        ExtractIsAccepted(await execResponse.Content.ReadAsStringAsync()).ShouldBe(true);
+    }
+
+    [Fact]
+    public async Task DPDA_WithInitialStack_GenerateAcceptingString_AndExecuteAll_ShouldAccept()
+    {
+        var client = GetHttpClient();
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.DPDA,
+            States = [new() { Id = 1, IsStart = true, IsAccepting = false }],
+            Transitions = [new() { FromStateId = 1, ToStateId = 1, Symbol = 'x', StackPop = 'X', StackPush = null }],
+            AcceptanceMode = PDAAcceptanceMode.EmptyStackOnly,
+            InitialStackSerialized = JsonSerializer.Serialize(new List<char> { '#', 'X' }),
+            IsCustomAutomaton = true
+        };
+
+        var genResponse = await client.PostAsync("/InputGeneration/GenerateAcceptingString",
+            new FormUrlEncodedContent(BuildForm(model, new Dictionary<string, string> { ["maxLength"] = "4" })));
+        genResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var generatedInput = ExtractInputValue(await genResponse.Content.ReadAsStringAsync());
+        generatedInput.ShouldBe("x");
+
+        model.Input = generatedInput;
+        var execResponse = await client.PostAsync("/AutomatonExecution/ExecuteAll", new FormUrlEncodedContent(BuildForm(model)));
+        execResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        ExtractIsAccepted(await execResponse.Content.ReadAsStringAsync()).ShouldBe(true);
+    }
+
+    [Fact]
+    public async Task NPDA_WithInitialStack_GenerateRejectingString_AndExecuteAll_ShouldReject()
+    {
+        var client = GetHttpClient();
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.NPDA,
+            States =
+            [
+                new() { Id = 1, IsStart = true, IsAccepting = false },
+                new() { Id = 2, IsStart = false, IsAccepting = true }
+            ],
+            Transitions = [new() { FromStateId = 1, ToStateId = 2, Symbol = 'a', StackPop = 'X', StackPush = null }],
+            AcceptanceMode = PDAAcceptanceMode.FinalStateOnly,
+            InitialStackSerialized = JsonSerializer.Serialize(new List<char> { '#', 'X' }),
+            IsCustomAutomaton = true
+        };
+
+        var genResponse = await client.PostAsync("/InputGeneration/GenerateRejectingString",
+            new FormUrlEncodedContent(BuildForm(model, new Dictionary<string, string> { ["maxLength"] = "6" })));
+        genResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var generatedInput = ExtractInputValue(await genResponse.Content.ReadAsStringAsync());
+        generatedInput.ShouldNotBe("a");
+
+        model.Input = generatedInput;
+        var execResponse = await client.PostAsync("/AutomatonExecution/ExecuteAll", new FormUrlEncodedContent(BuildForm(model)));
+        execResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        ExtractIsAccepted(await execResponse.Content.ReadAsStringAsync()).ShouldBe(false);
     }
 
     #endregion

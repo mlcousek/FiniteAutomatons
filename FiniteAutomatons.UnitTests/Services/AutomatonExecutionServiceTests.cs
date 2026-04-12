@@ -1,4 +1,5 @@
 ﻿using FiniteAutomatons.Controllers;
+using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Core.Utilities;
 using FiniteAutomatons.Services.Interfaces;
@@ -210,6 +211,48 @@ public class AutomatonExecutionServiceTests
         model.Position.ShouldBe(longInput.Length);
         model.IsAccepted.ShouldNotBeNull();
         model.IsAccepted!.Value.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void ExecuteAll_DPDA_UsesConfiguredInitialStack_WhenStackSerializedIsMissing()
+    {
+        var svc = CreateService();
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.DPDA,
+            States = [new() { Id = 1, IsStart = true, IsAccepting = false }],
+            Transitions = [new() { FromStateId = 1, ToStateId = 1, Symbol = 'x', StackPop = 'X', StackPush = null }],
+            Input = "x",
+            AcceptanceMode = PDAAcceptanceMode.EmptyStackOnly,
+            InitialStackSerialized = JsonSerializer.Serialize(new List<char> { '#', 'X' })
+        };
+
+        svc.ExecuteAll(model);
+
+        model.IsAccepted.ShouldBe(true);
+    }
+
+    [Fact]
+    public void ExecuteAll_NPDA_UsesConfiguredInitialStack_WhenConfigurationsAreMissing()
+    {
+        var svc = CreateService();
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.NPDA,
+            States =
+            [
+                new() { Id = 1, IsStart = true, IsAccepting = false },
+                new() { Id = 2, IsStart = false, IsAccepting = true }
+            ],
+            Transitions = [new() { FromStateId = 1, ToStateId = 2, Symbol = 'a', StackPop = 'X', StackPush = null }],
+            Input = "a",
+            AcceptanceMode = PDAAcceptanceMode.FinalStateOnly,
+            InitialStackSerialized = JsonSerializer.Serialize(new List<char> { '#', 'X' })
+        };
+
+        svc.ExecuteAll(model);
+
+        model.IsAccepted.ShouldBe(true);
     }
 
     private static AutomatonCreationController BuildControllerWithRealValidation()
