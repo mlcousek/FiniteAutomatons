@@ -580,6 +580,69 @@ gap: 1rem;
 }
 
 /* Responsive Design */
+@media (max-width: 1700px) and (min-width: 1201px) {
+  .control-sections {
+    gap: 1.25rem;
+  }
+
+  .bottom-left-controls {
+    gap: 1.25rem;
+  }
+
+  .bottom-right-controls {
+    grid-template-columns: 1.9fr 1.35fr 0.9fr;
+    gap: 1rem;
+  }
+
+  .section-header-custom h2 {
+    font-size: 1.28rem;
+  }
+
+  .control-btn {
+    min-width: 56px;
+    min-height: 40px;
+    height: 48px;
+    padding: 0.3rem 0.55rem;
+    font-size: 0.74rem;
+    border-width: 1px;
+  }
+
+  .simulate-btn {
+    min-width: 56px;
+    padding: 0.3rem;
+    font-size: 0.74rem;
+  }
+
+  .type-btn {
+    min-width: 52px;
+    min-height: 48px;
+    padding: 0.3rem;
+    font-size: 0.78rem;
+    border-width: 1px;
+  }
+
+  .input-field {
+    min-width: 178px;
+    height: 48px;
+    padding: 0.5rem 0.8rem;
+    border-width: 1px;
+  }
+
+  .control-content-right .modern-input {
+    min-width: 168px !important;
+    font-size: 0.84rem;
+    padding: 0.4rem 0.65rem !important;
+    border-width: 1px;
+  }
+
+  .minimize-btn {
+    min-height: 48px;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.82rem;
+    border-width: 1px;
+  }
+}
+
 @media (max-width: 1200px) {
   .workspace-grid {
  grid-template-columns: 1fr;
@@ -1734,5 +1797,3 @@ border-top: 3px solid #000;
     padding: 1rem;
   }
 }
-
-
