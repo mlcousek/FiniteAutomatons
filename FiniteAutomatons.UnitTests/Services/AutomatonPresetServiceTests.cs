@@ -783,6 +783,37 @@ public class AutomatonPresetServiceTests
         HasNondeterminism(result).ShouldBeTrue();
     }
 
+    [Fact]
+    public void GenerateNondeterministicNfa_ExistingUnreachableNondeterminism_AddsReachableNondeterminism()
+    {
+        var nfaWithUnreachableNondeterminism = new AutomatonViewModel
+        {
+            Type = AutomatonType.NFA,
+            States =
+            [
+                new State { Id = 0, IsStart = true, IsAccepting = false },
+                new State { Id = 1, IsStart = false, IsAccepting = true },
+                new State { Id = 2, IsStart = false, IsAccepting = false },
+                new State { Id = 3, IsStart = false, IsAccepting = false }
+            ],
+            Transitions =
+            [
+                new Transition { FromStateId = 0, ToStateId = 1, Symbol = 'a' },
+                new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'b' },
+                new Transition { FromStateId = 2, ToStateId = 2, Symbol = 'a' },
+                new Transition { FromStateId = 2, ToStateId = 3, Symbol = 'a' }
+            ],
+            IsCustomAutomaton = true
+        };
+
+        mockGeneratorService.RandomAutomatonToReturn = nfaWithUnreachableNondeterminism;
+
+        var result = service.GenerateNondeterministicNfa(4, 8, 2, 0.3, seed: 44);
+
+        result.ShouldNotBeNull();
+        HasReachableNondeterminism(result).ShouldBeTrue();
+    }
+
     #endregion
 
     #region Edge Cases for Epsilon NFA
@@ -1154,6 +1185,40 @@ public class AutomatonPresetServiceTests
             .Where(g => g.Count() > 1);
 
         return transitionGroups.Any();
+    }
+
+    private static bool HasReachableNondeterminism(AutomatonViewModel automaton)
+    {
+        var reachable = GetReachableStates(automaton);
+        return automaton.Transitions
+            .Where(t => reachable.Contains(t.FromStateId))
+            .GroupBy(t => new { t.FromStateId, t.Symbol })
+            .Any(g => g.Count() > 1);
+    }
+
+    private static HashSet<int> GetReachableStates(AutomatonViewModel automaton)
+    {
+        var start = automaton.States.FirstOrDefault(s => s.IsStart);
+        if (start == null)
+            return [];
+
+        var reachable = new HashSet<int> { start.Id };
+        var queue = new Queue<int>();
+        queue.Enqueue(start.Id);
+
+        while (queue.Count > 0)
+        {
+            var current = queue.Dequeue();
+            foreach (var target in automaton.Transitions.Where(t => t.FromStateId == current).Select(t => t.ToStateId))
+            {
+                if (!reachable.Add(target))
+                    continue;
+
+                queue.Enqueue(target);
+            }
+        }
+
+        return reachable;
     }
 
     private static bool HasEpsilonTransitions(AutomatonViewModel automaton)

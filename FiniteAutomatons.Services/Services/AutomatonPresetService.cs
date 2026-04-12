@@ -520,15 +520,16 @@ public class AutomatonPresetService(
         }
 
         var baseNfa = generatorService.GenerateRandomAutomaton(AutomatonType.NFA, stateCount, transitionCount, alphabetSize, acceptingRatio, seed);
+        var reachableStates = GetReachableStates(baseNfa);
 
-        if (IsNondeterministic(baseNfa))
+        if (HasReachableNondeterminism(baseNfa, reachableStates))
         {
             logger.LogInformation("Generated NFA is already nondeterministic");
             return baseNfa;
         }
 
         logger.LogInformation("Generated NFA is deterministic, adding nondeterministic transitions");
-        return AddNondeterministicTransitions(baseNfa, seed);
+        return AddNondeterministicTransitions(baseNfa, seed, reachableStates);
     }
 
     public AutomatonViewModel GenerateNondeterministicEpsilonNfa(int stateCount = 5, int transitionCount = 10, int alphabetSize = 3, double acceptingRatio = 0.3, int? seed = null)
@@ -539,32 +540,35 @@ public class AutomatonPresetService(
         }
 
         var baseeNfa = generatorService.GenerateRandomAutomaton(AutomatonType.EpsilonNFA, stateCount, transitionCount, alphabetSize, acceptingRatio, seed);
+        var reachableStates = GetReachableStates(baseeNfa);
 
-        if (IsNondeterministic(baseeNfa))
+        if (HasReachableNondeterminism(baseeNfa, reachableStates))
         {
             logger.LogInformation("Generated eNFA is already nondeterministic");
             return baseeNfa;
         }
 
         logger.LogInformation("Generated Epsilon-NFA is deterministic, adding nondeterministic transitions");
-        return AddNondeterministicTransitions(baseeNfa, seed);
+        return AddNondeterministicTransitions(baseeNfa, seed, reachableStates);
     }
 
-    private static bool IsNondeterministic(AutomatonViewModel nfa)
+    private static bool HasReachableNondeterminism(AutomatonViewModel nfa, HashSet<int> reachableStates)
     {
         var transitionGroups = nfa.Transitions
+            .Where(t => reachableStates.Contains(t.FromStateId))
             .GroupBy(t => new { t.FromStateId, t.Symbol })
             .Where(g => g.Count() > 1);
 
         return transitionGroups.Any();
     }
 
-    private AutomatonViewModel AddNondeterministicTransitions(AutomatonViewModel nfa, int? seed)
+    private AutomatonViewModel AddNondeterministicTransitions(AutomatonViewModel nfa, int? seed, HashSet<int>? reachableStates = null)
     {
         var random = seed.HasValue ? new Random(seed.Value) : new Random();
         var nondetNfa = CloneAutomaton(nfa);
+        var reachableFromStart = reachableStates ?? GetReachableStates(nondetNfa);
 
-        var context = PrepareNondeterministicContext(nondetNfa);
+        var context = PrepareNondeterministicContext(nondetNfa, reachableFromStart);
         if (!context.IsValid)
             return nondetNfa;
 
@@ -574,7 +578,7 @@ public class AutomatonPresetService(
         return nondetNfa;
     }
 
-    private NondeterministicContext PrepareNondeterministicContext(AutomatonViewModel nfa)
+    private NondeterministicContext PrepareNondeterministicContext(AutomatonViewModel nfa, HashSet<int> reachableStates)
     {
         var alphabet = ExtractAlphabet(nfa);
         if (alphabet.Count == 0)
@@ -584,6 +588,7 @@ public class AutomatonPresetService(
         }
 
         var statesWithTransitions = nfa.Transitions
+            .Where(t => reachableStates.Contains(t.FromStateId))
             .Select(t => t.FromStateId)
             .Distinct()
             .ToList();
@@ -602,6 +607,7 @@ public class AutomatonPresetService(
             IsValid = true,
             Alphabet = alphabet,
             StatesWithTransitions = statesWithTransitions,
+            ReachableStates = reachableStates,
             MaxAttempts = maxAttempts,
             DesiredTransitions = desiredTransitions
         };
@@ -617,7 +623,7 @@ public class AutomatonPresetService(
             var symbol = context.Alphabet[random.Next(context.Alphabet.Count)];
 
             var existingTargets = GetExistingTargets(nfa, fromState, symbol);
-            var availableTargets = GetAvailableTargets(nfa, existingTargets);
+            var availableTargets = GetAvailableTargets(nfa, existingTargets, context.ReachableStates);
 
             if (availableTargets.Count > 0)
             {
@@ -634,10 +640,11 @@ public class AutomatonPresetService(
             .Select(t => t.ToStateId)];
     }
 
-    private static List<int> GetAvailableTargets(AutomatonViewModel nfa, HashSet<int> existingTargets)
+    private static List<int> GetAvailableTargets(AutomatonViewModel nfa, HashSet<int> existingTargets, HashSet<int> reachableStates)
     {
         return [.. nfa.States
             .Select(s => s.Id)
+            .Where(id => reachableStates.Contains(id))
             .Where(id => !existingTargets.Contains(id))];
     }
 
@@ -679,6 +686,7 @@ public class AutomatonPresetService(
         public bool IsValid { get; init; }
         public List<char> Alphabet { get; init; } = [];
         public List<int> StatesWithTransitions { get; init; } = [];
+        public HashSet<int> ReachableStates { get; init; } = [];
         public int MaxAttempts { get; init; }
         public int DesiredTransitions { get; init; }
         public int Added { get; set; }
@@ -849,17 +857,19 @@ public class AutomatonPresetService(
         }
 
         var baseEnfa = GenerateEpsilonNfa(stateCount, transitionCount, alphabetSize, acceptingRatio, seed);
+        var reachableStates = GetReachableStates(baseEnfa);
 
-        if (IsNondeterministic(baseEnfa))
+        if (HasReachableNondeterminism(baseEnfa, reachableStates))
         {
             logger.LogInformation("Generated ε-NFA is already nondeterministic");
             return baseEnfa;
         }
 
         logger.LogInformation("Generated ε-NFA is deterministic, adding nondeterministic transitions");
-        var result = AddNondeterministicTransitions(baseEnfa, seed);
+        var result = AddNondeterministicTransitions(baseEnfa, seed, reachableStates);
+        var reachableAfter = GetReachableStates(result);
 
-        if (!IsNondeterministic(result))
+        if (!HasReachableNondeterminism(result, reachableAfter))
         {
             logger.LogWarning("Failed to add nondeterministic transitions via random method, forcing one guaranteed nondeterministic transition");
             result = ForceNondeterministicTransition(result, seed);
@@ -872,34 +882,39 @@ public class AutomatonPresetService(
     {
         var random = seed.HasValue ? new Random(seed.Value) : new Random();
         var alphabet = ExtractAlphabet(automaton);
+        var reachableStates = GetReachableStates(automaton);
 
-        if (!ValidateForceNondeterminism(alphabet, automaton))
+        if (!ValidateForceNondeterminism(alphabet, reachableStates.Count))
             return automaton;
 
-        if (TryDuplicateExistingTransition(automaton, random))
+        if (TryDuplicateExistingTransition(automaton, reachableStates, random))
             return automaton;
 
-        AddRandomNondeterministicTransition(automaton, alphabet, random);
+        AddRandomNondeterministicTransition(automaton, alphabet, reachableStates, random);
         return automaton;
     }
 
-    private bool ValidateForceNondeterminism(List<char> alphabet, AutomatonViewModel automaton)
+    private bool ValidateForceNondeterminism(List<char> alphabet, int reachableStateCount)
     {
-        if (alphabet.Count > 0 && automaton.States.Count >= 2)
+        if (alphabet.Count > 0 && reachableStateCount >= 2)
             return true;
 
-        logger.LogWarning("Cannot force nondeterministic transition - insufficient alphabet or states");
+        logger.LogWarning("Cannot force nondeterministic transition - insufficient alphabet or reachable states");
         return false;
     }
 
-    private bool TryDuplicateExistingTransition(AutomatonViewModel automaton, Random random)
+    private bool TryDuplicateExistingTransition(AutomatonViewModel automaton, HashSet<int> reachableStates, Random random)
     {
-        var existingTransitions = automaton.Transitions.Where(t => t.Symbol != '\0').ToList();
+        var existingTransitions = automaton.Transitions
+            .Where(t => t.Symbol != '\0' && reachableStates.Contains(t.FromStateId))
+            .ToList();
         if (existingTransitions.Count == 0)
             return false;
 
         var baseTransition = existingTransitions[random.Next(existingTransitions.Count)];
-        var otherStates = automaton.States.Where(s => s.Id != baseTransition.ToStateId).ToList();
+        var otherStates = automaton.States
+            .Where(s => reachableStates.Contains(s.Id) && s.Id != baseTransition.ToStateId)
+            .ToList();
 
         if (otherStates.Count == 0)
             return false;
@@ -916,11 +931,16 @@ public class AutomatonPresetService(
         return true;
     }
 
-    private void AddRandomNondeterministicTransition(AutomatonViewModel automaton, List<char> alphabet, Random random)
+    private void AddRandomNondeterministicTransition(AutomatonViewModel automaton, List<char> alphabet,
+        HashSet<int> reachableStates, Random random)
     {
-        var fromState = automaton.States[random.Next(automaton.States.Count)];
+        var reachableStateList = automaton.States.Where(s => reachableStates.Contains(s.Id)).ToList();
+        if (reachableStateList.Count == 0)
+            return;
+
+        var fromState = reachableStateList[random.Next(reachableStateList.Count)];
         var symbol = alphabet[random.Next(alphabet.Count)];
-        var toState = automaton.States[random.Next(automaton.States.Count)];
+        var toState = reachableStateList[random.Next(reachableStateList.Count)];
 
         automaton.Transitions.Add(new Transition
         {
@@ -939,6 +959,31 @@ public class AutomatonPresetService(
             logger.LogInformation("Force-added nondeterministic transition: q{From} --{Symbol}--> q{To}",
                 fromStateId, symbol, toStateId);
         }
+    }
+
+    private static HashSet<int> GetReachableStates(AutomatonViewModel automaton)
+    {
+        var startState = automaton.States.FirstOrDefault(s => s.IsStart);
+        if (startState == null)
+            return [];
+
+        var reachable = new HashSet<int> { startState.Id };
+        var queue = new Queue<int>();
+        queue.Enqueue(startState.Id);
+
+        while (queue.Count > 0)
+        {
+            var current = queue.Dequeue();
+            foreach (var target in automaton.Transitions.Where(t => t.FromStateId == current).Select(t => t.ToStateId))
+            {
+                if (!reachable.Add(target))
+                    continue;
+
+                queue.Enqueue(target);
+            }
+        }
+
+        return reachable;
     }
 
     public string GetPresetDisplayName(string preset)
