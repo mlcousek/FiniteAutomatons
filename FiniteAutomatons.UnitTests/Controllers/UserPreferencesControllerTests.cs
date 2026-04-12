@@ -194,4 +194,90 @@ public class UserPreferencesControllerTests
 
         result.ShouldBeOfType<UnauthorizedResult>();
     }
+
+    [Fact]
+    public async Task GetCanvasEditModePreference_ReturnsEnabledValue()
+    {
+        var user = new ApplicationUser { Id = "u6", UserName = "test", CanvasEditModeEnabled = true };
+        var controller = new UserPreferencesController(new TestUserManager(user));
+
+        var httpContext = new DefaultHttpContext
+        {
+            User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, user.Id)]))
+        };
+        controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
+
+        var result = await controller.GetCanvasEditModePreference();
+
+        var okResult = result.ShouldBeOfType<OkObjectResult>();
+        var value = okResult.Value;
+        bool returnedEnabled = (bool)(value?.GetType()?.GetProperty("enabled")?.GetValue(value, null) ?? false);
+        returnedEnabled.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task SaveCanvasEditModePreference_UpdatesUserAndReturnsOk()
+    {
+        var user = new ApplicationUser { Id = "u7", UserName = "test", CanvasEditModeEnabled = false };
+        var controller = new UserPreferencesController(new TestUserManager(user));
+
+        var httpContext = new DefaultHttpContext
+        {
+            User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, user.Id)]))
+        };
+        controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
+
+        var request = new CanvasToggleRequest
+        {
+            Enabled = true
+        };
+
+        var result = await controller.SaveCanvasEditModePreference(request);
+
+        result.ShouldBeOfType<OkResult>();
+        user.CanvasEditModeEnabled.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task GetCanvasMovePreference_ReturnsEnabledValue()
+    {
+        var user = new ApplicationUser { Id = "u8", UserName = "test", CanvasMoveEnabled = false };
+        var controller = new UserPreferencesController(new TestUserManager(user));
+
+        var httpContext = new DefaultHttpContext
+        {
+            User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, user.Id)]))
+        };
+        controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
+
+        var result = await controller.GetCanvasMovePreference();
+
+        var okResult = result.ShouldBeOfType<OkObjectResult>();
+        var value = okResult.Value;
+        bool returnedEnabled = (bool)(value?.GetType()?.GetProperty("enabled")?.GetValue(value, null) ?? true);
+        returnedEnabled.ShouldBeFalse();
+    }
+
+    [Fact]
+    public async Task SaveCanvasMovePreference_UpdatesUserAndReturnsOk()
+    {
+        var user = new ApplicationUser { Id = "u9", UserName = "test", CanvasMoveEnabled = true };
+        var controller = new UserPreferencesController(new TestUserManager(user));
+
+        var httpContext = new DefaultHttpContext
+        {
+            User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, user.Id)]))
+        };
+        controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
+
+        var request = new CanvasToggleRequest
+        {
+            Enabled = false
+        };
+
+        var result = await controller.SaveCanvasMovePreference(request);
+
+        result.ShouldBeOfType<OkResult>();
+        user.CanvasMoveEnabled.ShouldBeFalse();
+    }
 }

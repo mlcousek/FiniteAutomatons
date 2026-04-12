@@ -108,6 +108,55 @@ public class InputGenerationServicePdaAcceptanceTests
     }
 
     [Fact]
+    public void GenerateAcceptingString_Pda_EmptyStackOnly_PrefersNonEmptyPathToAcceptingState()
+    {
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.DPDA,
+            States =
+            [
+                new() { Id = 1, IsStart = true, IsAccepting = false },
+                new() { Id = 2, IsStart = false, IsAccepting = true }
+            ],
+            Transitions = [new() { FromStateId = 1, ToStateId = 2, Symbol = 'a', StackPop = '\0', StackPush = null }],
+            AcceptanceMode = PDAAcceptanceMode.EmptyStackOnly
+        };
+
+        var result = service.GenerateAcceptingString(model, 5);
+
+        result.ShouldBe("a");
+    }
+
+    [Fact]
+    public void GenerateAcceptingString_Pda_CanInferInitialStack_WhenRequiredForAcceptance()
+    {
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.DPDA,
+            States =
+            [
+                new() { Id = 1, IsStart = true, IsAccepting = false },
+                new() { Id = 2, IsStart = false, IsAccepting = true }
+            ],
+            Transitions = [new() { FromStateId = 1, ToStateId = 2, Symbol = 'a', StackPop = 'A', StackPush = null }],
+            AcceptanceMode = PDAAcceptanceMode.FinalStateOnly,
+            InitialStackSerialized = null
+        };
+
+        var result = service.GenerateAcceptingString(model, 5);
+
+        result.ShouldBe("a");
+        model.InitialStackSerialized.ShouldNotBeNullOrWhiteSpace();
+
+        var inferred = JsonSerializer.Deserialize<List<char>>(model.InitialStackSerialized!);
+        inferred.ShouldNotBeNull();
+        inferred![0].ShouldBe('#');
+        inferred.ShouldContain('A');
+
+        ExecuteWithConfiguredInitialStack(model, result!).ShouldBeTrue();
+    }
+
+    [Fact]
     public void GenerateAcceptingString_DPDA_UsesProvidedInitialStack()
     {
         var model = new AutomatonViewModel

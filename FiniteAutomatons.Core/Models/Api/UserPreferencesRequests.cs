@@ -9,3 +9,8 @@ public class CanvasWheelRequest
 {
     public bool Enabled { get; set; }
 }
+
+public class CanvasToggleRequest
+{
+    public bool Enabled { get; set; }
+}

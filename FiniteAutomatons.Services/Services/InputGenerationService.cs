@@ -127,10 +127,23 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
             ? (Automaton)automatonBuilderService.CreateDPDA(automaton)
             : automatonBuilderService.CreateNPDA(automaton);
 
-        if (TryEmptyStringForPda(pda, initialStackBottomFirst))
-            return string.Empty;
+        bool emptyAccepted = TryEmptyStringForPda(pda, initialStackBottomFirst);
+        var found = SearchPdaAcceptingString(automaton, pda, alphabet, maxLength, initialStackBottomFirst);
+        if (found != null)
+            return found;
 
-        return SearchPdaAcceptingString(automaton, pda, alphabet, maxLength, initialStackBottomFirst);
+        if (initialStackBottomFirst == null
+            && automaton.States?.Any(s => s.IsAccepting) == true
+            && TryInferInitialStackAndInputForPdaAccepting(automaton, pda, maxLength,
+                out var inferredStackBottomFirst, out var inferredInput))
+        {
+            automaton.InitialStackSerialized = JsonSerializer.Serialize(inferredStackBottomFirst);
+            logger.LogInformation("Inferred PDA initial stack '{InitialStack}' with accepting input '{Input}'",
+                string.Join(',', inferredStackBottomFirst), inferredInput);
+            return inferredInput;
+        }
+
+        return emptyAccepted ? string.Empty : null;
     }
 
     private bool TryEmptyStringForPda(Automaton pda, List<char>? initialStackBottomFirst)
@@ -180,8 +193,7 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
     {
         var seen = new HashSet<string>(StringComparer.Ordinal);
 
-        if ((automaton.AcceptanceMode is PDAAcceptanceMode.FinalStateOnly or PDAAcceptanceMode.FinalStateAndEmptyStack)
-            && automaton.States != null)
+        if (automaton.States != null)
         {
             var startState = automaton.States.FirstOrDefault(s => s.IsStart);
             var acceptingStates = automaton.States.Where(s => s.IsAccepting).Select(s => s.Id).ToHashSet();
@@ -226,6 +238,99 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
                 yield return candidate;
             }
         }
+    }
+
+    private bool TryInferInitialStackAndInputForPdaAccepting(AutomatonViewModel automaton, Automaton pda, int maxLength,
+        out List<char> inferredStackBottomFirst, out string inferredInput)
+    {
+        inferredStackBottomFirst = [];
+        inferredInput = string.Empty;
+
+        if (automaton.States == null || automaton.Transitions == null)
+            return false;
+
+        var startState = automaton.States.FirstOrDefault(s => s.IsStart);
+        if (startState == null)
+            return false;
+
+        var queue = new Queue<(int StateId, string Input, List<char> RuntimeStackTopFirst, List<char> RequiredInitialTopFirst)>();
+        var visited = new HashSet<string>(StringComparer.Ordinal);
+        queue.Enqueue((startState.Id, string.Empty, [], []));
+
+        while (queue.Count > 0)
+        {
+            var current = queue.Dequeue();
+            if (current.Input.Length > maxLength)
+                continue;
+
+            string key = $"{current.StateId}|{current.Input.Length}|{new string([.. current.RuntimeStackTopFirst])}|{new string([.. current.RequiredInitialTopFirst])}";
+            if (!visited.Add(key))
+                continue;
+
+            bool isAcceptingState = automaton.States.Any(s => s.Id == current.StateId && s.IsAccepting);
+            bool stackEmptyBeyondBottom = current.RuntimeStackTopFirst.Count == 0;
+            bool accepted = automaton.AcceptanceMode switch
+            {
+                PDAAcceptanceMode.FinalStateOnly => isAcceptingState,
+                PDAAcceptanceMode.EmptyStackOnly => stackEmptyBeyondBottom,
+                PDAAcceptanceMode.FinalStateAndEmptyStack => isAcceptingState && stackEmptyBeyondBottom,
+                _ => isAcceptingState && stackEmptyBeyondBottom
+            };
+
+            if (accepted && current.Input.Length > 0 && current.RequiredInitialTopFirst.Count > 0)
+            {
+                var candidateStack = new List<char> { BottomOfStack };
+                candidateStack.AddRange(current.RequiredInitialTopFirst.AsEnumerable().Reverse());
+
+                if (TryEvaluatePdaCandidate(pda, current.Input, candidateStack, out var simulatedAccepted) && simulatedAccepted)
+                {
+                    inferredStackBottomFirst = candidateStack;
+                    inferredInput = current.Input;
+                    return true;
+                }
+            }
+
+            var outgoing = automaton.Transitions.Where(t => t.FromStateId == current.StateId);
+            foreach (var transition in outgoing)
+            {
+                var runtime = new List<char>(current.RuntimeStackTopFirst);
+                var required = new List<char>(current.RequiredInitialTopFirst);
+
+                if (transition.StackPop.HasValue && transition.StackPop.Value != '\0')
+                {
+                    var pop = transition.StackPop.Value;
+                    if (runtime.Count > 0)
+                    {
+                        if (runtime[0] != pop)
+                            continue;
+                        runtime.RemoveAt(0);
+                    }
+                    else
+                    {
+                        required.Add(pop);
+                    }
+                }
+
+                if (!string.IsNullOrEmpty(transition.StackPush))
+                {
+                    for (int i = transition.StackPush.Length - 1; i >= 0; i--)
+                    {
+                        runtime.Insert(0, transition.StackPush[i]);
+                    }
+                }
+
+                var nextInput = transition.Symbol == '\0'
+                    ? current.Input
+                    : current.Input + transition.Symbol;
+
+                if (nextInput.Length > maxLength)
+                    continue;
+
+                queue.Enqueue((transition.ToStateId, nextInput, runtime, required));
+            }
+        }
+
+        return false;
     }
 
     private static string? BuildStackDrainingCandidate(AutomatonViewModel automaton, List<char> initialStackBottomFirst, int maxLength)

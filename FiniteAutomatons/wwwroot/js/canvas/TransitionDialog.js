@@ -1,4 +1,4 @@
-export class TransitionDialog {
+﻿export class TransitionDialog {
     constructor(containerEl) {
         this.containerEl = containerEl;
         this._dialog = null;
@@ -136,13 +136,12 @@ export class TransitionDialog {
                     <div class="cd-field-group">
                         <label class="cd-label" for="cdStackPop">
                             <i class="fas fa-layer-group"></i> Stack Pop
-                            <span class="cd-hint">(symbol to pop, or ε)</span>
+                            <span class="cd-hint">(symbol to pop, or leave empty for ε)</span>
                         </label>
                         <div class="cd-input-row">
                             <input type="text" id="cdStackPop" class="cd-input" 
                                    maxlength="1" placeholder="ε (pop nothing)"
                                    value="${this._escHtml((initialValues.stackPop || '').charAt(0))}" autocomplete="off" />
-                            <button class="cd-epsilon-btn" id="cdEpsilonPopBtn" type="button" title="Insert epsilon (ε)">ε</button>
                         </div>
                     </div>
                     <div class="cd-field-group">
@@ -172,10 +171,6 @@ export class TransitionDialog {
             dialog.querySelector('#cdEpsilonBtn')?.addEventListener('click', () => {
                 symbolInput.value = 'ε';
                 symbolInput.focus();
-            });
-            dialog.querySelector('#cdEpsilonPopBtn')?.addEventListener('click', () => {
-                stackPopInput.value = 'ε';
-                stackPopInput.focus();
             });
 
             const confirm = () => {

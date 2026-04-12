@@ -362,19 +362,54 @@ function setupCanvasControls() {
     const moveModeText = document.getElementById('moveModeText');
 
     if (moveToggleBtn) {
+        const LOCAL_KEY = 'fa-canvas-move-enabled';
+
         let moveActive = true;
-        if (canvas && canvas.enableMoving) canvas.enableMoving();
-        updateMoveButton(moveActive);
+        try {
+            const ls = localStorage.getItem(LOCAL_KEY);
+            if (ls !== null) moveActive = ls === 'true';
+        } catch (_) { }
+
+        (async function loadServerPrefIfAuth() {
+            try {
+                if (window.__isAuthenticated) {
+                    const resp = await fetch('/api/preferences/canvas-move', { credentials: 'same-origin' });
+                    if (resp.ok) {
+                        const json = await resp.json();
+                        if (typeof json.enabled === 'boolean') {
+                            moveActive = json.enabled;
+                            try { localStorage.setItem(LOCAL_KEY, String(moveActive)); } catch (_) { }
+                        }
+                    }
+                }
+            } catch (_) {
+                // ignore network errors
+            } finally {
+                applyMoveState(moveActive);
+            }
+        })();
 
         moveToggleBtn.addEventListener('click', () => {
             if (!canvas) return;
             moveActive = !moveActive;
-            if (moveActive) {
-                canvas.enableMoving();
-            } else {
-                canvas.disableMoving();
-            }
-            updateMoveButton(moveActive);
+            applyMoveState(moveActive);
+
+            try { localStorage.setItem(LOCAL_KEY, String(moveActive)); } catch (_) { }
+
+            (async () => {
+                try {
+                    if (window.__isAuthenticated) {
+                        await fetch('/api/preferences/canvas-move', {
+                            method: 'POST',
+                            credentials: 'same-origin',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ enabled: moveActive })
+                        });
+                    }
+                } catch (_) {
+                    // ignore network errors
+                }
+            })();
         });
 
         function updateMoveButton(isMoveMode) {
@@ -390,21 +425,91 @@ function setupCanvasControls() {
                 moveToggleBtn.title = 'Enable Moving';
             }
         }
+
+        function applyMoveState(enabled) {
+            if (!canvas) return;
+            if (enabled) {
+                canvas.enableMoving();
+            } else {
+                canvas.disableMoving();
+            }
+            updateMoveButton(enabled);
+        }
     }
 
     if (editModeToggleBtn) {
+        const LOCAL_KEY = 'fa-canvas-edit-mode-enabled';
+
+        let desiredEditMode = false;
+        try {
+            const ls = localStorage.getItem(LOCAL_KEY);
+            if (ls !== null) desiredEditMode = ls === 'true';
+        } catch (_) { }
+
+        const persistEditPreference = async (enabled) => {
+            try { localStorage.setItem(LOCAL_KEY, String(enabled)); } catch (_) { }
+
+            try {
+                if (window.__isAuthenticated) {
+                    await fetch('/api/preferences/canvas-edit-mode', {
+                        method: 'POST',
+                        credentials: 'same-origin',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ enabled })
+                    });
+                }
+            } catch (_) {
+                // ignore network errors
+            }
+        };
+
+        const applyDesiredEditState = () => {
+            if (!canvas) return;
+            const canEditNow = !((canvas?.activeStateIds ?? []).length > 0);
+            const shouldEnable = canEditNow && desiredEditMode;
+
+            if (shouldEnable) {
+                const enabled = canvas.enableEditMode();
+                updateEditModeButton(!!enabled);
+            } else {
+                canvas.disableEditMode();
+                updateEditModeButton(false);
+            }
+        };
+
         editModeToggleBtn.disabled = false;
 
-        editModeToggleBtn.addEventListener('click', () => {
+        editModeToggleBtn.addEventListener('click', async () => {
             if (!canvas) return;
 
             const isActive = canvas.toggleEditMode();
             updateEditModeButton(isActive);
+            desiredEditMode = isActive;
+            await persistEditPreference(isActive);
         });
 
         window.addEventListener('canvasEditModeChanged', (e) => {
             updateEditModeButton(e.detail.isEditMode);
         });
+
+        (async function loadServerPrefIfAuth() {
+            try {
+                if (window.__isAuthenticated) {
+                    const resp = await fetch('/api/preferences/canvas-edit-mode', { credentials: 'same-origin' });
+                    if (resp.ok) {
+                        const json = await resp.json();
+                        if (typeof json.enabled === 'boolean') {
+                            desiredEditMode = json.enabled;
+                            try { localStorage.setItem(LOCAL_KEY, String(desiredEditMode)); } catch (_) { }
+                        }
+                    }
+                }
+            } catch (_) {
+                // ignore network errors
+            } finally {
+                applyDesiredEditState();
+            }
+        })();
 
         function updateEditModeButton(isEditMode) {
             if (isEditMode) {
@@ -420,7 +525,7 @@ function setupCanvasControls() {
             }
         }
 
-        updateEditModeButton(false);
+        updateEditModeButton(canvas.isEditModeActive());
     }
 
     const undoBtn = document.getElementById('undoBtn');
@@ -526,7 +631,55 @@ function setupFormSync() {
         canvas.deleteTransitionFromPanel(e.detail);
     });
 
+    setupGenerateInputModalFormSync();
+
     console.log('CanvasFormSync + PanelSync + AlgorithmPanelEditor initialized');
+}
+
+function setupGenerateInputModalFormSync() {
+    const sourceForm = document.getElementById('automatonForm');
+    if (!sourceForm) return;
+
+    const generateForms = document.querySelectorAll('#generateInputModal form');
+    if (!generateForms.length) return;
+
+    const payloadNameRegex = /^(Type|Input|HasExecuted|Position|CurrentStateId|IsAccepted|StateHistorySerialized|StackSerialized|InitialStackSerialized|NPDAConfigurationsSerialized|AcceptanceMode|IsCustomAutomaton|States(\.|\[)|Transitions(\.|\[)|CurrentStates(\.|\[))/;
+
+    const shouldCopy = (name) => payloadNameRegex.test(name);
+
+    const removeSyncedPayloadInputs = (targetForm) => {
+        const hiddenInputs = targetForm.querySelectorAll('input[type="hidden"]');
+        hiddenInputs.forEach((input) => {
+            const name = input.getAttribute('name') || '';
+            if (shouldCopy(name)) {
+                input.remove();
+            }
+        });
+    };
+
+    const appendPayloadInputsFromSource = (targetForm) => {
+        const data = new FormData(sourceForm);
+        data.forEach((value, name) => {
+            if (!shouldCopy(name)) return;
+
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = name;
+            input.value = String(value ?? '');
+            targetForm.appendChild(input);
+        });
+    };
+
+    generateForms.forEach((form) => {
+        form.addEventListener('submit', () => {
+            if (formSync && canvas) {
+                formSync.syncAll(canvas.getCytoscapeInstance());
+            }
+
+            removeSyncedPayloadInputs(form);
+            appendPayloadInputsFromSource(form);
+        });
+    });
 }
 
 function observeFormChanges() {

@@ -76,4 +76,68 @@ public class UserPreferencesController(UserManager<ApplicationUser> userManager)
 
         return BadRequest(result.Errors);
     }
+
+    [HttpGet("canvas-edit-mode")]
+    public async Task<IActionResult> GetCanvasEditModePreference()
+    {
+        var user = await userManager.GetUserAsync(User);
+        if (user == null)
+        {
+            return Unauthorized();
+        }
+
+        return Ok(new { enabled = user.CanvasEditModeEnabled });
+    }
+
+    [HttpPost("canvas-edit-mode")]
+    public async Task<IActionResult> SaveCanvasEditModePreference([FromBody] CanvasToggleRequest request)
+    {
+        var user = await userManager.GetUserAsync(User);
+        if (user == null)
+        {
+            return Unauthorized();
+        }
+
+        user.CanvasEditModeEnabled = request.Enabled;
+        var result = await userManager.UpdateAsync(user);
+
+        if (result.Succeeded)
+        {
+            return Ok();
+        }
+
+        return BadRequest(result.Errors);
+    }
+
+    [HttpGet("canvas-move")]
+    public async Task<IActionResult> GetCanvasMovePreference()
+    {
+        var user = await userManager.GetUserAsync(User);
+        if (user == null)
+        {
+            return Unauthorized();
+        }
+
+        return Ok(new { enabled = user.CanvasMoveEnabled });
+    }
+
+    [HttpPost("canvas-move")]
+    public async Task<IActionResult> SaveCanvasMovePreference([FromBody] CanvasToggleRequest request)
+    {
+        var user = await userManager.GetUserAsync(User);
+        if (user == null)
+        {
+            return Unauthorized();
+        }
+
+        user.CanvasMoveEnabled = request.Enabled;
+        var result = await userManager.UpdateAsync(user);
+
+        if (result.Succeeded)
+        {
+            return Ok();
+        }
+
+        return BadRequest(result.Errors);
+    }
 }
