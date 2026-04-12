@@ -13,6 +13,8 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
     private const int MaxPdaAcceptingSearchCandidates = 6000;
     private const int MaxPdaRejectingSearchCandidates = 6000;
     private const int MaxPdaExactEnumerationLength = 6;
+    private const int MaxPdaInferenceExploredStates = 12000;
+    private const int MaxPdaInferenceRuntimeStackDepth = 64;
 
     private readonly ILogger<InputGenerationService> logger = logger;
     private readonly IAutomatonBuilderService automatonBuilderService = automatonBuilderService;
@@ -121,7 +123,7 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
 
     private string? GenerateAcceptingStringForPda(AutomatonViewModel automaton, int maxLength)
     {
-        var alphabet = automaton.Alphabet?.Where(c => c != '\0').ToList() ?? [];
+        var alphabet = GetOrInferAlphabet(automaton);
         var initialStackBottomFirst = DeserializeInitialStackBottomFirst(automaton.InitialStackSerialized);
         var pda = automaton.Type == AutomatonType.DPDA
             ? (Automaton)automatonBuilderService.CreateDPDA(automaton)
@@ -143,7 +145,10 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
             return inferredInput;
         }
 
-        return emptyAccepted ? string.Empty : null;
+        if (emptyAccepted && ShouldAllowEmptyFallbackForPda(automaton, initialStackBottomFirst))
+            return string.Empty;
+
+        return null;
     }
 
     private bool TryEmptyStringForPda(Automaton pda, List<char>? initialStackBottomFirst)
@@ -253,12 +258,25 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
         if (startState == null)
             return false;
 
+        var acceptingStates = automaton.States.Where(s => s.IsAccepting).Select(s => s.Id).ToHashSet();
+        var requiresAcceptingState = automaton.AcceptanceMode is PDAAcceptanceMode.FinalStateOnly or PDAAcceptanceMode.FinalStateAndEmptyStack;
+        if (requiresAcceptingState && (acceptingStates.Count == 0 || !CanReachAnyState(startState.Id, acceptingStates, automaton.Transitions)))
+            return false;
+
         var queue = new Queue<(int StateId, string Input, List<char> RuntimeStackTopFirst, List<char> RequiredInitialTopFirst)>();
         var visited = new HashSet<string>(StringComparer.Ordinal);
         queue.Enqueue((startState.Id, string.Empty, [], []));
+        var exploredStates = 0;
 
         while (queue.Count > 0)
         {
+            exploredStates++;
+            if (exploredStates > MaxPdaInferenceExploredStates)
+            {
+                logger.LogWarning("Stopped PDA initial-stack inference after exploring {Count} states", exploredStates);
+                return false;
+            }
+
             var current = queue.Dequeue();
             if (current.Input.Length > maxLength)
                 continue;
@@ -293,6 +311,14 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
             var outgoing = automaton.Transitions.Where(t => t.FromStateId == current.StateId);
             foreach (var transition in outgoing)
             {
+                if (transition.Symbol == '\0'
+                    && transition.ToStateId == current.StateId
+                    && !transition.StackPop.HasValue
+                    && string.IsNullOrEmpty(transition.StackPush))
+                {
+                    continue;
+                }
+
                 var runtime = new List<char>(current.RuntimeStackTopFirst);
                 var required = new List<char>(current.RequiredInitialTopFirst);
 
@@ -319,6 +345,9 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
                     }
                 }
 
+                if (runtime.Count > MaxPdaInferenceRuntimeStackDepth || required.Count > MaxPdaInferenceRuntimeStackDepth)
+                    continue;
+
                 var nextInput = transition.Symbol == '\0'
                     ? current.Input
                     : current.Input + transition.Symbol;
@@ -327,6 +356,30 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
                     continue;
 
                 queue.Enqueue((transition.ToStateId, nextInput, runtime, required));
+            }
+        }
+
+        return false;
+    }
+
+    private static bool CanReachAnyState(int startStateId, HashSet<int> targetStates, List<Transition> transitions)
+    {
+        var queue = new Queue<int>();
+        var visited = new HashSet<int>();
+        queue.Enqueue(startStateId);
+
+        while (queue.Count > 0)
+        {
+            var current = queue.Dequeue();
+            if (!visited.Add(current))
+                continue;
+
+            if (targetStates.Contains(current))
+                return true;
+
+            foreach (var next in transitions.Where(t => t.FromStateId == current).Select(t => t.ToStateId))
+            {
+                queue.Enqueue(next);
             }
         }
 
@@ -666,15 +719,101 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
             : automatonBuilderService.CreateNPDA(automaton);
         var random = seed.HasValue ? new Random(seed.Value) : new Random();
 
-        var emptyStringFallback = CheckEmptyStringForPda(pda, initialStackBottomFirst);
+        var emptyStringFallback = minLength == 0 && ShouldAllowEmptyFallbackForPda(automaton, initialStackBottomFirst)
+            ? CheckEmptyStringForPda(pda, initialStackBottomFirst)
+            : null;
+
+        var guided = SearchPdaAcceptingStringWithParameters(automaton, pda, alphabet, minLength, maxLength, maxAttempts, random, initialStackBottomFirst);
+        if (guided != null)
+            return guided;
+
+        if (initialStackBottomFirst == null
+            && automaton.States?.Any(s => s.IsAccepting) == true
+            && TryInferInitialStackAndInputForPdaAccepting(automaton, pda, maxLength,
+                out var inferredStackBottomFirst, out var inferredInput))
+        {
+            automaton.InitialStackSerialized = JsonSerializer.Serialize(inferredStackBottomFirst);
+            initialStackBottomFirst = inferredStackBottomFirst;
+
+            if (inferredInput.Length >= minLength && inferredInput.Length <= maxLength)
+            {
+                logger.LogInformation("Inferred PDA initial stack '{InitialStack}' with random-accepting input '{Input}'",
+                    string.Join(',', inferredStackBottomFirst), inferredInput);
+                return inferredInput;
+            }
+        }
+
         var result = TryRandomPdaCandidates(pda, alphabet, minLength, maxLength, maxAttempts, random, initialStackBottomFirst);
 
         return result ?? ReturnPdaFallbackOrNull(emptyStringFallback, maxAttempts);
     }
 
+    private string? SearchPdaAcceptingStringWithParameters(AutomatonViewModel automaton, Automaton pda, List<char> alphabet,
+        int minLength, int maxLength, int maxAttempts, Random random, List<char>? initialStackBottomFirst)
+    {
+        int checkedCandidates = 0;
+
+        foreach (var candidate in BuildModeAwarePdaAcceptingCandidates(automaton, alphabet, maxLength, initialStackBottomFirst))
+        {
+            if (candidate.Length < minLength || candidate.Length > maxLength)
+                continue;
+
+            checkedCandidates++;
+            if (TryPdaCandidate(pda, candidate, initialStackBottomFirst))
+                return candidate;
+
+            if (checkedCandidates >= maxAttempts)
+                return null;
+        }
+
+        foreach (var candidate in EnumeratePdaSearchCandidates(alphabet, maxLength, Math.Max(0, maxAttempts - checkedCandidates), random))
+        {
+            if (candidate.Length < minLength || candidate.Length > maxLength)
+                continue;
+
+            if (TryPdaCandidate(pda, candidate, initialStackBottomFirst))
+                return candidate;
+        }
+
+        return null;
+    }
+
     private static List<char> GetOrInferAlphabet(AutomatonViewModel automaton)
     {
-        return [.. automaton.Alphabet.Where(c => c != '\0')];
+        var seen = new HashSet<char>();
+        var symbols = new List<char>();
+
+        foreach (var symbol in automaton.Alphabet.Where(c => c != '\0'))
+        {
+            if (seen.Add(symbol))
+            {
+                symbols.Add(symbol);
+            }
+        }
+
+        if (automaton.Transitions != null)
+        {
+            foreach (var symbol in automaton.Transitions.Where(t => t.Symbol != '\0').Select(t => t.Symbol))
+            {
+                if (seen.Add(symbol))
+                {
+                    symbols.Add(symbol);
+                }
+            }
+        }
+
+        return symbols;
+    }
+
+    private static bool ShouldAllowEmptyFallbackForPda(AutomatonViewModel automaton, List<char>? initialStackBottomFirst)
+    {
+        if (automaton.AcceptanceMode == PDAAcceptanceMode.EmptyStackOnly
+            && (initialStackBottomFirst == null || initialStackBottomFirst.Count <= 1))
+        {
+            return false;
+        }
+
+        return true;
     }
 
     private string? CheckEmptyStringForPda(Automaton pda, List<char>? initialStackBottomFirst)

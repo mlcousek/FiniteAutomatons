@@ -275,6 +275,42 @@ public class InputGenerationIntegrationTests(IntegrationTestsFixture fixture) : 
         input.ShouldContain('a'); // Should trigger nondeterministic choice
     }
 
+    [Fact]
+    public async Task NPDA_GenerateNondeterministicCase_ReturnsCase()
+    {
+        var client = GetHttpClient();
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.NPDA,
+            States =
+            [
+                new() { Id = 1, IsStart = true, IsAccepting = false },
+                new() { Id = 2, IsStart = false, IsAccepting = true },
+                new() { Id = 3, IsStart = false, IsAccepting = true }
+            ],
+            Transitions =
+            [
+                new() { FromStateId = 1, ToStateId = 2, Symbol = 'a', StackPop = '\0', StackPush = "X" },
+                new() { FromStateId = 1, ToStateId = 3, Symbol = 'a', StackPop = '\0', StackPush = "Y" }
+            ],
+            AcceptanceMode = PDAAcceptanceMode.FinalStateOnly,
+            IsCustomAutomaton = true
+        };
+
+        var formData = BuildForm(model, new Dictionary<string, string>
+        {
+            ["maxLength"] = "15"
+        });
+
+        var response = await client.PostAsync("/InputGeneration/GenerateNondeterministicCase", new FormUrlEncodedContent(formData));
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var html = await response.Content.ReadAsStringAsync();
+        var input = ExtractInputValue(html);
+        input.ShouldNotBeNullOrEmpty();
+        input.ShouldContain('a');
+    }
+
     #endregion
 
     #region PDA Input Generation Tests - Balanced Parentheses
@@ -710,6 +746,80 @@ public class InputGenerationIntegrationTests(IntegrationTestsFixture fixture) : 
         var execResponse = await client.PostAsync("/AutomatonExecution/ExecuteAll", new FormUrlEncodedContent(BuildForm(model)));
         execResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
         ExtractIsAccepted(await execResponse.Content.ReadAsStringAsync()).ShouldBe(false);
+    }
+
+    [Fact]
+    public async Task NPDA_FinalStateOnly_GenerateRandomAcceptingString_AndExecuteAll_ShouldAccept()
+    {
+        var client = GetHttpClient();
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.NPDA,
+            States =
+            [
+                new() { Id = 1, IsStart = true, IsAccepting = false },
+                new() { Id = 2, IsStart = false, IsAccepting = true }
+            ],
+            Transitions = [new() { FromStateId = 1, ToStateId = 2, Symbol = 'a', StackPop = '\0', StackPush = "X" }],
+            AcceptanceMode = PDAAcceptanceMode.FinalStateOnly,
+            IsCustomAutomaton = true
+        };
+
+        var genResponse = await client.PostAsync("/InputGeneration/GenerateRandomAcceptingString",
+            new FormUrlEncodedContent(BuildForm(model, new Dictionary<string, string>
+            {
+                ["minLength"] = "1",
+                ["maxLength"] = "5",
+                ["maxAttempts"] = "50"
+            })));
+        genResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var generatedInput = ExtractInputValue(await genResponse.Content.ReadAsStringAsync());
+        generatedInput.ShouldNotBeNullOrEmpty();
+
+        model.Input = generatedInput;
+        var execResponse = await client.PostAsync("/AutomatonExecution/ExecuteAll", new FormUrlEncodedContent(BuildForm(model)));
+        execResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        ExtractIsAccepted(await execResponse.Content.ReadAsStringAsync()).ShouldBe(true);
+    }
+
+    [Fact]
+    public async Task NPDA_FinalStateAndEmptyStack_GenerateRandomAcceptingString_AndExecuteAll_ShouldAccept()
+    {
+        var client = GetHttpClient();
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.NPDA,
+            States =
+            [
+                new() { Id = 1, IsStart = true, IsAccepting = false },
+                new() { Id = 2, IsStart = false, IsAccepting = true }
+            ],
+            Transitions =
+            [
+                new() { FromStateId = 1, ToStateId = 2, Symbol = 'a', StackPop = '\0', StackPush = "X" },
+                new() { FromStateId = 2, ToStateId = 2, Symbol = 'b', StackPop = 'X', StackPush = null }
+            ],
+            AcceptanceMode = PDAAcceptanceMode.FinalStateAndEmptyStack,
+            IsCustomAutomaton = true
+        };
+
+        var genResponse = await client.PostAsync("/InputGeneration/GenerateRandomAcceptingString",
+            new FormUrlEncodedContent(BuildForm(model, new Dictionary<string, string>
+            {
+                ["minLength"] = "1",
+                ["maxLength"] = "10",
+                ["maxAttempts"] = "200"
+            })));
+        genResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var generatedInput = ExtractInputValue(await genResponse.Content.ReadAsStringAsync());
+        generatedInput.ShouldNotBeNullOrEmpty();
+
+        model.Input = generatedInput;
+        var execResponse = await client.PostAsync("/AutomatonExecution/ExecuteAll", new FormUrlEncodedContent(BuildForm(model)));
+        execResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        ExtractIsAccepted(await execResponse.Content.ReadAsStringAsync()).ShouldBe(true);
     }
 
     #endregion

@@ -219,6 +219,32 @@ public class InputGenerationServiceComprehensiveTests
         cases.ShouldContain(c => c.Description == "Tests nondeterminism");
     }
 
+    [Fact]
+    public void NPDA_GenerateNondeterministicCase_IdentifiesNondeterministicTransition()
+    {
+        var automaton = new AutomatonViewModel
+        {
+            Type = AutomatonType.NPDA,
+            States =
+            [
+                new() { Id = 1, IsStart = true, IsAccepting = false },
+                new() { Id = 2, IsStart = false, IsAccepting = true },
+                new() { Id = 3, IsStart = false, IsAccepting = true }
+            ],
+            Transitions =
+            [
+                new() { FromStateId = 1, ToStateId = 2, Symbol = 'a', StackPop = '\0', StackPush = "X" },
+                new() { FromStateId = 1, ToStateId = 3, Symbol = 'a', StackPop = '\0', StackPush = "Y" }
+            ],
+            AcceptanceMode = PDAAcceptanceMode.FinalStateOnly
+        };
+
+        var result = service.GenerateNondeterministicCase(automaton, 20);
+
+        result.ShouldNotBeNull();
+        result.ShouldContain('a');
+    }
+
     #endregion
 
     #region Epsilon-NFA Comprehensive Tests

@@ -42,6 +42,180 @@ public class InputGenerationServicePdaAcceptanceTests
     }
 
     [Fact]
+    public void GenerateRandomAcceptingString_NPDA_FinalStateOnly_ReturnsValidString()
+    {
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.NPDA,
+            States =
+            [
+                new() { Id = 1, IsStart = true, IsAccepting = false },
+                new() { Id = 2, IsStart = false, IsAccepting = true }
+            ],
+            Transitions = [new() { FromStateId = 1, ToStateId = 2, Symbol = 'a', StackPop = '\0', StackPush = "X" }],
+            AcceptanceMode = PDAAcceptanceMode.FinalStateOnly
+        };
+
+        var result = service.GenerateRandomAcceptingString(model, minLength: 1, maxLength: 5, maxAttempts: 50, seed: 42);
+
+        result.ShouldNotBeNull();
+        var npda = builderService.CreateNPDA(model);
+        npda.Execute(result).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void GenerateRandomAcceptingString_NPDA_EmptyStackOnly_ReturnsValidString()
+    {
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.NPDA,
+            States = [new() { Id = 1, IsStart = true, IsAccepting = false }],
+            Transitions =
+            [
+                new() { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '\0', StackPush = "X" },
+                new() { FromStateId = 1, ToStateId = 1, Symbol = 'b', StackPop = 'X', StackPush = null }
+            ],
+            AcceptanceMode = PDAAcceptanceMode.EmptyStackOnly
+        };
+
+        var result = service.GenerateRandomAcceptingString(model, minLength: 0, maxLength: 10, maxAttempts: 200, seed: 42);
+
+        result.ShouldNotBeNull();
+        var npda = builderService.CreateNPDA(model);
+        npda.Execute(result).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void GenerateRandomAcceptingString_NPDA_FinalStateAndEmptyStack_ReturnsValidString()
+    {
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.NPDA,
+            States =
+            [
+                new() { Id = 1, IsStart = true, IsAccepting = false },
+                new() { Id = 2, IsStart = false, IsAccepting = true }
+            ],
+            Transitions =
+            [
+                new() { FromStateId = 1, ToStateId = 2, Symbol = 'a', StackPop = '\0', StackPush = "X" },
+                new() { FromStateId = 2, ToStateId = 2, Symbol = 'b', StackPop = 'X', StackPush = null }
+            ],
+            AcceptanceMode = PDAAcceptanceMode.FinalStateAndEmptyStack
+        };
+
+        var result = service.GenerateRandomAcceptingString(model, minLength: 1, maxLength: 10, maxAttempts: 200, seed: 42);
+
+        result.ShouldNotBeNull();
+        var npda = builderService.CreateNPDA(model);
+        npda.Execute(result).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void GenerateRandomAcceptingString_NPDA_CanInferInitialStack_WhenRequiredForAcceptance()
+    {
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.NPDA,
+            States =
+            [
+                new() { Id = 1, IsStart = true, IsAccepting = false },
+                new() { Id = 2, IsStart = false, IsAccepting = true }
+            ],
+            Transitions = [new() { FromStateId = 1, ToStateId = 2, Symbol = 'a', StackPop = 'A', StackPush = null }],
+            AcceptanceMode = PDAAcceptanceMode.FinalStateOnly,
+            InitialStackSerialized = null
+        };
+
+        var result = service.GenerateRandomAcceptingString(model, minLength: 1, maxLength: 5, maxAttempts: 50, seed: 7);
+
+        result.ShouldBe("a");
+        model.InitialStackSerialized.ShouldNotBeNullOrWhiteSpace();
+        ExecuteWithConfiguredInitialStack(model, result!).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void GenerateRandomAcceptingString_NPDA_UsesProvidedInitialStack()
+    {
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.NPDA,
+            States =
+            [
+                new() { Id = 1, IsStart = true, IsAccepting = false },
+                new() { Id = 2, IsStart = false, IsAccepting = true }
+            ],
+            Transitions =
+            [
+                new() { FromStateId = 1, ToStateId = 2, Symbol = 'a', StackPop = 'X', StackPush = null }
+            ],
+            AcceptanceMode = PDAAcceptanceMode.FinalStateOnly,
+            InitialStackSerialized = JsonSerializer.Serialize(new List<char> { '#', 'X' })
+        };
+
+        var result = service.GenerateRandomAcceptingString(model, minLength: 1, maxLength: 5, maxAttempts: 50, seed: 1);
+
+        result.ShouldBe("a");
+        ExecuteWithConfiguredInitialStack(model, result!).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void GenerateRandomAcceptingString_Pda_CanInferInitialStack_WhenRequiredForAcceptance()
+    {
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.DPDA,
+            States =
+            [
+                new() { Id = 1, IsStart = true, IsAccepting = false },
+                new() { Id = 2, IsStart = false, IsAccepting = true }
+            ],
+            Transitions = [new() { FromStateId = 1, ToStateId = 2, Symbol = 'a', StackPop = 'A', StackPush = null }],
+            AcceptanceMode = PDAAcceptanceMode.FinalStateOnly,
+            InitialStackSerialized = null
+        };
+
+        var result = service.GenerateRandomAcceptingString(model, minLength: 1, maxLength: 5, maxAttempts: 50, seed: 1);
+
+        result.ShouldBe("a");
+        model.InitialStackSerialized.ShouldNotBeNullOrWhiteSpace();
+        ExecuteWithConfiguredInitialStack(model, result!).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void GenerateRandomAcceptingString_DPDA_LargeSearchSpace_CompletesQuickly()
+    {
+        var transitions = new List<Transition>
+        {
+            new() { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = null, StackPush = "A" },
+            new() { FromStateId = 1, ToStateId = 1, Symbol = 'b', StackPop = null, StackPush = "B" },
+            new() { FromStateId = 1, ToStateId = 1, Symbol = 'c', StackPop = null, StackPush = "C" },
+            new() { FromStateId = 1, ToStateId = 1, Symbol = 'd', StackPop = null, StackPush = "D" },
+            new() { FromStateId = 1, ToStateId = 1, Symbol = 'e', StackPop = null, StackPush = "E" },
+            new() { FromStateId = 1, ToStateId = 1, Symbol = 'f', StackPop = null, StackPush = "F" }
+        };
+
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.DPDA,
+            States =
+            [
+                new() { Id = 1, IsStart = true, IsAccepting = false },
+                new() { Id = 2, IsStart = false, IsAccepting = true }
+            ],
+            Transitions = transitions,
+            AcceptanceMode = PDAAcceptanceMode.FinalStateOnly
+        };
+
+        var sw = Stopwatch.StartNew();
+        var result = service.GenerateRandomAcceptingString(model, minLength: 1, maxLength: 30, maxAttempts: 150);
+        sw.Stop();
+
+        result.ShouldBeNull();
+        sw.Elapsed.ShouldBeLessThan(TimeSpan.FromSeconds(5));
+    }
+
+    [Fact]
     public void GenerateAcceptingString_Pda_FinalStateAndEmptyStack_ReturnsValidString()
     {
         var model = new AutomatonViewModel
@@ -125,6 +299,40 @@ public class InputGenerationServicePdaAcceptanceTests
         var result = service.GenerateAcceptingString(model, 5);
 
         result.ShouldBe("a");
+    }
+
+    [Fact]
+    public void GenerateAcceptingString_NPDA_EmptyStackOnly_TrivialEmptyAcceptance_ReturnsNull()
+    {
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.NPDA,
+            States = [new() { Id = 1, IsStart = true, IsAccepting = false }],
+            Transitions = [new() { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '\0', StackPush = "X" }],
+            AcceptanceMode = PDAAcceptanceMode.EmptyStackOnly,
+            InitialStackSerialized = null
+        };
+
+        var result = service.GenerateAcceptingString(model, 5);
+
+        result.ShouldBeNull();
+    }
+
+    [Fact]
+    public void GenerateRandomAcceptingString_NPDA_EmptyStackOnly_TrivialEmptyAcceptance_ReturnsNull()
+    {
+        var model = new AutomatonViewModel
+        {
+            Type = AutomatonType.NPDA,
+            States = [new() { Id = 1, IsStart = true, IsAccepting = false }],
+            Transitions = [new() { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '\0', StackPush = "X" }],
+            AcceptanceMode = PDAAcceptanceMode.EmptyStackOnly,
+            InitialStackSerialized = null
+        };
+
+        var result = service.GenerateRandomAcceptingString(model, minLength: 0, maxLength: 5, maxAttempts: 20, seed: 7);
+
+        result.ShouldBeNull();
     }
 
     [Fact]
