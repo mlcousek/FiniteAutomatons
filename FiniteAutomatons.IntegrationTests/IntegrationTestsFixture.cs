@@ -4,8 +4,7 @@ namespace FiniteAutomatons.IntegrationTests;
 
 public class IntegrationTestsFixture : IAsyncLifetime
 {
-    private readonly MsSqlContainer msSqlContainer = new MsSqlBuilder()
-        .WithImage("mcr.microsoft.com/mssql/server:2022-latest")
+    private readonly MsSqlContainer msSqlContainer = new MsSqlBuilder("mcr.microsoft.com/mssql/server:2022-latest")
         .Build();
 
     private string? connectionString;
