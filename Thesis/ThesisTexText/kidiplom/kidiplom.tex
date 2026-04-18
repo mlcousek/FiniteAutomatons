@@ -83,20 +83,20 @@
 %%Zkratky
 \newacronym{DKA}{DKA}{Deterministický konečný automat}
 \newacronym{NKA}{NKA}{Nedeterministický konečný automat}
-\newacronym{eNKA}{$\varepsilon$-NKA}{Nedeterministický konečný automat s epsilon přechodama}
+\newacronym{eNKA}{$\varepsilon$-NKA}{Nedeterministický konečný automat s epsilon přechody}
 \newacronym{ZKA}{ZKA}{Zásobníkový konečný automat}
 \newacronym{DZA}{DZA}{Deterministický zásobníkový automat}
 \newacronym{NZA}{NZA}{Nedeterministický zásobníkový automat}
 
 \newacronym{LIFO}{LIFO}{Last in first out}
 \newacronym{GUI}{GUI}{Grafické uživatelské rozhraní}
-\newacronym{HCI}{HCI}{Human computer interaction}
+\newacronym{HCI}{HCI}{Human Computer Interaction}
 \newacronym{HTA}{HTA}{Hierarchická analýza úloh}
 \newacronym{hifi}{Hi-Fi}{High Fidelity}
 \newacronym{jit}{JIT}{Just In Time}
 \newacronym{mvc}{MVC}{Model-View-Controller}
 \newacronym{ioc}{IoC}{Inversion of Control}
-\newacronym{di}{DI}{Dependecy Injection}  
+\newacronym{di}{DI}{Dependency Injection}  
 \newacronym{linq}{LINQ}{Language Integrated Query}
 
 \setcounter{secnumdepth}{3}
@@ -696,191 +696,33 @@ Aby byla zajištěna maximální čistota kódu a jeho odolnost vůči budoucím
     Vysokoúrovňové moduly nesmí záviset na nízkoúrovňových modulech; oba musí záviset na abstrakcích. \gls{mvc} controllery (např. \texttt{AutomatonExecutionController}) instanciují své závislosti výhradně pomocí rozhraní vkládaných skrze konstruktor. O dodání konkrétní implementace se stará \gls{di} kontejner spravovaný frameworkem ASP.NET Core.
 \end{itemize}
 
-\subsection{Implementace matematických algoritmů} %TODO doplnit kapitoly a kody
-Jádro aplikace spočívá v korektní implementaci algoritmů známých z teoretické informatiky. Tato podkapitola rozebírá klíčové algoritmy zabudované do simulátoru, jejich praktickou realizaci v jazyce \csharp{} a komplexitní analýzu.
+\subsection{Implementace matematických algoritmů} 
+Jádro aplikace spočívá v korektní implementaci algoritmů známých z teoretické informatiky. Tato podkapitola rozebírá klíčové algoritmy zabudované do simulátoru. Všechny tyto algoritmy  jsou implementovány v příslušné servise v projektu FiniteAutomatons.Services.
 
 \subsubsection{Minimalizace \gls{DKA}}
-\hyperref[par:minimalize]{Algoritmus minimalizace} \gls{DKA} implementuje přístup založený na zjemňování rozkladů. Cílem je ze zadaného \gls{DKA} vytvořit ekvivalentní minimální automat, jenž rozpoznává stejný jazyk s minimálním možným počtem stavů. 
+\hyperref[par:minimalize]{Algoritmus minimalizace} \gls{DKA} implementuje přístup založený na zjemňování rozkladů. Cílem je ze zadaného \gls{DKA} vytvořit ekvivalentní minimální automat, jenž rozpoznává stejný jazyk s minimálním možným počtem stavů.
 
 \paragraph{Fáze algoritmu} \mbox{} \\
 Implementace se skládá ze čtyř oddělených fází:
 
 \textbf{Fáze 1: Analýza dosažitelnosti} \\
-Pomocí prohledávání grafu do šířky jsou identifikovány všechny stavy dosažitelné z počátečního stavu. Nedosažitelné stavy jsou následně z automatu odstraněny, jelikož nemohou ovlivnit přijímaný jazyk.
-
-\begin{lstlisting}[caption={Výpočet dosažitelných stavů pomocí prohledávání do šířky}, label={lst:reachability}]
-private (List<State> reachableStates, List<Transition> reachableTransitions) 
-    ComputeReachable(int startStateId)
-{
-    var reachable = new HashSet<int>();
-    var queue = new Queue<int>();
-    queue.Enqueue(startStateId);
-    reachable.Add(startStateId);
-
-    while (queue.Count > 0)
-    {
-        var cur = queue.Dequeue();
-        foreach (var t in Transitions.Where(t => t.FromStateId == cur))
-        {
-            if (reachable.Add(t.ToStateId))
-                queue.Enqueue(t.ToStateId);
-        }
-    }
-    
-    var reachableStates = States.Where(s => reachable.Contains(s.Id)).ToList();
-    var reachableTransitions = Transitions
-        .Where(t => reachable.Contains(t.FromStateId) && 
-                    reachable.Contains(t.ToStateId)).ToList();
-    return (reachableStates, reachableTransitions);
-}
-\end{lstlisting}
-
-Časová složitost této fáze je $O(|Q| + |T|)$, kde $|Q|$ označuje počet stavů a $|T|$ označuje počet přechodů automatu.
+Pomocí prohledávání grafu do šířky jsou identifikovány všechny stavy dosažitelné z počátečního stavu. Nedosažitelné stavy jsou následně z automatu odstraněny, jelikož nemohou ovlivnit přijímaný jazyk. Časová složitost této fáze je $O(|Q| + |T|)$, kde $|Q|$ označuje počet stavů a $|T|$ označuje počet přechodů automatu.
 
 \textbf{Fáze 2: Inicializace rozkladu} \\
 Stavy jsou nejprve rozděleny do dvou základních tříd ekvivalence: množina koncových (přijímajících) stavů $F$ a množina nekoncových stavů $Q \setminus F$. Tím vzniká počáteční rozklad.
 
-\begin{lstlisting}[caption={Vytvoření iniciálního rozkladu}, label={lst:init_partition}]
-private static List<HashSet<int>> CreateInitialPartitions(List<State> reachableStates)
-{
-    var accepting = reachableStates
-        .Where(s => s.IsAccepting)
-        .Select(s => s.Id)
-        .ToHashSet();
-    var nonAccepting = reachableStates
-        .Where(s => !s.IsAccepting)
-        .Select(s => s.Id)
-        .ToHashSet();
-
-    var partitions = new List<HashSet<int>>();
-    if (accepting.Count > 0) partitions.Add([.. accepting]);
-    if (nonAccepting.Count > 0) partitions.Add([.. nonAccepting]);
-    return partitions;
-}
-\end{lstlisting}
-
 \textbf{Fáze 3: Iterativní zjemňování rozkladu} \\
-Jádrem algoritmu je opakované dělení tříd ekvivalence na menší podtřídy.
+Jádrem algoritmu je opakované dělení tříd ekvivalence na menší podtřídy. Pro každou třídu a každý symbol je vypočtena \emph{signatura} -- vektor cílových tříd přechodů. Stavy se shodnou signaturou zůstávají ve stejné třídě, ostatní jsou odděleny do nových podtříd. Algoritmus iteruje, dokud se žádný rozklad dále nerozdělí.
 
-\begin{lstlisting}[caption={Iterativní zjemňování rozkladu}, label={lst:refine}]
-private static List<HashSet<int>> RefinePartitions(
-    List<HashSet<int>> partitions, 
-    List<Transition> transitions, 
-    List<char> symbols)
-{
-    bool changed;
-    do
-    {
-        changed = false;
-        var newPartitions = new List<HashSet<int>>();
-
-        foreach (var group in partitions)
-        {
-            var splits = new Dictionary<string, HashSet<int>>();
-
-            foreach (var stateId in group)
-            {
-                var signatureParts = new List<string>(symbols.Count);
-                foreach (var sym in symbols)
-                {
-                    var target = transitions.FirstOrDefault(t => 
-                        t.FromStateId == stateId && t.Symbol == sym)?.ToStateId;
-                    signatureParts.Add(target == null ? "null" : 
-                        partitions.FindIndex(p => p.Contains(target.Value))
-                                  .ToString());
-                }
-
-                var signature = string.Join("|", signatureParts);
-                if (!splits.TryGetValue(signature, out var bucket))
-                {
-                    bucket = [];
-                    splits[signature] = bucket;
-                }
-                bucket.Add(stateId);
-            }
-
-            if (splits.Count == 1)
-            {
-                newPartitions.Add([.. group]);
-            }
-            else
-            {
-                changed = true;
-                foreach (var part in splits.Values)
-                    newPartitions.Add([.. part]);
-            }
-        }
-
-        partitions = newPartitions;
-    } while (changed);
-
-    return partitions;
-}
-\end{lstlisting}
-
-\textbf{Korektnost a konvergence:} Algoritmus iteruje, dokud se žádný rozklad dále nerozdělí. Jelikož při každé iteraci vznikají striktně jemnější rozklady a maximální počet tříd je omezen počtem stavů $|Q|$, algoritmus konverguje nejvýše za $O(|Q|)$ iterací. V této implementaci je časová složitost jedné iterace $O(|Q| \cdot |\Sigma| \cdot (|T| + |Q|))$, protože při tvorbě signatur dochází pro každý stav a symbol k lineárnímu vyhledávání přechodu a cílové třídy ekvivalence. Celková složitost tedy činí $O(|Q|^2 \cdot |\Sigma| \cdot (|T| + |Q|))$. V případě úplného \gls{DKA} ($|T| = |Q| \cdot |\Sigma|$) se tato mez zjednoduší na $O(|Q|^3 \cdot |\Sigma|^2)$.
+\textbf{Korektnost a konvergence:} Jelikož při každé iteraci vznikají striktně jemnější rozklady a maximální počet tříd je omezen počtem stavů $|Q|$, algoritmus konverguje nejvýše za $O(|Q|)$ iterací. Celková složitost implementace činí $O(|Q|^2 \cdot |\Sigma| \cdot (|T| + |Q|))$. V případě úplného \gls{DKA} se tato mez zjednoduší na $O(|Q|^3 \cdot |\Sigma|^2)$.
 
 \textbf{Poznámka:} Stávající algoritmus je inspirován Hopcroftovým algoritmem \cite{hopcroft_ullman}. Původní Hopcroftův algoritmus dosahuje složitosti $O(|Q| \cdot |\Sigma| \cdot \log|Q|)$ použitím sofistikovanějších datových struktur. Předložená implementace klade důraz na čitelnost a srozumitelnost kódu.
 
 \textbf{Fáze 4: Konstrukce minimálního automatu} \\
 Z výsledných tříd ekvivalence se vytvoří nové stavy minimalizovaného automatu. Každá třída odpovídá právě jednomu stavu $q'$ v minimálním automatu. Jako reprezentant je zvolen libovolný prvek třídy (všechny prvky jsou ekvivalentní). Přechody se konstruují na základě původních přechodů reprezentantů.
 
-\begin{lstlisting}[caption={Konstrukce minimálního DFA}, label={lst:build_min_dfa}]
-private static DFA BuildMinimizedDfa(List<HashSet<int>> partitions, 
-    List<State> reachableStates, List<Transition> reachableTransitions, 
-    int startStateId, List<char> symbols)
-{
-    var stateMap = new Dictionary<int, int>();
-    var minimizedDfa = new DFA();
-    int newId = 1;
-
-    foreach (var group in partitions)
-    {
-        foreach (var oldId in group)
-            stateMap[oldId] = newId;
-
-        var representativeId = group.First();
-        var repState = reachableStates.First(s => s.Id == representativeId);
-
-        minimizedDfa.AddState(new State
-        {
-            Id = newId,
-            IsStart = group.Contains(startStateId),
-            IsAccepting = repState.IsAccepting
-        });
-        newId++;
-    }
-
-    foreach (var group in partitions)
-    {
-        var rep = group.First();
-        foreach (var sym in symbols)
-        {
-            var trans = reachableTransitions.FirstOrDefault(t => 
-                t.FromStateId == rep && t.Symbol == sym);
-            if (trans != null)
-            {
-                int fromId = stateMap[rep];
-                int toId = stateMap[trans.ToStateId];
-                if (!minimizedDfa.Transitions.Any(t => 
-                    t.FromStateId == fromId && t.ToStateId == toId && 
-                    t.Symbol == sym))
-                    minimizedDfa.AddTransition(fromId, toId, sym);
-            }
-        }
-    }
-
-    minimizedDfa.StateMapping = stateMap;
-    minimizedDfa.MergedStateGroups = stateMap
-        .GroupBy(kv => kv.Value)
-        .ToDictionary(g => g.Key, g => new HashSet<int>(g.Select(kv => kv.Key)));
-
-    return minimizedDfa;
-}
-\end{lstlisting}
-
 \paragraph{Celková časová složitost} \mbox{} \\
-Z výše uvedeného rozboru jednotlivých kroků lze přímo vyvodit celkovou asymptotickou složitost implementovaného řešení. Časová náročnost celého procesu je dominantně určena třetí fází (iterativní zjemňování rozkladu), zejména lineárním vyhledáváním přechodu a cílové třídy ekvivalence při tvorbě signatur.
+Časová náročnost celého procesu je dominantně určena třetí fází (iterativní zjemňování rozkladu).
 
 Celková \textbf{časová složitost} algoritmu je tedy:
 $$ O(|Q|^2 \cdot |\Sigma| \cdot (|T| + |Q|)) $$
@@ -902,61 +744,14 @@ Transformace \gls{NKA} na ekvivalentní \gls{DKA} je základní operací. Implem
 \textbf{Fáze 3 -- Výpočet přechodů:} Pro danou podmnožinu stavů $S \subseteq Q_N$ a symbol $a \in \Sigma$ se definuje přechod:
 $$\delta_D(S, a) = \bigcup_{q \in S} \delta_N(q, a)$$
 
-\begin{lstlisting}[caption={Výpočet následující množiny stavů}, label={lst:nfa_to_dfa_next}]
-private HashSet<int> ComputeNextStateSet(HashSet<int> currentSet, char symbol)
-{
-    var nextSet = new HashSet<int>();
-
-    foreach (var nfaState in currentSet)
-    {
-        var transitions = Transitions.Where(t => 
-            t.FromStateId == nfaState && t.Symbol == symbol);
-        foreach (var transition in transitions)
-        {
-            nextSet.Add(transition.ToStateId);
-        }
-    }
-
-    return nextSet;
-}
-\end{lstlisting}
-
-Nově objevené podmnožiny jsou přidány do fronty a zařazeny jako nové stavy \gls{DKA}. Pro deduplikaci podmnožin se používá hašovací mapa s klíčem odvozeným od uspořádané sekvence identifikátorů stavů.
-
 \paragraph{Složitost} \mbox{} \\
 V nejhorším případě může determinizace vést k exponenciálnímu nárůstu počtu stavů: $|Q_D| = 2^{|Q_N|}$. Časová složitost pak činí $O(2^{|Q_N|} \cdot |\Sigma| \cdot |Q_N|)$. V praxi však většina automatů nedosahuje této horní meze a počet výsledných stavů bývá podstatně nižší, často blížící se $O(|Q_N|^2)$.
 
-\subsubsection{Eliminace $\varepsilon$-přechodů (\gls{eNKA} $\rightarrow$ \gls{NKA})}
+\subsubsection{Převod \gls{eNKA} $\rightarrow$ \gls{NKA} (Eliminace $\varepsilon$-přechodů)}
 Algoritmus odstraňuje $\varepsilon$-přechody pomocí výpočtu \hyperref[par:euzaver]{$\varepsilon$-uzávěrů stavů}.
 
 \paragraph{$\varepsilon$-uzávěr} \mbox{} \\
-Implementace využívá prohledávání do hloubky.
-
-\begin{lstlisting}[caption={Výpočet epsilon-uzávěru}, label={lst:epsilon_closure}]
-private HashSet<int> EpsilonClosure(HashSet<int> states)
-{
-    var closure = new HashSet<int>(states);
-    var stack = new Stack<int>(states);
-
-    while (stack.Count > 0)
-    {
-        var state = stack.Pop();
-        var epsilonTransitions = Transitions
-            .Where(t => t.FromStateId == state && t.Symbol == '\0');
-        foreach (var transition in epsilonTransitions)
-        {
-            if (closure.Add(transition.ToStateId))
-            {
-                stack.Push(transition.ToStateId);
-            }
-        }
-    }
-
-    return closure;
-}
-\end{lstlisting}
-
-Složitost výpočtu jednoho uzávěru je $O(|Q| + |T_\varepsilon|)$, kde $|T_\varepsilon|$ označuje počet epsilon-přechodů.
+Implementace využívá prohledávání do hloubky. Pro každý stav $q$ algoritmus iterativně sleduje všechny dostupné $\varepsilon$-hrany a shromažďuje dosažené stavy do uzávěru. Složitost výpočtu jednoho uzávěru je $O(|Q| + |T_\varepsilon|)$, kde $|T_\varepsilon|$ označuje počet $\varepsilon$-přechodů.
 
 \paragraph{Transformace automatu} \mbox{} \\
 Nová přechodová funkce \gls{NKA} se definuje jako:
@@ -967,58 +762,25 @@ $$q \in F_{NFA} \iff \varepsilon\text{-closure}(q) \cap F_{\varepsilon NFA} \neq
 
 Celková složitost transformace je $O(|Q|^2 \cdot |\Sigma| \cdot |T|)$.
 
-\subsubsection{Thompsonova konstrukce (regulární výraz $\rightarrow$ \gls{eNKA})}
+\subsubsection{Převod regulární výraz $\rightarrow$ \gls{eNKA} (Thompsonova konstrukce)}
 Pro převod regulárního výrazu na \gls{eNKA} je implementován \hyperref[par:talg]{Thompsonův algoritmus}, který rekurzivně skládá dílčí fragmenty automatu podle syntaktické struktury výrazu.
 
 \paragraph{Fáze 1: Tokenizace s podporou znakových tříd} \mbox{} \\
-Lexikální analyzátor rozpoznává elementy regulárního výrazu včetně znakových tříd (např. \texttt{[a-z]}), které jsou expandovány do množin konkrétních symbolů.
-
-\begin{lstlisting}[caption={Parsování znakové třídy s rozsahy}, label={lst:char_class}]
-private static (Tok Token, int EndIndex) ParseCharacterClass(string s, int startIndex)
-{
-    int j = startIndex + 1;
-    var classChars = new List<char>();
-
-    while (j < s.Length && s[j] != ']')
-    {
-        if (j + 2 < s.Length && s[j + 1] == '-' && s[j + 2] != ']')
-        {
-            char start = s[j];
-            char end = s[j + 2];
-            if (start > end)
-                throw new ArgumentException($"Neplatny rozsah '{start}-{end}'");
-
-            for (char cc = start; cc <= end; cc++)
-                classChars.Add(cc);
-
-            j += 3;
-            continue;
-        }
-
-        classChars.Add(s[j]);
-        j++;
-    }
-
-    var val = new string([.. classChars.Distinct()]);
-    return (new Tok(TokType.CharClass, val), j);
-}
-\end{lstlisting}
-
-Dále algoritmus explicitně vkládá operátory konkatenace mezi sousedící tokeny (např. \texttt{ab} $\rightarrow$ \texttt{a$\cdot$b}).
+Lexikální analyzátor rozpoznává elementy regulárního výrazu včetně znakových tříd (např. \texttt{[a-z]}), které jsou expandovány do množin konkrétních symbolů. Rozsahy ve znakových třídách jsou zpracovány iterací přes odpovídající interval ASCII hodnot. Dále algoritmus explicitně vkládá operátory konkatenace mezi sousedící tokeny (např. \texttt{ab} $\rightarrow$ \texttt{a$\cdot$b}).
 
 \paragraph{Fáze 2: Infix $\rightarrow$ Postfix} \mbox{} \\
-Implementace algoritmu, který transformuje regulární výraz z infixové notace do postfixové, která je vhodnější pro stromové vyhodnocení. Operátory mají definovanou precedenci: unární operátory $*$, $+$, $?$ mají precedenci 5, konkatenace $\cdot$ precedenci 4 a alternace $|$ precedenci 3.
+Algoritmus překládá regulární výraz z infixové notace do postfixové (pomocí Dijkstrova shunting-yard algoritmu), která je vhodnější pro zásobníkové vyhodnocení. Operátory mají definovanou precedenci: unární operátory $*$, $+$, $?$ mají precedenci 5, konkatenace $\cdot$ precedenci 4 a alternace $|$ precedenci 3.
 
 \paragraph{Fáze 3: Fragmentová konstrukce $\varepsilon$-NFA} \mbox{} \\
 Algoritmus postupuje přes postfixovou reprezentaci výrazu a zásobníkově skládá dílčí fragmenty. Každý fragment má definovaný počáteční a koncový stav (exit stav ještě není označen jako přijímající).
 
-\textbf{Základní případy:}
+\paragraph{Základní případy:}
 \begin{itemize}
     \item \textbf{Znak} $a$: Fragment se dvěma stavy propojenými přechodem na symbol $a$.
     \item \textbf{Znaková třída} $[abc]$: Fragment se dvěma stavy, mezi nimiž vedou paralelní přechody pro každý symbol třídy.
 \end{itemize}
 
-\textbf{Rekurzivní případy:}
+\paragraph{Rekurzivní případy:}
 \begin{itemize}
     \item \textbf{Konkatenace} $e_1 \cdot e_2$: Koncový stav fragmentu $e_1$ je propojen s počátečním stavem $e_2$ pomocí $\varepsilon$-přechodu.
     \item \textbf{Alternace} $e_1 | e_2$: Vytvoří se nový počáteční stav s $\varepsilon$-přechody do obou fragmentů a nový koncový stav, do něhož vedou $\varepsilon$-přechody z obou původních koncových stavů.
@@ -1062,90 +824,10 @@ Vizualizační vrstva je postavena na modulární architektuře, která odděluj
 \paragraph{Klíčové komponenty} \mbox{} \\
 
 \textbf{1. AutomatonCanvas (Hlavní fasáda)} \\
-Třída \texttt{AutomatonCanvas} slouží jako centrální vstupní bod a orchestrátor celého vizualizačního systému. Zapouzdřuje komplexitu nízkoúrovňového API Cytoscape.js a poskytuje vysokoúrovňové rozhraní pro načítání, zobrazení a manipulaci s automaty.
-
-\begin{lstlisting}[caption={Inicializace vizualizačního plátna}, label={lst:canvas_init}, language=JavaScript]
-export class AutomatonCanvas {
-    constructor(containerId, options = {}) {
-        this.containerId = containerId;
-        this.container = document.getElementById(containerId);
-        
-        this.options = {
-            readOnly: options.readOnly ?? true,
-            enablePanZoom: options.enablePanZoom ?? true,
-            zoomOnWheel: options.zoomOnWheel ?? false,
-            layoutName: options.layoutName ?? 'dagre',
-            minZoom: options.minZoom ?? 0.3,
-            maxZoom: options.maxZoom ?? 3,
-            ...options
-        };
-
-        this.cy = null;
-        this.automatonType = null;
-        this.currentData = null;
-        this.activeStateIds = [];
-    }
-
-    init() {
-        this.cy = cytoscape({
-            container: this.container,
-            layout: { name: 'preset' },
-            style: AutomatonRenderer.getStylesheet(this.automatonType),
-            wheelSensitivity: this.options.wheelSensitivity,
-            minZoom: this.options.minZoom,
-            maxZoom: this.options.maxZoom,
-            boxSelectionEnabled: false,
-            autounselectify: this.options.readOnly,
-            autoungrabify: false,
-            userZoomingEnabled: !!(this.options.enablePanZoom && 
-                                    this.options.zoomOnWheel),
-            userPanningEnabled: this.options.enablePanZoom
-        });
-    }
-}
-\end{lstlisting}
+Třída \texttt{AutomatonCanvas} slouží jako centrální vstupní bod a orchestrátor celého vizualizačního systému. Zapouzdřuje komplexitu nízkoúrovňového API Cytoscape.js a poskytuje vysokoúrovňové rozhraní pro načítání, zobrazení a manipulaci s automaty. Třída přijímá konfigurační objekt, jenž definuje chování plátna -- podporu přibližování, posouvání viewportu, typ rozvržení uzlů a meze přiblížení. Rozhraní interní instance Cytoscape.js je inicializováno s ohledem na zvolený režim (pouze pro čtení vs. editační).
 
 \textbf{2. AutomatonRenderer (Převod dat na graf)} \\
-Odpovídá za transformaci abstraktní datové reprezentace automatu (stavy a přechody v JSON) na grafovou strukturu srozumitelnou knihovně Cytoscape.js. Každému typu automatu (\gls{DKA}, \gls{NKA}, \gls{eNKA}, \gls{DZA}, \gls{NZA}) je přiřazen specializovaný renderer respektující jeho specifika.
-
-\begin{lstlisting}[caption={Vykreslování stavů automatu}, label={lst:render_states}, language=JavaScript]
-static _renderStates(cy, states) {
-    if (!states || states.length === 0) return;
-
-    const nodes = states.map(state => ({
-        group: 'nodes',
-        data: {
-            id: 'state-' + state.id,
-            stateId: state.id,
-            label: 'q' + state.id,
-            isStart: state.isStart || false,
-            isAccepting: state.isAccepting || false
-        },
-        classes: [
-            state.isStart ? 'start' : '',
-            state.isAccepting ? 'accepting' : ''
-        ].filter(Boolean).join(' ')
-    }));
-
-    cy.add(nodes);
-}
-\end{lstlisting}
-
-Přechody jsou před vykreslením seskupeny podle dvojice $(q_{\text{from}}, q_{\text{to}})$, aby bylo možné sloučit paralelní hrany vedoucí mezi stejnými stavy s různými symboly. Pro \gls{ZKA} je formát značky hrany rozšířen o operace se zásobníkem:
-
-\begin{lstlisting}[caption={Speciální vykreslování ZKA přechodů}, label={lst:render_pda}, language=JavaScript]
-if (isPDA) {
-    const pdaLabels = transList.map(t => {
-        const symbol = this._formatSymbol(t.symbol, allowEpsilon);
-        const pop = this._formatSymbol(t.stackPop, true) || 'eps';
-        const push = t.stackPush || 'eps';
-        return symbol + ', ' + pop + '/' + push;
-    });
-    label = pdaLabels.join('\n');
-}
-\end{lstlisting}
-
-Výsledný popisek má tvar $a, X/\gamma$, kde $a$ je vstupní symbol, $X$ symbol odebíraný ze zásobníku a $\gamma$ řetězec vkládaný na zásobník.
+Odpovídá za transformaci abstraktní datové reprezentace automatu (stavy a přechody v JSON) na grafovou strukturu srozumitelnou knihovně Cytoscape.js. Každému typu automatu (\gls{DKA}, \gls{NKA}, \gls{eNKA}, \gls{DZA}, \gls{NZA}) je přiřazen specializovaný renderer respektující jeho specifika. Přechody jsou před vykreslením seskupeny podle dvojice $(q_{\text{from}}, q_{\text{to}})$, aby bylo možné sloučit paralelní hrany vedoucí mezi stejnými stavy s různými symboly. Pro \gls{ZKA} je formát značky hrany rozšířen o operace se zásobníkem -- výsledný popisek má tvar $a, X/\gamma$, kde $a$ je vstupní symbol, $X$ symbol odebíraný ze zásobníku a $\gamma$ řetězec vkládaný na zásobník.
 
 \textbf{3. LayoutEngine (Automatické rozvržení)} \\
 Poskytuje adaptivní algoritmy pro automatické rozmístění uzlů na plátně tak, aby výsledný diagram byl vizuálně přehledný a snadno čitelný. Implementace podporuje čtyři různé strategie:
@@ -1157,21 +839,7 @@ Poskytuje adaptivní algoritmy pro automatické rozmístění uzlů na plátně 
     \item \textbf{COSE (Compound Spring Embedder)}: Fyzikální simulace odpudivých a přitažlivých sil mezi uzly. Časově náročnější, ale vytváří esteticky vyrovnaná rozložení.
 \end{itemize}
 
-\begin{lstlisting}[caption={Adaptivní výběr layoutu na základě velikosti grafu}, label={lst:layout_selection}, language=JavaScript]
-static _selectOptimalLayout(nodeCount, options) {
-    if (nodeCount <= 5) {
-        return 'circle';
-    } else if (nodeCount <= 15) {
-        return 'dagre';
-    } else if (nodeCount <= 30) {
-        return 'breadthfirst';
-    } else {
-        return 'cose';
-    }
-}
-\end{lstlisting}
-
-Pro udržení konzistence mezi jednotlivými renderováními stejného automatu (např. po překreslení při změně režimu simulace) je implementována cache souřadnic uzlů. Tato cache je indexována pomocí hašovacího otisku složeného z typu automatu a uspořádané sekvence identifikátorů stavů.
+Optimální strategie je volena automaticky na základě počtu uzlů v grafu: pro malé automaty (do 5 stavů) je preferováno kruhové rozvržení, pro středně velké (do 15 stavů) hierarchické Dagre, pro větší automaty (do 30 stavů) prohledávání do šířky a pro největší grafy fyzikální simulace COSE. Pro udržení konzistence mezi jednotlivými renderováními stejného automatu (např. po překreslení při změně režimu simulace) je implementována cache souřadnic uzlů. Tato cache je indexována pomocí hašovacího otisku složeného z typu automatu a uspořádané sekvence identifikátorů stavů.
 
 \textbf{4. EditModeManager (Správa editačních režimů)} \\
 Systém rozlišuje tři základní režimy interakce:
@@ -1194,37 +862,7 @@ Tyto komponenty implementují logiku pro interaktivní tvorbu a úpravu prvků g
     \item \textbf{Kliknutí na stav:} Otevření kontextového menu s možnostmi úpravy vlastností stavu nebo jeho smazání.
 \end{itemize}
 
-\begin{lstlisting}[caption={Rozpoznávání vícenásobných kliknutí}, label={lst:multiclick}, language=JavaScript]
-_handleNodeClick(event) {
-    const node = event.target;
-    const tracker = this._clickTracker;
-
-    if (tracker.nodeId !== node.id()) {
-        tracker.nodeId = node.id();
-        tracker.count = 1;
-        tracker.timer = setTimeout(() => {
-            tracker.count = 0;
-            tracker.nodeId = null;
-        }, tracker.clickDelay);
-        return;
-    }
-
-    tracker.count++;
-    clearTimeout(tracker.timer);
-
-    if (tracker.count === 2) {
-        tracker.timer = setTimeout(() => {
-            this.toggleAcceptingState(node);
-            tracker.count = 0;
-            tracker.nodeId = null;
-        }, tracker.clickDelay);
-    } else if (tracker.count === 3) {
-        this.toggleStartState(node);
-        tracker.count = 0;
-        tracker.nodeId = null;
-    }
-}
-\end{lstlisting}
+Rozpoznávání vícenásobných kliknutí je implementováno pomocí vlastního časovače. Každé kliknutí na uzel zvýší čítač; pokud do uplynutí definovaného intervalu (320 ms) nedojde k dalšímu kliknutí, je akce (jednoklik) vykonána. Dvojklik a trojklik jsou zpracovány okamžitě po dosažení příslušného počtu kliknutí.
 
 \textit{TransitionEditor} implementuje intuitivní dvoustupňový postup pro tvorbu přechodů:
 \begin{enumerate}
@@ -1235,20 +873,7 @@ _handleNodeClick(event) {
 Pro prevenci konfliktů s detekcí vícenásobných kliknutí na stav (dvojklik/trojklik) je výběr zdrojového stavu zpožděn o 320 ms. Pokud během této doby dojde k dalšímu kliknutí, je výběr zdrojového stavu potlačen.
 
 \textbf{6. ActionHistory (Historie akcí -- Undo/Redo)} \\
-Každá editační akce (přidání stavu, smazání přechodu, změna vlastnosti) je zabalena do objektu obsahujícího dvojici funkcí \texttt{do()} a \texttt{undo()}.
-
-\begin{lstlisting}[caption={Struktura záznamu akce}, label={lst:action_record}, language=JavaScript]
-this.actionHistory.recordAction({
-    do: () => {
-        this.cy.add({ group: 'nodes', data: {...}, position: {...} });
-    },
-    undo: () => {
-        this.cy.getElementById(nodeId).remove();
-    }
-});
-\end{lstlisting}
-
-Historie je implementována jako zásobník s maximální kapacitou (výchozí 100 akcí). Při dosažení limitu jsou nejstarší záznamy zahozeny.
+Každá editační akce (přidání stavu, smazání přechodu, změna vlastnosti) je zabalena do objektu obsahujícího dvojici funkcí \texttt{do()} a \texttt{undo()}. Historie je implementována jako zásobník s maximální kapacitou (výchozí 100 akcí). Při dosažení limitu jsou nejstarší záznamy zahozeny.
 
 \subsubsection{Interakce s backendem}
 Vizualizační vrstva je plně oddělena od serverové logiky. Komunikace probíhá výhradně prostřednictvím REST API endpointů, které vracejí data ve formátu JSON.
@@ -1261,6 +886,24 @@ Vizualizační vrstva je plně oddělena od serverové logiky. Komunikace probí
     \item \textbf{Uživatelská editace:} Změny provedené v edit módu jsou okamžitě zobrazeny na plátně. Pro perzistenci je nutné explicitní uložení pomocí tlačítka Save, které odešle HTTP POST na \texttt{/api/canvas/save}.
     \item \textbf{Simulace:} Při spuštění simulace (krokovacího režimu) je posílán HTTP POST na \texttt{/api/execution/step} s aktuálním stavem. Server vrací nový stav včetně seznamu aktivních stavů, které jsou následně zvýrazněny na plátně voláním \texttt{highlight()}.
 \end{enumerate}
+
+\subsection{Responzivní design a podpora různých zařízení} \label{subsec:responsive}
+
+Jedním z nefunkčních požadavků na aplikaci je přizpůsobivost rozhraní různým velikostem obrazovek a typům zařízení. Přestože je simulátor primárně koncipován pro využití na stolních počítačích a noteboocích (referenční rozlišení $1920 \times 1080$\,px), bylo od počátku cílem zajistit, aby byl plně použitelný i na zařízeních s menšími displeji.
+
+\subsubsection{Použitá strategie responzivního designu}
+
+Základem responzivity je kombinace CSS media queries\cite{w3c_css} a systému responzivní mřížky frameworku Bootstrap 5\cite{bootstrap_docs}. Stránkový layout je navržen tak, aby se dynamicky přizpůsoboval šířce viewportu na několika definovaných zlomových bodech.
+
+Je zde použito kontinuální škálování až do spodního zlomového bodu (1200\,px), kde dochází k přechodu do plně vertikálního uspořádání. Pod touto mezí jsou všechny sekce překládány do jednoho sloupce, ovládací tlačítka simulace přecházejí do svislého uspořádání a každý ovládací prvek zaujímá plnou šířku dostupného prostoru.
+
+\subsubsection{Podpora dotykových zařízení}
+
+Pro práci s grafovou plochou na zařízeních s dotykovou obrazovkou jsou využívány Cytoscape.js knihovnou nativně podporované dotykové události. Gesta jako přiblížení sevřením dvou prstů a posouvání plátna táhnutím jsou funkční bez nutnosti dodatečné implementace. Editační interakce jsou rovněž mapovány na dotykové ekvivalenty.
+
+Celkový přístup k responzivitě zajišťuje, že simulátor je plnohodnotně použitelný i na zařízeních s nižším rozlišením, aniž by utrpělo uživatelské rozhraní určené primárně pro desktopové prostředí.
+
+%TODO přidat obrázky nižších rozlišení pro porovnání
 
 \section{Zajištění kvality a testování} \label{sec:testovani}
 Kvalita dodaného softwaru není náhodou, ale výsledkem systematického a disciplinovaného přístupu k vývoji. V kontextu této diplomové práce, kde je implementována matematická logika konečných automatů, je robustní testovací strategie opravdu důležitá. V projektu je naimplementováno přes 1600 testovacích scénářů. Tato kapitola popisuje celkový přístup k zajištění kvality, metodiku tvorby testů a konkrétní testovací scénáře pokrývající kritické části aplikace. V této kapitole vycházím primárně z vlastních zkušeností z programátorské praxe.
@@ -1300,32 +943,7 @@ Tvoří nejpočetnější vrstvu testů. Ověřují správnost jednotlivých izo
 
 Těmito testy je v projektu pokryta drtivá většina funkcionality.
 
-\begin{lstlisting}[caption={Ukázka jednotkového testu pro minimalizaci DFA}, label={lst:unit_test_example}]
-[Fact]
-public void MinimizeDFA_WithRedundantStates_ShouldReduceStateCount()
-{
-    // Arrange: Priprava testovacich dat
-    var dfa = new DFA();
-    dfa.AddState(new State { Id = 1, IsStart = true });
-    dfa.AddState(new State { Id = 2, IsAccepting = true });
-    dfa.AddState(new State { Id = 3, IsAccepting = true });
-    dfa.AddState(new State { Id = 4 });
-    dfa.AddTransition(1, 2, 'a');
-    dfa.AddTransition(1, 3, 'b');
-    dfa.AddTransition(2, 4, 'a');
-    dfa.AddTransition(3, 4, 'b');
-    
-    var minimizationService = new AutomatonConversionService();
-    
-    // Act: Provedeni minimalizace
-    var minimized = minimizationService.MinimizeDFA(dfa);
-    
-    // Assert: Overeni vysledku
-    minimized.States.Count.ShouldBeLessThan(dfa.States.Count);
-    minimized.Execute("a").ShouldBeTrue();
-    minimized.Execute("b").ShouldBeTrue();
-}
-\end{lstlisting}
+Typický jednotkový test pro ověření minimalizace \ gls{DKA} sestaví automat s redundantními stavy (stavy 2 a 3 jsou ekvivalentní -- oba akceptující s totožnou přechodovou funkcí), spustí minimalizaci a ověří, že výsledný automat obsahuje méně stavů a přijímá stejný jazyk. Aserční knihovna Shouldly zajišťuje čitelné a popisné chybové výpisy při selhání testu.
 
 \subsubsection{Integrační testy -- Střední vrstva}
 Ověřují spolupráci více komponent dohromady a jejich interakci s reálnými externími systémy (databáze, API, souborový systém).
@@ -1461,11 +1079,11 @@ Pokud je tlačítko pro povolení úprav zapnuto může uživatel s plátnem dě
 \end{figure}
 \begin{itemize}
     \item \textbf{Přidání stavu:} Kliknutí na prázdnou plochu vytvoří nový stav na daném místě.
-    \item \textbf{Odebrání stavu:} Kliknutím na existující stav se uživatel dostane do editačního režimu stavu (viz obrázek~\ref{fig:state_detail}). Následným stlačením tlačítka delete se stav smaže i s příslušnýma přechodama.
-    \item \textbf{Změna stavu:} Dojtým kliknutím na nekoncový stav se stav stane koncový. Dvojtým kliknutím na koncový stav se z něj stane stav obyčejný. Trojitým kliknutím na libovolný stav se stav stane počátečním.
+    \item \textbf{Odebrání stavu:} Kliknutím na existující stav se uživatel dostane do editačního režimu stavu (viz obrázek~\ref{fig:state_detail}). Následným stlačením tlačítka delete se stav smaže i s příslušnými přechody.
+    \item \textbf{Změna stavu:} Dojtým kliknutím na nekoncový stav se stav stane koncový. Dvojitým kliknutím na koncový stav se z něj stane stav obyčejný. Trojitým kliknutím na libovolný stav se stav stane počátečním.
     \item \textbf{Vytvoření přechodu:} Kliknutím na existující stav se uživatel dostane do editačního režimu stavu (viz obrázek~\ref{fig:state_detail}). Následným kliknutím na další existující stav se otevře okno pro zadání symbolu přechodu. Po jeho zadání se přechod vytvoří.
-    \item \textbf{Smazání přechodu:} Dvojitým kliknutím na existující přechod se uživatle dostane do editačního okna stavu (viz obrázek~\ref{fig:transition_detail}). Zde lze stisknutím tlačítka pro odstranění přechod odstranit.
-    \item \textbf{Změna přechodu:} Dvojitým kliknutím na existující přechod se uživatle dostane do editačního okna stavu (viz obrázek~\ref{fig:transition_detail}). Zde lze libovolně přepsat symboly u existujícího přechodu. 
+    \item \textbf{Smazání přechodu:} Dvojitým kliknutím na existující přechod se uživatel dostane do editačního okna stavu (viz obrázek~\ref{fig:transition_detail}). Zde lze stisknutím tlačítka pro odstranění přechod odstranit.
+    \item \textbf{Změna přechodu:} Dvojitým kliknutím na existující přechod se uživatel dostane do editačního okna stavu (viz obrázek~\ref{fig:transition_detail}). Zde lze libovolně přepsat symboly u existujícího přechodu. 
 \end{itemize}
 
 V horní části grafické plochy se nachází panel nástrojů grafu (viz obrázek~\ref{fig:graph_toolbar}), který sdružuje ovládací prvky pro přímou manipulaci s plátnem a správu projektu. Jednotlivá tlačítka jsou popsána v tabulce~\ref{tab:graph_toolbar}.
@@ -1652,10 +1270,10 @@ Pravá část spodního pruhu sdružuje dvě úzce provázané funkční oblasti
 Tato skupina tlačítek zobrazuje aktuální typ automatu a u daným typů umožňuje přepínat mezi typy automatů. Je podporována transformace z \gls{eNKA} na \gls{NKA}, z \gls{eNKA} na \gls{DKA} a z \gls{NKA} na \gls{DKA}.
 
 \paragraph{Operace minimalizace} \mbox{} \\
-Sekce napravo od přepínače typu se dynamicky přizpůsobuje aktuálně zvolenému modelu. Pokud je aktuální automat \gls{DKA} mohou nastat 2 možnosti. Buďto je možnost minimalizace a tlačítko zobraný počet stavů na který je možno minimalizovat, a nebo tlačítko se zneaktivní a předá informaci, že automat je již minimální. Při ostatních typech automatů zobrazí tlačítko informaci, že pro daný typ minimalizaci nepodporuje.
+Sekce napravo od přepínače typu se dynamicky přizpůsobuje aktuálně zvolenému modelu. Pokud je aktuální automat \gls{DKA} mohou nastat 2 možnosti. Buďto je možnost minimalizace a tlačítko zobrazuje počet stavů na který je možno minimalizovat, a nebo se tlačítko deaktivuje a předá informaci, že automat je již minimální. Při ostatních typech automatů zobrazí tlačítko informaci, že pro daný typ minimalizaci nepodporuje.
 
 \subsubsection{Změna při zásobníkových automatech} 
-V případě, že uživatel pracuje se zásobníkovým automatem (\gls{ZKA}), dochází k dynamické obměně ovládacích prvků. Sekce minimalizace nahrazena nastavením \hyperref[par:prijimani]{podmínek přijímání}.
+V případě, že uživatel pracuje se zásobníkovým automatem (\gls{ZKA}), dochází k dynamické obměně ovládacích prvků. Sekce minimalizace je nahrazena nastavením \hyperref[par:prijimani]{podmínek přijímání}.
 
 
 \subsection{Registrace a přihlášení} \label{subsec:registrace}
@@ -1828,11 +1446,6 @@ Transformace na offline-first aplikaci.
     \item \textbf{Offline režim:} Service Worker cachuje statické assety + IndexedDB pro data.
     \item \textbf{Push notifikace:} Upozornění na sdílené automaty, komentáře.
 \end{itemize}
-
-
-\subsubsection{Mobilní responsivita}
-Rozšířená adaptace UI pro tablety a smartphony.
-
 
 \subsubsection{Collaborative Real-Time Editing}
 Více uživatelů edituje tentýž automat současně (Google Docs-style).
