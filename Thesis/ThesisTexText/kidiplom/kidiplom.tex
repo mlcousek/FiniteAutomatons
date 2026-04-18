@@ -816,7 +816,7 @@ Celková časová i prostorová složitost Thompsonovy konstrukce je lineární:
 \subsubsection{Generování vstupních řetězců}
 
 \subsection{Vizualizační systém a interaktivní plátno} \label{par:canvas}
-Grafická reprezentace automatů je nezbytnou součástí edukační aplikace. Tato podkapitola popisuje architekturu a implementaci vizualizačního subsystému, který umožňuje dynamické vykreslování, editaci a animaci stavových diagramů přímo v prohlížeči uživatele.
+Grafická reprezentace automatů je nezbytnou součástí edukační aplikace. Tato podkapitola popisuje architekturu a implementaci vizualizačního subsystému, který umožňuje dynamické vykreslování, editaci, zvýrazňování aktivních stavů a synchronizaci dat mezi plátnem, backendem a postranní sekcí Automaton přímo v prohlížeči uživatele.
 
 \subsubsection{Architektura vizualizačního systému} 
 Vizualizační vrstva je postavena na modulární architektuře, která odděluje zodpovědnosti mezi několik specializovaných komponent.
@@ -824,45 +824,48 @@ Vizualizační vrstva je postavena na modulární architektuře, která odděluj
 \paragraph{Klíčové komponenty} \mbox{} \\
 
 \textbf{1. AutomatonCanvas (Hlavní fasáda)} \\
-Třída \texttt{AutomatonCanvas} slouží jako centrální vstupní bod a orchestrátor celého vizualizačního systému. Zapouzdřuje komplexitu nízkoúrovňového API Cytoscape.js a poskytuje vysokoúrovňové rozhraní pro načítání, zobrazení a manipulaci s automaty. Třída přijímá konfigurační objekt, jenž definuje chování plátna -- podporu přibližování, posouvání viewportu, typ rozvržení uzlů a meze přiblížení. Rozhraní interní instance Cytoscape.js je inicializováno s ohledem na zvolený režim (pouze pro čtení vs. editační).
+Třída \texttt{AutomatonCanvas} slouží jako centrální vstupní bod a orchestrátor celého vizualizačního systému. Zapouzdřuje komplexitu nízkoúrovňového API Cytoscape.js a poskytuje vysokoúrovňové rozhraní pro načítání, zobrazení, zvýraznění, editaci a export automatu. Třída přijímá konfigurační objekt, který definuje chování plátna -- podporu přibližování, posouvání viewportu, výchozí layout, citlivost kolečka a limity přiblížení. Současně koordinuje interní moduly (renderer, layout, editory, historii, cache rozvržení) a publikuje doménové události (např. \texttt{canvasStateAdded}, \texttt{canvasTransitionModified}), které využívají synchronizační vrstvy.
 
 \textbf{2. AutomatonRenderer (Převod dat na graf)} \\
-Odpovídá za transformaci abstraktní datové reprezentace automatu (stavy a přechody v JSON) na grafovou strukturu srozumitelnou knihovně Cytoscape.js. Každému typu automatu (\gls{DKA}, \gls{NKA}, \gls{eNKA}, \gls{DZA}, \gls{NZA}) je přiřazen specializovaný renderer respektující jeho specifika. Přechody jsou před vykreslením seskupeny podle dvojice $(q_{\text{from}}, q_{\text{to}})$, aby bylo možné sloučit paralelní hrany vedoucí mezi stejnými stavy s různými symboly. Pro \gls{ZKA} je formát značky hrany rozšířen o operace se zásobníkem -- výsledný popisek má tvar $a, X/\gamma$, kde $a$ je vstupní symbol, $X$ symbol odebíraný ze zásobníku a $\gamma$ řetězec vkládaný na zásobník.
+Odpovídá za transformaci abstraktní datové reprezentace automatu (stavy a přechody) na grafovou strukturu srozumitelnou knihovně Cytoscape.js. Podporuje vykreslení pro \gls{DKA}, \gls{NKA}, \gls{eNKA} a zásobníkové automaty (\gls{DZA}, \gls{NZA}). Přechody jsou před vykreslením seskupeny podle dvojice $(q_{\text{from}}, q_{\text{to}})$, aby bylo možné sloučit paralelní hrany mezi stejnými stavy do jedné hrany s agregovaným popiskem. Pro \gls{ZKA} je popisek hrany ve tvaru $a\,(X/\gamma)$, kde $a$ je vstupní symbol, $X$ symbol odebíraný ze zásobníku a $\gamma$ řetězec vkládaný na zásobník.
 
-\textbf{3. LayoutEngine (Automatické rozvržení)} \\
-Poskytuje adaptivní algoritmy pro automatické rozmístění uzlů na plátně tak, aby výsledný diagram byl vizuálně přehledný a snadno čitelný. Implementace podporuje čtyři různé strategie:
+\textbf{3. LayoutEngine a CanvasLayoutCache (Rozvržení a perzistence pozic)} \\
+Komponenta \texttt{LayoutEngine} poskytuje algoritmy pro automatické rozmístění uzlů na plátně tak, aby výsledný diagram byl vizuálně přehledný a čitelný. Implementace podporuje více strategií:
 
 \begin{itemize}
     \item \textbf{Dagre (Directed Acyclic Graph)}: Hierarchické rozvržení optimalizované pro orientované grafy. Využívá algoritmus pro minimalizaci křížení hran. Stavy jsou uspořádány do vrstev zleva doprava.
     \item \textbf{Circle}: Uzly jsou umístěny na kružnici. Vhodné pro malé automaty (do 5 stavů).
+    \item \textbf{Grid}: Pravidelná mřížka vhodná jako robustní záložní strategie.
     \item \textbf{Breadth-First}: Rozvržení dle prohledávání do šířky od počátečního stavu.
     \item \textbf{COSE (Compound Spring Embedder)}: Fyzikální simulace odpudivých a přitažlivých sil mezi uzly. Časově náročnější, ale vytváří esteticky vyrovnaná rozložení.
 \end{itemize}
 
-Optimální strategie je volena automaticky na základě počtu uzlů v grafu: pro malé automaty (do 5 stavů) je preferováno kruhové rozvržení, pro středně velké (do 15 stavů) hierarchické Dagre, pro větší automaty (do 30 stavů) prohledávání do šířky a pro největší grafy fyzikální simulace COSE. Pro udržení konzistence mezi jednotlivými renderováními stejného automatu (např. po překreslení při změně režimu simulace) je implementována cache souřadnic uzlů. Tato cache je indexována pomocí hašovacího otisku složeného z typu automatu a uspořádané sekvence identifikátorů stavů.
+Při volbě režimu \texttt{auto} se strategie vybírá podle počtu stavů: do 5 stavů \texttt{circle}, do 15 stavů \texttt{dagre}, do 30 stavů \texttt{breadthfirst}, jinak \texttt{cose}. Pokud layout selže, je použit fallback v podobě mřížky. Pro udržení konzistence mezi jednotlivými renderováními stejného automatu je implementována cache souřadnic uzlů (\texttt{CanvasLayoutCache}) v \texttt{localStorage}. Cache je indexována otiskem složeným z typu automatu a uspořádané sekvence identifikátorů stavů.
 
-\textbf{4. EditModeManager (Správa editačních režimů)} \\
-Systém rozlišuje tři základní režimy interakce:
+\textbf{4. EditModeManager a CanvasInteractionHandler (Správa interakčních režimů)} \\
+Systém rozlišuje tři základní provozní stavy interakce:
 \begin{itemize}
     \item \textbf{View Mode (Prohlížecí režim):} Uživatel může prohlížet graf, přibližovat, oddalovat a posouvat viewport, ale nemůže měnit topologii automatu.
     \item \textbf{Edit Mode (Editační režim):} Umožňuje přidávání, mazání a úpravu stavů a přechodů.
-    \item \textbf{Move Mode (Režim přesouvání):} Specifický režim, kde je možné ručně přesouvat uzly pro doladění vizuálního rozvržení.
+    \item \textbf{Move Mode (Režim přesouvání):} Nezávislý přepínač, který povoluje či zakazuje ruční přesouvání uzlů pro doladění rozvržení.
 \end{itemize}
 
-Přepínání mezi režimy je zajištěno dynamickým (de)aktivováním event listenerů pomocí návrhového vzoru \textit{Observer}.
+\texttt{EditModeManager} zajišťuje přepínání mezi prohlížením a editací, zatímco \texttt{CanvasInteractionHandler} obsluhuje pan/zoom, kolečko myši, klávesové zkratky a tooltipy. Během simulace je editace automaticky zakázána a uzly jsou uzamčeny proti přesunu.
 
-\textbf{5. StateEditor a TransitionEditor (Editační moduly)} \\
+\textbf{5. StateEditor, TransitionEditor a TransitionDialog (Editační moduly)} \\
 Tyto komponenty implementují logiku pro interaktivní tvorbu a úpravu prvků grafu.
 
 \textit{StateEditor} reaguje na následující uživatelské akce:
 \begin{itemize}
     \item \textbf{Kliknutí na prázdné místo:} Vytvoření nového stavu na místě kliknutí.
+    \item \textbf{První přidaný stav:} Je automaticky označen jako počáteční.
     \item \textbf{Dvojklik na stav:} Přepnutí vlastnosti \texttt{isAccepting} (koncový/nekoncový).
-    \item \textbf{Trojklik na stav:} Přepnutí vlastnosti \texttt{isStart} (počáteční/nepočáteční). Pouze jeden stav může být označen jako počáteční; změna automaticky odebere tuto vlastnost předchozímu počátečnímu stavu.
-    \item \textbf{Kliknutí na stav:} Otevření kontextového menu s možnostmi úpravy vlastností stavu nebo jeho smazání.
+    \item \textbf{Trojklik na stav:} Nastavení vlastnosti \texttt{isStart}. Pouze jeden stav může být označen jako počáteční; předchozí počáteční stav je automaticky odznačen.
+    \item \textbf{Pravé tlačítko na stavu:} Otevření dialogu vlastností pro přepnutí \texttt{isStart} a \texttt{isAccepting}.
+    \item \textbf{Klávesa Delete:} Smazání vybraného stavu nebo přechodu.
 \end{itemize}
 
-Rozpoznávání vícenásobných kliknutí je implementováno pomocí vlastního časovače. Každé kliknutí na uzel zvýší čítač; pokud do uplynutí definovaného intervalu (320 ms) nedojde k dalšímu kliknutí, je akce (jednoklik) vykonána. Dvojklik a trojklik jsou zpracovány okamžitě po dosažení příslušného počtu kliknutí.
+Rozpoznávání vícenásobných kliknutí je implementováno pomocí vlastního časovače (300 ms). Při smazání počátečního stavu je zachována invariantní podmínka existence počátečního stavu tím, že je automaticky povýšen jiný zbývající stav.
 
 \textit{TransitionEditor} implementuje intuitivní dvoustupňový postup pro tvorbu přechodů:
 \begin{enumerate}
@@ -870,21 +873,26 @@ Rozpoznávání vícenásobných kliknutí je implementováno pomocí vlastního
     \item Uživatel klikne na \textbf{cílový stav} -- otevře se modální dialog pro zadání symbolu přechodu (u \gls{ZKA} navíc operací se zásobníkem).
 \end{enumerate}
 
-Pro prevenci konfliktů s detekcí vícenásobných kliknutí na stav (dvojklik/trojklik) je výběr zdrojového stavu zpožděn o 320 ms. Pokud během této doby dojde k dalšímu kliknutí, je výběr zdrojového stavu potlačen.
+Pro prevenci konfliktů s detekcí vícenásobných kliknutí na stav je výběr zdrojového stavu zpožděn o 320 ms. Pokud během této doby proběhne dvojklik/trojklik na stejný stav, výběr zdroje je potlačen. Dialog podporuje zadání více symbolů najednou (oddělených mezerou/čárkou) a u hran je dostupná i následná editace/smazání přes dvojklik. Pro \gls{DKA} a \gls{DZA} je při editaci vynucována determinističnost již na úrovni klienta.
 
-\textbf{6. ActionHistory (Historie akcí -- Undo/Redo)} \\
-Každá editační akce (přidání stavu, smazání přechodu, změna vlastnosti) je zabalena do objektu obsahujícího dvojici funkcí \texttt{do()} a \texttt{undo()}. Historie je implementována jako zásobník s maximální kapacitou (výchozí 100 akcí). Při dosažení limitu jsou nejstarší záznamy zahozeny.
+\textbf{6. ActionHistory, CanvasFormSync a PanelSync (Historie a synchronizační vrstva)} \\
+Každá editační akce je zabalena do objektu s dvojicí funkcí \texttt{do()} a \texttt{undo()}. Historie je implementována jako dvojice zásobníků Undo/Redo s maximální kapacitou (výchozí 100 akcí). Nad touto vrstvou běží dva synchronizační moduly:
+\begin{itemize}
+    \item \textbf{CanvasFormSync}: Přepisuje skrytá pole formuláře podle aktuálního grafu, aby další HTTP POST odeslal konzistentní stav automatu.
+    \item \textbf{PanelSync}: Synchronizace panelů přes \texttt{/api/canvas/sync} a následná perzistence do session přes \texttt{/api/canvas/save}.
+\end{itemize}
 
 \subsubsection{Interakce s backendem}
-Vizualizační vrstva je plně oddělena od serverové logiky. Komunikace probíhá výhradně prostřednictvím REST API endpointů, které vracejí data ve formátu JSON.
+Komunikace je realizována hybridně: kombinací server-rendered MVC formuláře a REST API endpointů pro průběžnou synchronizaci panelů.
 
 \textbf{Typický datový tok:}
 \begin{enumerate}
-    \item \textbf{Načtení automatu:} HTTP GET požadavek na endpoint \texttt{/api/automaton/current} vrací aktuální stav automatu (stavy, přechody, typ).
-    \item \textbf{Transformace dat:} JSON odpověď je deserializována a předána metodě \texttt{AutomatonCanvas.loadAutomaton()}.
-    \item \textbf{Vykreslení:} Renderer převede data na grafovou reprezentaci a aplikuje layout.
-    \item \textbf{Uživatelská editace:} Změny provedené v edit módu jsou okamžitě zobrazeny na plátně. Pro perzistenci je nutné explicitní uložení pomocí tlačítka Save, které odešle HTTP POST na \texttt{/api/canvas/save}.
-    \item \textbf{Simulace:} Při spuštění simulace (krokovacího režimu) je posílán HTTP POST na \texttt{/api/execution/step} s aktuálním stavem. Server vrací nový stav včetně seznamu aktivních stavů, které jsou následně zvýrazněny na plátně voláním \texttt{highlight()}.
+    \item \textbf{Načtení automatu:} Stránka \texttt{Home/Index} je renderována ze serverového \texttt{AutomatonViewModel}. Zdroj modelu je prioritně \texttt{TempData}, dále session (klíč \texttt{CanvasAutomaton}) a nakonec výchozí automat.
+    \item \textbf{Transformace dat v klientovi:} Modul \texttt{home-canvas-integration.mjs} načte skrytá pole formuláře (\texttt{Type}, \texttt{States}, \texttt{Transitions}, \texttt{CurrentStateId}, \texttt{CurrentStates}) a vytvoří datový objekt pro \texttt{AutomatonCanvas.loadAutomaton()}.
+    \item \textbf{Vykreslení a rozvržení:} Renderer převede data na grafovou reprezentaci, aplikuje layout a případně obnoví uložené pozice uzlů (z \texttt{LayoutJson} nebo \texttt{localStorage}).
+    \item \textbf{Průběžná editace a synchronizace:} Po změnách na plátně jsou aktualizována skrytá pole formuláře (\texttt{CanvasFormSync}) a současně je odeslán snapshot přes HTTP POST na \texttt{/api/canvas/sync}; po úspěchu následuje HTTP POST na \texttt{/api/canvas/save} pro automatickou perzistenci do session.
+    \item \textbf{Simulace:} Krokování neprobíhá přes samostatné \texttt{/api/execution/*} endpointy, ale přes formulářové POST akce na \texttt{/AutomatonExecution/Start}, \texttt{/StepForward}, \texttt{/StepBackward}, \texttt{/ExecuteAll}, \texttt{/BackToStart} a \texttt{/Reset}. Po redirectu se stránka znovu vyrenderuje a aktivní stavy jsou na plátně zvýrazněny z polí \texttt{CurrentStateId}/\texttt{CurrentStates}.
+    \item \textbf{Uživatelské preference interakce:} Pro přihlášené uživatele se stav kolečka, edit módu a move módu synchronizuje přes \texttt{/api/preferences/canvas-wheel}, \texttt{/api/preferences/canvas-edit-mode} a \texttt{/api/preferences/canvas-move}.
 \end{enumerate}
 
 \subsection{Responzivní design a podpora různých zařízení} \label{subsec:responsive}
