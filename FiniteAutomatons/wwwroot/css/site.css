@@ -599,8 +599,8 @@ gap: 1rem;
   }
 
   .control-btn {
-    min-width: 56px;
-    min-height: 40px;
+    min-width: 42px;
+    min-height: 35px;
     height: 48px;
     padding: 0.3rem 0.55rem;
     font-size: 0.74rem;
@@ -608,35 +608,35 @@ gap: 1rem;
   }
 
   .simulate-btn {
-    min-width: 56px;
+    min-width: 42px;
     padding: 0.3rem;
     font-size: 0.74rem;
   }
 
   .type-btn {
-    min-width: 52px;
-    min-height: 48px;
+    min-width: 42px;
+    min-height: 35px;
     padding: 0.3rem;
     font-size: 0.78rem;
     border-width: 1px;
   }
 
   .input-field {
-    min-width: 178px;
+    min-width: 145px;
     height: 48px;
     padding: 0.5rem 0.8rem;
     border-width: 1px;
   }
 
   .control-content-right .modern-input {
-    min-width: 168px !important;
+    min-width: 145px !important;
     font-size: 0.84rem;
     padding: 0.4rem 0.65rem !important;
     border-width: 1px;
   }
 
   .minimize-btn {
-    min-height: 48px;
+    min-height: 35px;
     padding: 0.4rem 0.8rem;
     font-size: 0.82rem;
     border-width: 1px;

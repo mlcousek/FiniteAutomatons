@@ -66,6 +66,51 @@
     height: auto;
 }
 
+/* Keep special graph toolbar buttons (Save, wheel scroll toggle) visually
+   consistent with regular graph control buttons. */
+.graph-controls .control-btn,
+.graph-controls #wheelLockBtn,
+.graph-controls #openSaveModalBtnTop,
+.graph-controls .btn-group > .dropdown-toggle {
+    padding: 6px 9px;
+    min-width: 36px;
+    min-height: 24px;
+    height: auto;
+    border: 1px solid #dee2e6 !important;
+    border-radius: 4px;
+    background: transparent !important;
+    color: #495057 !important;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    width: auto !important;
+    flex: 0 0 auto;
+}
+
+.graph-controls .btn-group {
+    display: flex;
+    width: auto;
+    flex: 0 0 auto;
+}
+
+.graph-controls .control-btn i,
+.graph-controls #wheelLockBtn i,
+.graph-controls #openSaveModalBtnTop i,
+.graph-controls .btn-group > .dropdown-toggle i {
+    font-size: 12px;
+}
+
+.graph-controls .control-btn:hover,
+.graph-controls #wheelLockBtn:hover,
+.graph-controls #openSaveModalBtnTop:hover,
+.graph-controls .btn-group > .dropdown-toggle:hover {
+    background: #e9ecef !important;
+    border-color: #adb5bd !important;
+    color: #212529 !important;
+}
+
 .graph-controls button:hover {
     background: #e9ecef;
     border-color: #adb5bd;
@@ -332,9 +377,52 @@
    RESPONSIVE DESIGN
    ======================================== */
 
+@media (max-width: 992px) {
+    .graph-controls {
+        top: 8px;
+        left: 8px;
+        right: 8px;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        align-content: flex-start;
+        gap: 4px;
+    }
+
+    .graph-controls .control-separator {
+        display: none;
+    }
+
+    .graph-controls .move-mode-btn,
+    .graph-controls .edit-mode-btn {
+        min-width: 32px;
+    }
+
+    .graph-controls > button,
+    .graph-controls > .btn-group,
+    .graph-controls .control-btn,
+    .graph-controls #wheelLockBtn,
+    .graph-controls #openSaveModalBtnTop,
+    .graph-controls .btn-group > .dropdown-toggle,
+    .graph-controls .move-mode-btn,
+    .graph-controls .edit-mode-btn {
+        width: 32px !important;
+        min-width: 32px;
+        min-height: 32px;
+        padding: 6px 0;
+        flex: 0 0 32px;
+    }
+
+    .graph-controls .move-mode-btn span,
+    .graph-controls .edit-mode-btn span {
+        display: none;
+    }
+}
+
 @media (max-width: 768px) {
     .graph-controls {
         top: 5px;
+        left: 5px;
         right: 5px;
         padding: 3px;
         gap: 3px;
@@ -345,6 +433,28 @@
         min-width: 32px;
         min-height: 32px;
         font-size: 12px;
+    }
+
+    .graph-controls .control-btn,
+    .graph-controls #wheelLockBtn,
+    .graph-controls #openSaveModalBtnTop,
+    .graph-controls .btn-group > .dropdown-toggle {
+        min-width: 32px;
+        min-height: 32px;
+        padding: 6px 8px;
+        width: 32px !important;
+        flex: 0 0 32px;
+    }
+
+    .graph-controls > button,
+    .graph-controls > .btn-group,
+    .graph-controls .move-mode-btn,
+    .graph-controls .edit-mode-btn {
+        width: 32px !important;
+        min-width: 32px;
+        min-height: 32px;
+        padding: 6px 0;
+        flex: 0 0 32px;
     }
 
     .graph-controls button i {
