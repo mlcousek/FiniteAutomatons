@@ -23,6 +23,14 @@ public class SmtpEmailSender : IEmailSender
         {
             logger.LogWarning("SMTP host is not configured (Smtp:Host). Email sending will fail until configured.");
         }
+
+        logger.LogInformation(
+            "SMTP settings loaded. Host: {Host}, Port: {Port}, EnableSsl: {EnableSsl}, UsePickupDirectory: {UsePickupDirectory}, From: {From}",
+            string.IsNullOrWhiteSpace(settings.Host) ? "<empty>" : settings.Host,
+            settings.Port,
+            settings.EnableSsl,
+            settings.UsePickupDirectory,
+            string.IsNullOrWhiteSpace(settings.From) ? "<empty>" : settings.From);
     }
 
     public async Task SendEmailWithAttachmentsAsync(
@@ -242,6 +250,7 @@ public class SmtpEmailSender : IEmailSender
     {
         public string? Host { get; set; }
         public int Port { get; set; } = 25;
+        public int TimeoutMilliseconds { get; set; } = 15000;
         public bool EnableSsl { get; set; } = true;
         public string? Username { get; set; }
         public string? Password { get; set; }

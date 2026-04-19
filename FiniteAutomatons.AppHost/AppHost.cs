@@ -1,4 +1,4 @@
-var builder = DistributedApplication.CreateBuilder(args);
+﻿var builder = DistributedApplication.CreateBuilder(args);
 
 var password = builder.AddParameter("password", "myStong_Password123#");
 
@@ -11,6 +11,7 @@ var _ = builder.AddContainer("seq", "datalust/seq")
      .WithHttpEndpoint(port: 5341, targetPort: 80);
 
 builder.AddProject<Projects.FiniteAutomatons>("finiteautomatons")
+    .WithEnvironment("ASPNETCORE_ENVIRONMENT", "Development")
     .WithReference(db)
     .WaitFor(db);
 

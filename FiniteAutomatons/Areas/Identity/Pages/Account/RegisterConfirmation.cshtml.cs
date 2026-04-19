@@ -3,18 +3,13 @@
 #nullable disable
 
 using FiniteAutomatons.Core.Models.Database;
-
-using System;
-using System.IO;
-using System.Text;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
-using Microsoft.Extensions.Configuration;
+using System.Text;
 
 namespace FiniteAutomatons.Areas.Identity.Pages.Account
 {
