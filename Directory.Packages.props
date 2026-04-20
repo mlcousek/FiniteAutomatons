@@ -3,6 +3,7 @@
     <PackageVersion Include="Aspire.Hosting.AppHost" Version="13.2.2" />
     <PackageVersion Include="Aspire.Hosting.SqlServer" Version="13.2.2" />
     <PackageVersion Include="Aspire.Hosting.Testing" Version="13.2.2" />
+    <PackageVersion Include="MailKit" Version="4.16.0" />
     <PackageVersion Include="Microsoft.Build" Version="18.4.0" />
     <PackageVersion Include="Microsoft.Build.Tasks.Core" Version="18.4.0" />
     <PackageVersion Include="Microsoft.Build.Utilities.Core" Version="18.4.0" />
