@@ -1,4 +1,4 @@
-﻿%%%  Ukázkový text a dokumentace stylu pro text závěrečné (bakalářské a
+%%%  Ukázkový text a dokumentace stylu pro text závěrečné (bakalářské a
 %%%  diplomové) práce na KI PřF UP v Olomouci
 %%%  Copyright (C) 2012 Martin Rotter, <rotter.martinos@gmail.com>
 %%%  Copyright (C) 2014 Jan Outrata, <jan.outrata@upol.cz>
@@ -1679,13 +1679,13 @@ Dále je~nutné mít v~systému (BIOS/UEFI) povolenou hardwarovou virtualizaci.
 \subsection{Instalace a~spuštění}
 Aplikace je~dostupná jako hotový obraz v~registru \textbf{Docker Hub}. Postup spuštění je~následující:
 \begin{enumerate}
-    \item Vytvoření kopie souboru \texttt{docker-compose.yml} z~přiloženého média (složka \texttt{src/}) do~cílového místa na~disku.
+    \item Vytvoření kopie souboru \texttt{docker-compose.hub.yml} z~přiloženého média (složka \texttt{src/}) do~cílového místa na~disku.
     \item Otevření terminálu nebo příkazového řádku v~daném adresáři.
     \item Spuštění příkazu: \texttt{docker compose -f docker-compose.hub.yml up -d}. Tento příkaz automaticky stáhne potřebné obrazy z~Docker Hubu a~spustí aplikaci.
 \end{enumerate}
 
 \subsection{Přístup k~aplikaci}
-Po~úspěšném spuštění je~aplikace dostupná v~prohlížeči na~adrese \texttt{http://localhost:8001}. Pro~testovací účely jsou připraveny účty:
+Po~úspěšném spuštění je~aplikace dostupná v~prohlížeči na~adrese \texttt{http://localhost\-:8001}. Pro~testovací účely jsou připraveny účty:
 \begin{itemize}
     \item \textbf{Email:} \texttt{supervisor@test.test}, \texttt{alice@test.test}, \texttt{bob@test.test}, \texttt{charlie@test.test}, \texttt{diana@test.test}
     \item \textbf{Heslo:} \texttt{Test123}

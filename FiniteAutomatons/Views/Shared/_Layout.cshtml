@@ -21,15 +21,18 @@
     <header>
         @if (SignInManager.IsSignedIn(User))
       {
-       <nav class="navbar navbar-expand-sm navbar-light custom-navbar">
+       <nav class="navbar navbar-expand-lg navbar-light custom-navbar">
    <div class="container-fluid">
        <!-- Logo on the left -->
        <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">
          <img src="~/images/automata-simulator-logo.png" alt="Automata Simulator" class="navbar-logo" />
        </a>
-       <div class="navbar-collapse d-flex justify-content-between align-items-center">
+       <button class="navbar-toggler custom-nav-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
+         <span class="navbar-toggler-icon"></span>
+       </button>
+       <div class="collapse navbar-collapse" id="mainNavbar">
      <!-- Center Navigation -->
-   <ul class="navbar-nav mx-auto">
+   <ul class="navbar-nav mx-auto main-nav-links">
  <li class="nav-item">
            <a class="nav-link" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
          </li>
@@ -48,13 +51,16 @@
 }
     else
     {
-   <nav class="navbar navbar-light custom-navbar-logged-out">
+   <nav class="navbar navbar-expand-lg navbar-light custom-navbar-logged-out">
      <div class="container-fluid">
        <!-- Logo on the left -->
     <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">
          <img src="~/images/automata-simulator-logo.png" alt="Automata Simulator" class="navbar-logo" />
        </a>
-         <div class="ms-auto">
+       <button class="navbar-toggler custom-nav-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#accountNavbar" aria-controls="accountNavbar" aria-expanded="false" aria-label="Toggle navigation">
+         <span class="navbar-toggler-icon"></span>
+       </button>
+         <div class="collapse navbar-collapse justify-content-end" id="accountNavbar">
    <partial name="_LoginPartial" />
        </div>
      </div>

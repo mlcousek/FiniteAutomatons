@@ -161,4 +161,4 @@
 \contentsline {subsection}{\numberline {C.3}Přístup k~aplikaci}{71}{subsection.C.3}%
 \contentsline {section}{\numberline {D}Obsah elektronických dat}{71}{appendix.D}%
 \contentsline {section}{Seznam zkratek}{72}{section*.89}%
-\contentsline {section}{Literatura}{73}{section*.90}%
+\contentsline {section}{Literatura}{73}{section*.92}%
