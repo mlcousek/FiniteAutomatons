@@ -812,6 +812,7 @@ public class AutomatonPresetServiceTests
 
         result.ShouldNotBeNull();
         HasReachableNondeterminism(result).ShouldBeTrue();
+        HasUnreachableNondeterminism(result).ShouldBeFalse();
     }
 
     #endregion
@@ -900,6 +901,39 @@ public class AutomatonPresetServiceTests
         result.ShouldNotBeNull();
         HasEpsilonTransitions(result).ShouldBeTrue();
         HasNondeterminism(result).ShouldBeTrue();
+    }
+
+    [Fact]
+    public void GenerateEpsilonNfaNondeterministic_ExistingUnreachableNondeterminism_AddsReachableNondeterminismOnly()
+    {
+        var enfaWithUnreachableNondeterminism = new AutomatonViewModel
+        {
+            Type = AutomatonType.EpsilonNFA,
+            States =
+            [
+                new State { Id = 0, IsStart = true, IsAccepting = false },
+                new State { Id = 1, IsStart = false, IsAccepting = true },
+                new State { Id = 2, IsStart = false, IsAccepting = false },
+                new State { Id = 3, IsStart = false, IsAccepting = false }
+            ],
+            Transitions =
+            [
+                new Transition { FromStateId = 0, ToStateId = 1, Symbol = 'a' },
+                new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'b' },
+                new Transition { FromStateId = 2, ToStateId = 2, Symbol = 'a' },
+                new Transition { FromStateId = 2, ToStateId = 3, Symbol = 'a' }
+            ],
+            IsCustomAutomaton = true
+        };
+
+        mockGeneratorService.RandomAutomatonToReturn = enfaWithUnreachableNondeterminism;
+
+        var result = service.GenerateEpsilonNfaNondeterministic(4, 8, 2, 0.3, seed: 45);
+
+        result.ShouldNotBeNull();
+        HasEpsilonTransitions(result).ShouldBeTrue();
+        HasReachableNondeterminism(result).ShouldBeTrue();
+        HasUnreachableNondeterminism(result).ShouldBeFalse();
     }
 
     [Fact]
@@ -1192,6 +1226,15 @@ public class AutomatonPresetServiceTests
         var reachable = GetReachableStates(automaton);
         return automaton.Transitions
             .Where(t => reachable.Contains(t.FromStateId))
+            .GroupBy(t => new { t.FromStateId, t.Symbol })
+            .Any(g => g.Count() > 1);
+    }
+
+    private static bool HasUnreachableNondeterminism(AutomatonViewModel automaton)
+    {
+        var reachable = GetReachableStates(automaton);
+        return automaton.Transitions
+            .Where(t => !reachable.Contains(t.FromStateId))
             .GroupBy(t => new { t.FromStateId, t.Symbol })
             .Any(g => g.Count() > 1);
     }

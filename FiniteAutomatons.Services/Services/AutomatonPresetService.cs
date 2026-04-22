@@ -521,6 +521,7 @@ public class AutomatonPresetService(
 
         var baseNfa = generatorService.GenerateRandomAutomaton(AutomatonType.NFA, stateCount, transitionCount, alphabetSize, acceptingRatio, seed);
         var reachableStates = GetReachableStates(baseNfa);
+        RemoveUnreachableNondeterminism(baseNfa, reachableStates);
 
         if (HasReachableNondeterminism(baseNfa, reachableStates))
         {
@@ -529,7 +530,17 @@ public class AutomatonPresetService(
         }
 
         logger.LogInformation("Generated NFA is deterministic, adding nondeterministic transitions");
-        return AddNondeterministicTransitions(baseNfa, seed, reachableStates);
+        var result = AddNondeterministicTransitions(baseNfa, seed, reachableStates);
+        var reachableAfter = GetReachableStates(result);
+        RemoveUnreachableNondeterminism(result, reachableAfter);
+
+        if (!HasReachableNondeterminism(result, reachableAfter))
+        {
+            logger.LogWarning("Failed to add nondeterministic transitions via random method, forcing one guaranteed nondeterministic transition");
+            result = ForceNondeterministicTransition(result, seed);
+        }
+
+        return result;
     }
 
     public AutomatonViewModel GenerateNondeterministicEpsilonNfa(int stateCount = 5, int transitionCount = 10, int alphabetSize = 3, double acceptingRatio = 0.3, int? seed = null)
@@ -541,6 +552,7 @@ public class AutomatonPresetService(
 
         var baseeNfa = generatorService.GenerateRandomAutomaton(AutomatonType.EpsilonNFA, stateCount, transitionCount, alphabetSize, acceptingRatio, seed);
         var reachableStates = GetReachableStates(baseeNfa);
+        RemoveUnreachableNondeterminism(baseeNfa, reachableStates);
 
         if (HasReachableNondeterminism(baseeNfa, reachableStates))
         {
@@ -858,6 +870,7 @@ public class AutomatonPresetService(
 
         var baseEnfa = GenerateEpsilonNfa(stateCount, transitionCount, alphabetSize, acceptingRatio, seed);
         var reachableStates = GetReachableStates(baseEnfa);
+        RemoveUnreachableNondeterminism(baseEnfa, reachableStates);
 
         if (HasReachableNondeterminism(baseEnfa, reachableStates))
         {
@@ -868,6 +881,7 @@ public class AutomatonPresetService(
         logger.LogInformation("Generated ε-NFA is deterministic, adding nondeterministic transitions");
         var result = AddNondeterministicTransitions(baseEnfa, seed, reachableStates);
         var reachableAfter = GetReachableStates(result);
+        RemoveUnreachableNondeterminism(result, reachableAfter);
 
         if (!HasReachableNondeterminism(result, reachableAfter))
         {
@@ -958,6 +972,20 @@ public class AutomatonPresetService(
         {
             logger.LogInformation("Force-added nondeterministic transition: q{From} --{Symbol}--> q{To}",
                 fromStateId, symbol, toStateId);
+        }
+    }
+
+    private static void RemoveUnreachableNondeterminism(AutomatonViewModel automaton, HashSet<int> reachableStates)
+    {
+        var transitionsToRemove = automaton.Transitions
+            .Where(t => !reachableStates.Contains(t.FromStateId))
+            .GroupBy(t => new { t.FromStateId, t.Symbol })
+            .SelectMany(g => g.Skip(1))
+            .ToList();
+
+        foreach (var transition in transitionsToRemove)
+        {
+            automaton.Transitions.Remove(transition);
         }
     }
 
