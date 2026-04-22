@@ -64,6 +64,22 @@ public class AutomatonConversionService(IAutomatonBuilderService builderService,
             return (fallback, warnings);
         }
 
+        if (model.Type == AutomatonType.EpsilonNFA && newType == AutomatonType.DFA)
+        {
+            var (intermediateNfaModel, nfaWarnings) = ConvertAutomatonType(model, AutomatonType.NFA);
+            var convertedDfa = ConvertToDFA(intermediateNfaModel);
+            warnings.AddRange(nfaWarnings);
+            warnings.Add("Converted EpsilonNFA to DFA via intermediate NFA conversion and determinization.");
+            return (convertedDfa, warnings);
+        }
+
+        if (model.Type == AutomatonType.NFA && newType == AutomatonType.DFA)
+        {
+            var convertedDfa = ConvertToDFA(model);
+            warnings.Add("Converted NFA to DFA via subset construction.");
+            return (convertedDfa, warnings);
+        }
+
         var shallow = new AutomatonViewModel
         {
             Type = newType,
@@ -73,14 +89,6 @@ public class AutomatonConversionService(IAutomatonBuilderService builderService,
             IsCustomAutomaton = model.IsCustomAutomaton,
             SourceRegex = model.SourceRegex
         };
-
-        switch ((model.Type, newType))
-        {
-            case (AutomatonType.EpsilonNFA, AutomatonType.DFA):
-            case (AutomatonType.NFA, AutomatonType.DFA):
-                warnings.Add("Shallow conversion only. Use 'Minimalize' / ConvertToDFA for full determinization.");
-                break;
-        }
 
         if (logger.IsEnabled(LogLevel.Information))
         {
@@ -108,16 +116,16 @@ public class AutomatonConversionService(IAutomatonBuilderService builderService,
         var automaton = builderService.CreateAutomatonFromModel(model);
         DFA convertedDFA;
 
-        if (automaton is NFA nfa)
-        {
-            logger.LogInformation("Converting NFA to DFA");
-            convertedDFA = nfa.ToDFA();
-        }
-        else if (automaton is EpsilonNFA enfa)
+        if (automaton is EpsilonNFA enfa)
         {
             logger.LogInformation("Converting EpsilonNFA to DFA via NFA");
             var intermediateNFA = enfa.ToNFA();
             convertedDFA = intermediateNFA.ToDFA();
+        }
+        else if (automaton is NFA nfa)
+        {
+            logger.LogInformation("Converting NFA to DFA");
+            convertedDFA = nfa.ToDFA();
         }
         else
         {

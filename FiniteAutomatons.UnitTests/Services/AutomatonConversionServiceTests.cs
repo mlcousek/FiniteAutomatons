@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.DoMain;
+﻿using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Interfaces;
@@ -96,6 +96,81 @@ public class AutomatonConversionServiceTests
 
         // Assert
         result.ShouldBe(model);
+    }
+
+    [Fact]
+    public void ConvertToDFA_EpsilonNfaDirect_ShouldBehaveLikeExpectedLanguage()
+    {
+        // Arrange
+        var model = CreateImageScenarioEpsilonNfa();
+
+        // Act
+        var dfaModel = service.ConvertToDFA(model);
+        var dfa = new MockAutomatonBuilderService().CreateDFA(dfaModel);
+
+        // Assert
+        dfa.Execute("").ShouldBeFalse();
+        dfa.Execute("a").ShouldBeTrue();
+        dfa.Execute("u").ShouldBeTrue();
+        dfa.Execute("aeiou").ShouldBeTrue();
+        dfa.Execute("b").ShouldBeFalse();
+        dfa.Execute("ab").ShouldBeFalse();
+    }
+
+    [Fact]
+    public void ConvertAutomatonType_EpsilonNfaToDfa_ShouldMatchTwoStepConversion()
+    {
+        // Arrange
+        var model = CreateImageScenarioEpsilonNfa();
+
+        // Act
+        var (directDfaModel, directWarnings) = service.ConvertAutomatonType(model, AutomatonType.DFA);
+        var (intermediateNfaModel, _) = service.ConvertAutomatonType(model, AutomatonType.NFA);
+        var twoStepDfaModel = service.ConvertToDFA(intermediateNfaModel);
+
+        // Assert
+        directDfaModel.Type.ShouldBe(AutomatonType.DFA);
+        directWarnings.ShouldContain("Converted EpsilonNFA to DFA via intermediate NFA conversion and determinization.");
+
+        directDfaModel.States.Count.ShouldBe(twoStepDfaModel.States.Count);
+        directDfaModel.Transitions.Count.ShouldBe(twoStepDfaModel.Transitions.Count);
+
+        var directTransitions = directDfaModel.Transitions
+            .Select(t => $"{t.FromStateId}-{t.Symbol}-{t.ToStateId}")
+            .OrderBy(x => x)
+            .ToArray();
+        var twoStepTransitions = twoStepDfaModel.Transitions
+            .Select(t => $"{t.FromStateId}-{t.Symbol}-{t.ToStateId}")
+            .OrderBy(x => x)
+            .ToArray();
+
+        directTransitions.ShouldBe(twoStepTransitions);
+    }
+
+    private static AutomatonViewModel CreateImageScenarioEpsilonNfa()
+    {
+        return new AutomatonViewModel
+        {
+            Type = AutomatonType.EpsilonNFA,
+            States =
+            [
+                new() { Id = 1, IsStart = false, IsAccepting = false },
+                new() { Id = 2, IsStart = false, IsAccepting = false },
+                new() { Id = 3, IsStart = true, IsAccepting = false },
+                new() { Id = 4, IsStart = false, IsAccepting = true }
+            ],
+            Transitions =
+            [
+                new() { FromStateId = 3, ToStateId = 1, Symbol = '\0' },
+                new() { FromStateId = 1, ToStateId = 2, Symbol = 'a' },
+                new() { FromStateId = 1, ToStateId = 2, Symbol = 'e' },
+                new() { FromStateId = 1, ToStateId = 2, Symbol = 'i' },
+                new() { FromStateId = 1, ToStateId = 2, Symbol = 'o' },
+                new() { FromStateId = 1, ToStateId = 2, Symbol = 'u' },
+                new() { FromStateId = 2, ToStateId = 1, Symbol = '\0' },
+                new() { FromStateId = 2, ToStateId = 4, Symbol = '\0' }
+            ]
+        };
     }
 }
 
