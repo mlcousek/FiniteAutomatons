@@ -49,19 +49,42 @@ public class AutomatonGenerationController(
             model.Type, model.StateCount, model.TransitionCount);
         }
 
-        if (!generatorService.ValidateGenerationParameters(model.Type, model.StateCount, model.TransitionCount, model.AlphabetSize))
+        if (!ModelState.IsValid)
         {
-            ModelState.AddModelError(string.Empty, "Invalid generation parameters. Please check your input values.");
-            return View(model);
+            tempDataService.StoreErrorMessage(TempData, "Invalid generation parameters. Please check your input values.");
+            return RedirectToAction("Index", "Home");
         }
 
-        var generated = generatorService.GenerateRandomAutomaton(
-            model.Type,
-            model.StateCount,
-            model.TransitionCount,
-            model.AlphabetSize,
-            model.AcceptingStateRatio,
-            model.Seed);
+        if (!generatorService.ValidateGenerationParameters(model.Type, model.StateCount, model.TransitionCount, model.AlphabetSize))
+        {
+            tempDataService.StoreErrorMessage(TempData,
+                "Invalid generation parameters. Transition count must respect connectivity and automaton constraints.");
+            return RedirectToAction("Index", "Home");
+        }
+
+        AutomatonViewModel generated;
+        try
+        {
+            generated = generatorService.GenerateRandomAutomaton(
+                model.Type,
+                model.StateCount,
+                model.TransitionCount,
+                model.AlphabetSize,
+                model.AcceptingStateRatio,
+                model.Seed);
+        }
+        catch (ArgumentOutOfRangeException ex)
+        {
+            logger.LogWarning(ex, "Generation rejected due to out-of-range parameters");
+            tempDataService.StoreErrorMessage(TempData, ex.Message);
+            return RedirectToAction("Index", "Home");
+        }
+        catch (ArgumentException ex)
+        {
+            logger.LogWarning(ex, "Generation rejected due to invalid parameters");
+            tempDataService.StoreErrorMessage(TempData, ex.Message);
+            return RedirectToAction("Index", "Home");
+        }
 
         tempDataService.StoreCustomAutomaton(TempData, generated);
         tempDataService.StoreConversionMessage(TempData,

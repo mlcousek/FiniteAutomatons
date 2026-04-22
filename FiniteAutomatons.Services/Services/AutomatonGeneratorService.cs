@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.DoMain;
+﻿using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Interfaces;
@@ -24,6 +24,11 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
         PDAAcceptanceMode? acceptanceMode = null,
         Stack<char>? initialStack = null)
     {
+        if (acceptingStateRatio < 0.0 || acceptingStateRatio > 1.0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(acceptingStateRatio), "Accepting state ratio must be between 0.0 and 1.0.");
+        }
+
         if (!ValidateGenerationParameters(type, stateCount, transitionCount, alphabetSize))
         {
             throw new ArgumentException("Invalid generation parameters");
@@ -111,7 +116,9 @@ public class AutomatonGeneratorService : IAutomatonGeneratorService
     private static List<State> GenerateStates(int count, double acceptingRatio, Random random)
     {
         var states = new List<State>();
-        int acceptingCount = Math.Max(1, (int)(count * acceptingRatio));
+        int acceptingCount = acceptingRatio <= 0.0
+            ? 0
+            : Math.Min(count, Math.Max(1, (int)Math.Round(count * acceptingRatio, MidpointRounding.AwayFromZero)));
 
         for (int i = 1; i <= count; i++)
         {

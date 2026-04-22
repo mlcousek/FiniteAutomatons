@@ -34,11 +34,11 @@ public class RandomAutomatonGenerationViewModel
         _ => Type.ToString()
     };
 
-    public int MinTransitionCount => StateCount;
+    public int MinTransitionCount => Math.Max(0, StateCount - 1);
     public int MaxTransitionCount => Type == AutomatonType.DFA ? StateCount * AlphabetSize : StateCount * StateCount;
 
     public bool IsValid => StateCount >= 1 &&
-                          TransitionCount >= 0 &&
+                          TransitionCount >= Math.Max(0, StateCount - 1) &&
                           AlphabetSize >= 1 &&
                           AcceptingStateRatio >= 0.0 && AcceptingStateRatio <= 1.0 &&
                           (Type != AutomatonType.DFA || TransitionCount <= StateCount * AlphabetSize);

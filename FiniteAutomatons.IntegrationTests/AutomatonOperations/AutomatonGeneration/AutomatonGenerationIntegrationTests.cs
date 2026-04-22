@@ -37,6 +37,54 @@ public class AutomatonGenerationIntegrationTests(IntegrationTestsFixture fixture
     }
 
     [Fact]
+    public async Task GenerateRandomAutomaton_POST_InvalidConnectivityParameters_ShouldReturnHomeWithError()
+    {
+        var client = GetHttpClient();
+
+        var formData = new List<KeyValuePair<string, string>>
+        {
+            new("Type", "1"),
+            new("StateCount", "6"),
+            new("TransitionCount", "3"),
+            new("AlphabetSize", "2"),
+            new("AcceptingStateRatio", "0.5"),
+            new("Seed", "7777")
+        };
+
+        var postResponse = await client.PostAsync("/AutomatonGeneration/GenerateRandomAutomaton", new FormUrlEncodedContent(formData));
+
+        postResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var html = await postResponse.Content.ReadAsStringAsync();
+        html.ShouldContain("Invalid generation parameters");
+    }
+
+    [Fact]
+    public async Task GenerateRandomAutomaton_POST_AcceptingRatioZero_ShouldGenerateWithoutForcedAcceptingState()
+    {
+        var client = GetHttpClient();
+
+        var formData = new List<KeyValuePair<string, string>>
+        {
+            new("Type", "1"),
+            new("StateCount", "6"),
+            new("TransitionCount", "8"),
+            new("AlphabetSize", "3"),
+            new("AcceptingStateRatio", "0.0"),
+            new("Seed", "7788")
+        };
+
+        var postResponse = await client.PostAsync("/AutomatonGeneration/GenerateRandomAutomaton", new FormUrlEncodedContent(formData));
+
+        postResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        using var scope = GetServiceScope();
+        var service = scope.ServiceProvider.GetRequiredService<IAutomatonGeneratorService>();
+        var generated = service.GenerateRandomAutomaton(AutomatonType.NFA, 6, 8, 3, 0.0, 7788);
+
+        generated.States.Count(s => s.IsAccepting).ShouldBe(0);
+    }
+
+    [Fact]
     public async Task GenerateRandomAutomaton_POST_PDA_ShouldGenerateAndRedirect()
     {
         // Arrange

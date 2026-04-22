@@ -157,6 +157,23 @@ public class AutomatonGeneratorServiceTests
     }
 
     [Fact]
+    public void GenerateRandomAutomaton_AcceptingRatioZero_ShouldAllowNoAcceptingStates()
+    {
+        var result = service.GenerateRandomAutomaton(AutomatonType.NFA, 6, 8, 3, 0.0, seed: 901);
+
+        result.States.Count(s => s.IsAccepting).ShouldBe(0);
+    }
+
+    [Theory]
+    [InlineData(-0.01)]
+    [InlineData(1.01)]
+    public void GenerateRandomAutomaton_AcceptingRatioOutOfRange_ShouldThrow(double acceptingRatio)
+    {
+        Should.Throw<ArgumentOutOfRangeException>(() =>
+            service.GenerateRandomAutomaton(AutomatonType.NFA, 5, 7, 2, acceptingRatio, seed: 902));
+    }
+
+    [Fact]
     public void GenerateRandomParameters_AlwaysProvideConnectivityCapableTransitions()
     {
         for (int seed = 50; seed < 200; seed++)
@@ -302,6 +319,86 @@ public class AutomatonGeneratorServiceTests
 
             reachable.Count.ShouldBe(model.States.Count,
                 $"All states should be reachable from start for {type}. Seed={seed} reachable={reachable.Count} total={model.States.Count}");
+        }
+    }
+
+    [Theory]
+    [InlineData(AutomatonType.DFA)]
+    [InlineData(AutomatonType.NFA)]
+    [InlineData(AutomatonType.EpsilonNFA)]
+    [InlineData(AutomatonType.DPDA)]
+    [InlineData(AutomatonType.NPDA)]
+    public void ValidateGenerationParameters_ConnectivityBoundary_ShouldMatchFormalRequirement(AutomatonType type)
+    {
+        const int stateCount = 6;
+        const int alphabetSize = 3;
+        int requiredMin = stateCount - 1;
+
+        service.ValidateGenerationParameters(type, stateCount, requiredMin - 1, alphabetSize).ShouldBeFalse();
+        service.ValidateGenerationParameters(type, stateCount, requiredMin, alphabetSize).ShouldBeTrue();
+    }
+
+    [Theory]
+    [InlineData(AutomatonType.DFA)]
+    [InlineData(AutomatonType.NFA)]
+    [InlineData(AutomatonType.EpsilonNFA)]
+    [InlineData(AutomatonType.DPDA)]
+    [InlineData(AutomatonType.NPDA)]
+    public void GenerateRandomAutomaton_AcceptingRatioBounds_ShouldRespectExtremes(AutomatonType type)
+    {
+        const int stateCount = 7;
+        const int transitionCount = 12;
+        const int alphabetSize = 4;
+
+        var noneAccepting = service.GenerateRandomAutomaton(type, stateCount, transitionCount, alphabetSize, 0.0, seed: 9200 + (int)type);
+        noneAccepting.States.Count(s => s.IsAccepting).ShouldBe(0);
+
+        var allAccepting = service.GenerateRandomAutomaton(type, stateCount, transitionCount, alphabetSize, 1.0, seed: 9300 + (int)type);
+        allAccepting.States.Count(s => s.IsAccepting).ShouldBe(stateCount);
+    }
+
+    [Theory]
+    [InlineData(AutomatonType.DFA)]
+    [InlineData(AutomatonType.NFA)]
+    [InlineData(AutomatonType.EpsilonNFA)]
+    [InlineData(AutomatonType.DPDA)]
+    [InlineData(AutomatonType.NPDA)]
+    public void GenerateRandomAutomaton_BoundaryMatrix_AcrossSeeds_ShouldSatisfyCoreInvariants(AutomatonType type)
+    {
+        const int alphabetSize = 3;
+        const double acceptingRatio = 0.25;
+
+        for (int stateCount = 2; stateCount <= 7; stateCount++)
+        {
+            int minTransitions = stateCount - 1;
+            int requestedTransitions = type == AutomatonType.DFA
+                ? Math.Min(stateCount * alphabetSize, minTransitions + 2)
+                : minTransitions + 2;
+
+            for (int seed = 9400; seed < 9410; seed++)
+            {
+                var model = service.GenerateRandomAutomaton(type, stateCount, requestedTransitions, alphabetSize, acceptingRatio, seed + stateCount);
+
+                model.States.Count.ShouldBe(stateCount);
+                model.States.Count(s => s.IsStart).ShouldBe(1);
+                model.States.Count(s => s.IsAccepting).ShouldBeGreaterThan(0);
+
+                var expectedMaxTransitions = type == AutomatonType.NPDA
+                    ? Math.Max(2, requestedTransitions) + 1
+                    : requestedTransitions;
+                model.Transitions.Count.ShouldBeLessThanOrEqualTo(expectedMaxTransitions);
+
+                var reachable = GetReachableStates(model);
+                reachable.Count.ShouldBe(stateCount, $"All states should remain reachable. Type={type}, states={stateCount}, seed={seed}");
+
+                if (type == AutomatonType.DFA)
+                {
+                    var hasNondeterministicPair = model.Transitions
+                        .GroupBy(t => (t.FromStateId, t.Symbol))
+                        .Any(g => g.Count() > 1);
+                    hasNondeterministicPair.ShouldBeFalse();
+                }
+            }
         }
     }
 

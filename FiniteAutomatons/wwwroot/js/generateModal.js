@@ -1,4 +1,4 @@
-// Modal handling for Generate Automaton with modern animations
+﻿// Modal handling for Generate Automaton with modern animations
 (function() {
     const modal = document.getElementById('generateModal');
     const btn = document.getElementById('generateModalBtn');
@@ -227,6 +227,82 @@
 
     if (familySelect) {
         familySelect.addEventListener('change', () => populateOptionsForFamily(familySelect.value));
+    }
+
+    const customGenerateForm = modal?.querySelector('form[action*="GenerateRandomAutomaton"]');
+    const customTypeInput = customGenerateForm?.querySelector('select[name="Type"]');
+    const customStateCountInput = customGenerateForm?.querySelector('input[name="StateCount"]');
+    const customTransitionCountInput = customGenerateForm?.querySelector('input[name="TransitionCount"]');
+    const customAlphabetSizeInput = customGenerateForm?.querySelector('input[name="AlphabetSize"]');
+
+    function parsePositiveInt(value, fallback) {
+        const parsed = parseInt(value, 10);
+        return Number.isNaN(parsed) ? fallback : parsed;
+    }
+
+    function getTransitionRules() {
+        const stateCount = Math.max(1, parsePositiveInt(customStateCountInput?.value, 1));
+        const alphabetSize = Math.max(1, parsePositiveInt(customAlphabetSizeInput?.value, 1));
+        const selectedType = customTypeInput?.value || '0';
+        const minTransitions = Math.max(0, stateCount - 1);
+        const maxTransitions = selectedType === '0' ? stateCount * alphabetSize : null;
+
+        return { minTransitions, maxTransitions };
+    }
+
+    function validateCustomGenerateForm() {
+        if (!customTransitionCountInput) return true;
+
+        const { minTransitions, maxTransitions } = getTransitionRules();
+        const transitionCount = parsePositiveInt(customTransitionCountInput.value, 0);
+
+        if (transitionCount < minTransitions) {
+            customTransitionCountInput.setCustomValidity(`Transitions must be at least ${minTransitions} to keep ${minTransitions + 1} states reachable.`);
+            customTransitionCountInput.reportValidity();
+            return false;
+        }
+
+        if (maxTransitions !== null && transitionCount > maxTransitions) {
+            customTransitionCountInput.setCustomValidity(`For DFA, transitions must be at most ${maxTransitions} (states × alphabet).`);
+            customTransitionCountInput.reportValidity();
+            return false;
+        }
+
+        customTransitionCountInput.setCustomValidity('');
+        return true;
+    }
+
+    function syncTransitionConstraints() {
+        if (!customTransitionCountInput) return;
+
+        const { minTransitions, maxTransitions } = getTransitionRules();
+        customTransitionCountInput.min = String(minTransitions);
+
+        if (maxTransitions === null) {
+            customTransitionCountInput.removeAttribute('max');
+        } else {
+            customTransitionCountInput.max = String(maxTransitions);
+        }
+
+        validateCustomGenerateForm();
+    }
+
+    if (customGenerateForm && customTransitionCountInput) {
+        const syncedInputs = [customTypeInput, customStateCountInput, customAlphabetSizeInput, customTransitionCountInput]
+            .filter(Boolean);
+
+        syncedInputs.forEach(input => {
+            input.addEventListener('input', syncTransitionConstraints);
+            input.addEventListener('change', syncTransitionConstraints);
+        });
+
+        customGenerateForm.addEventListener('submit', (e) => {
+            if (!validateCustomGenerateForm()) {
+                e.preventDefault();
+            }
+        });
+
+        syncTransitionConstraints();
     }
 
     if (modal) {
