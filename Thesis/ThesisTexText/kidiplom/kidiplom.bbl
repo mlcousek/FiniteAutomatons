@@ -1,0 +1,246 @@
+% $ biblatex auxiliary file $
+% $ biblatex bbl format version 3.3 $
+% Do not modify the above lines!
+%
+% This is an auxiliary file used by the 'biblatex' package.
+% This file may safely be deleted. It will be recreated by
+% biber as required.
+%
+\begingroup
+\makeatletter
+\@ifundefined{ver@biblatex.sty}
+  {\@latex@error
+     {Missing 'biblatex' package}
+     {The bibliography requires the 'biblatex' package.}
+      \aftergroup\endinput}
+  {}
+\endgroup
+
+
+\refsection{0}
+  \datalist[entry]{none/global//global/global/global}
+    \entry{jancar_ti}{book}{}{}
+      \name{author}{1}{}{%
+        {{hash=d150adf3046188329a5b5bd194d823c5}{%
+           family={Jančar},
+           familyi={J\bibinitperiod},
+           given={Petr},
+           giveni={P\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {Ostrava}%
+      }
+      \list{publisher}{1}{%
+        {Ediční středisko VŠB-TUO}%
+      }
+      \strng{namehash}{d150adf3046188329a5b5bd194d823c5}
+      \strng{fullhash}{d150adf3046188329a5b5bd194d823c5}
+      \strng{fullhashraw}{d150adf3046188329a5b5bd194d823c5}
+      \strng{bibnamehash}{d150adf3046188329a5b5bd194d823c5}
+      \strng{authorbibnamehash}{d150adf3046188329a5b5bd194d823c5}
+      \strng{authornamehash}{d150adf3046188329a5b5bd194d823c5}
+      \strng{authorfullhash}{d150adf3046188329a5b5bd194d823c5}
+      \strng{authorfullhashraw}{d150adf3046188329a5b5bd194d823c5}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{isbn}{978-80-248-1487-2}
+      \field{langid}{czech}
+      \field{pagetotal}{330}
+      \field{subtitle}{učební text}
+      \field{title}{Teoretická informatika}
+      \field{year}{2007}
+    \endentry
+    \entry{osicka_sloz}{online}{}{}
+      \name{author}{1}{}{%
+        {{hash=2b891d237e27a731a7c8a8219d74db51}{%
+           family={Osička},
+           familyi={O\bibinitperiod},
+           given={Petr},
+           giveni={P\bibinitperiod}}}%
+      }
+      \list{organization}{1}{%
+        {Univerzita Palackého v Olomouci}%
+      }
+      \strng{namehash}{2b891d237e27a731a7c8a8219d74db51}
+      \strng{fullhash}{2b891d237e27a731a7c8a8219d74db51}
+      \strng{fullhashraw}{2b891d237e27a731a7c8a8219d74db51}
+      \strng{bibnamehash}{2b891d237e27a731a7c8a8219d74db51}
+      \strng{authorbibnamehash}{2b891d237e27a731a7c8a8219d74db51}
+      \strng{authornamehash}{2b891d237e27a731a7c8a8219d74db51}
+      \strng{authorfullhash}{2b891d237e27a731a7c8a8219d74db51}
+      \strng{authorfullhashraw}{2b891d237e27a731a7c8a8219d74db51}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{langid}{czech}
+      \field{title}{KMI/SLO - poznámky, ZS2021}
+      \field{urlday}{6}
+      \field{urlmonth}{3}
+      \field{urlyear}{2026}
+      \field{year}{2022}
+      \field{urldateera}{ce}
+      \verb{urlraw}
+      \verb https://phoenix.inf.upol.cz/~osicka/sloz/poznamky.pdf
+      \endverb
+      \verb{url}
+      \verb https://phoenix.inf.upol.cz/~osicka/sloz/poznamky.pdf
+      \endverb
+    \endentry
+    \entry{devopedia_chomsky}{online}{}{}
+      \name{author}{1}{}{%
+        {{hash=422462407fd38c5eff6d21113ca81078}{%
+           family={{Devopedia}},
+           familyi={D\bibinitperiod}}}%
+      }
+      \strng{namehash}{422462407fd38c5eff6d21113ca81078}
+      \strng{fullhash}{422462407fd38c5eff6d21113ca81078}
+      \strng{fullhashraw}{422462407fd38c5eff6d21113ca81078}
+      \strng{bibnamehash}{422462407fd38c5eff6d21113ca81078}
+      \strng{authorbibnamehash}{422462407fd38c5eff6d21113ca81078}
+      \strng{authornamehash}{422462407fd38c5eff6d21113ca81078}
+      \strng{authorfullhash}{422462407fd38c5eff6d21113ca81078}
+      \strng{authorfullhashraw}{422462407fd38c5eff6d21113ca81078}
+      \field{sortinit}{4}
+      \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{langid}{english}
+      \field{title}{Chomsky Hierarchy}
+      \field{urlday}{6}
+      \field{urlmonth}{3}
+      \field{urlyear}{2026}
+      \field{urldateera}{ce}
+      \verb{urlraw}
+      \verb https://devopedia.org/chomsky-hierarchy
+      \endverb
+      \verb{url}
+      \verb https://devopedia.org/chomsky-hierarchy
+      \endverb
+    \endentry
+    \entry{gfg_lifo}{online}{}{}
+      \name{author}{1}{}{%
+        {{hash=f1e069787ece74531d112559945c6871}{%
+           family={{GeeksforGeeks}},
+           familyi={G\bibinitperiod}}}%
+      }
+      \strng{namehash}{f1e069787ece74531d112559945c6871}
+      \strng{fullhash}{f1e069787ece74531d112559945c6871}
+      \strng{fullhashraw}{f1e069787ece74531d112559945c6871}
+      \strng{bibnamehash}{f1e069787ece74531d112559945c6871}
+      \strng{authorbibnamehash}{f1e069787ece74531d112559945c6871}
+      \strng{authornamehash}{f1e069787ece74531d112559945c6871}
+      \strng{authorfullhash}{f1e069787ece74531d112559945c6871}
+      \strng{authorfullhashraw}{f1e069787ece74531d112559945c6871}
+      \field{sortinit}{5}
+      \field{sortinithash}{20e9b4b0b173788c5dace24730f47d8c}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{langid}{english}
+      \field{title}{LIFO Principle in Stack}
+      \field{urlday}{6}
+      \field{urlmonth}{3}
+      \field{urlyear}{2026}
+      \field{year}{2025}
+      \field{urldateera}{ce}
+      \verb{urlraw}
+      \verb https://www.geeksforgeeks.org/dsa/lifo-principle-in-stack/
+      \endverb
+      \verb{url}
+      \verb https://www.geeksforgeeks.org/dsa/lifo-principle-in-stack/
+      \endverb
+    \endentry
+    \entry{cerna_fja}{online}{}{}
+      \name{author}{3}{}{%
+        {{hash=09362b32e4b40ca47c3361eb77463677}{%
+           family={Černá},
+           familyi={Č\bibinitperiod},
+           given={Ivana},
+           giveni={I\bibinitperiod}}}%
+        {{hash=153986e04391a340b443e5ac3cf030b6}{%
+           family={Křetínský},
+           familyi={K\bibinitperiod},
+           given={Mojmír},
+           giveni={M\bibinitperiod}}}%
+        {{hash=ef3084283f75162ff3e3a7a5c54de19a}{%
+           family={Kučera},
+           familyi={K\bibinitperiod},
+           given={Antonín},
+           giveni={A\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {Brno}%
+      }
+      \list{organization}{1}{%
+        {Masarykova univerzita}%
+      }
+      \strng{namehash}{7f4ef98b6fa8f2e85b28c1656d84ff8a}
+      \strng{fullhash}{7f4ef98b6fa8f2e85b28c1656d84ff8a}
+      \strng{fullhashraw}{7f4ef98b6fa8f2e85b28c1656d84ff8a}
+      \strng{bibnamehash}{7f4ef98b6fa8f2e85b28c1656d84ff8a}
+      \strng{authorbibnamehash}{7f4ef98b6fa8f2e85b28c1656d84ff8a}
+      \strng{authornamehash}{7f4ef98b6fa8f2e85b28c1656d84ff8a}
+      \strng{authorfullhash}{7f4ef98b6fa8f2e85b28c1656d84ff8a}
+      \strng{authorfullhashraw}{7f4ef98b6fa8f2e85b28c1656d84ff8a}
+      \field{sortinit}{6}
+      \field{sortinithash}{b33bc299efb3c36abec520a4c896a66d}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{issn}{1802-128X}
+      \field{langid}{czech}
+      \field{title}{Formální jazyky a automaty I}
+      \field{urlday}{6}
+      \field{urlmonth}{3}
+      \field{urlyear}{2026}
+      \field{year}{2006}
+      \field{urldateera}{ce}
+      \verb{urlraw}
+      \verb https://is.muni.cz/elportal/estud/fi/js06/ib005/Formalni_jazyky_a_automaty_I.pdf
+      \endverb
+      \verb{url}
+      \verb https://is.muni.cz/elportal/estud/fi/js06/ib005/Formalni_jazyky_a_automaty_I.pdf
+      \endverb
+    \endentry
+    \entry{balun_fj}{online}{}{}
+      \name{author}{1}{}{%
+        {{hash=b29537be0e143673645a97cb4d0c85b3}{%
+           family={Balun},
+           familyi={B\bibinitperiod},
+           given={Jiří},
+           giveni={J\bibinitperiod}}}%
+      }
+      \list{organization}{1}{%
+        {Univerzita Palackého v Olomouci}%
+      }
+      \strng{namehash}{b29537be0e143673645a97cb4d0c85b3}
+      \strng{fullhash}{b29537be0e143673645a97cb4d0c85b3}
+      \strng{fullhashraw}{b29537be0e143673645a97cb4d0c85b3}
+      \strng{bibnamehash}{b29537be0e143673645a97cb4d0c85b3}
+      \strng{authorbibnamehash}{b29537be0e143673645a97cb4d0c85b3}
+      \strng{authornamehash}{b29537be0e143673645a97cb4d0c85b3}
+      \strng{authorfullhash}{b29537be0e143673645a97cb4d0c85b3}
+      \strng{authorfullhashraw}{b29537be0e143673645a97cb4d0c85b3}
+      \field{sortinit}{7}
+      \field{sortinithash}{108d0be1b1bee9773a1173443802c0a3}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{langid}{czech}
+      \field{title}{Materiály ke cvičení z předmětu Formální jazyky}
+      \field{urlday}{6}
+      \field{urlmonth}{3}
+      \field{urlyear}{2026}
+      \field{year}{2026}
+      \field{urldateera}{ce}
+      \verb{urlraw}
+      \verb https://apollo.inf.upol.cz/~balun/fj/fj_cv_2026.pdf
+      \endverb
+      \verb{url}
+      \verb https://apollo.inf.upol.cz/~balun/fj/fj_cv_2026.pdf
+      \endverb
+    \endentry
+  \enddatalist
+\endrefsection
+\endinput
+

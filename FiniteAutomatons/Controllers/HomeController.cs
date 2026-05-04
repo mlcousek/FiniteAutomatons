@@ -57,6 +57,11 @@ public class HomeController(ILogger<HomeController> logger, IAutomatonTempDataSe
         return View();
     }
 
+    public IActionResult Learn()
+    {
+        return View();
+    }
+
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult Error()
     {

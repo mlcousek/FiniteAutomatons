@@ -1,0 +1,650 @@
+﻿@{
+    ViewData["Title"] = "Learn — Theory of Automata";
+}
+
+@section Styles {
+<link rel="stylesheet" href="~/css/learn.css" asp-append-version="true" />
+}
+
+
+<div class="learn-page">
+
+    <!-- ── Sidebar ──────────────────────────────────────────────────────── -->
+    <nav class="learn-sidebar" id="learnSidebar" aria-label="Learn navigation">
+        <h6>Foundations</h6>
+        <a href="#chomsky">Chomsky Hierarchy</a>
+        <a href="#regular-expressions">Regular Expressions</a>
+
+        <h6>Finite Automata</h6>
+        <a href="#dfa">DFA</a>
+        <a href="#nfa">NFA</a>
+        <a href="#enfa">ε-NFA</a>
+
+        <h6>Pushdown Automata</h6>
+        <a href="#dpda">DPDA</a>
+        <a href="#npda">NPDA</a>
+
+        <h6>Algorithms &amp; Operations</h6>
+        <a href="#epsilon-elimination">ε-Elimination</a>
+        <a href="#determinization">Determinization</a>
+        <a href="#minimization">Minimization</a>
+        <a href="#thompson">Thompson's Construction</a>
+
+        <h6>Reference</h6>
+        <a href="#comparison">Comparison Table</a>
+    </nav>
+
+    <!-- ── Content ──────────────────────────────────────────────────────── -->
+    <div class="learn-content">
+
+        <!-- Hero -->
+        <div class="learn-section" style="border-left: 6px solid #000;">
+            <h2 style="border-bottom: none; margin-bottom: 0.5rem;">Theory of Automata</h2>
+            <p style="margin: 0; color: #555; font-size: 0.95rem;">
+                An interactive reference for students and practitioners covering finite automata,
+                pushdown automata, and the core transformation algorithms supported by this simulator.
+            </p>
+            <div class="automaton-badges" style="margin-top: 1rem; margin-bottom: 0;">
+                <a href="#dfa" class="automaton-badge" style="text-decoration:none;">DFA</a>
+                <a href="#nfa" class="automaton-badge" style="text-decoration:none;">NFA</a>
+                <a href="#enfa" class="automaton-badge" style="text-decoration:none;">ε-NFA</a>
+                <a href="#dpda" class="automaton-badge" style="text-decoration:none;">DPDA</a>
+                <a href="#npda" class="automaton-badge" style="text-decoration:none;">NPDA</a>
+            </div>
+        </div>
+
+        <!-- ── Chomsky Hierarchy ── -->
+        <section class="learn-section" id="chomsky">
+            <h2>Chomsky Hierarchy</h2>
+            <p>
+                In the late 1950s, Noam Chomsky classified formal grammars into four nested types based on
+                restrictions placed on their rewriting rules. Each type corresponds to a class of languages
+                and a computational model capable of recognising them.
+            </p>
+
+            <div class="chomsky-diagram">
+                <div class="chomsky-level">
+                    <span><span class="type-label">Type 0</span> — Unrestricted</span>
+                    <span class="model-label">Turing Machine</span>
+                </div>
+                <div class="chomsky-level">
+                    <span><span class="type-label">Type 1</span> — Context-Sensitive</span>
+                    <span class="model-label">Linear Bounded Automaton</span>
+                </div>
+                <div class="chomsky-level">
+                    <span><span class="type-label">Type 2</span> — Context-Free</span>
+                    <span class="model-label">Pushdown Automaton</span>
+                </div>
+                <div class="chomsky-level">
+                    <span><span class="type-label">Type 3</span> — Regular</span>
+                    <span class="model-label">Finite Automaton</span>
+                </div>
+            </div>
+
+            <p>
+                This simulator focuses on <strong>Type 3 (regular languages)</strong> and
+                <strong>Type 2 (context-free languages)</strong> — the two lowest levels of the hierarchy,
+                recognised by finite automata and pushdown automata respectively.
+            </p>
+
+            <div class="callout callout-info">
+                <i class="fas fa-info-circle" style="color:#0d6efd;"></i>
+                <span>Each level is strictly contained within the one above it:
+                    <strong>Regular ⊊ Context-Free ⊊ Context-Sensitive ⊊ Recursively Enumerable</strong>.
+                </span>
+            </div>
+        </section>
+
+        <!-- ── Regular Expressions ── -->
+        <section class="learn-section" id="regular-expressions">
+            <h2>Regular Expressions</h2>
+            <p>
+                A <strong>regular expression</strong> over an alphabet Σ provides a declarative way to
+                describe a regular language. Every regular expression is equivalent in expressive power
+                to a finite automaton — they both describe exactly the class of regular languages.
+            </p>
+
+            <div class="definition-box">
+                <div class="def-title">Definition — Regular Expression</div>
+                The set <em>RE(Σ)</em> of regular expressions over Σ is defined inductively:
+                <ul>
+                    <li><strong>∅</strong>, <strong>ε</strong>, and every <strong>a ∈ Σ</strong> are elementary regular expressions.</li>
+                    <li>If α and β are regular expressions, then so are <strong>(α + β)</strong>, <strong>(α · β)</strong>, and <strong>(α*)</strong>.</li>
+                </ul>
+            </div>
+
+            <h3>Operations</h3>
+            <table class="learn-table">
+                <thead>
+                    <tr><th>Operation</th><th>Notation</th><th>Meaning</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>Union</td><td><span class="formal-tuple">α + β</span></td><td>All strings in L(α) or L(β)</td></tr>
+                    <tr><td>Concatenation</td><td><span class="formal-tuple">α · β</span></td><td>Strings from L(α) followed by strings from L(β)</td></tr>
+                    <tr><td>Kleene star (iteration)</td><td><span class="formal-tuple">α*</span></td><td>Zero or more repetitions of strings from L(α)</td></tr>
+                </tbody>
+            </table>
+
+            <div class="callout callout-tip">
+                <i class="fas fa-lightbulb" style="color:#198754;"></i>
+                <span>Use <strong>Thompson's Construction</strong> (see below) to convert any regular expression
+                    into an equivalent ε-NFA, which can then be determinized and minimized.</span>
+            </div>
+        </section>
+
+        <!-- ── DFA ── -->
+        <section class="learn-section" id="dfa">
+            <h2>DFA — Deterministic Finite Automaton</h2>
+            <p>
+                The simplest and most efficient recogniser of regular languages. In every state, reading
+                a symbol leads to <em>exactly one</em> next state — the computation is fully deterministic.
+            </p>
+
+            <div class="definition-box">
+                <div class="def-title">Formal Definition</div>
+                A DFA is a 5-tuple
+                <span class="formal-tuple">A = (Q, Σ, δ, q₀, F)</span> where:
+                <ul>
+                    <li><strong>Q</strong> — finite, non-empty set of states</li>
+                    <li><strong>Σ</strong> — finite input alphabet</li>
+                    <li><strong>δ : Q × Σ → Q</strong> — total transition function</li>
+                    <li><strong>q₀ ∈ Q</strong> — initial state</li>
+                    <li><strong>F ⊆ Q</strong> — set of accepting (final) states</li>
+                </ul>
+            </div>
+
+            <h3>Acceptance</h3>
+            <p>
+                A word <em>w</em> is accepted if, after reading all symbols starting from <em>q₀</em>,
+                the automaton finishes in some state <em>q ∈ F</em>.
+            </p>
+
+            <h3>Key properties</h3>
+            <ul>
+                <li>Transition function is <strong>total</strong> — defined for every (state, symbol) pair.</li>
+                <li>At most one computation path for any input.</li>
+                <li>Efficient to simulate — O(|w|) time.</li>
+                <li>Equivalent in expressive power to NFA and ε-NFA.</li>
+            </ul>
+
+            <div class="callout callout-tip">
+                <i class="fas fa-lightbulb" style="color:#198754;"></i>
+                <span>Try creating a DFA in the simulator and clicking <strong>Run</strong> to step through
+                    word acceptance one symbol at a time.</span>
+            </div>
+        </section>
+
+        <!-- ── NFA ── -->
+        <section class="learn-section" id="nfa">
+            <h2>NFA — Nondeterministic Finite Automaton</h2>
+            <p>
+                An NFA generalises the DFA by allowing multiple (or zero) transitions from a state on a
+                single symbol. It is often more concise to design than an equivalent DFA, while recognising
+                exactly the same class of languages.
+            </p>
+
+            <div class="definition-box">
+                <div class="def-title">Formal Definition</div>
+                An NFA is a 5-tuple
+                <span class="formal-tuple">A = (Q, Σ, δ, q₀, F)</span> where:
+                <ul>
+                    <li><strong>Q</strong> — finite, non-empty set of states</li>
+                    <li><strong>Σ</strong> — finite input alphabet</li>
+                    <li><strong>δ : Q × Σ → 2<sup>Q</sup></strong> — transition function returning a <em>set</em> of states</li>
+                    <li><strong>q₀ ∈ Q</strong> — initial state</li>
+                    <li><strong>F ⊆ Q</strong> — set of accepting states</li>
+                </ul>
+            </div>
+
+            <h3>Acceptance</h3>
+            <p>
+                A word is accepted if <em>at least one</em> possible computation path reaches an accepting state.
+                The automaton conceptually explores all paths in parallel.
+            </p>
+
+            <h3>DFA vs NFA</h3>
+            <table class="learn-table">
+                <thead>
+                    <tr><th>Property</th><th>DFA</th><th>NFA</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>Transitions per (state, symbol)</td><td>Exactly 1</td><td>0, 1, or many</td></tr>
+                    <tr><td>Transition function range</td><td>Q</td><td>2<sup>Q</sup></td></tr>
+                    <tr><td>Expressive power</td><td>Regular languages</td><td>Regular languages (same!)</td></tr>
+                    <tr><td>Design complexity</td><td>Often larger</td><td>Often more concise</td></tr>
+                    <tr><td>Simulation complexity</td><td>O(|w|)</td><td>O(|w| · |Q|)</td></tr>
+                </tbody>
+            </table>
+
+            <div class="callout callout-info">
+                <i class="fas fa-info-circle" style="color:#0d6efd;"></i>
+                <span>Nondeterminism does <strong>not</strong> increase expressive power for finite automata.
+                    Every NFA can be converted to an equivalent DFA via the <a href="#determinization">subset construction</a>.</span>
+            </div>
+        </section>
+
+        <!-- ── ε-NFA ── -->
+        <section class="learn-section" id="enfa">
+            <h2>ε-NFA — NFA with ε-Transitions</h2>
+            <p>
+                An ε-NFA extends the NFA by allowing <strong>ε-transitions</strong> (epsilon transitions):
+                the automaton may change state <em>without consuming any input symbol</em>. This makes
+                algorithmic construction of automata (e.g., from regular expressions) significantly simpler.
+            </p>
+
+            <div class="definition-box">
+                <div class="def-title">Formal Definition</div>
+                An ε-NFA is a 5-tuple
+                <span class="formal-tuple">A = (Q, Σ, δ, q₀, F)</span> where:
+                <ul>
+                    <li><strong>δ : Q × (Σ ∪ {ε}) → 2<sup>Q</sup></strong> — transition function extended with ε</li>
+                    <li>All other components are identical to NFA.</li>
+                </ul>
+            </div>
+
+            <h3>ε-Closure</h3>
+            <p>
+                The <strong>ε-closure</strong> of a state <em>q</em>, written <em>ε-closure(q)</em>, is
+                the set of all states reachable from <em>q</em> using only ε-transitions (including <em>q</em> itself).
+            </p>
+
+            <h3>Typical use</h3>
+            <p>
+                ε-NFAs naturally arise from <strong>Thompson's Construction</strong>, where regular expression
+                operators (union, concatenation, iteration) each produce a small ε-NFA fragment. The fragments
+                are composed via ε-transitions.
+            </p>
+
+            <div class="callout callout-tip">
+                <i class="fas fa-lightbulb" style="color:#198754;"></i>
+                <span>In the simulator, set the automaton type to <strong>ε-NFA</strong> and use
+                    <code>ε</code> (or the epsilon symbol) as the transition label to add ε-transitions.</span>
+            </div>
+        </section>
+
+        <!-- ── DPDA ── -->
+        <section class="learn-section" id="dpda">
+            <h2>DPDA — Deterministic Pushdown Automaton</h2>
+            <p>
+                A pushdown automaton augments a finite automaton with a potentially infinite
+                <strong>stack</strong> (LIFO structure). The deterministic variant restricts transitions
+                so that at most one rule applies in any configuration.
+            </p>
+
+            <div class="definition-box">
+                <div class="def-title">Formal Definition</div>
+                A DPDA is a 7-tuple
+                <span class="formal-tuple">M = (Q, Σ, Γ, δ, q₀, Z₀, F)</span> where:
+                <ul>
+                    <li><strong>Q</strong> — finite set of states</li>
+                    <li><strong>Σ</strong> — finite input alphabet</li>
+                    <li><strong>Γ</strong> — finite stack alphabet</li>
+                    <li><strong>δ : Q × (Σ ∪ {ε}) × Γ → Q × Γ*</strong> — partial transition function</li>
+                    <li><strong>q₀ ∈ Q</strong> — initial state</li>
+                    <li><strong>Z₀ ∈ Γ</strong> — initial stack symbol (bottom-of-stack marker)</li>
+                    <li><strong>F ⊆ Q</strong> — set of accepting states</li>
+                </ul>
+            </div>
+
+            <h3>Determinism conditions</h3>
+            <p>For every state <em>q ∈ Q</em>, symbol <em>a ∈ Σ</em>, and stack top <em>X ∈ Γ</em>:</p>
+            <ol>
+                <li>At most one of δ(q, a, X) and δ(q, ε, X) is defined.</li>
+                <li>At most one transition applies for any given (q, a, X) triple.</li>
+            </ol>
+
+            <h3>Acceptance modes</h3>
+            <table class="learn-table">
+                <thead>
+                    <tr><th>Mode</th><th>Condition after reading w</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>By final state</td><td>Automaton is in some q ∈ F (regardless of stack content)</td></tr>
+                    <tr><td>By empty stack</td><td>Stack is completely empty after reading w</td></tr>
+                    <tr><td>By final state &amp; empty stack</td><td>Both conditions hold simultaneously</td></tr>
+                </tbody>
+            </table>
+
+            <div class="callout callout-warning">
+                <i class="fas fa-exclamation-triangle" style="color:#ffc107;"></i>
+                <span>Unlike finite automata, the three acceptance modes are <strong>not equivalent</strong>
+                    for DPDAs. Acceptance by final state recognises a strictly larger class than acceptance
+                    by empty stack.</span>
+            </div>
+        </section>
+
+        <!-- ── NPDA ── -->
+        <section class="learn-section" id="npda">
+            <h2>NPDA — Nondeterministic Pushdown Automaton</h2>
+            <p>
+                The nondeterministic pushdown automaton lifts the determinism restriction: from one
+                configuration, multiple transitions may apply and the automaton explores all branches
+                simultaneously. A word is accepted if <em>at least one</em> branch reaches an accepting
+                configuration.
+            </p>
+
+            <div class="definition-box">
+                <div class="def-title">Formal Definition</div>
+                An NPDA is a 7-tuple
+                <span class="formal-tuple">M = (Q, Σ, Γ, δ, q₀, Z₀, F)</span> where:
+                <ul>
+                    <li>All components are as in DPDA, except the transition function is generalised:</li>
+                    <li><strong>δ : Q × (Σ ∪ {ε}) × Γ → 2<sup>Q × Γ*</sup></strong> — returns a <em>set</em> of (state, stack string) pairs</li>
+                </ul>
+            </div>
+
+            <h3>DPDA vs NPDA — key difference</h3>
+            <table class="learn-table">
+                <thead>
+                    <tr><th>Property</th><th>DPDA</th><th>NPDA</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>Languages recognised</td><td>Deterministic CFL (DCFL)</td><td>Context-free languages (CFL)</td></tr>
+                    <tr><td>Expressive power</td><td>Strictly weaker</td><td>Full CFL</td></tr>
+                    <tr><td>Acceptance modes equivalent?</td><td>No</td><td>Yes (all three equivalent)</td></tr>
+                    <tr><td>Classic example not in DPDA</td><td colspan="2">Palindromes — L = {ww<sup>R</sup> | w ∈ Σ*}</td></tr>
+                </tbody>
+            </table>
+
+            <div class="callout callout-info">
+                <i class="fas fa-info-circle" style="color:#0d6efd;"></i>
+                <span>This is a fundamental difference from finite automata, where DFA and NFA have identical
+                    expressive power. For pushdown automata:
+                    <strong>DCFL ⊊ CFL</strong>.</span>
+            </div>
+
+            <h3>Configuration and step</h3>
+            <p>
+                A <strong>configuration</strong> is a triple <em>(q, w, γ)</em> — current state, remaining input,
+                stack contents. A step <em>(q, aw, Xβ) ⊢ (q', w, αβ)</em> applies when <em>(q', α) ∈ δ(q, a, X)</em>.
+            </p>
+        </section>
+
+        <!-- ── ε-Elimination ── -->
+        <section class="learn-section" id="epsilon-elimination">
+            <h2>ε-Elimination: ε-NFA → NFA</h2>
+            <p>
+                Any ε-NFA can be converted to an equivalent NFA (without ε-transitions) by incorporating
+                the "spontaneous" ε-moves into the regular transitions via <strong>ε-closures</strong>.
+            </p>
+
+            <h3>Algorithm</h3>
+            <ol class="algo-steps">
+                <li>
+                    <div>
+                        <strong>Compute ε-closure for every state.</strong>
+                        ε-closure(q) = all states reachable from q using only ε-transitions (including q itself).
+                    </div>
+                </li>
+                <li>
+                    <div>
+                        <strong>Redefine transitions.</strong>
+                        For each state q and symbol a ∈ Σ, the new transition
+                        δ'(q, a) = ε-closure( ∪ { δ(r, a) | r ∈ ε-closure(q) } ).
+                    </div>
+                </li>
+                <li>
+                    <div>
+                        <strong>Update accepting states.</strong>
+                        State q is accepting in the new NFA if ε-closure(q) contains any accepting state of the original ε-NFA.
+                    </div>
+                </li>
+                <li>
+                    <div>
+                        <strong>Remove all ε-transitions.</strong>
+                        The resulting automaton is an equivalent NFA.
+                    </div>
+                </li>
+            </ol>
+
+            <div class="callout callout-info">
+                <i class="fas fa-info-circle" style="color:#0d6efd;"></i>
+                <span>This conversion is used automatically in the simulator when you run operations on an
+                    ε-NFA, or as part of Thompson's Construction pipeline.</span>
+            </div>
+        </section>
+
+        <!-- ── Determinization ── -->
+        <section class="learn-section" id="determinization">
+            <h2>Determinization: NFA → DFA</h2>
+            <p>
+                Every NFA can be converted to an equivalent DFA using the <strong>subset construction</strong>
+                (also called the <em>powerset construction</em>). The DFA simulates all parallel NFA
+                computations at once by treating <em>sets</em> of NFA states as single DFA states.
+            </p>
+
+            <h3>Algorithm</h3>
+            <ol class="algo-steps">
+                <li>
+                    <div>
+                        <strong>Initial DFA state = {q₀} </strong> (the singleton set containing the NFA start state).
+                    </div>
+                </li>
+                <li>
+                    <div>
+                        <strong>For each unprocessed DFA state S and each symbol a ∈ Σ,</strong>
+                        compute δ<sub>DFA</sub>(S, a) = ∪ { δ<sub>NFA</sub>(q, a) | q ∈ S }.
+                        If this set is new, add it as a fresh DFA state.
+                    </div>
+                </li>
+                <li>
+                    <div>
+                        <strong>A DFA state S is accepting</strong> if S contains at least one NFA accepting state.
+                    </div>
+                </li>
+                <li>
+                    <div>
+                        <strong>Repeat</strong> until no new states are discovered.
+                        Only reachable subsets are ever constructed.
+                    </div>
+                </li>
+            </ol>
+
+            <div class="callout callout-warning">
+                <i class="fas fa-exclamation-triangle" style="color:#ffc107;"></i>
+                <span>In the worst case, the DFA can have up to <strong>2<sup>|Q|</sup></strong> states
+                    (exponential blow-up). In practice, only reachable subsets are created, which is often
+                    much smaller.</span>
+            </div>
+        </section>
+
+        <!-- ── Minimization ── -->
+        <section class="learn-section" id="minimization">
+            <h2>Minimization: DFA → Minimal DFA</h2>
+            <p>
+                Any DFA can be converted to a unique <strong>minimal DFA</strong> (unique up to state renaming)
+                that recognises the same language with the fewest possible states.
+            </p>
+
+            <h3>Algorithm</h3>
+            <ol class="algo-steps">
+                <li>
+                    <div>
+                        <strong>Remove unreachable states.</strong>
+                        Run BFS/DFS from the initial state. States never visited can be safely discarded.
+                    </div>
+                </li>
+                <li>
+                    <div>
+                        <strong>Initial partition.</strong>
+                        Split remaining states into two groups: <em>accepting</em> (F) and <em>non-accepting</em> (Q \ F).
+                    </div>
+                </li>
+                <li>
+                    <div>
+                        <strong>Iterative refinement.</strong>
+                        If two states in the same group go to <em>different</em> groups on some symbol a,
+                        split them into separate groups.
+                    </div>
+                </li>
+                <li>
+                    <div>
+                        <strong>Repeat</strong> until no group can be split further.
+                        Each equivalence class becomes one state in the minimal DFA.
+                    </div>
+                </li>
+            </ol>
+
+            <h3>Guarantees</h3>
+            <p>For the minimal DFA M' produced from DFA M:</p>
+            <ul>
+                <li>|Q'| ≤ |Q| — same or fewer states</li>
+                <li>L(M') = L(M) — identical language</li>
+                <li>M' is unique up to isomorphism (state renaming)</li>
+            </ul>
+
+            <div class="callout callout-tip">
+                <i class="fas fa-lightbulb" style="color:#198754;"></i>
+                <span>The simulator highlights redundant states in the minimization report and lets you
+                    produce the minimal automaton with one click.</span>
+            </div>
+        </section>
+
+        <!-- ── Thompson's Construction ── -->
+        <section class="learn-section" id="thompson">
+            <h2>Thompson's Construction</h2>
+            <p>
+                Thompson's Construction is an inductive algorithm that converts any regular expression
+                into an equivalent ε-NFA. The resulting ε-NFA has exactly one initial state (no incoming
+                edges) and one accepting state (no outgoing edges).
+            </p>
+
+            <h3>Base cases</h3>
+            <table class="learn-table">
+                <thead>
+                    <tr><th>Expression</th><th>ε-NFA fragment</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="formal-tuple">∅</span></td>
+                        <td>Two states, no accepting path</td>
+                    </tr>
+                    <tr>
+                        <td><span class="formal-tuple">ε</span></td>
+                        <td>Two states connected by an ε-transition</td>
+                    </tr>
+                    <tr>
+                        <td><span class="formal-tuple">a ∈ Σ</span></td>
+                        <td>Two states connected by a transition labelled <em>a</em></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Inductive cases</h3>
+            <ol class="algo-steps">
+                <li>
+                    <div>
+                        <strong>Union (α + β).</strong>
+                        New start/accept states; ε-transitions from new start into both α and β, and from both
+                        their accepts into the new accept.
+                    </div>
+                </li>
+                <li>
+                    <div>
+                        <strong>Concatenation (α · β).</strong>
+                        Connect the accepting state of α to the initial state of β via an ε-transition.
+                        The new initial/accepting states are those of α and β respectively.
+                    </div>
+                </li>
+                <li>
+                    <div>
+                        <strong>Kleene star (α*).</strong>
+                        New start and accept states. ε-transitions enable: entering α, looping back,
+                        and skipping α entirely (the ε word case).
+                    </div>
+                </li>
+            </ol>
+
+            <div class="callout callout-info">
+                <i class="fas fa-info-circle" style="color:#0d6efd;"></i>
+                <span>After construction, the ε-NFA is automatically converted to a DFA by applying
+                    <a href="#epsilon-elimination">ε-elimination</a> followed by
+                    <a href="#determinization">determinization</a>.</span>
+            </div>
+
+            <div class="callout callout-tip">
+                <i class="fas fa-lightbulb" style="color:#198754;"></i>
+                <span>Try entering a regular expression (e.g., <code>(a+b)*ab</code>) in the simulator's
+                    regex input to generate an automaton automatically.</span>
+            </div>
+        </section>
+
+        <!-- ── Comparison Table ── -->
+        <section class="learn-section" id="comparison">
+            <h2>Comparison Table</h2>
+            <table class="learn-table">
+                <thead>
+                    <tr>
+                        <th>Model</th>
+                        <th>Memory</th>
+                        <th>Language class</th>
+                        <th>Deterministic = Nondeterministic?</th>
+                        <th>Supported in simulator</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>DFA</strong></td>
+                        <td>States only</td>
+                        <td>Regular (Type 3)</td>
+                        <td>Yes</td>
+                        <td><i class="fas fa-check" style="color:#198754;"></i> Yes</td>
+                    </tr>
+                    <tr>
+                        <td><strong>NFA</strong></td>
+                        <td>States only</td>
+                        <td>Regular (Type 3)</td>
+                        <td>Yes</td>
+                        <td><i class="fas fa-check" style="color:#198754;"></i> Yes</td>
+                    </tr>
+                    <tr>
+                        <td><strong>ε-NFA</strong></td>
+                        <td>States only</td>
+                        <td>Regular (Type 3)</td>
+                        <td>Yes</td>
+                        <td><i class="fas fa-check" style="color:#198754;"></i> Yes</td>
+                    </tr>
+                    <tr>
+                        <td><strong>DPDA</strong></td>
+                        <td>States + stack</td>
+                        <td>Deterministic CFL (Type 2 subset)</td>
+                        <td>No — DCFL ⊊ CFL</td>
+                        <td><i class="fas fa-check" style="color:#198754;"></i> Yes</td>
+                    </tr>
+                    <tr>
+                        <td><strong>NPDA</strong></td>
+                        <td>States + stack</td>
+                        <td>Context-free (Type 2)</td>
+                        <td>No — strictly more powerful</td>
+                        <td><i class="fas fa-check" style="color:#198754;"></i> Yes</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+    </div><!-- /.learn-content -->
+</div><!-- /.learn-page -->
+
+@section Scripts {
+<script>
+(function () {
+    // Active sidebar link on scroll
+    const sections = document.querySelectorAll('.learn-section[id]');
+    const links = document.querySelectorAll('.learn-sidebar a');
+
+    function onScroll() {
+        let current = '';
+        sections.forEach(s => {
+            const top = s.getBoundingClientRect().top;
+            if (top <= 80) current = s.id;
+        });
+        links.forEach(a => {
+            a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+        });
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+})();
+</script>
+}

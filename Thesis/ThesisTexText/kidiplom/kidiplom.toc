@@ -41,7 +41,7 @@
 \contentsline {paragraph}{CSS3 \& Bootstrap 5}{27}{section*.8}%
 \contentsline {paragraph}{JavaScript (ES6)}{27}{section*.9}%
 \contentsline {subsubsection}{\numberline {4.1.7}Kontejnerizace a~orchestrace}{27}{subsubsection.4.1.7}%
-\contentsline {paragraph}{Docker a~Docker Compose}{28}{section*.10}%
+\contentsline {paragraph}{Docker a~Docker Compose}{27}{section*.10}%
 \contentsline {paragraph}{.NET Aspire}{28}{section*.11}%
 \contentsline {subsubsection}{\numberline {4.1.8}Doplňkové technologie a~knihovny}{28}{subsubsection.4.1.8}%
 \contentsline {paragraph}{xUnit}{28}{section*.12}%

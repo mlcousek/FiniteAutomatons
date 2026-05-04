@@ -1149,9 +1149,11 @@ display: flex;
   margin-bottom: 0.5rem;
 }
 
-.footer-column a {
+.footer-column a,
+.footer-column a:link,
+.footer-column a:visited {
   color: #666;
-text-decoration: none;
+  text-decoration: none;
   font-size: 0.9rem;
 }
 
