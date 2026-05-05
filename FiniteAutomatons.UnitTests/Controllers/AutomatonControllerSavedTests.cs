@@ -129,6 +129,17 @@ public class AutomatonControllerSavedTests
             return Task.FromResult(entity);
         }
 
+        public Task<SavedAutomaton> UpdateAsync(int id, string userId, string name, string? description, AutomatonViewModel model, bool saveExecutionState = false, string? layoutJson = null, string? thumbnailBase64 = null)
+        {
+            var entity = Items.FirstOrDefault(i => i.Id == id && i.UserId == userId)
+                ?? throw new InvalidOperationException("Not found");
+            entity.Name = name;
+            entity.Description = description;
+            entity.LayoutJson = layoutJson;
+            entity.ThumbnailBase64 = thumbnailBase64;
+            return Task.FromResult(entity);
+        }
+
         public Task<List<SavedAutomaton>> ListForUserAsync(string userId, int? groupId = null)
         {
             var q = Items.Where(i => i.UserId == userId);

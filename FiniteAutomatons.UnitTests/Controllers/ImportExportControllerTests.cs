@@ -1,4 +1,4 @@
-using FiniteAutomatons.Controllers;
+﻿using FiniteAutomatons.Controllers;
 using FiniteAutomatons.Core.Models.Database;
 using FiniteAutomatons.Core.Models.DTOs;
 using FiniteAutomatons.Core.Models.ViewModel;
@@ -61,6 +61,8 @@ public class ImportExportControllerTests
 
         // Other methods not needed for these tests
         public Task<SavedAutomaton> SaveAsync(string userId, string name, string? description, AutomatonViewModel model, bool saveExecutionState = false, int? groupId = null, string? layoutJson = null, string? thumbnailBase64 = null)
+            => throw new NotImplementedException();
+        public Task<SavedAutomaton> UpdateAsync(int id, string userId, string name, string? description, AutomatonViewModel model, bool saveExecutionState = false, string? layoutJson = null, string? thumbnailBase64 = null)
             => throw new NotImplementedException();
         public Task<List<SavedAutomaton>> ListForUserAsync(string userId, int? groupId = null)
             => throw new NotImplementedException();

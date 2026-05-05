@@ -61,6 +61,12 @@ public class SavedAutomatonController_SaveForwardingTests
             return Task.FromResult(e);
         }
 
+        public Task<SavedAutomaton> UpdateAsync(int id, string userId, string name, string? description, AutomatonViewModel model, bool saveExecutionState = false, string? layoutJson = null, string? thumbnailBase64 = null)
+        {
+            var e = new SavedAutomaton { Id = id, UserId = userId, Name = name, ContentJson = "{}", SaveMode = AutomatonSaveMode.Structure, LayoutJson = layoutJson, ThumbnailBase64 = thumbnailBase64 };
+            return Task.FromResult(e);
+        }
+
         // Other interface members - minimal stubs
         public Task DeleteAsync(int id, string userId) => Task.CompletedTask;
         public Task<List<SavedAutomaton>> ListForUserAsync(string userId, int? groupId = null) => Task.FromResult(new List<SavedAutomaton>());

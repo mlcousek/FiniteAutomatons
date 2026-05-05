@@ -1,4 +1,4 @@
-@model AutomatonViewModel
+﻿@model AutomatonViewModel
 <!-- Hidden opener kept for compatibility with the canvas save button -->
 <button id="openSaveModalBtn" type="button" style="display:none;" aria-hidden="true"></button>
 <div id="saveAutomatonModal" class="modal modern-modal" style="display:none;">
@@ -13,14 +13,30 @@
             </button>
         </div>
         <div class="modal-body">
+            <!-- Save intent selection – only shown when an automaton was loaded -->
+            <div id="saveIntentGroup" class="form-group" style="display:none;">
+                <label class="form-label">Save as</label>
+                <div>
+                    <label style="display:flex;align-items:center;gap:0.4rem;margin-bottom:0.3rem;">
+                        <input type="radio" name="saveIntent" value="update" id="saveIntentUpdate" checked />
+                        Update existing automaton
+                    </label>
+                    <label style="display:flex;align-items:center;gap:0.4rem;">
+                        <input type="radio" name="saveIntent" value="new" id="saveIntentNew" />
+                        Save as new automaton
+                    </label>
+                </div>
+            </div>
             <form id="saveAutomatonForm" asp-controller="SavedAutomaton" asp-action="Save" method="post" class="modern-form">
+                <!-- Hidden field for the loaded automaton id (used when updating) -->
+                <input type="hidden" name="id" id="saveLoadedId" value="" />
                 <div class="form-group">
                     <label class="form-label">Name</label>
                     <input type="text" name="name" id="saveName" class="modern-input" required maxlength="200" />
                 </div>
                 <div class="form-group">
                     <label class="form-label">Description (optional)</label>
-                    <input type="text" name="description" class="modern-input" maxlength="500" />
+                    <input type="text" name="description" id="saveDescription" class="modern-input" maxlength="500" />
                 </div>
 
                 @{
@@ -60,6 +76,10 @@
                             <input type="hidden" name="IsAccepted" id="saveIsAccepted" value="@(Model.IsAccepted.HasValue ? Model.IsAccepted.Value.ToString().ToLowerInvariant() : "")" />
                             <input type="hidden" name="StateHistorySerialized" id="saveStateHistorySerialized" value="@Model.StateHistorySerialized" />
                             <input type="hidden" name="StackSerialized" id="saveStackSerialized" value="@Model.StackSerialized" />
+                             <input type="hidden" name="InitialStackSerialized" value="@Model.InitialStackSerialized" />
+                             <input type="hidden" name="NPDAConfigurationsSerialized" value="@Model.NPDAConfigurationsSerialized" />
+                             <input type="hidden" name="AcceptanceMode" value="@((int)Model.AcceptanceMode)" />
+                             <input type="hidden" name="LoadedAutomatonId" value="@(Model.LoadedAutomatonId.HasValue ? Model.LoadedAutomatonId.ToString() : "")" />
                             <input type="hidden" name="IsCustomAutomaton" value="@Model.IsCustomAutomaton.ToString().ToLowerInvariant()" />
                             if (Model.States != null)
                             {
@@ -93,6 +113,16 @@
                                         }
                                     }
                                 }
+                             if (Model.CurrentStates != null)
+                             {
+                                 int currentStateIndex = 0;
+                                 foreach (var currentState in Model.CurrentStates)
+                                 {
+                                     <input type="hidden" name="CurrentStates.Index" value="@currentStateIndex" />
+                                     <input type="hidden" name="CurrentStates[@currentStateIndex]" value="@currentState" />
+                                     currentStateIndex++;
+                                 }
+                             }
                             }
                         }
                     }
@@ -107,9 +137,87 @@
                 <input type="hidden" name="thumbnailBase64" id="saveThumbnailField" value="" />
                 <div style="display:flex;gap:0.5rem;justify-content:flex-end;margin-top:0.5rem;">
                     <button type="button" class="modern-btn" id="saveModalCancel">Cancel</button>
-                    <button type="submit" class="modern-btn btn-success">Save</button>
+                    <button type="submit" class="modern-btn btn-success" id="saveModalSubmitBtn">Save</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+<script>
+(function () {
+    var updateUrl = '@Url.Action("Update", "SavedAutomaton")';
+    var saveUrl = '@Url.Action("Save", "SavedAutomaton")';
+
+    var intentGroup = document.getElementById('saveIntentGroup');
+    var intentUpdate = document.getElementById('saveIntentUpdate');
+    var intentNew = document.getElementById('saveIntentNew');
+    var form = document.getElementById('saveAutomatonForm');
+    var loadedIdField = document.getElementById('saveLoadedId');
+    var nameField = document.getElementById('saveName');
+    var descField = document.getElementById('saveDescription');
+    var submitBtn = document.getElementById('saveModalSubmitBtn');
+
+    function getLoadedContext() {
+        var modelLoadedIdField = document.querySelector('input[name="LoadedAutomatonId"]');
+        var modelLoadedIdRaw = modelLoadedIdField ? modelLoadedIdField.value : '';
+        var parsedModelLoadedId = modelLoadedIdRaw ? parseInt(modelLoadedIdRaw, 10) : NaN;
+        var modelLoadedId = Number.isNaN(parsedModelLoadedId) ? null : parsedModelLoadedId;
+
+        var loadedId = window.__loadedAutomatonId ?? modelLoadedId;
+        var loadedName = window.__loadedAutomatonName ?? '';
+        var loadedDesc = window.__loadedAutomatonDescription ?? '';
+
+        return {
+            loadedId: loadedId,
+            loadedName: loadedName,
+            loadedDesc: loadedDesc
+        };
+    }
+
+    function applyIntent() {
+        var context = getLoadedContext();
+        var loadedId = context.loadedId;
+        var isUpdate = loadedId && intentUpdate && intentUpdate.checked;
+        if (isUpdate) {
+            form.action = updateUrl;
+            loadedIdField.value = loadedId;
+            submitBtn.textContent = 'Update';
+        } else {
+            form.action = saveUrl;
+            loadedIdField.value = '';
+            submitBtn.textContent = 'Save';
+        }
+    }
+
+    // When modal opens pre-fill name/description and set up intent UI
+    var openBtn = document.getElementById('openSaveModalBtn');
+    if (openBtn) {
+        // The real open trigger is external; hook into the modal becoming visible via MutationObserver
+        var modal = document.getElementById('saveAutomatonModal');
+        if (modal) {
+            var observer = new MutationObserver(function () {
+                if (modal.style.display !== 'none') {
+                        var context = getLoadedContext();
+                        var loadedId = context.loadedId;
+                        var loadedName = context.loadedName;
+                        var loadedDesc = context.loadedDesc;
+
+                    if (loadedId) {
+                        if (intentGroup) intentGroup.style.display = '';
+                            if (intentUpdate) intentUpdate.checked = true;
+                        if (nameField && !nameField.value && loadedName) nameField.value = loadedName;
+                        if (descField && !descField.value && loadedDesc) descField.value = loadedDesc;
+                    } else {
+                        if (intentGroup) intentGroup.style.display = 'none';
+                    }
+                    applyIntent();
+                }
+            });
+            observer.observe(modal, { attributes: true, attributeFilter: ['style'] });
+        }
+    }
+
+    if (intentUpdate) intentUpdate.addEventListener('change', applyIntent);
+    if (intentNew) intentNew.addEventListener('change', applyIntent);
+})();
+</script>

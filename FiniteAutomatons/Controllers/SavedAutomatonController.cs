@@ -178,6 +178,62 @@ public class SavedAutomatonController(
         return RedirectToAction("Index");
     }
 
+    [HttpPost]
+    public async Task<IActionResult> Update([FromForm] AutomatonViewModel model, int id, string name, string? description, bool saveState = false, string? saveMode = null, string? layoutJson = null, string? thumbnailBase64 = null)
+    {
+        var user = await userManager.GetUserAsync(User);
+        if (user == null) return Challenge();
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            ModelState.AddModelError(string.Empty, "Name is required to save automaton.");
+            return View("CreateAutomaton", model);
+        }
+
+        bool saveExecutionState;
+        if (!string.IsNullOrWhiteSpace(saveMode))
+        {
+            saveExecutionState = string.Equals(saveMode, "state", StringComparison.OrdinalIgnoreCase);
+
+            if (string.Equals(saveMode, "input", StringComparison.OrdinalIgnoreCase))
+            {
+                model.Position = 0;
+                model.CurrentStateId = null;
+                model.CurrentStates = null;
+                model.IsAccepted = null;
+                model.StateHistorySerialized = string.Empty;
+                model.StackSerialized = null;
+                model.HasExecuted = false;
+            }
+            else if (string.Equals(saveMode, "structure", StringComparison.OrdinalIgnoreCase))
+            {
+                model.Input = string.Empty;
+                model.Position = 0;
+                model.CurrentStateId = null;
+                model.CurrentStates = null;
+                model.IsAccepted = null;
+                model.StateHistorySerialized = string.Empty;
+                model.StackSerialized = null;
+                model.HasExecuted = false;
+            }
+        }
+        else
+        {
+            saveExecutionState = saveState;
+        }
+
+        try
+        {
+            _ = await savedAutomatonService.UpdateAsync(id, user.Id, name.Trim(), string.IsNullOrWhiteSpace(description) ? null : description.Trim(), model, saveExecutionState, layoutJson: layoutJson, thumbnailBase64: thumbnailBase64);
+            TempData["ConversionMessage"] = "Automaton updated successfully.";
+        }
+        catch (InvalidOperationException)
+        {
+            TempData["ConversionMessage"] = "Automaton could not be updated (not found or access denied).";
+        }
+
+        return RedirectToAction("Index");
+    }
+
     [HttpGet]
     public async Task<IActionResult> Load(int id, string mode = "structure")
     {
@@ -211,7 +267,11 @@ public class SavedAutomatonController(
                 catch { }
             }
 
+            model.IsCustomAutomaton = true;
+            model.LoadedAutomatonId = entity.Id;
             tempDataService.StoreCustomAutomaton(TempData, model);
+            TempData["LoadedAutomatonName"] = entity.Name;
+            TempData["LoadedAutomatonDescription"] = entity.Description;
 
             if (!string.IsNullOrWhiteSpace(entity.LayoutJson))
             {

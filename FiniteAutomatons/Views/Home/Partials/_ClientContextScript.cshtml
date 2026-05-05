@@ -2,9 +2,15 @@
 @{
     var isAuthenticated = User?.Identity?.IsAuthenticated ?? false;
     var savedLayout = ViewData["LayoutJson"] as string;
+    var loadedAutomatonId = (Model as FiniteAutomatons.Core.Models.ViewModel.AutomatonViewModel)?.LoadedAutomatonId;
+    var loadedAutomatonName = TempData.Peek("LoadedAutomatonName") as string;
+    var loadedAutomatonDescription = TempData.Peek("LoadedAutomatonDescription") as string;
 }
 <script>
     window.__isAuthenticated = @Html.Raw(JsonSerializer.Serialize(isAuthenticated));
+    window.__loadedAutomatonId = @Html.Raw(JsonSerializer.Serialize(loadedAutomatonId));
+    window.__loadedAutomatonName = @Html.Raw(JsonSerializer.Serialize(loadedAutomatonName));
+    window.__loadedAutomatonDescription = @Html.Raw(JsonSerializer.Serialize(loadedAutomatonDescription));
 
     @if (!string.IsNullOrWhiteSpace(savedLayout))
     {

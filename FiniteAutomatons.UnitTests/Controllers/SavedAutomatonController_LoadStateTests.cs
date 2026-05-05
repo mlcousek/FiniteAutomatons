@@ -88,6 +88,8 @@ public class SavedAutomatonController_LoadStateTests
         public Task<SavedAutomaton?> GetAsync(int id, string userId) => Task.FromResult(_entity);
         public Task<SavedAutomaton> SaveAsync(string userId, string name, string? description, AutomatonViewModel model, bool saveExecutionState = false, int? groupId = null, string? layoutJson = null, string? thumbnailBase64 = null)
             => Task.FromResult(new SavedAutomaton { Id = 1, UserId = userId, Name = name, ContentJson = "{}" });
+        public Task<SavedAutomaton> UpdateAsync(int id, string userId, string name, string? description, AutomatonViewModel model, bool saveExecutionState = false, string? layoutJson = null, string? thumbnailBase64 = null)
+            => Task.FromResult(new SavedAutomaton { Id = id, UserId = userId, Name = name, ContentJson = "{}" });
         public Task DeleteAsync(int id, string userId) => Task.CompletedTask;
         public Task<List<SavedAutomaton>> ListForUserAsync(string userId, int? groupId = null) => Task.FromResult(new List<SavedAutomaton>());
         public Task<SavedAutomatonGroup> CreateGroupAsync(string userId, string name, string? description) => throw new NotImplementedException();

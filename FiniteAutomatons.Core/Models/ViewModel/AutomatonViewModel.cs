@@ -45,6 +45,7 @@ public class AutomatonViewModel
     public string? MinimizationReport { get; set; }
     public string? NewTransitionStackPop { get; set; }
     public string? NewTransitionStackPush { get; set; }
+    public int? LoadedAutomatonId { get; set; }
 
     public string CurrentStatesDisplay => CurrentStates != null && CurrentStates.Count != 0
         ? string.Join(", ", CurrentStates.OrderBy(x => x))

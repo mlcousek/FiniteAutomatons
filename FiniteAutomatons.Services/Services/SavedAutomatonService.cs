@@ -174,6 +174,40 @@ public class SavedAutomatonService(ILogger<SavedAutomatonService> logger, Applic
         }
     }
 
+    public async Task<SavedAutomaton> UpdateAsync(int id, string userId, string name, string? description, AutomatonViewModel model, bool saveExecutionState = false, string? layoutJson = null, string? thumbnailBase64 = null)
+    {
+        ArgumentNullException.ThrowIfNull(userId);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(model);
+
+        var entity = await db.SavedAutomatons.FirstOrDefaultAsync(s => s.Id == id && s.UserId == userId)
+            ?? throw new InvalidOperationException("Automaton not found or access denied.");
+
+        model.States ??= [];
+        model.Transitions ??= [];
+
+        var payload = SerializeAutomatonPayload(model);
+        var (saveMode, execJson) = DetermineSaveModeAndExecutionState(model, saveExecutionState);
+
+        entity.Name = name;
+        entity.Description = description;
+        entity.ContentJson = payload;
+        entity.SaveMode = saveMode;
+        entity.ExecutionStateJson = execJson;
+        entity.LayoutJson = string.IsNullOrWhiteSpace(layoutJson) ? null : layoutJson;
+        entity.ThumbnailBase64 = string.IsNullOrWhiteSpace(thumbnailBase64) ? null : thumbnailBase64;
+        entity.SourceRegex = model.SourceRegex;
+
+        await db.SaveChangesAsync();
+
+        if (logger.IsEnabled(LogLevel.Information))
+        {
+            logger.LogInformation("Updated automaton {Id} for user {User} (saveMode={SaveMode})", id, userId, saveMode);
+        }
+
+        return entity;
+    }
+
     public async Task DeleteGroupAsync(int groupId, string userId)
     {
         var grp = await db.SavedAutomatonGroups.FirstOrDefaultAsync(g => g.Id == groupId);
