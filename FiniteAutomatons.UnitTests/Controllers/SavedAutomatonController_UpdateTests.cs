@@ -410,6 +410,28 @@ public class SavedAutomatonController_UpdateTests
         savedSvc.LastUpdatedDescription.ShouldBeNull();
     }
 
+    [Fact]
+    public async Task Update_WhenUserMissing_ReturnsChallenge()
+    {
+        var controller = new SavedAutomatonController(
+            new RecordingUpdateService(),
+            new StubSharedService(),
+            new MockAutomatonTempDataService(),
+            new MockAutomatonFileService(),
+            new TestUserManager(null));
+
+        var httpContext = new DefaultHttpContext
+        {
+            User = new ClaimsPrincipal(new ClaimsIdentity())
+        };
+        controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
+        controller.TempData = new TempDataDictionary(httpContext, new TestTempDataProvider());
+
+        var result = await controller.Update(new AutomatonViewModel(), id: 1, name: "Name", description: null);
+
+        result.ShouldBeOfType<ChallengeResult>();
+    }
+
     // ── Load → TempData metadata ─────────────────────────────────────────────
 
     [Fact]
@@ -523,6 +545,65 @@ public class SavedAutomatonController_UpdateTests
         await controller.Load(2);
 
         td["LoadedAutomatonDescription"].ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task Load_WithLayoutJson_StoresLayoutJsonInTempData()
+    {
+        var entity = BuildSavedAutomaton(id: 8);
+        entity.LayoutJson = "[{\"id\":\"1\",\"position\":{\"x\":10,\"y\":20}}]";
+        var stubSvc = new StubSavedAutomatonServiceForLoad(entity);
+        var user = new ApplicationUser { Id = TestUserId };
+        var capturingSvc = new CapturingTempDataService();
+
+        var controller = new SavedAutomatonController(
+            stubSvc,
+            new StubSharedService(),
+            capturingSvc,
+            new MockAutomatonFileService(),
+            new TestUserManager(user));
+
+        var httpContext = new DefaultHttpContext
+        {
+            User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, TestUserId)]))
+        };
+        var td = new TempDataDictionary(httpContext, new TestTempDataProvider());
+        controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
+        controller.TempData = td;
+
+        await controller.Load(8);
+
+        td["LayoutJson"].ShouldBe(entity.LayoutJson);
+    }
+
+    [Fact]
+    public async Task Load_PreservesSourceRegexOnStoredModel()
+    {
+        var entity = BuildSavedAutomaton(id: 9);
+        entity.SourceRegex = "a*b";
+        var stubSvc = new StubSavedAutomatonServiceForLoad(entity);
+        var user = new ApplicationUser { Id = TestUserId };
+        var capturingSvc = new CapturingTempDataService();
+
+        var controller = new SavedAutomatonController(
+            stubSvc,
+            new StubSharedService(),
+            capturingSvc,
+            new MockAutomatonFileService(),
+            new TestUserManager(user));
+
+        var httpContext = new DefaultHttpContext
+        {
+            User = new ClaimsPrincipal(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, TestUserId)]))
+        };
+        var td = new TempDataDictionary(httpContext, new TestTempDataProvider());
+        controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
+        controller.TempData = td;
+
+        await controller.Load(9);
+
+        capturingSvc.LastStoredModel.ShouldNotBeNull();
+        capturingSvc.LastStoredModel!.SourceRegex.ShouldBe("a*b");
     }
 
     // ── Helpers shared by Load tests ─────────────────────────────────────────

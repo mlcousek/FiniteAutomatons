@@ -158,6 +158,66 @@ public class SavedAutomatonUpdateIntegrationTests(IntegrationTestsFixture fixtur
     }
 
     [Fact]
+    public async Task UpdateAsync_WhitespaceLayoutAndThumbnail_StoresNull()
+    {
+        using var scope = OpenScope(out var svc);
+        var userId = UniqueUserId();
+        var saved = await svc.SaveAsync(userId, "Automaton", null, BuildDfaModel(),
+            layoutJson: "[{\"id\":\"1\"}]",
+            thumbnailBase64: "thumb");
+
+        await svc.UpdateAsync(saved.Id, userId, "Automaton", null, BuildDfaModel(),
+            layoutJson: "   ", thumbnailBase64: "   ");
+
+        var updated = await svc.GetAsync(saved.Id, userId);
+        updated!.LayoutJson.ShouldBeNull();
+        updated.ThumbnailBase64.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task UpdateAsync_PreservesSourceRegex()
+    {
+        using var scope = OpenScope(out var svc);
+        var userId = UniqueUserId();
+        var saved = await svc.SaveAsync(userId, "Regex Automaton", null, BuildDfaModel());
+
+        var updatedModel = BuildDfaModel("abba");
+        updatedModel.SourceRegex = "(ab)*a?";
+
+        await svc.UpdateAsync(saved.Id, userId, "Regex Automaton", null, updatedModel);
+
+        var updated = await svc.GetAsync(saved.Id, userId);
+        updated!.SourceRegex.ShouldBe("(ab)*a?");
+    }
+
+    [Fact]
+    public async Task UpdateAsync_DowngradesFromWithState_ToWithInputSaveMode()
+    {
+        using var scope = OpenScope(out var svc);
+        var userId = UniqueUserId();
+        var executedModel = BuildDfaModel("ab");
+        executedModel.HasExecuted = true;
+        executedModel.Position = 2;
+        executedModel.CurrentStateId = 1;
+        executedModel.IsAccepted = true;
+
+        var saved = await svc.SaveAsync(userId, "With State", null, executedModel, saveExecutionState: true);
+        saved.SaveMode.ShouldBe(AutomatonSaveMode.WithState);
+
+        await svc.UpdateAsync(saved.Id, userId, "With Input", null, BuildDfaModel("xyz"), saveExecutionState: false);
+
+        var updated = await svc.GetAsync(saved.Id, userId);
+        updated!.SaveMode.ShouldBe(AutomatonSaveMode.WithInput);
+        updated.ExecutionStateJson.ShouldNotBeNullOrWhiteSpace();
+
+        var exec = System.Text.Json.JsonDocument.Parse(updated.ExecutionStateJson!);
+        exec.RootElement.GetProperty("Input").GetString().ShouldBe("xyz");
+        exec.RootElement.GetProperty("Position").GetInt32().ShouldBe(0);
+        exec.RootElement.GetProperty("CurrentStateId").ValueKind.ShouldBe(System.Text.Json.JsonValueKind.Null);
+        exec.RootElement.GetProperty("IsAccepted").ValueKind.ShouldBe(System.Text.Json.JsonValueKind.Null);
+    }
+
+    [Fact]
     public async Task UpdateAsync_PreservesCreatedAtTimestamp()
     {
         using var scope = OpenScope(out var svc);
