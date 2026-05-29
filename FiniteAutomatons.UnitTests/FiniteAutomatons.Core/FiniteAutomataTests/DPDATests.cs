@@ -1,4 +1,4 @@
-using FiniteAutomatons.Core.Models.DoMain;
+﻿using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.Serialization;
 using FiniteAutomatons.Core.Models.ViewModel;
@@ -223,16 +223,17 @@ public class DPDATests
     }
 
     [Fact]
-    public void PopFromBottom_LeadsToRejection()
+    public void PopFromBottom_WithFinalStateAndEmptyStack_Accepts()
     {
-        // popping the bottom marker should result in non-acceptance (stack not only-bottom)
+        // Popping the bottom marker '#' leaves an empty stack which is treated as accepted
+        // (same as stack containing only '#') when the target state is also accepting.
         var pda = new DPDA();
         pda.AddState(new State { Id = 1, IsStart = true, IsAccepting = true });
-        // transition consumes 'a' and pops bottom marker explicitly
+        // transition consumes 'a' and pops bottom marker explicitly → empty stack
         pda.AddTransition(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '#', StackPush = null });
 
-        // executing 'a' will pop bottom; acceptance requires only-bottom, so should be rejected
-        pda.Execute("a").ShouldBeFalse();
+        // FinalStateAndEmptyStack (default): accepted because state is accepting AND stack is empty.
+        pda.Execute("a").ShouldBeTrue();
     }
 
     [Fact]

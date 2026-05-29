@@ -274,7 +274,7 @@ public class DPDA : Automaton
         if (string.IsNullOrEmpty(transition.StackPush))
             return;
 
-        // Push from right-to-left so StackPush[0] ends up on top.
+        // Push right-to-left so StackPush[0] ends up on top.
         for (int i = transition.StackPush.Length - 1; i >= 0; i--)
             stack.Push(transition.StackPush[i]);
     }
@@ -294,7 +294,7 @@ public class DPDA : Automaton
         => stateId != null && States.Any(s => s.Id == stateId && s.IsAccepting);
 
     private static bool IsOnlyBottom(Stack<char> stack)
-        => stack.Count == 1 && stack.Peek() == Bottom;
+        => stack.Count == 0 || (stack.Count == 1 && stack.Peek() == Bottom);
 
     private void ValidateDeterminism()
     {

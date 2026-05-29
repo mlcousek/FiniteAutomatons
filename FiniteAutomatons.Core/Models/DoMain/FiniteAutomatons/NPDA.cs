@@ -11,6 +11,8 @@ public class NPDA : Automaton
 
     private ILogger<NPDA> logger = NullLogger<NPDA>.Instance;
 
+    private IReadOnlyList<char>? initialStackSymbols;
+
     public PDAAcceptanceMode AcceptanceMode { get; set; } = PDAAcceptanceMode.FinalStateAndEmptyStack;
 
     public void SetLogger(ILogger<NPDA> value) => logger = value;
@@ -23,11 +25,14 @@ public class NPDA : Automaton
         if (initialStack is { Count: > 0 })
         {
             stack = ImmutableStack<char>.Empty;
-            foreach (var sym in initialStack.Reverse())
+            var symbols = initialStack.Reverse().ToList();
+            initialStackSymbols = symbols;
+            foreach (var sym in symbols)
                 stack = stack.Push(sym);
         }
         else
         {
+            initialStackSymbols = null;
             stack = ImmutableStack<char>.Empty.Push(Bottom);
         }
 
@@ -127,8 +132,19 @@ public class NPDA : Automaton
         state.IsAccepted = null;
         state.History.Clear();
 
-        var initialStack = ImmutableStack<char>.Empty.Push(Bottom);
-        var initialConfig = new PDAConfiguration(startId, initialStack);
+        ImmutableStack<char> restoredStack;
+        if (initialStackSymbols is { Count: > 0 })
+        {
+            restoredStack = ImmutableStack<char>.Empty;
+            foreach (var sym in initialStackSymbols)
+                restoredStack = restoredStack.Push(sym);
+        }
+        else
+        {
+            restoredStack = ImmutableStack<char>.Empty.Push(Bottom);
+        }
+
+        var initialConfig = new PDAConfiguration(startId, restoredStack);
         state.Configurations = EpsilonClosure([initialConfig]);
     }
 
@@ -191,10 +207,10 @@ public class NPDA : Automaton
 
     private static bool IsOnlyBottom(ImmutableStack<char> stack)
     {
-        if (stack.IsEmpty) return false;
+        if (stack.IsEmpty) return true;
         var top = stack.Peek();
         if (top != Bottom) return false;
-        return stack.Pop().IsEmpty; // only one element
+        return stack.Pop().IsEmpty; // only one element and it is '#'
     }
 
     private static ImmutableStack<char>? ApplyStackOp(ImmutableStack<char> stack, Transition t)
@@ -209,7 +225,7 @@ public class NPDA : Automaton
             result = result.Pop();
         }
 
-        // Push (left-to-right → first char ends up on top)
+        // Push right-to-left so StackPush[0] ends up on top.
         if (!string.IsNullOrEmpty(t.StackPush))
         {
             for (int i = t.StackPush.Length - 1; i >= 0; i--)
