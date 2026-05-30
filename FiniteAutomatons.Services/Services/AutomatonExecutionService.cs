@@ -9,7 +9,10 @@ namespace FiniteAutomatons.Services.Services;
 
 public class AutomatonExecutionService(IAutomatonBuilderService builderService, ILogger<AutomatonExecutionService> logger) : IAutomatonExecutionService
 {
-    private const char BottomOfStack = '#';
+    private const char DefaultBottomOfStack = '#';
+
+    /// <summary>Returns the bottom-of-stack symbol for the given model, falling back to '#'.</summary>
+    private static char BottomOf(AutomatonViewModel model) => model.BottomSymbol != '\0' ? model.BottomSymbol : DefaultBottomOfStack;
 
     private readonly IAutomatonBuilderService builderService = builderService;
     private readonly ILogger<AutomatonExecutionService> logger = logger;
@@ -42,10 +45,10 @@ public class AutomatonExecutionService(IAutomatonBuilderService builderService, 
             }
             else
             {
-                var initialStackBottomFirst = DeserializeInitialStackBottomFirst(model.InitialStackSerialized);
+                var initialStackBottomFirst = DeserializeInitialStackBottomFirst(model.InitialStackSerialized, BottomOf(model));
                 dpdaState.Stack = initialStackBottomFirst is { Count: > 0 }
                     ? new Stack<char>(initialStackBottomFirst)
-                    : new Stack<char>([BottomOfStack]);
+                    : new Stack<char>([BottomOf(model)]);
             }
             if (!string.IsNullOrEmpty(model.StateHistorySerialized))
             {
@@ -66,7 +69,7 @@ public class AutomatonExecutionService(IAutomatonBuilderService builderService, 
         }
         else if (model.Type == AutomatonType.NPDA)
         {
-            var npdaState = new NPDAExecutionState(model.Input ?? string.Empty, model.States?.FirstOrDefault(s => s.IsStart)?.Id ?? 0, '#')
+            var npdaState = new NPDAExecutionState(model.Input ?? string.Empty, model.States?.FirstOrDefault(s => s.IsStart)?.Id ?? 0, BottomOf(model))
             {
                 Position = model.Position,
                 IsAccepted = model.IsAccepted
@@ -126,7 +129,7 @@ public class AutomatonExecutionService(IAutomatonBuilderService builderService, 
             if (string.IsNullOrEmpty(model.NPDAConfigurationsSerialized))
             {
                 var startStateId = model.States?.FirstOrDefault(s => s.IsStart)?.Id ?? 0;
-                var initialStackBottomFirst = DeserializeInitialStackBottomFirst(model.InitialStackSerialized) ?? [BottomOfStack];
+                var initialStackBottomFirst = DeserializeInitialStackBottomFirst(model.InitialStackSerialized, BottomOf(model)) ?? [BottomOf(model)];
                 var stack = System.Collections.Immutable.ImmutableStack<char>.Empty;
 
                 foreach (var symbol in initialStackBottomFirst)
@@ -267,7 +270,7 @@ public class AutomatonExecutionService(IAutomatonBuilderService builderService, 
                 {
                     try
                     {
-                        var initialStackBottomFirst = DeserializeInitialStackBottomFirst(model.InitialStackSerialized);
+                        var initialStackBottomFirst = DeserializeInitialStackBottomFirst(model.InitialStackSerialized, BottomOf(model));
                         var initialStack = initialStackBottomFirst is { Count: > 0 }
                             ? new Stack<char>(initialStackBottomFirst)
                             : null;
@@ -409,7 +412,7 @@ public class AutomatonExecutionService(IAutomatonBuilderService builderService, 
             try
             {
                 var rawStack = JsonSerializer.Deserialize<List<char>>(model.InitialStackSerialized) ?? [];
-                var normalizedBottomFirst = NormalizeInitialStackBottomFirst(rawStack);
+                var normalizedBottomFirst = NormalizeInitialStackBottomFirst(rawStack, BottomOf(model));
                 model.InitialStackSerialized = JsonSerializer.Serialize(normalizedBottomFirst);
                 initialStack = new Stack<char>(normalizedBottomFirst);
             }
@@ -428,29 +431,29 @@ public class AutomatonExecutionService(IAutomatonBuilderService builderService, 
         return model;
     }
 
-    private static List<char> NormalizeInitialStackBottomFirst(List<char> raw)
+    private static List<char> NormalizeInitialStackBottomFirst(List<char> raw, char bottom)
     {
         var normalized = raw.Where(c => c != '\0' && c != 'ε').ToList();
 
         if (normalized.Count == 0)
-            return [BottomOfStack];
+            return [bottom];
 
-        if (normalized[0] == BottomOfStack)
+        if (normalized[0] == bottom)
             return normalized;
 
         // Legacy/alternate order where stack was serialized top-first.
-        if (normalized[^1] == BottomOfStack)
+        if (normalized[^1] == bottom)
         {
             normalized.Reverse();
             return normalized;
         }
 
         // User omitted bottom marker; enforce invariant expected by PDA acceptance checks.
-        normalized.Insert(0, BottomOfStack);
+        normalized.Insert(0, bottom);
         return normalized;
     }
 
-    private List<char>? DeserializeInitialStackBottomFirst(string? serialized)
+    private List<char>? DeserializeInitialStackBottomFirst(string? serialized, char bottom)
     {
         if (string.IsNullOrWhiteSpace(serialized))
             return null;
@@ -458,7 +461,7 @@ public class AutomatonExecutionService(IAutomatonBuilderService builderService, 
         try
         {
             var raw = JsonSerializer.Deserialize<List<char>>(serialized) ?? [];
-            return raw.Count == 0 ? null : NormalizeInitialStackBottomFirst(raw);
+            return raw.Count == 0 ? null : NormalizeInitialStackBottomFirst(raw, bottom);
         }
         catch (Exception ex)
         {

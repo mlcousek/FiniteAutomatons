@@ -128,7 +128,8 @@ public class AutomatonBuilderService(ILogger<AutomatonBuilderService> logger) : 
     {
         var dpda = new DPDA
         {
-            AcceptanceMode = model.AcceptanceMode
+            AcceptanceMode = model.AcceptanceMode,
+            BottomSymbol = model.BottomSymbol
         };
 
         PopulateAutomaton(dpda, model);
@@ -146,7 +147,8 @@ public class AutomatonBuilderService(ILogger<AutomatonBuilderService> logger) : 
     {
         var npda = new NPDA
         {
-            AcceptanceMode = model.AcceptanceMode
+            AcceptanceMode = model.AcceptanceMode,
+            BottomSymbol = model.BottomSymbol
         };
 
         PopulateAutomaton(npda, model);

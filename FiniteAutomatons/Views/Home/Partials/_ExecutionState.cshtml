@@ -1,4 +1,4 @@
-@model AutomatonViewModel
+﻿@model AutomatonViewModel
 @if (Model.HasExecuted || Model.Position > 0 || Model.CurrentStateId.HasValue || (Model.CurrentStates != null && Model.CurrentStates.Count > 0))
 {
     <div class="automaton-detail-section execution-state-section" data-panel-id="execution">
@@ -122,7 +122,7 @@
                             if (stack != null && stack.Count > 0)
                             {
                                 <span class="stack-highlight">[ @string.Join(", ", stack.Select(c => c == '\0' ? "ε" : c.ToString())) ]</span>
-                                <span class="stack-hint">(top first)</span>
+                                <span class="stack-hint" title="First symbol is the top of the stack; last symbol is the bottom sentinel.">(top → bottom)</span>
                             }
                             else
                             {

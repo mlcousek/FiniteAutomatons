@@ -6,7 +6,10 @@ namespace FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 
 public class DPDA : Automaton
 {
-    private const char Bottom = '#';
+    /// <summary>The bottom-of-stack sentinel symbol. Defaults to '#' but can be set before execution.</summary>
+    public char BottomSymbol { get; set; } = '#';
+
+    private char Bottom => BottomSymbol;
 
     private ILogger<DPDA> logger = NullLogger<DPDA>.Instance;
 
@@ -69,7 +72,7 @@ public class DPDA : Automaton
         if (state.Position < state.Input.Length)
         {
             char symbol = state.Input[state.Position];
-            var transition = FindConsumingTransition(state.CurrentStateId!.Value, symbol, stackTop);
+            var transition = FindConsumingTransition(state.CurrentStateId!.Value, symbol, stackTop, state.Stack);
             if (transition is null)
             {
                 logger.LogDebug("DPDA StepForward: no transition found → reject");
@@ -133,7 +136,7 @@ public class DPDA : Automaton
             var (_, stackTop) = ReadHead(state);
             char symbol = state.Input[state.Position];
 
-            var transition = FindConsumingTransition(state.CurrentStateId!.Value, symbol, stackTop);
+            var transition = FindConsumingTransition(state.CurrentStateId!.Value, symbol, stackTop, state.Stack);
             if (transition is null)
             {
                 logger.LogDebug("DPDA ExecuteAll: no consuming transition at pos={Position} → reject", state.Position);
@@ -204,7 +207,7 @@ public class DPDA : Automaton
             var eps = Transitions.FirstOrDefault(t =>
                 t.FromStateId == state.CurrentStateId &&
                 t.Symbol == '\0' &&
-                StackMatches(t, stackTop));
+                StackMatches(t, stackTop, state.Stack));
 
             if (eps is null)
                 break;
@@ -233,11 +236,11 @@ public class DPDA : Automaton
         return applied;
     }
 
-    private Transition? FindConsumingTransition(int stateId, char symbol, char? stackTop)
+    private Transition? FindConsumingTransition(int stateId, char symbol, char? stackTop, Stack<char> stack)
         => Transitions.FirstOrDefault(t =>
             t.FromStateId == stateId &&
             t.Symbol == symbol &&
-            StackMatches(t, stackTop));
+            StackMatches(t, stackTop, stack));
 
     private void EvaluateAcceptance(PDAExecutionState state)
     {
@@ -293,7 +296,7 @@ public class DPDA : Automaton
     private bool IsAccepting(int? stateId)
         => stateId != null && States.Any(s => s.Id == stateId && s.IsAccepting);
 
-    private static bool IsOnlyBottom(Stack<char> stack)
+    private bool IsOnlyBottom(Stack<char> stack)
         => stack.Count == 0 || (stack.Count == 1 && stack.Peek() == Bottom);
 
     private void ValidateDeterminism()
@@ -329,11 +332,20 @@ public class DPDA : Automaton
         return t1.StackPop!.Value == t2.StackPop!.Value;
     }
 
-    private static bool StackMatches(Transition t, char? top)
+    /// <summary>
+    /// A transition matches the current stack top only when its StackPop condition is satisfied.
+    /// Special rule: a transition that pops the bottom-of-stack symbol is only applicable when
+    /// the bottom symbol is the SOLE element on the stack (formal PDA invariant — the bottom
+    /// marker must not be consumed mid-computation while other symbols are still present).
+    /// </summary>
+    private bool StackMatches(Transition t, char? top, Stack<char> stack)
     {
         if (!t.StackPop.HasValue) return true;
         if (t.StackPop.Value == '\0') return true;
-        return top.HasValue && top.Value == t.StackPop.Value;
+        if (!top.HasValue || top.Value != t.StackPop.Value) return false;
+        // Bottom-symbol guard: only match when it is the only element left.
+        if (t.StackPop.Value == Bottom && stack.Count > 1) return false;
+        return true;
     }
 
     private static void PushSnapshot(PDAExecutionState state)

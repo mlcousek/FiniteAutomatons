@@ -7,7 +7,10 @@ namespace FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 
 public class NPDA : Automaton
 {
-    private const char Bottom = '#';
+    /// <summary>The bottom-of-stack sentinel symbol. Defaults to '#' but can be set before execution.</summary>
+    public char BottomSymbol { get; set; } = '#';
+
+    private char Bottom => BottomSymbol;
 
     private ILogger<NPDA> logger = NullLogger<NPDA>.Instance;
 
@@ -76,7 +79,7 @@ public class NPDA : Automaton
             foreach (var t in Transitions.Where(t =>
                 t.FromStateId == config.StateId &&
                 t.Symbol == symbol &&
-                StackMatches(t, stackTop)))
+                StackMatches(t, stackTop, config.Stack)))
             {
                 var newStack = ApplyStackOp(config.Stack, t);
                 if (newStack is not null)
@@ -163,7 +166,7 @@ public class NPDA : Automaton
             foreach (var t in Transitions.Where(t =>
                 t.FromStateId == config.StateId &&
                 t.Symbol == '\0' &&
-                StackMatches(t, stackTop)))
+                StackMatches(t, stackTop, config.Stack)))
             {
                 var newStack = ApplyStackOp(config.Stack, t);
                 if (newStack is null)
@@ -205,7 +208,7 @@ public class NPDA : Automaton
     private bool IsAcceptingState(int stateId)
         => States.Any(s => s.Id == stateId && s.IsAccepting);
 
-    private static bool IsOnlyBottom(ImmutableStack<char> stack)
+    private bool IsOnlyBottom(ImmutableStack<char> stack)
     {
         if (stack.IsEmpty) return true;
         var top = stack.Peek();
@@ -235,11 +238,19 @@ public class NPDA : Automaton
         return result;
     }
 
-    private static bool StackMatches(Transition t, char? top)
+    /// <summary>
+    /// A transition matches the current stack top only when its StackPop condition is satisfied.
+    /// Special rule: a transition that pops the bottom-of-stack symbol is only applicable when
+    /// the bottom symbol is the SOLE element on the stack (formal PDA invariant).
+    /// </summary>
+    private bool StackMatches(Transition t, char? top, ImmutableStack<char> stack)
     {
         if (!t.StackPop.HasValue) return true;
         if (t.StackPop.Value == '\0') return true;
-        return top.HasValue && top.Value == t.StackPop.Value;
+        if (!top.HasValue || top.Value != t.StackPop.Value) return false;
+        // Bottom-symbol guard: only match when it is the only element left.
+        if (t.StackPop.Value == Bottom && !stack.Pop().IsEmpty) return false;
+        return true;
     }
 
     private sealed class ConfigurationKeyComparer : IEqualityComparer<PDAConfiguration>

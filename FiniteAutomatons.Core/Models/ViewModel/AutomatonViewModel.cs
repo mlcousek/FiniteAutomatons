@@ -38,6 +38,8 @@ public class AutomatonViewModel
     public string? InitialStackSerialized { get; set; }
     public string? NPDAConfigurationsSerialized { get; set; }
     public PDAAcceptanceMode AcceptanceMode { get; set; } = PDAAcceptanceMode.FinalStateAndEmptyStack;
+    /// <summary>The bottom-of-stack sentinel symbol used by DPDA/NPDA. Defaults to '#'.</summary>
+    public char BottomSymbol { get; set; } = '#';
     public bool IsCustomAutomaton { get; set; } = false;
     public string? SourceRegex { get; set; }
     public Dictionary<int, int>? StateMapping { get; set; }

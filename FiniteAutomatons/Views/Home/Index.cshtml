@@ -290,6 +290,8 @@
                                     var stackList = System.Text.Json.JsonSerializer.Deserialize<List<char>>(Model.InitialStackSerialized);
                                     if (stackList != null && stackList.Count > 0)
                                     {
+                                        // Internal storage is bottom-first; display top-first to match the execution-state panel.
+                                        stackList.Reverse();
                                         stackDisplay = string.Join(",", stackList);
                                     }
                                 }
@@ -297,12 +299,12 @@
                             }
                             <div style="flex:1; display:flex;">
                                 <input type="text" class="input-field" id="initialStackDisplayField"
-                                   placeholder="Stack (bottom-first)..."
+                                   placeholder="Stack (top-first, e.g. X,#)…"
                                    value="@stackDisplay"
                                    @(Model.HasExecuted ? "readonly" : "")
                                    style="padding: 0.75rem 1rem; flex:1;"
                                    maxlength="100"
-                                   title="Comma-separated stack symbols, bottom-first (e.g., #,X,Y means # at bottom, Y at top)"
+                                   title="Comma-separated stack symbols, top-first (e.g. X,# means X on top, # at bottom). The bottom-of-stack sentinel is set automatically if omitted."
                                    oninput="updateInitialStackSerialized()" />
                                 <input type="hidden" name="InitialStackSerialized" id="initialStackSerialized" value="@Model.InitialStackSerialized" />
                             </div>
