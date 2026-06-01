@@ -1,4 +1,4 @@
-﻿import { AutomatonCanvas } from './canvas/AutomatonCanvas.js';
+import { AutomatonCanvas } from './canvas/AutomatonCanvas.js';
 import { CanvasFormSync } from './canvas/CanvasFormSync.js';
 import { PanelSync } from './canvas/PanelSync.js';
 import { CanvasLayoutCache } from './canvas/CanvasLayoutCache.js';
@@ -507,6 +507,14 @@ function setupCanvasControls() {
             } catch (_) {
                 // ignore network errors
             } finally {
+                // Auto-unlock the canvas when landing on a freshly created automaton
+                try {
+                    if (sessionStorage.getItem('fa-auto-unlock-canvas') === '1') {
+                        sessionStorage.removeItem('fa-auto-unlock-canvas');
+                        desiredEditMode = true;
+                        try { localStorage.setItem(LOCAL_KEY, 'true'); } catch (_) { }
+                    }
+                } catch (_) { }
                 applyDesiredEditState();
             }
         })();

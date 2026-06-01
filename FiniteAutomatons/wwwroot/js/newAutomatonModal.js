@@ -1,4 +1,4 @@
-﻿(function(){
+(function(){
   function mapTypeToInt(t){
     switch(t){
       case 'DFA': return 0;
@@ -79,6 +79,8 @@
       btn.addEventListener('click', function(){
         const t = btn.dataset.type;
         closeModal();
+        // Signal the canvas to auto-unlock on next page load
+        try { sessionStorage.setItem('fa-auto-unlock-canvas', '1'); } catch (_) {}
         submitNewAutomaton(t);
       });
     });
