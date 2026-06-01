@@ -1,4 +1,4 @@
-﻿export class TransitionDialog {
+export class TransitionDialog {
     constructor(containerEl) {
         this.containerEl = containerEl;
         this._dialog = null;
@@ -100,6 +100,7 @@
 
             document.body.appendChild(backdrop);
             document.body.appendChild(dialog);
+            this._makeDraggable(dialog);
             setTimeout(() => dialog.querySelector('#cdToggleStart')?.focus(), 50);
         });
     }
@@ -269,6 +270,7 @@
 
             document.body.appendChild(backdrop);
             document.body.appendChild(dialog);
+            this._makeDraggable(dialog);
             setTimeout(() => symbolInput?.select(), 50);
         });
     }
@@ -285,6 +287,77 @@
         this._dialog = dialog;
         this._backdrop = backdrop;
         return { dialog, backdrop };
+    }
+
+    _makeDraggable(dialog) {
+        const header = dialog.querySelector('.cd-header');
+        if (!header) return;
+
+        header.style.cursor = 'grab';
+
+        let dragging = false;
+        let startX = 0, startY = 0;
+        let startLeft = 0, startTop = 0;
+
+        const onMouseDown = (e) => {
+            // Only drag on left-button, and not on the close button
+            if (e.button !== 0) return;
+            if (e.target.closest('.cd-close')) return;
+
+            // Anchor the dialog at its current rendered position
+            // (it starts centered via transform; switch to explicit coords)
+            const rect = dialog.getBoundingClientRect();
+            dialog.style.left   = rect.left + 'px';
+            dialog.style.top    = rect.top  + 'px';
+            dialog.style.transform = 'none';
+
+            dragging = true;
+            startX   = e.clientX;
+            startY   = e.clientY;
+            startLeft = rect.left;
+            startTop  = rect.top;
+
+            header.style.cursor = 'grabbing';
+            e.preventDefault();
+        };
+
+        const onMouseMove = (e) => {
+            if (!dragging) return;
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+
+            // Clamp so dialog stays at least partially visible
+            const minVisible = 40;
+            const maxLeft = window.innerWidth  - minVisible;
+            const maxTop  = window.innerHeight - minVisible;
+
+            const newLeft = Math.min(maxLeft, Math.max(-dialog.offsetWidth  + minVisible, startLeft + dx));
+            const newTop  = Math.min(maxTop,  Math.max(0,                                 startTop  + dy));
+
+            dialog.style.left = newLeft + 'px';
+            dialog.style.top  = newTop  + 'px';
+        };
+
+        const onMouseUp = () => {
+            if (!dragging) return;
+            dragging = false;
+            header.style.cursor = 'grab';
+        };
+
+        header.addEventListener('mousedown', onMouseDown);
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup',   onMouseUp);
+
+        // Clean up listeners when the dialog is removed from the DOM
+        const observer = new MutationObserver(() => {
+            if (!document.contains(dialog)) {
+                header.removeEventListener('mousedown', onMouseDown);
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup',   onMouseUp);
+                observer.disconnect();
+            }
+        });
+        observer.observe(document.body, { childList: true, subtree: false });
     }
 
     _removeDialog(dialog, backdrop) {
