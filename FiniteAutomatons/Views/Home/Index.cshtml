@@ -194,6 +194,52 @@
                     </button>
                 </div>
                 <div id="automatonCanvasContainer"></div>
+
+                <!-- Canvas Help Button -->
+                <button id="canvasHelpBtn" class="canvas-help-btn" title="Canvas keyboard shortcuts &amp; interactions" type="button" aria-label="Show canvas help">
+                    <i class="fas fa-question"></i>
+                </button>
+
+                <!-- Canvas Help Panel -->
+                <div id="canvasHelpPanel" class="canvas-help-panel" aria-hidden="true">
+                    <div class="chp-header">
+                        <span class="chp-title"><i class="fas fa-keyboard"></i> Canvas Interactions</span>
+                        <button class="chp-close" id="canvasHelpClose" type="button" aria-label="Close help"><i class="fas fa-times"></i></button>
+                    </div>
+                    <div class="chp-body">
+                        <div class="chp-section-label">States</div>
+                        <ul class="chp-list">
+                            <li><span class="chp-key"><i class="fas fa-mouse-pointer"></i> Click empty area</span><span class="chp-desc">Add new state</span></li>
+                            <li><span class="chp-key"><i class="fas fa-mouse-pointer"></i> Click state (×1)</span><span class="chp-desc">Select as transition source</span></li>
+                            <li><span class="chp-key"><i class="fas fa-mouse-pointer"></i> Click state (×2)</span><span class="chp-desc">Toggle accepting state (double-ring)</span></li>
+                            <li><span class="chp-key"><i class="fas fa-mouse-pointer"></i> Click state (×3)</span><span class="chp-desc">Set as start state (arrow)</span></li>
+                            <li><span class="chp-key"><i class="fas fa-mouse-pointer"></i> Right-click state</span><span class="chp-desc">Open state properties dialog</span></li>
+                            <li><span class="chp-key"><i class="fas fa-arrows-alt"></i> Drag state</span><span class="chp-desc">Move state on canvas</span></li>
+                        </ul>
+
+                        <div class="chp-section-label">Transitions</div>
+                        <ul class="chp-list">
+                            <li><span class="chp-key">Click source → click target</span><span class="chp-desc">Create transition between states</span></li>
+                            <li><span class="chp-key">Click source → click same</span><span class="chp-desc">Create self-loop transition</span></li>
+                            <li><span class="chp-key"><i class="fas fa-mouse-pointer"></i> Double-click edge</span><span class="chp-desc">Edit or delete transition</span></li>
+                            <li><span class="chp-key">Esc</span><span class="chp-desc">Cancel transition in progress</span></li>
+                        </ul>
+
+                        <div class="chp-section-label">Selection &amp; Deletion</div>
+                        <ul class="chp-list">
+                            <li><span class="chp-key">Del</span><span class="chp-desc">Delete selected state or edge</span></li>
+                            <li><span class="chp-key">Ctrl + Z</span><span class="chp-desc">Undo last action</span></li>
+                            <li><span class="chp-key">Ctrl + Y</span><span class="chp-desc">Redo</span></li>
+                        </ul>
+
+                        <div class="chp-section-label">Navigation</div>
+                        <ul class="chp-list">
+                            <li><span class="chp-key"><i class="fas fa-hand-paper"></i> Drag canvas</span><span class="chp-desc">Pan the view</span></li>
+                            <li><span class="chp-key"><i class="fas fa-mouse"></i> Scroll</span><span class="chp-desc">Zoom (when wheel zoom enabled)</span></li>
+                            <li><span class="chp-key">Drag dialog header</span><span class="chp-desc">Move transition/state dialog</span></li>
+                        </ul>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

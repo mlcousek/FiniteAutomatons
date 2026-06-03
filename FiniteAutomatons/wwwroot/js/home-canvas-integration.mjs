@@ -237,12 +237,51 @@ function highlightActiveStates() {
 }
 
 function setupCanvasControls() {
+    // ── Canvas Help Button ──────────────────────────────────
+    const helpBtn   = document.getElementById('canvasHelpBtn');
+    const helpPanel = document.getElementById('canvasHelpPanel');
+    const helpClose = document.getElementById('canvasHelpClose');
+
+    if (helpBtn && helpPanel) {
+        const openHelp = () => {
+            helpPanel.classList.add('chp-visible');
+            helpPanel.setAttribute('aria-hidden', 'false');
+            helpBtn.classList.add('chp-open');
+        };
+        const closeHelp = () => {
+            helpPanel.classList.remove('chp-visible');
+            helpPanel.setAttribute('aria-hidden', 'true');
+            helpBtn.classList.remove('chp-open');
+        };
+        const toggleHelp = () => {
+            helpPanel.classList.contains('chp-visible') ? closeHelp() : openHelp();
+        };
+
+        helpBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleHelp(); });
+        helpClose?.addEventListener('click', closeHelp);
+
+        // Close when clicking outside the panel
+        document.addEventListener('click', (e) => {
+            if (!helpPanel.contains(e.target) && e.target !== helpBtn) {
+                closeHelp();
+            }
+        });
+
+        // Close on Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && helpPanel.classList.contains('chp-visible')) {
+                closeHelp();
+            }
+        });
+    }
+
     const zoomInBtn = document.getElementById('zoomInBtn');
     if (zoomInBtn) {
         zoomInBtn.addEventListener('click', () => {
             if (canvas) canvas.zoomIn();
         });
     }
+
 
     const zoomOutBtn = document.getElementById('zoomOutBtn');
     if (zoomOutBtn) {
@@ -507,12 +546,14 @@ function setupCanvasControls() {
             } catch (_) {
                 // ignore network errors
             } finally {
-                // Auto-unlock the canvas when landing on a freshly created automaton
+                // Auto-unlock the canvas AND panel when landing on a freshly created automaton
                 try {
                     if (sessionStorage.getItem('fa-auto-unlock-canvas') === '1') {
                         sessionStorage.removeItem('fa-auto-unlock-canvas');
                         desiredEditMode = true;
                         try { localStorage.setItem(LOCAL_KEY, 'true'); } catch (_) { }
+                        // Also enable panel edit mode
+                        sessionStorage.setItem('fa-auto-unlock-panel', '1');
                     }
                 } catch (_) { }
                 applyDesiredEditState();
@@ -707,7 +748,22 @@ function _setupPanelEditButton(automatonType) {
         if (panelSync) panelSync.setEditMode(nowEnabled);
     });
 
-    _updatePanelEditButton(false);
+    // Auto-enable panel edit mode when landing on a freshly created automaton
+    let autoEnablePanel = false;
+    try {
+        if (sessionStorage.getItem('fa-auto-unlock-panel') === '1') {
+            sessionStorage.removeItem('fa-auto-unlock-panel');
+            autoEnablePanel = true;
+        }
+    } catch (_) { }
+
+    if (autoEnablePanel && algorithmPanelEditor) {
+        algorithmPanelEditor.enable();
+        _updatePanelEditButton(true);
+        if (panelSync) panelSync.setEditMode(true);
+    } else {
+        _updatePanelEditButton(false);
+    }
 }
 
 function _updatePanelEditButton(isEnabled) {
