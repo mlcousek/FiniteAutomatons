@@ -1,4 +1,4 @@
-﻿using FiniteAutomatons.Core.Models.DoMain;
+using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Interfaces;
@@ -86,7 +86,8 @@ public class AutomatonExecutionService(IAutomatonBuilderService builderService, 
                         var stack = System.Collections.Immutable.ImmutableStack<char>.Empty;
                         if (dto.Stack != null)
                         {
-                            foreach (char c in dto.Stack)
+                            // Stack is serialized top-first; push in reverse so original top ends up on top.
+                            foreach (char c in dto.Stack.Reverse())
                                 stack = stack.Push(c);
                         }
                         configs.Add(new PDAConfiguration(dto.StateId, stack));
@@ -112,7 +113,8 @@ public class AutomatonExecutionService(IAutomatonBuilderService builderService, 
                             var stack = System.Collections.Immutable.ImmutableStack<char>.Empty;
                             if (dto.Stack != null)
                             {
-                                foreach (char c in dto.Stack)
+                                // Stack is serialized top-first; push in reverse so original top ends up on top.
+                                foreach (char c in dto.Stack.Reverse())
                                     stack = stack.Push(c);
                             }
                             configs.Add(new PDAConfiguration(dto.StateId, stack));
@@ -499,6 +501,6 @@ public class AutomatonExecutionService(IAutomatonBuilderService builderService, 
 
     private static char[] SerializeImmutableStack(System.Collections.Immutable.ImmutableStack<char> stack)
     {
-        return [.. stack.Reverse()];
+        return [.. stack];
     }
 }
