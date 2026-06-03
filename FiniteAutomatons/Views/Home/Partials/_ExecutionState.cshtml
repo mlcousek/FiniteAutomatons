@@ -1,4 +1,4 @@
-﻿@model AutomatonViewModel
+@model AutomatonViewModel
 @if (Model.HasExecuted || Model.Position > 0 || Model.CurrentStateId.HasValue || (Model.CurrentStates != null && Model.CurrentStates.Count > 0))
 {
     <div class="automaton-detail-section execution-state-section" data-panel-id="execution">
@@ -111,7 +111,7 @@
                 </span>
             </div>
 
-            @if ((Model.Type == AutomatonType.DPDA || Model.Type == AutomatonType.NPDA) && !string.IsNullOrEmpty(Model.StackSerialized))
+            @if (Model.Type == AutomatonType.DPDA && !string.IsNullOrEmpty(Model.StackSerialized))
             {
                 <div class="execution-state-item">
                     <span class="execution-label">Stack:</span>
@@ -135,6 +135,65 @@
                         }
                     </span>
                 </div>
+            }
+            else if (Model.Type == AutomatonType.NPDA && !string.IsNullOrEmpty(Model.NPDAConfigurationsSerialized))
+            {
+                @* Parse every active (state, stack) configuration and show each one *@
+                @try
+                {
+                    using var doc = System.Text.Json.JsonDocument.Parse(Model.NPDAConfigurationsSerialized);
+                    var configs = doc.RootElement.EnumerateArray()
+                        .Select(el =>
+                        {
+                            var stateId = el.GetProperty("StateId").GetInt32();
+                            var stackChars = el.GetProperty("Stack").EnumerateArray()
+                                .Select(e =>
+                                {
+                                    var s = e.GetString() ?? "";
+                                    return s.Length > 0 ? s[0] : '\0';
+                                })
+                                .ToList();
+                            return (stateId, stackChars);
+                        })
+                        .OrderBy(c => c.stateId)
+                        .ToList();
+
+                    if (configs.Count > 0)
+                    {
+                        <div class="execution-state-item execution-state-item--block">
+                            <span class="execution-label">Configurations:</span>
+                            <div class="npda-configs-table">
+                                @foreach (var (stateId, stackChars) in configs)
+                                {
+                                    <div class="npda-config-row">
+                                        <span class="npda-config-state state-highlight">q@(stateId)</span>
+                                        <span class="npda-config-arrow">→</span>
+                                        <span class="npda-config-stack">
+                                            @if (stackChars.Count == 0 || (stackChars.Count == 1 && stackChars[0] == '#'))
+                                            {
+                                                <span class="stack-highlight stack-highlight--empty">[ # ]</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="stack-highlight">[ @string.Join(", ", stackChars.Select(c => c == '\0' ? "ε" : c.ToString())) ]</span>
+                                            }
+                                        </span>
+                                    </div>
+                                }
+                                <div class="npda-config-hint">
+                                    <span class="stack-hint" title="First symbol is the top of each stack; last symbol is the bottom sentinel.">(top → bottom per configuration)</span>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+                catch
+                {
+                    <div class="execution-state-item">
+                        <span class="execution-label">Configurations:</span>
+                        <span class="execution-value"><span class="placeholder-text">-</span></span>
+                    </div>
+                }
             }
         </div>
     </div>

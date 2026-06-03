@@ -1,4 +1,4 @@
-﻿html {
+html {
   font-size: 14px;
   height: 100%;
 }
@@ -1072,6 +1072,58 @@ font-family: 'Courier New', monospace;
   color: #666;
   font-style: italic;
   font-weight: normal;
+}
+
+/* NPDA per-configuration table */
+.execution-state-item--block {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.4rem;
+}
+
+.npda-configs-table {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-family: 'Courier New', monospace;
+}
+
+.npda-config-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.4rem;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid #d5e8d4;
+  border-radius: 4px;
+}
+
+.npda-config-state {
+  min-width: 2.5rem;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.npda-config-arrow {
+  color: #666;
+  flex-shrink: 0;
+}
+
+.npda-config-stack {
+  flex: 1;
+}
+
+/* Sentinel-only stack — visually muted to indicate "effectively empty" */
+.stack-highlight--empty {
+  background-color: #edf7f6;
+  border-color: #c8e6e3;
+  color: #6c8f8c;
+  font-style: italic;
+}
+
+.npda-config-hint {
+  padding-top: 0.15rem;
 }
 
 /* Footer */
