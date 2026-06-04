@@ -1,4 +1,4 @@
-﻿using FiniteAutomatons.Core.Configuration;
+using FiniteAutomatons.Core.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using System.Collections.Immutable;
@@ -198,23 +198,15 @@ public class NPDA : Automaton
             PDAAcceptanceMode.FinalStateOnly =>
                 IsAcceptingState(config.StateId),
             PDAAcceptanceMode.EmptyStackOnly =>
-                IsOnlyBottom(config.Stack),
+                config.Stack.IsEmpty,
             PDAAcceptanceMode.FinalStateAndEmptyStack =>
-                IsAcceptingState(config.StateId) && IsOnlyBottom(config.Stack),
-            _ => IsAcceptingState(config.StateId) && IsOnlyBottom(config.Stack)
+                IsAcceptingState(config.StateId) && config.Stack.IsEmpty,
+            _ => IsAcceptingState(config.StateId) && config.Stack.IsEmpty
         };
     }
 
     private bool IsAcceptingState(int stateId)
         => States.Any(s => s.Id == stateId && s.IsAccepting);
-
-    private bool IsOnlyBottom(ImmutableStack<char> stack)
-    {
-        if (stack.IsEmpty) return true;
-        var top = stack.Peek();
-        if (top != Bottom) return false;
-        return stack.Pop().IsEmpty; // only one element and it is '#'
-    }
 
     private static ImmutableStack<char>? ApplyStackOp(ImmutableStack<char> stack, Transition t)
     {

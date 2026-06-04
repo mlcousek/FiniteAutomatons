@@ -1,4 +1,4 @@
-﻿using FiniteAutomatons.Controllers;
+using FiniteAutomatons.Controllers;
 using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Core.Utilities;
@@ -221,7 +221,10 @@ public class AutomatonExecutionServiceTests
         {
             Type = AutomatonType.DPDA,
             States = [new() { Id = 1, IsStart = true, IsAccepting = false }],
-            Transitions = [new() { FromStateId = 1, ToStateId = 1, Symbol = 'x', StackPop = 'X', StackPush = null }],
+            Transitions = [
+                new() { FromStateId = 1, ToStateId = 1, Symbol = 'x', StackPop = 'X', StackPush = null },
+                new() { FromStateId = 1, ToStateId = 1, Symbol = '\0', StackPop = '#', StackPush = null }
+            ],
             Input = "x",
             AcceptanceMode = PDAAcceptanceMode.EmptyStackOnly,
             InitialStackSerialized = JsonSerializer.Serialize(new List<char> { '#', 'X' })

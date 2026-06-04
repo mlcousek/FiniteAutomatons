@@ -1,4 +1,4 @@
-﻿using FiniteAutomatons.Core.Models.Database;
+using FiniteAutomatons.Core.Models.Database;
 using FiniteAutomatons.Core.Models.DTOs;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Data;
@@ -37,6 +37,8 @@ public class DemoDataSeederIntegrationTests(IntegrationTestsFixture fixture) : I
             States = payload.States ?? [],
             Transitions = payload.Transitions ?? [],
             Input = input,
+            AcceptanceMode = payload.AcceptanceMode,
+            InitialStackSerialized = payload.InitialStackSerialized,
             IsCustomAutomaton = true
         };
 
@@ -131,8 +133,8 @@ public class DemoDataSeederIntegrationTests(IntegrationTestsFixture fixture) : I
     [InlineData("DFA – Binary numbers divisible by 3", AutomatonType.DFA, 3)]
     [InlineData("NFA – Contains substring 'ab'", AutomatonType.NFA, 3)]
     [InlineData("ε-NFA – a(b|c)", AutomatonType.EpsilonNFA, 5)]
-    [InlineData("DPDA – aⁿbⁿ (n ≥ 0)", AutomatonType.DPDA, 2)]
-    [InlineData("NPDA – Even-length palindromes", AutomatonType.NPDA, 2)]
+    [InlineData("DPDA – aⁿbⁿ (n ≥ 0)", AutomatonType.DPDA, 4)]
+    [InlineData("NPDA – Even-length palindromes", AutomatonType.NPDA, 3)]
     public async Task SavedAutomaton_LoadedType_MatchesExpected(string name, AutomatonType expectedType, int expectedStateCount)
     {
         using var db = GetDb();

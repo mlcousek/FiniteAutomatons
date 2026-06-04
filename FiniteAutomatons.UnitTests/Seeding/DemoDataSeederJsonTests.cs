@@ -212,10 +212,10 @@ public class DemoDataSeederJsonTests
     {
         var dto = Convert(DemoDataSeeder.DpdaAnBnJson);
         dto.Type.ShouldBe(AutomatonType.DPDA);
-        dto.States!.Count.ShouldBe(2);
-        dto.Transitions!.Count.ShouldBe(3);
-        // Push transitions use StackPush
-        dto.Transitions.Count(t => t.StackPush != null).ShouldBe(1);
+        dto.States!.Count.ShouldBe(4);
+        dto.Transitions!.Count.ShouldBe(5);
+        // Push transitions: X# (first a), XX (subsequent a's), # (epsilon restoring sentinel)
+        dto.Transitions.Count(t => t.StackPush != null).ShouldBe(3);
     }
 
     [Fact]
@@ -223,10 +223,10 @@ public class DemoDataSeederJsonTests
     {
         var dto = Convert(DemoDataSeeder.DpdaBalancedParensJson);
         dto.Type.ShouldBe(AutomatonType.DPDA);
-        dto.States!.Count.ShouldBe(1);
-        dto.Transitions!.Count.ShouldBe(2);
-        dto.Transitions.Count(t => t.StackPush != null).ShouldBe(1);
-        dto.Transitions.Count(t => t.StackPop.HasValue && t.StackPop.Value == '(').ShouldBe(1);
+        dto.States!.Count.ShouldBe(2);
+        dto.Transitions!.Count.ShouldBe(4);
+        // 3 push transitions: "(#", "((", and "#" (epsilon that restores the sentinel)
+        dto.Transitions.Count(t => t.StackPush != null).ShouldBe(3);
     }
 
     [Fact]
@@ -234,8 +234,8 @@ public class DemoDataSeederJsonTests
     {
         var dto = Convert(DemoDataSeeder.DpdaAtLeastAsManyAsJson);
         dto.Type.ShouldBe(AutomatonType.DPDA);
-        dto.States!.Count.ShouldBe(2);
-        dto.Transitions!.Count.ShouldBe(3);
+        dto.States!.Count.ShouldBe(3);
+        dto.Transitions!.Count.ShouldBe(5);
     }
 
     // ──────────────────── NPDA tests ────────────────────
@@ -245,10 +245,10 @@ public class DemoDataSeederJsonTests
     {
         var dto = Convert(DemoDataSeeder.NpdaEvenPalindromesJson);
         dto.Type.ShouldBe(AutomatonType.NPDA);
-        dto.States!.Count.ShouldBe(2);
-        dto.Transitions!.Count.ShouldBe(5);
+        dto.States!.Count.ShouldBe(3);
+        dto.Transitions!.Count.ShouldBe(6);
         // Midpoint epsilon transition
-        dto.Transitions.Count(t => t.Symbol == '\0').ShouldBe(1);
+        dto.Transitions.Count(t => t.Symbol == '\0').ShouldBe(2);
     }
 
     // ──────────────────── ContentJson round-trip ────────────────────

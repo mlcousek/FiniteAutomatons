@@ -1,4 +1,4 @@
-﻿using FiniteAutomatons.Core.Configuration;
+using FiniteAutomatons.Core.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -287,17 +287,14 @@ public class DPDA : Automaton
         return AcceptanceMode switch
         {
             PDAAcceptanceMode.FinalStateOnly => IsAccepting(stateId),
-            PDAAcceptanceMode.EmptyStackOnly => IsOnlyBottom(stack),
-            PDAAcceptanceMode.FinalStateAndEmptyStack => IsAccepting(stateId) && IsOnlyBottom(stack),
-            _ => IsAccepting(stateId) && IsOnlyBottom(stack)
+            PDAAcceptanceMode.EmptyStackOnly => stack.Count == 0,
+            PDAAcceptanceMode.FinalStateAndEmptyStack => IsAccepting(stateId) && stack.Count == 0,
+            _ => IsAccepting(stateId) && stack.Count == 0
         };
     }
 
     private bool IsAccepting(int? stateId)
         => stateId != null && States.Any(s => s.Id == stateId && s.IsAccepting);
-
-    private bool IsOnlyBottom(Stack<char> stack)
-        => stack.Count == 0 || (stack.Count == 1 && stack.Peek() == Bottom);
 
     private void ValidateDeterminism()
     {

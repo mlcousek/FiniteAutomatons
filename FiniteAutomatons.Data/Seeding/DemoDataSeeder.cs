@@ -1,4 +1,4 @@
-﻿using FiniteAutomatons.Core.Models.Database;
+using FiniteAutomatons.Core.Models.Database;
 using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.Serialization;
@@ -436,8 +436,14 @@ public class DemoDataSeeder(
             DPDA => AutomatonType.DPDA,
             _ => AutomatonType.DFA
         };
+        var acceptanceMode = automaton switch
+        {
+            DPDA dpda => dpda.AcceptanceMode,
+            NPDA npda => npda.AcceptanceMode,
+            _ => (PDAAcceptanceMode?)null
+        };
         return JsonSerializer.Serialize(
-            new ContentPayload { Type = type, States = automaton.States, Transitions = automaton.Transitions },
+            new ContentPayload { Type = type, States = automaton.States, Transitions = automaton.Transitions, AcceptanceMode = acceptanceMode },
             ContentJsonOptions);
     }
 
@@ -463,6 +469,10 @@ public class DemoDataSeeder(
         public AutomatonType Type { get; set; }
         public List<State> States { get; set; } = [];
         public List<Transition> Transitions { get; set; } = [];
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        public PDAAcceptanceMode? AcceptanceMode { get; set; }
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        public string? InitialStackSerialized { get; set; }
     }
 
     private static SavedAutomaton Saved(string userId, string name, string description, string json) =>
@@ -682,13 +692,18 @@ public class DemoDataSeeder(
           "Type": "DPDA",
           "States": [
             {"Id": 1, "IsStart": true,  "IsAccepting": true},
-            {"Id": 2, "IsStart": false, "IsAccepting": true}
+            {"Id": 2, "IsStart": false, "IsAccepting": false},
+            {"Id": 3, "IsStart": false, "IsAccepting": false},
+            {"Id": 4, "IsStart": false, "IsAccepting": true}
           ],
           "Transitions": [
-            {"FromStateId": 1, "ToStateId": 1, "Symbol": "a", "StackPop": "ε", "StackPush": "X"},
-            {"FromStateId": 1, "ToStateId": 2, "Symbol": "b", "StackPop": "X"},
-            {"FromStateId": 2, "ToStateId": 2, "Symbol": "b", "StackPop": "X"}
-          ]
+            {"FromStateId": 1, "ToStateId": 2, "Symbol": "a", "StackPop": "#", "StackPush": "X#"},
+            {"FromStateId": 2, "ToStateId": 2, "Symbol": "a", "StackPop": "X", "StackPush": "XX"},
+            {"FromStateId": 2, "ToStateId": 3, "Symbol": "b", "StackPop": "X"},
+            {"FromStateId": 3, "ToStateId": 3, "Symbol": "b", "StackPop": "X"},
+            {"FromStateId": 3, "ToStateId": 4, "Symbol": "ε", "StackPop": "#", "StackPush": "#"}
+          ],
+          "AcceptanceMode": 1
         }
         """;
 
@@ -699,12 +714,16 @@ public class DemoDataSeeder(
           "Version": 1,
           "Type": "DPDA",
           "States": [
-            {"Id": 1, "IsStart": true, "IsAccepting": true}
+            {"Id": 1, "IsStart": true, "IsAccepting": true},
+            {"Id": 2, "IsStart": false, "IsAccepting": false}
           ],
           "Transitions": [
-            {"FromStateId": 1, "ToStateId": 1, "Symbol": "(", "StackPop": "ε", "StackPush": "("},
-            {"FromStateId": 1, "ToStateId": 1, "Symbol": ")", "StackPop": "("}
-          ]
+            {"FromStateId": 1, "ToStateId": 2, "Symbol": "(", "StackPop": "#", "StackPush": "(#"},
+            {"FromStateId": 2, "ToStateId": 2, "Symbol": "(", "StackPop": "(", "StackPush": "(("},
+            {"FromStateId": 2, "ToStateId": 2, "Symbol": ")", "StackPop": "("},
+            {"FromStateId": 2, "ToStateId": 1, "Symbol": "ε", "StackPop": "#", "StackPush": "#"}
+          ],
+          "AcceptanceMode": 1
         }
         """;
 
@@ -717,14 +736,16 @@ public class DemoDataSeeder(
           "Type": "NPDA",
           "States": [
             {"Id": 0, "IsStart": true,  "IsAccepting": false},
-            {"Id": 1, "IsStart": false, "IsAccepting": true}
+            {"Id": 1, "IsStart": false, "IsAccepting": true},
+            {"Id": 2, "IsStart": false, "IsAccepting": true}
           ],
           "Transitions": [
             {"FromStateId": 0, "ToStateId": 0, "Symbol": "a", "StackPop": "ε", "StackPush": "a"},
             {"FromStateId": 0, "ToStateId": 0, "Symbol": "b", "StackPop": "ε", "StackPush": "b"},
             {"FromStateId": 0, "ToStateId": 1, "Symbol": "ε"},
             {"FromStateId": 1, "ToStateId": 1, "Symbol": "a", "StackPop": "a"},
-            {"FromStateId": 1, "ToStateId": 1, "Symbol": "b", "StackPop": "b"}
+            {"FromStateId": 1, "ToStateId": 1, "Symbol": "b", "StackPop": "b"},
+            {"FromStateId": 1, "ToStateId": 2, "Symbol": "ε", "StackPop": "#"}
           ]
         }
         """;
@@ -924,12 +945,15 @@ public class DemoDataSeeder(
           "Type": "DPDA",
           "States": [
             {"Id": 0, "IsStart": true,  "IsAccepting": true},
-            {"Id": 1, "IsStart": false, "IsAccepting": true}
+            {"Id": 1, "IsStart": false, "IsAccepting": true},
+            {"Id": 2, "IsStart": false, "IsAccepting": true}
           ],
           "Transitions": [
             {"FromStateId": 0, "ToStateId": 0, "Symbol": "a", "StackPop": "ε", "StackPush": "X"},
             {"FromStateId": 0, "ToStateId": 1, "Symbol": "b", "StackPop": "X"},
-            {"FromStateId": 1, "ToStateId": 1, "Symbol": "b", "StackPop": "X"}
+            {"FromStateId": 1, "ToStateId": 1, "Symbol": "b", "StackPop": "X"},
+            {"FromStateId": 0, "ToStateId": 2, "Symbol": "ε", "StackPop": "#"},
+            {"FromStateId": 1, "ToStateId": 2, "Symbol": "ε", "StackPop": "#"}
           ]
         }
         """;

@@ -1,4 +1,4 @@
-﻿using FiniteAutomatons.Core.Models.DoMain;
+using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Services;
@@ -73,7 +73,8 @@ public class InputGenerationServicePdaAcceptanceTests
             Transitions =
             [
                 new() { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '\0', StackPush = "X" },
-                new() { FromStateId = 1, ToStateId = 1, Symbol = 'b', StackPop = 'X', StackPush = null }
+                new() { FromStateId = 1, ToStateId = 1, Symbol = 'b', StackPop = 'X', StackPush = null },
+                new() { FromStateId = 1, ToStateId = 1, Symbol = '\0', StackPop = '#', StackPush = null }
             ],
             AcceptanceMode = PDAAcceptanceMode.EmptyStackOnly
         };
@@ -99,7 +100,8 @@ public class InputGenerationServicePdaAcceptanceTests
             Transitions =
             [
                 new() { FromStateId = 1, ToStateId = 2, Symbol = 'a', StackPop = '\0', StackPush = "X" },
-                new() { FromStateId = 2, ToStateId = 2, Symbol = 'b', StackPop = 'X', StackPush = null }
+                new() { FromStateId = 2, ToStateId = 2, Symbol = 'b', StackPop = 'X', StackPush = null },
+                new() { FromStateId = 2, ToStateId = 2, Symbol = '\0', StackPop = '#', StackPush = null }
             ],
             AcceptanceMode = PDAAcceptanceMode.FinalStateAndEmptyStack
         };
@@ -221,13 +223,16 @@ public class InputGenerationServicePdaAcceptanceTests
         var model = new AutomatonViewModel
         {
             Type = AutomatonType.DPDA,
-            States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
+            States = [new() { Id = 1, IsStart = true, IsAccepting = true }, new() { Id = 2, IsStart = false, IsAccepting = false }],
             Transitions =
             [
-                new() { FromStateId = 1, ToStateId = 1, Symbol = '(', StackPop = '\0', StackPush = "(" },
-                new() { FromStateId = 1, ToStateId = 1, Symbol = ')', StackPop = '(', StackPush = null }
+                new() { FromStateId = 1, ToStateId = 2, Symbol = '(', StackPop = '#', StackPush = "X#" },
+                new() { FromStateId = 2, ToStateId = 2, Symbol = '(', StackPop = 'X', StackPush = "(X" },
+                new() { FromStateId = 2, ToStateId = 2, Symbol = '(', StackPop = '(', StackPush = "((" },
+                new() { FromStateId = 2, ToStateId = 2, Symbol = ')', StackPop = '(' },
+                new() { FromStateId = 2, ToStateId = 1, Symbol = ')', StackPop = 'X' }
             ],
-            AcceptanceMode = PDAAcceptanceMode.FinalStateAndEmptyStack
+            AcceptanceMode = PDAAcceptanceMode.FinalStateOnly
         };
 
         var result = service.GenerateAcceptingString(model, 10);
@@ -265,11 +270,12 @@ public class InputGenerationServicePdaAcceptanceTests
         var model = new AutomatonViewModel
         {
             Type = AutomatonType.DPDA,
-            States = [new() { Id = 1, IsStart = true, IsAccepting = false }],
+            States = [new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = false }],
             Transitions =
             [
                 new() { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '\0', StackPush = "X" },
-                new() { FromStateId = 1, ToStateId = 1, Symbol = 'b', StackPop = 'X', StackPush = null }
+                new() { FromStateId = 1, ToStateId = 2, Symbol = 'b', StackPop = 'X', StackPush = null },
+                new() { FromStateId = 2, ToStateId = 2, Symbol = '\0', StackPop = '#', StackPush = null }
             ],
             AcceptanceMode = PDAAcceptanceMode.EmptyStackOnly
         };
@@ -292,7 +298,7 @@ public class InputGenerationServicePdaAcceptanceTests
                 new() { Id = 1, IsStart = true, IsAccepting = false },
                 new() { Id = 2, IsStart = false, IsAccepting = true }
             ],
-            Transitions = [new() { FromStateId = 1, ToStateId = 2, Symbol = 'a', StackPop = '\0', StackPush = null }],
+            Transitions = [new() { FromStateId = 1, ToStateId = 2, Symbol = 'a', StackPop = '#', StackPush = null }],
             AcceptanceMode = PDAAcceptanceMode.EmptyStackOnly
         };
 
@@ -308,7 +314,7 @@ public class InputGenerationServicePdaAcceptanceTests
         {
             Type = AutomatonType.NPDA,
             States = [new() { Id = 1, IsStart = true, IsAccepting = false }],
-            Transitions = [new() { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '\0', StackPush = "X" }],
+            Transitions = [new() { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '#', StackPush = "X" }],
             AcceptanceMode = PDAAcceptanceMode.EmptyStackOnly,
             InitialStackSerialized = null
         };
@@ -370,10 +376,11 @@ public class InputGenerationServicePdaAcceptanceTests
         var model = new AutomatonViewModel
         {
             Type = AutomatonType.DPDA,
-            States = [new() { Id = 1, IsStart = true, IsAccepting = false }],
+            States = [new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = false }],
             Transitions =
             [
-                new() { FromStateId = 1, ToStateId = 1, Symbol = 'x', StackPop = 'X', StackPush = null }
+                new() { FromStateId = 1, ToStateId = 1, Symbol = 'x', StackPop = 'X', StackPush = null },
+                new() { FromStateId = 1, ToStateId = 2, Symbol = '\0', StackPop = '#', StackPush = null }
             ],
             AcceptanceMode = PDAAcceptanceMode.EmptyStackOnly,
             InitialStackSerialized = JsonSerializer.Serialize(new List<char> { '#', 'X' })
@@ -445,13 +452,16 @@ public class InputGenerationServicePdaAcceptanceTests
         var model = new AutomatonViewModel
         {
             Type = AutomatonType.DPDA,
-            States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
+            States = [new() { Id = 1, IsStart = true, IsAccepting = true }, new() { Id = 2, IsStart = false, IsAccepting = false }],
             Transitions =
             [
-                new() { FromStateId = 1, ToStateId = 1, Symbol = '(', StackPop = '\0', StackPush = "(" },
-                new() { FromStateId = 1, ToStateId = 1, Symbol = ')', StackPop = '(', StackPush = null }
+                new() { FromStateId = 1, ToStateId = 2, Symbol = '(', StackPop = '#', StackPush = "X#" },
+                new() { FromStateId = 2, ToStateId = 2, Symbol = '(', StackPop = 'X', StackPush = "(X" },
+                new() { FromStateId = 2, ToStateId = 2, Symbol = '(', StackPop = '(', StackPush = "((" },
+                new() { FromStateId = 2, ToStateId = 2, Symbol = ')', StackPop = '(' },
+                new() { FromStateId = 2, ToStateId = 1, Symbol = ')', StackPop = 'X' }
             ],
-            AcceptanceMode = PDAAcceptanceMode.FinalStateAndEmptyStack
+            AcceptanceMode = PDAAcceptanceMode.FinalStateOnly
         };
 
         var result = service.GenerateRandomAcceptingString(model, minLength: 0, maxLength: 10, maxAttempts: 100);
@@ -488,11 +498,12 @@ public class InputGenerationServicePdaAcceptanceTests
         var model = new AutomatonViewModel
         {
             Type = AutomatonType.DPDA,
-            States = [new() { Id = 1, IsStart = true, IsAccepting = false }],
+            States = [new() { Id = 1, IsStart = true, IsAccepting = false }, new() { Id = 2, IsStart = false, IsAccepting = false }],
             Transitions =
             [
                 new() { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '\0', StackPush = "X" },
-                new() { FromStateId = 1, ToStateId = 1, Symbol = 'b', StackPop = 'X', StackPush = null }
+                new() { FromStateId = 1, ToStateId = 1, Symbol = 'b', StackPop = 'X', StackPush = null },
+                new() { FromStateId = 1, ToStateId = 2, Symbol = '\0', StackPop = '#', StackPush = null }
             ],
             AcceptanceMode = PDAAcceptanceMode.EmptyStackOnly
         };
@@ -517,11 +528,12 @@ public class InputGenerationServicePdaAcceptanceTests
         var model = new AutomatonViewModel
         {
             Type = AutomatonType.DPDA,
-            States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
+            States = [new() { Id = 1, IsStart = true, IsAccepting = true }, new() { Id = 2, IsStart = false, IsAccepting = true }],
             Transitions =
             [
                 new() { FromStateId = 1, ToStateId = 1, Symbol = '(', StackPop = '\0', StackPush = "(" },
-                new() { FromStateId = 1, ToStateId = 1, Symbol = ')', StackPop = '(', StackPush = null }
+                new() { FromStateId = 1, ToStateId = 1, Symbol = ')', StackPop = '(', StackPush = null },
+                new() { FromStateId = 1, ToStateId = 2, Symbol = '\0', StackPop = '#', StackPush = null }
             ],
             AcceptanceMode = PDAAcceptanceMode.FinalStateAndEmptyStack
         };

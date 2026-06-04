@@ -12,6 +12,7 @@
     <input type="hidden" name="StackSerialized" value="@Model.StackSerialized" />
     <input type="hidden" name="InitialStackSerialized" value="@Model.InitialStackSerialized" />
     <input type="hidden" name="NPDAConfigurationsSerialized" value="@Model.NPDAConfigurationsSerialized" />
+    <input type="hidden" id="hiddenBottomSymbol" name="BottomSymbol" value="@(Model.BottomSymbol == '\0' ? "#" : Model.BottomSymbol.ToString())" />
     <input type="hidden" name="AcceptanceMode" value="@((int)Model.AcceptanceMode)" />
     <input type="hidden" name="IsCustomAutomaton" value="@Model.IsCustomAutomaton.ToString().ToLowerInvariant()" />
 

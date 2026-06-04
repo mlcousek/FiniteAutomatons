@@ -1,4 +1,4 @@
-﻿using FiniteAutomatons.Core.Models.DoMain;
+using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Services;
@@ -316,12 +316,14 @@ public class PDABottomSymbolAndGuardTests
         // BottomSymbol = 'Z'; a transition pops 'Z' while 'X' is still present → blocked
         var pda = new DPDA { BottomSymbol = 'Z', AcceptanceMode = PDAAcceptanceMode.EmptyStackOnly };
         pda.AddState(new State { Id = 1, IsStart = true, IsAccepting = false });
+        pda.AddState(new State { Id = 2, IsStart = false, IsAccepting = false });
         pda.AddTransition(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = 'Z', StackPush = "XZ" });
-        pda.AddTransition(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'b', StackPop = 'X', StackPush = null });
+        pda.AddTransition(new Transition { FromStateId = 1, ToStateId = 2, Symbol = 'b', StackPop = 'X', StackPush = null });
+        pda.AddTransition(new Transition { FromStateId = 2, ToStateId = 2, Symbol = '\0', StackPop = 'Z', StackPush = null });
 
         // 'a' tries to pop 'Z' but 'Z' is the sole element initially → allowed initially,
         // but after push "XZ" the stack has [X,Z]. Then 'b' pops 'X' → stack = [Z].
-        // No more input → stack = [Z] = only bottom → EmptyStackOnly accepts.
+        // Epsilon transition from state 2 pops 'Z' → stack is empty.
         pda.Execute("ab").ShouldBeTrue();
     }
 

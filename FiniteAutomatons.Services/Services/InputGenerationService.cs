@@ -1,4 +1,4 @@
-﻿using FiniteAutomatons.Core.Models.DoMain;
+using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Interfaces;
@@ -124,7 +124,8 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
     private string? GenerateAcceptingStringForPda(AutomatonViewModel automaton, int maxLength)
     {
         var alphabet = GetOrInferAlphabet(automaton);
-        var initialStackBottomFirst = DeserializeInitialStackBottomFirst(automaton.InitialStackSerialized);
+        var bottomSymbol = automaton.BottomSymbol == '\0' ? '#' : automaton.BottomSymbol;
+        var initialStackBottomFirst = DeserializeInitialStackBottomFirst(automaton.InitialStackSerialized, bottomSymbol);
         var pda = automaton.Type == AutomatonType.DPDA
             ? (Automaton)automatonBuilderService.CreateDPDA(automaton)
             : automatonBuilderService.CreateNPDA(automaton);
@@ -297,8 +298,19 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
 
             if (accepted && current.Input.Length > 0 && current.RequiredInitialTopFirst.Count > 0)
             {
-                var candidateStack = new List<char> { BottomOfStack };
-                candidateStack.AddRange(current.RequiredInitialTopFirst.AsEnumerable().Reverse());
+                var candidateStack = new List<char>();
+                var requiredReversed = current.RequiredInitialTopFirst.AsEnumerable().Reverse().ToList();
+                var bottomSymbol = automaton.BottomSymbol == '\0' ? '#' : automaton.BottomSymbol;
+                
+                if (requiredReversed.Count > 0 && requiredReversed[0] == bottomSymbol)
+                {
+                    candidateStack.AddRange(requiredReversed);
+                }
+                else
+                {
+                    candidateStack.Add(bottomSymbol);
+                    candidateStack.AddRange(requiredReversed);
+                }
 
                 if (TryEvaluatePdaCandidate(pda, current.Input, candidateStack, out var simulatedAccepted) && simulatedAccepted)
                 {
@@ -450,7 +462,7 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
         }
     }
 
-    private List<char>? DeserializeInitialStackBottomFirst(string? initialStackSerialized)
+    private List<char>? DeserializeInitialStackBottomFirst(string? initialStackSerialized, char bottomSymbol)
     {
         if (string.IsNullOrWhiteSpace(initialStackSerialized))
             return null;
@@ -461,7 +473,7 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
             if (raw.Count == 0)
                 return null;
 
-            return NormalizeInitialStackBottomFirst(raw);
+            return NormalizeInitialStackBottomFirst(raw, bottomSymbol);
         }
         catch (Exception ex)
         {
@@ -477,23 +489,23 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
             : null;
     }
 
-    private static List<char> NormalizeInitialStackBottomFirst(List<char> raw)
+    private static List<char> NormalizeInitialStackBottomFirst(List<char> raw, char bottomSymbol)
     {
         var normalized = raw.Where(c => c != '\0' && c != 'ε').ToList();
 
         if (normalized.Count == 0)
-            return [BottomOfStack];
+            return [bottomSymbol];
 
-        if (normalized[0] == BottomOfStack)
+        if (normalized[0] == bottomSymbol)
             return normalized;
 
-        if (normalized[^1] == BottomOfStack)
+        if (normalized[^1] == bottomSymbol)
         {
             normalized.Reverse();
             return normalized;
         }
 
-        normalized.Insert(0, BottomOfStack);
+        normalized.Insert(0, bottomSymbol);
         return normalized;
     }
 
@@ -713,7 +725,8 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
             return null;
         }
 
-        var initialStackBottomFirst = DeserializeInitialStackBottomFirst(automaton.InitialStackSerialized);
+        var bottomSymbol = automaton.BottomSymbol == '\0' ? '#' : automaton.BottomSymbol;
+        var initialStackBottomFirst = DeserializeInitialStackBottomFirst(automaton.InitialStackSerialized, bottomSymbol);
         var pda = automaton.Type == AutomatonType.DPDA
             ? (Automaton)automatonBuilderService.CreateDPDA(automaton)
             : automatonBuilderService.CreateNPDA(automaton);
@@ -1009,7 +1022,8 @@ public class InputGenerationService(ILogger<InputGenerationService> logger, IAut
     {
         logger.LogInformation("Generating rejecting string for PDA");
 
-        var initialStackBottomFirst = DeserializeInitialStackBottomFirst(automaton.InitialStackSerialized);
+        var bottomSymbol = automaton.BottomSymbol == '\0' ? '#' : automaton.BottomSymbol;
+        var initialStackBottomFirst = DeserializeInitialStackBottomFirst(automaton.InitialStackSerialized, bottomSymbol);
         var pda = automaton.Type == AutomatonType.DPDA
             ? (Automaton)automatonBuilderService.CreateDPDA(automaton)
             : automatonBuilderService.CreateNPDA(automaton);

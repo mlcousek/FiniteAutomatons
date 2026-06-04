@@ -1,4 +1,4 @@
-﻿using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
+using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.ViewModel;
 using Shouldly;
 using System.Net;
@@ -12,22 +12,75 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
 {
     // Helper Methods
 
-    private static AutomatonViewModel BuildBalancedParenthesesPda(string input, PDAAcceptanceMode? acceptanceMode = null) => new()
+
+    /// <summary>
+    /// Builds a balanced-parentheses DPDA.
+    /// <para>
+    /// For <see cref="PDAAcceptanceMode.FinalStateOnly"/> (default): the epsilon 2→1 pops and
+    /// immediately restores the '#' sentinel, so the machine can re-enter state 1 for subsequent
+    /// '()' pairs. State 1 is accepting.
+    /// </para>
+    /// <para>
+    /// For <see cref="PDAAcceptanceMode.FinalStateAndEmptyStack"/>: a 3-state design is used.
+    /// The epsilon 2→3 pops '#' without restoring it (truly empty stack). State 3 is the sole
+    /// accepting terminal, reached only when both conditions are met.
+    /// </para>
+    /// </summary>
+    private static AutomatonViewModel BuildBalancedParenthesesPda(string input, PDAAcceptanceMode? acceptanceMode = null)
     {
-        Type = AutomatonType.DPDA,
-        States =
-        [
-            new() { Id = 1, IsStart = true, IsAccepting = true }
-        ],
-        Transitions =
-        [
-            new() { FromStateId = 1, ToStateId = 1, Symbol = '(', StackPop = '\0', StackPush = "(" },
-            new() { FromStateId = 1, ToStateId = 1, Symbol = ')', StackPop = '(', StackPush = null }
-        ],
-        Input = input,
-        IsCustomAutomaton = true,
-        AcceptanceMode = acceptanceMode ?? PDAAcceptanceMode.FinalStateAndEmptyStack
-    };
+        var mode = acceptanceMode ?? PDAAcceptanceMode.FinalStateOnly;
+
+        if (mode == PDAAcceptanceMode.FinalStateAndEmptyStack)
+        {
+            // 3-state design: state 1 (start), state 2 (matching), state 3 (accepting, empty stack)
+            // Epsilon 2→3 pops '#' permanently so both IsAccepting AND empty-stack are satisfied.
+            return new AutomatonViewModel
+            {
+                Type = AutomatonType.DPDA,
+                States =
+                [
+                    new() { Id = 1, IsStart = true,  IsAccepting = false },
+                    new() { Id = 2, IsStart = false, IsAccepting = false },
+                    new() { Id = 3, IsStart = false, IsAccepting = true  }
+                ],
+                Transitions =
+                [
+                    new() { FromStateId = 1, ToStateId = 2, Symbol = '(',  StackPop = '#', StackPush = "(#" },
+                    new() { FromStateId = 2, ToStateId = 2, Symbol = '(',  StackPop = '(', StackPush = "((" },
+                    new() { FromStateId = 2, ToStateId = 2, Symbol = ')',  StackPop = '(' },
+                    // Pop '#' and move to terminal accepting state (stack empty → both conditions met)
+                    new() { FromStateId = 2, ToStateId = 3, Symbol = '\0', StackPop = '#', StackPush = null }
+                ],
+                Input = input,
+                AcceptanceMode = mode,
+                IsCustomAutomaton = true
+            };
+        }
+
+        // FinalStateOnly (default): epsilon 2→1 pops '#' then pushes it back, preserving the
+        // sentinel so further '()' pairs can be read from state 1.
+        return new AutomatonViewModel
+        {
+            Type = AutomatonType.DPDA,
+            States =
+            [
+                new() { Id = 1, IsStart = true, IsAccepting = true },
+                new() { Id = 2, IsStart = false, IsAccepting = false }
+            ],
+            Transitions =
+            [
+                new() { FromStateId = 1, ToStateId = 2, Symbol = '(',  StackPop = '#', StackPush = "(#" },
+                new() { FromStateId = 2, ToStateId = 2, Symbol = '(',  StackPop = '(', StackPush = "((" },
+                new() { FromStateId = 2, ToStateId = 2, Symbol = ')',  StackPop = '(' },
+                // Restore '#' so state 1 can process further '()' pairs
+                new() { FromStateId = 2, ToStateId = 1, Symbol = '\0', StackPop = '#', StackPush = "#" }
+            ],
+            Input = input,
+            AcceptanceMode = mode,
+            IsCustomAutomaton = true
+        };
+    }
+
 
     private static AutomatonViewModel BuildAnBnPda(string input, PDAAcceptanceMode? acceptanceMode = null) => new()
     {
@@ -35,17 +88,21 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
         States =
         [
             new() { Id = 1, IsStart = true, IsAccepting = true },
-            new() { Id = 2, IsStart = false, IsAccepting = true }
+            new() { Id = 2, IsStart = false, IsAccepting = false },
+            new() { Id = 3, IsStart = false, IsAccepting = false },
+            new() { Id = 4, IsStart = false, IsAccepting = true }
         ],
         Transitions =
         [
-            new() { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '\0', StackPush = "X" },
-            new() { FromStateId = 1, ToStateId = 2, Symbol = 'b', StackPop = 'X', StackPush = null },
-            new() { FromStateId = 2, ToStateId = 2, Symbol = 'b', StackPop = 'X', StackPush = null }
+            new() { FromStateId = 1, ToStateId = 2, Symbol = 'a', StackPop = '#', StackPush = "X#" },
+            new() { FromStateId = 2, ToStateId = 2, Symbol = 'a', StackPop = 'X', StackPush = "XX" },
+            new() { FromStateId = 2, ToStateId = 3, Symbol = 'b', StackPop = 'X' },
+            new() { FromStateId = 3, ToStateId = 3, Symbol = 'b', StackPop = 'X' },
+            new() { FromStateId = 3, ToStateId = 4, Symbol = '\0', StackPop = '#' }
         ],
         Input = input,
-        IsCustomAutomaton = true,
-        AcceptanceMode = acceptanceMode ?? PDAAcceptanceMode.FinalStateAndEmptyStack
+        AcceptanceMode = acceptanceMode ?? PDAAcceptanceMode.FinalStateOnly,
+        IsCustomAutomaton = true
     };
 
     private static async Task<HttpResponseMessage> PostAsync(HttpClient client, string url, AutomatonViewModel model)
@@ -154,7 +211,7 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
 
         var stepHtml = await stepResponse.Content.ReadAsStringAsync();
         ExtractPosition(stepHtml).ShouldBe(1);
-        ExtractCurrentStateId(stepHtml).ShouldBe(1);
+        ExtractCurrentStateId(stepHtml).ShouldBe(2);
     }
 
     [Fact]
@@ -176,14 +233,16 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
     public async Task ExecuteAll_DPDA_WithConfiguredInitialStack_ShouldApplyInitialStack()
     {
         var client = GetHttpClient();
+        // InitialStackSerialized is bottom-first: '#' at index 0, 'X' at index 1 (top).
+        // Reading 'x' pops 'X', leaving ['#']. AcceptanceMode = FinalStateOnly so '#' on stack is fine.
         var model = new AutomatonViewModel
         {
             Type = AutomatonType.DPDA,
-            States = [new() { Id = 1, IsStart = true, IsAccepting = false }],
+            States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
             Transitions = [new() { FromStateId = 1, ToStateId = 1, Symbol = 'x', StackPop = 'X', StackPush = null }],
             Input = "x",
             IsCustomAutomaton = true,
-            AcceptanceMode = PDAAcceptanceMode.EmptyStackOnly,
+            AcceptanceMode = PDAAcceptanceMode.FinalStateOnly,
             InitialStackSerialized = JsonSerializer.Serialize(new List<char> { '#', 'X' })
         };
 
@@ -386,17 +445,27 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
     public async Task ExecuteAll_EmptyStackOnly_EmptyStackInNonAcceptingState_ShouldAccept()
     {
         var client = GetHttpClient();
+        // Accepts exactly "ab":
+        //   State 1 (start): 'a' on ∅ → state 2, push X
+        //   State 2: 'b' on X → state 3 (no more consuming transitions)
+        //   State 3: ε on # → state 4 (pops sentinel; dedicated state avoids determinism conflict)
+        //   State 4 (not accepting, empty stack): EmptyStackOnly accepts
         var model = new AutomatonViewModel
         {
             Type = AutomatonType.DPDA,
             States =
             [
-                new() { Id = 1, IsStart = true, IsAccepting = false }
+                new() { Id = 1, IsStart = true,  IsAccepting = false },
+                new() { Id = 2, IsStart = false, IsAccepting = false },
+                new() { Id = 3, IsStart = false, IsAccepting = false },
+                new() { Id = 4, IsStart = false, IsAccepting = false }
             ],
             Transitions =
             [
-                new() { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '\0', StackPush = "X" },
-                new() { FromStateId = 1, ToStateId = 1, Symbol = 'b', StackPop = 'X', StackPush = null }
+                new() { FromStateId = 1, ToStateId = 2, Symbol = 'a', StackPop = '\0', StackPush = "X" },
+                new() { FromStateId = 2, ToStateId = 3, Symbol = 'b', StackPop = 'X', StackPush = null },
+                // Dedicated epsilon state: no consuming transitions here, so no determinism conflict
+                new() { FromStateId = 3, ToStateId = 4, Symbol = '\0', StackPop = '#', StackPush = null }
             ],
             Input = "ab",
             IsCustomAutomaton = true,
@@ -527,7 +596,7 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
                 new() { FromStateId = 1, ToStateId = 2, Symbol = '\0', StackPop = '\0', StackPush = null }
             ],
             Input = "abc",
-            IsCustomAutomaton = true
+            AcceptanceMode = PDAAcceptanceMode.FinalStateOnly,
         };
 
         var response = await PostAsync(client, "/AutomatonExecution/ExecuteAll", model);
@@ -580,7 +649,7 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
                 new() { FromStateId = 1, ToStateId = 2, Symbol = '\0', StackPop = '\0', StackPush = null }
             ],
             Input = "",
-            IsCustomAutomaton = true
+            AcceptanceMode = PDAAcceptanceMode.FinalStateOnly,
         };
 
         var response = await PostAsync(client, "/AutomatonExecution/ExecuteAll", model);
@@ -609,7 +678,7 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
                 new() { FromStateId = 2, ToStateId = 2, Symbol = 'b', StackPop = 'X', StackPush = null }
             ],
             Input = "ab",
-            IsCustomAutomaton = true
+            AcceptanceMode = PDAAcceptanceMode.FinalStateOnly,
         };
 
         var response = await PostAsync(client, "/AutomatonExecution/ExecuteAll", model);
@@ -632,6 +701,7 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
             ],
             Transitions = [],
             Input = "",
+            AcceptanceMode = PDAAcceptanceMode.FinalStateOnly,
             IsCustomAutomaton = true
         };
 
@@ -655,6 +725,7 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
             ],
             Transitions = [],
             Input = "",
+            AcceptanceMode = PDAAcceptanceMode.FinalStateOnly,
             IsCustomAutomaton = true
         };
 
@@ -719,14 +790,27 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
     public async Task ExecuteAll_NPDA_EmptyStackOnly_AcceptsInNonAcceptingState()
     {
         var client = GetHttpClient();
+        // Accepts exactly "ab" via EmptyStackOnly:
+        //   State 1 (start): 'a' on ∅ → state 2, push X
+        //   State 2: 'b' on X → state 3
+        //   State 3: ε on # → state 4 (dedicated epsilon state to clear the sentinel)
+        //   State 4: empty stack → EmptyStackOnly accepts
         var model = new AutomatonViewModel
         {
             Type = AutomatonType.NPDA,
-            States = [new() { Id = 1, IsStart = true, IsAccepting = false }],
+            States =
+            [
+                new() { Id = 1, IsStart = true,  IsAccepting = false },
+                new() { Id = 2, IsStart = false, IsAccepting = false },
+                new() { Id = 3, IsStart = false, IsAccepting = false },
+                new() { Id = 4, IsStart = false, IsAccepting = false }
+            ],
             Transitions =
             [
-                new() { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '\0', StackPush = "X" },
-                new() { FromStateId = 1, ToStateId = 1, Symbol = 'b', StackPop = 'X', StackPush = null }
+                new() { FromStateId = 1, ToStateId = 2, Symbol = 'a', StackPop = '\0', StackPush = "X" },
+                new() { FromStateId = 2, ToStateId = 3, Symbol = 'b', StackPop = 'X', StackPush = null },
+                // Dedicated epsilon state: no consuming transitions here
+                new() { FromStateId = 3, ToStateId = 4, Symbol = '\0', StackPop = '#', StackPush = null }
             ],
             Input = "ab",
             IsCustomAutomaton = true,
@@ -744,18 +828,24 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
     public async Task ExecuteAll_NPDA_FinalStateAndEmptyStack_BothConditionsMet_ShouldAccept()
     {
         var client = GetHttpClient();
+        // NPDA: accepts "ab" by final state AND empty stack.
+        // After reading 'b', stack = ['#']. Epsilon from state 2→3 (accepting) pops '#', making stack empty.
+        // NPDA epsilon closure applies this before evaluating acceptance.
         var model = new AutomatonViewModel
         {
             Type = AutomatonType.NPDA,
             States =
             [
                 new() { Id = 1, IsStart = true, IsAccepting = false },
-                new() { Id = 2, IsStart = false, IsAccepting = true }
+                new() { Id = 2, IsStart = false, IsAccepting = false },
+                new() { Id = 3, IsStart = false, IsAccepting = true }
             ],
             Transitions =
             [
                 new() { FromStateId = 1, ToStateId = 2, Symbol = 'a', StackPop = '\0', StackPush = "X" },
-                new() { FromStateId = 2, ToStateId = 2, Symbol = 'b', StackPop = 'X', StackPush = null }
+                new() { FromStateId = 2, ToStateId = 2, Symbol = 'b', StackPop = 'X', StackPush = null },
+                // Epsilon from 2→3 pops the '#' sentinel once all X's are gone
+                new() { FromStateId = 2, ToStateId = 3, Symbol = '\0', StackPop = '#', StackPush = null }
             ],
             Input = "ab",
             IsCustomAutomaton = true,
@@ -781,7 +871,10 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
                 new() { Id = 1, IsStart = true, IsAccepting = false },
                 new() { Id = 2, IsStart = false, IsAccepting = true }
             ],
-            Transitions = [new() { FromStateId = 1, ToStateId = 2, Symbol = 'a', StackPop = '\0', StackPush = "X" }],
+            Transitions = [
+                new() { FromStateId = 1, ToStateId = 2, Symbol = 'a', StackPop = '\0', StackPush = "X" },
+                new() { FromStateId = 1, ToStateId = 1, Symbol = '\0', StackPop = '#' }
+            ],
             Input = "a",
             IsCustomAutomaton = true,
             AcceptanceMode = PDAAcceptanceMode.FinalStateAndEmptyStack
@@ -805,7 +898,8 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
             Transitions =
             [
                 new() { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '\0', StackPush = "X" },
-                new() { FromStateId = 1, ToStateId = 1, Symbol = 'b', StackPop = 'X', StackPush = null }
+                new() { FromStateId = 1, ToStateId = 1, Symbol = 'b', StackPop = 'X', StackPush = null },
+                new() { FromStateId = 1, ToStateId = 1, Symbol = '\0', StackPop = '#' }
             ],
             Input = "ab",
             IsCustomAutomaton = true,
@@ -823,14 +917,16 @@ public class AutomatonExecutionPdaTests(IntegrationTestsFixture fixture) : Integ
     public async Task ExecuteAll_DPDA_WithTopFirstInitialStackSerialization_ShouldNormalizeAndAccept()
     {
         var client = GetHttpClient();
+        // InitialStackSerialized ['X','#'] is in top-first order and should be normalized to bottom-first.
+        // Reading 'x' pops 'X', leaving ['#']. AcceptanceMode = FinalStateOnly so '#' on stack is fine.
         var model = new AutomatonViewModel
         {
             Type = AutomatonType.DPDA,
-            States = [new() { Id = 1, IsStart = true, IsAccepting = false }],
+            States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
             Transitions = [new() { FromStateId = 1, ToStateId = 1, Symbol = 'x', StackPop = 'X', StackPush = null }],
             Input = "x",
             IsCustomAutomaton = true,
-            AcceptanceMode = PDAAcceptanceMode.EmptyStackOnly,
+            AcceptanceMode = PDAAcceptanceMode.FinalStateOnly,
             // Legacy top-first order should be normalized to bottom-first (#, X)
             InitialStackSerialized = JsonSerializer.Serialize(new List<char> { 'X', '#' })
         };

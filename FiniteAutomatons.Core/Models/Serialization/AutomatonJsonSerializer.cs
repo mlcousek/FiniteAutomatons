@@ -1,4 +1,4 @@
-﻿using FiniteAutomatons.Core.Models.DoMain;
+using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.ViewModel;
 using System.Text.Encodings.Web;
@@ -39,6 +39,7 @@ public static class AutomatonJsonSerializer
         public string? Type { get; set; }
         public List<StateDto> States { get; set; } = [];
         public List<TransitionDto> Transitions { get; set; } = [];
+        public PDAAcceptanceMode? AcceptanceMode { get; set; }
     }
 
     public static string Serialize(Automaton automaton)
@@ -69,7 +70,12 @@ public static class AutomatonJsonSerializer
                 Symbol = t.Symbol == '\0' ? "ε" : t.Symbol.ToString(),
                 StackPop = t.StackPop.HasValue ? (t.StackPop.Value == '\0' ? "ε" : t.StackPop.Value.ToString()) : null,
                 StackPush = t.StackPush
-            })]
+            })],
+            AcceptanceMode = automaton switch {
+                DPDA dpda => dpda.AcceptanceMode,
+                NPDA npda => npda.AcceptanceMode,
+                _ => null
+            }
         };
         return JsonSerializer.Serialize(dto, Options);
     }
@@ -163,6 +169,16 @@ public static class AutomatonJsonSerializer
         var start = dto.States.FirstOrDefault(s => s.IsStart);
         if (start != null)
             automaton.SetStartState(start.Id);
+
+        if (automaton is DPDA dpda && dto.AcceptanceMode.HasValue)
+        {
+            dpda.AcceptanceMode = dto.AcceptanceMode.Value;
+        }
+        else if (automaton is NPDA npda && dto.AcceptanceMode.HasValue)
+        {
+            npda.AcceptanceMode = dto.AcceptanceMode.Value;
+        }
+
         return automaton;
     }
 }

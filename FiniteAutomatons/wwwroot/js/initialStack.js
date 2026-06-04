@@ -1,9 +1,15 @@
-﻿// Helper to convert comma-separated initial stack display (top-first) to the
+// Helper to convert comma-separated initial stack display (top-first) to the
 // JSON serialization used by the hidden field `initialStackSerialized`.
 // Internal storage convention: bottom-first (index 0 = bottom, last = top).
 // The user enters symbols top-first so we reverse before storing.
 
 export function updateInitialStackSerialized() {
+    const bottomSymbolField = document.getElementById('bottomSymbolDisplayField');
+    const hiddenBottomSymbol = document.getElementById('hiddenBottomSymbol');
+    if (bottomSymbolField && hiddenBottomSymbol) {
+        hiddenBottomSymbol.value = bottomSymbolField.value.trim() || '#';
+    }
+
     const displayField = document.getElementById('initialStackDisplayField');
     const hiddenField = document.getElementById('initialStackSerialized');
 

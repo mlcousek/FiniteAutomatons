@@ -122,7 +122,7 @@
                             if (stack != null && stack.Count > 0)
                             {
                                 <span class="stack-highlight">[ @string.Join(", ", stack.Select(c => c == '\0' ? "ε" : c.ToString())) ]</span>
-                                <span class="stack-hint" title="First symbol is the top of the stack; last symbol is the bottom sentinel.">(top → bottom)</span>
+                                    <span class="stack-hint" title="First symbol is the top of the stack; last symbol is the bottom sentinel.">(top → bottom)</span>
                             }
                             else
                             {
@@ -169,9 +169,9 @@
                                         <span class="npda-config-state state-highlight">q@(stateId)</span>
                                         <span class="npda-config-arrow">→</span>
                                         <span class="npda-config-stack">
-                                            @if (stackChars.Count == 0 || (stackChars.Count == 1 && stackChars[0] == '#'))
+                                            @if (stackChars.Count == 0)
                                             {
-                                                <span class="stack-highlight stack-highlight--empty">[ # ]</span>
+                                                <span class="stack-highlight stack-highlight--empty" title="Stack is completely empty.">[ ] (Empty)</span>
                                             }
                                             else
                                             {

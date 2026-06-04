@@ -1,4 +1,4 @@
-﻿using FiniteAutomatons.Core.Models.DoMain;
+using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.ViewModel;
 using FiniteAutomatons.Services.Interfaces;
@@ -243,20 +243,30 @@ public class AutomatonPresetService(
     {
         if (logger.IsEnabled(LogLevel.Information))
         {
-            logger.LogInformation("Generating balanced parentheses PDA with AcceptanceMode: {Mode}", acceptanceMode ?? PDAAcceptanceMode.FinalStateAndEmptyStack);
+            logger.LogInformation("Generating balanced parentheses PDA with AcceptanceMode: {Mode}", acceptanceMode ?? PDAAcceptanceMode.FinalStateOnly);
         }
         var model = new AutomatonViewModel
         {
             Type = AutomatonType.DPDA,
-            States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
+            States = [
+                new() { Id = 1, IsStart = true, IsAccepting = true },
+                new() { Id = 2, IsStart = false, IsAccepting = false }
+            ],
             Transitions = [],
             IsCustomAutomaton = true,
-            AcceptanceMode = acceptanceMode ?? PDAAcceptanceMode.FinalStateAndEmptyStack,
+            AcceptanceMode = acceptanceMode ?? PDAAcceptanceMode.FinalStateOnly,
             InitialStackSerialized = SerializeStack(initialStack)
         };
 
-        model.Transitions.Add(new Transition { FromStateId = 1, ToStateId = 1, Symbol = '(', StackPop = '\0', StackPush = "(" });
-        model.Transitions.Add(new Transition { FromStateId = 1, ToStateId = 1, Symbol = ')', StackPop = '(', StackPush = null });
+        char bottom = initialStack != null && initialStack.Count > 0 ? initialStack.Last() : '#';
+
+        // q0 (1)
+        model.Transitions.Add(new Transition { FromStateId = 1, ToStateId = 2, Symbol = '(', StackPop = bottom, StackPush = "(" + bottom });
+        
+        // q1 (2)
+        model.Transitions.Add(new Transition { FromStateId = 2, ToStateId = 2, Symbol = '(', StackPop = '(', StackPush = "((" });
+        model.Transitions.Add(new Transition { FromStateId = 2, ToStateId = 2, Symbol = ')', StackPop = '(', StackPush = null });
+        model.Transitions.Add(new Transition { FromStateId = 2, ToStateId = 1, Symbol = '\0', StackPop = bottom, StackPush = bottom.ToString() });
 
         return model;
     }
@@ -273,25 +283,36 @@ public class AutomatonPresetService(
     {
         if (logger.IsEnabled(LogLevel.Information))
         {
-            logger.LogInformation("Generating a^n b^n PDA with AcceptanceMode: {Mode}", acceptanceMode ?? PDAAcceptanceMode.FinalStateAndEmptyStack);
+            logger.LogInformation("Generating a^n b^n PDA with AcceptanceMode: {Mode}", acceptanceMode ?? PDAAcceptanceMode.FinalStateOnly);
         }
         var model = new AutomatonViewModel
         {
             Type = AutomatonType.DPDA,
             States =
             [
-                new() { Id = 1, IsStart = true, IsAccepting = true },  // q0: push a's
-                new() { Id = 2, IsStart = false, IsAccepting = true }  // q1: pop b's
+                new() { Id = 1, IsStart = true, IsAccepting = true },  // q0: Start, accepting (for n=0)
+                new() { Id = 2, IsStart = false, IsAccepting = false }, // q1: push a's
+                new() { Id = 3, IsStart = false, IsAccepting = false }, // q2: pop b's
+                new() { Id = 4, IsStart = false, IsAccepting = true }  // q3: Final accepting state
             ],
             Transitions = [],
             IsCustomAutomaton = true,
-            AcceptanceMode = acceptanceMode ?? PDAAcceptanceMode.FinalStateAndEmptyStack,
+            AcceptanceMode = acceptanceMode ?? PDAAcceptanceMode.FinalStateOnly,
             InitialStackSerialized = SerializeStack(initialStack)
         };
 
-        model.Transitions.Add(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = null, StackPush = "X" });
-        model.Transitions.Add(new Transition { FromStateId = 1, ToStateId = 2, Symbol = 'b', StackPop = 'X', StackPush = null });
-        model.Transitions.Add(new Transition { FromStateId = 2, ToStateId = 2, Symbol = 'b', StackPop = 'X', StackPush = null });
+        char bottom = initialStack != null && initialStack.Count > 0 ? initialStack.Last() : '#';
+
+        // From q0
+        model.Transitions.Add(new Transition { FromStateId = 1, ToStateId = 2, Symbol = 'a', StackPop = bottom, StackPush = "X" + bottom });
+        
+        // From q1
+        model.Transitions.Add(new Transition { FromStateId = 2, ToStateId = 2, Symbol = 'a', StackPop = 'X', StackPush = "XX" });
+        model.Transitions.Add(new Transition { FromStateId = 2, ToStateId = 3, Symbol = 'b', StackPop = 'X', StackPush = null });
+        
+        // From q2
+        model.Transitions.Add(new Transition { FromStateId = 3, ToStateId = 3, Symbol = 'b', StackPop = 'X', StackPush = null });
+        model.Transitions.Add(new Transition { FromStateId = 3, ToStateId = 4, Symbol = '\0', StackPop = bottom, StackPush = bottom.ToString() });
 
         if (logger.IsEnabled(LogLevel.Information))
         {

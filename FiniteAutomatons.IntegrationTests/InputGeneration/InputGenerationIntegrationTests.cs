@@ -1,4 +1,4 @@
-﻿using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
+using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.ViewModel;
 using Shouldly;
 using System.Net;
@@ -116,13 +116,18 @@ public class InputGenerationIntegrationTests(IntegrationTestsFixture fixture) : 
     private static AutomatonViewModel BuildBalancedParenthesesPda() => new()
     {
         Type = AutomatonType.DPDA,
-        States = [new() { Id = 1, IsStart = true, IsAccepting = true }],
+        States = [
+            new() { Id = 1, IsStart = true, IsAccepting = true },
+            new() { Id = 2, IsStart = false, IsAccepting = false }
+        ],
         Transitions =
         [
-            new() { FromStateId = 1, ToStateId = 1, Symbol = '(', StackPop = '\0', StackPush = "(" },
-            new() { FromStateId = 1, ToStateId = 1, Symbol = ')', StackPop = '(', StackPush = null }
+            new() { FromStateId = 1, ToStateId = 2, Symbol = '(', StackPop = '#', StackPush = "(#" },
+            new() { FromStateId = 2, ToStateId = 2, Symbol = '(', StackPop = '(', StackPush = "((" },
+            new() { FromStateId = 2, ToStateId = 2, Symbol = ')', StackPop = '(' },
+            new() { FromStateId = 2, ToStateId = 1, Symbol = '\0', StackPop = '#' }
         ],
-        AcceptanceMode = PDAAcceptanceMode.FinalStateAndEmptyStack,
+        AcceptanceMode = PDAAcceptanceMode.FinalStateOnly,
         IsCustomAutomaton = true
     };
 
@@ -131,16 +136,20 @@ public class InputGenerationIntegrationTests(IntegrationTestsFixture fixture) : 
         Type = AutomatonType.DPDA,
         States =
         [
-            new() { Id = 1, IsStart = true, IsAccepting = false },
-            new() { Id = 2, IsStart = false, IsAccepting = true }
+            new() { Id = 1, IsStart = true, IsAccepting = true },
+            new() { Id = 2, IsStart = false, IsAccepting = false },
+            new() { Id = 3, IsStart = false, IsAccepting = false },
+            new() { Id = 4, IsStart = false, IsAccepting = true }
         ],
         Transitions =
         [
-            new() { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '\0', StackPush = "X" },
-            new() { FromStateId = 1, ToStateId = 2, Symbol = 'b', StackPop = 'X', StackPush = null },
-            new() { FromStateId = 2, ToStateId = 2, Symbol = 'b', StackPop = 'X', StackPush = null }
+            new() { FromStateId = 1, ToStateId = 2, Symbol = 'a', StackPop = '#', StackPush = "X#" },
+            new() { FromStateId = 2, ToStateId = 2, Symbol = 'a', StackPop = 'X', StackPush = "XX" },
+            new() { FromStateId = 2, ToStateId = 3, Symbol = 'b', StackPop = 'X' },
+            new() { FromStateId = 3, ToStateId = 3, Symbol = 'b', StackPop = 'X' },
+            new() { FromStateId = 3, ToStateId = 4, Symbol = '\0', StackPop = '#' }
         ],
-        AcceptanceMode = PDAAcceptanceMode.FinalStateAndEmptyStack,
+        AcceptanceMode = PDAAcceptanceMode.FinalStateOnly,
         IsCustomAutomaton = true
     };
 
@@ -581,7 +590,8 @@ public class InputGenerationIntegrationTests(IntegrationTestsFixture fixture) : 
             Transitions =
             [
                 new() { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '\0', StackPush = "X" },
-                new() { FromStateId = 1, ToStateId = 1, Symbol = 'b', StackPop = 'X', StackPush = null }
+                new() { FromStateId = 1, ToStateId = 1, Symbol = 'b', StackPop = 'X', StackPush = null },
+                new() { FromStateId = 1, ToStateId = 1, Symbol = '\0', StackPop = '#' }
             ],
             AcceptanceMode = PDAAcceptanceMode.EmptyStackOnly,
             IsCustomAutomaton = true
@@ -637,7 +647,8 @@ public class InputGenerationIntegrationTests(IntegrationTestsFixture fixture) : 
             Transitions =
             [
                 new() { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '\0', StackPush = "X" },
-                new() { FromStateId = 1, ToStateId = 1, Symbol = 'b', StackPop = 'X', StackPush = null }
+                new() { FromStateId = 1, ToStateId = 1, Symbol = 'b', StackPop = 'X', StackPush = null },
+                new() { FromStateId = 1, ToStateId = 1, Symbol = '\0', StackPop = '#' }
             ],
             AcceptanceMode = PDAAcceptanceMode.EmptyStackOnly,
             IsCustomAutomaton = true
@@ -671,7 +682,8 @@ public class InputGenerationIntegrationTests(IntegrationTestsFixture fixture) : 
             Transitions =
             [
                 new() { FromStateId = 1, ToStateId = 2, Symbol = 'a', StackPop = '\0', StackPush = "X" },
-                new() { FromStateId = 2, ToStateId = 2, Symbol = 'b', StackPop = 'X', StackPush = null }
+                new() { FromStateId = 2, ToStateId = 2, Symbol = 'b', StackPop = 'X', StackPush = null },
+                new() { FromStateId = 2, ToStateId = 2, Symbol = '\0', StackPop = '#' }
             ],
             AcceptanceMode = PDAAcceptanceMode.FinalStateAndEmptyStack,
             IsCustomAutomaton = true
@@ -698,7 +710,10 @@ public class InputGenerationIntegrationTests(IntegrationTestsFixture fixture) : 
         {
             Type = AutomatonType.DPDA,
             States = [new() { Id = 1, IsStart = true, IsAccepting = false }],
-            Transitions = [new() { FromStateId = 1, ToStateId = 1, Symbol = 'x', StackPop = 'X', StackPush = null }],
+            Transitions = [
+                new() { FromStateId = 1, ToStateId = 1, Symbol = 'x', StackPop = 'X', StackPush = null },
+                new() { FromStateId = 1, ToStateId = 1, Symbol = '\0', StackPop = '#' }
+            ],
             AcceptanceMode = PDAAcceptanceMode.EmptyStackOnly,
             InitialStackSerialized = JsonSerializer.Serialize(new List<char> { '#', 'X' }),
             IsCustomAutomaton = true
@@ -798,7 +813,8 @@ public class InputGenerationIntegrationTests(IntegrationTestsFixture fixture) : 
             Transitions =
             [
                 new() { FromStateId = 1, ToStateId = 2, Symbol = 'a', StackPop = '\0', StackPush = "X" },
-                new() { FromStateId = 2, ToStateId = 2, Symbol = 'b', StackPop = 'X', StackPush = null }
+                new() { FromStateId = 2, ToStateId = 2, Symbol = 'b', StackPop = 'X', StackPush = null },
+                new() { FromStateId = 2, ToStateId = 2, Symbol = '\0', StackPop = '#' }
             ],
             AcceptanceMode = PDAAcceptanceMode.FinalStateAndEmptyStack,
             IsCustomAutomaton = true

@@ -1,4 +1,4 @@
-﻿@model AutomatonViewModel
+@model AutomatonViewModel
 @{
     ViewData["Title"] = "Home";
     var hasExecuted = Model != null && Model.HasExecuted;
@@ -343,16 +343,26 @@
                                 }
                                 catch { /* ignore */ }
                             }
-                            <div style="flex:1; display:flex;">
-                                <input type="text" class="input-field" id="initialStackDisplayField"
-                                   placeholder="Stack (top-first, e.g. X,#)…"
-                                   value="@stackDisplay"
+                            <div style="flex:1; display:flex; gap:0.5rem;">
+                                <input type="text" class="input-field" id="bottomSymbolDisplayField"
+                                   placeholder="Z0"
+                                   value="@(Model.BottomSymbol == '\0' ? "#" : Model.BottomSymbol.ToString())"
                                    @(Model.HasExecuted ? "readonly" : "")
-                                   style="padding: 0.75rem 1rem; flex:1;"
-                                   maxlength="100"
-                                   title="Comma-separated stack symbols, top-first (e.g. X,# means X on top, # at bottom). The bottom-of-stack sentinel is set automatically if omitted."
+                                   style="padding: 0.5rem 0; width: 28px; min-width: 28px; flex: 0 0 28px; text-align: center; border-radius: 6px;"
+                                   maxlength="1"
+                                   title="Bottom-of-stack symbol (default: #)"
                                    oninput="updateInitialStackSerialized()" />
-                                <input type="hidden" name="InitialStackSerialized" id="initialStackSerialized" value="@Model.InitialStackSerialized" />
+                                <div style="flex:1; display:flex;">
+                                    <input type="text" class="input-field" id="initialStackDisplayField"
+                                       placeholder="Stack (top-first, e.g. X,#)…"
+                                       value="@stackDisplay"
+                                       @(Model.HasExecuted ? "readonly" : "")
+                                       style="padding: 0.75rem 1rem; flex:1;"
+                                       maxlength="100"
+                                       title="Comma-separated stack symbols, top-first (e.g. X,# means X on top, # at bottom). The bottom-of-stack sentinel is set automatically if omitted."
+                                       oninput="updateInitialStackSerialized()" />
+                                    <input type="hidden" name="InitialStackSerialized" id="initialStackSerialized" value="@Model.InitialStackSerialized" />
+                                </div>
                             </div>
                         }
                     </div>

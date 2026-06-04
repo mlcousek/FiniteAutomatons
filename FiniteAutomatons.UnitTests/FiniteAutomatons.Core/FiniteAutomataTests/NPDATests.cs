@@ -1,4 +1,4 @@
-﻿using FiniteAutomatons.Core.Models.DoMain;
+using FiniteAutomatons.Core.Models.DoMain;
 using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.Serialization;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -15,7 +15,8 @@ public class NPDATests
         // State 1: Pushing first half
         // State 2: Popping second half
         pda.AddState(new State { Id = 1, IsStart = true, IsAccepting = false });
-        pda.AddState(new State { Id = 2, IsStart = false, IsAccepting = true });
+        pda.AddState(new State { Id = 2, IsStart = false, IsAccepting = false });
+        pda.AddState(new State { Id = 3, IsStart = false, IsAccepting = true });
 
         // Push operations in state 1
         pda.AddTransition(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '\0', StackPush = "A" });
@@ -28,10 +29,8 @@ public class NPDATests
         pda.AddTransition(new Transition { FromStateId = 2, ToStateId = 2, Symbol = 'a', StackPop = 'A', StackPush = null });
         pda.AddTransition(new Transition { FromStateId = 2, ToStateId = 2, Symbol = 'b', StackPop = 'B', StackPush = null });
 
-        pda.AddState(new State { Id = 3, IsStart = false, IsAccepting = true });
         // Pop bottom marker epsilon transition to accept via Empty Stack (for FinalStateAndEmptyStack support)
-        pda.AddTransition(new Transition { FromStateId = 2, ToStateId = 3, Symbol = '\0', StackPop = '#', StackPush = "#" });
-
+        pda.AddTransition(new Transition { FromStateId = 2, ToStateId = 3, Symbol = '\0', StackPop = '#', StackPush = null });
 
         return pda;
     }
@@ -82,8 +81,9 @@ public class NPDATests
         pda.AddState(new State { Id = 1, IsStart = true, IsAccepting = false });
         pda.AddTransition(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'a', StackPop = '\0', StackPush = "A" });
         pda.AddTransition(new Transition { FromStateId = 1, ToStateId = 1, Symbol = 'b', StackPop = 'A', StackPush = null });
+        pda.AddTransition(new Transition { FromStateId = 1, ToStateId = 1, Symbol = '\0', StackPop = '#', StackPush = null });
 
-        // Input "ab" pushes A then pops A, leaving just the bottom marker '#'
+        // Input "ab" pushes A then pops A, leaving just the bottom marker '#' which is popped by epsilon
         pda.Execute("ab").ShouldBeTrue();
         // Input "a" leaves 'A' on the stack
         pda.Execute("a").ShouldBeFalse();

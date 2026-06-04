@@ -1,4 +1,4 @@
-﻿using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
+using FiniteAutomatons.Core.Models.DoMain.FiniteAutomatons;
 using FiniteAutomatons.Core.Models.ViewModel;
 using Shouldly;
 using System.Net;
@@ -404,18 +404,20 @@ public class ResultDisplayTests(IntegrationTestsFixture fixture) : IntegrationTe
     private static AutomatonViewModel BuildBalancedParenthesesPda(string input, PDAAcceptanceMode? acceptanceMode = null) => new()
     {
         Type = AutomatonType.DPDA,
-        States =
-        [
-            new() { Id = 1, IsStart = true, IsAccepting = true }
+        States = [
+            new() { Id = 1, IsStart = true, IsAccepting = true },
+            new() { Id = 2, IsStart = false, IsAccepting = false }
         ],
         Transitions =
         [
-            new() { FromStateId = 1, ToStateId = 1, Symbol = '(', StackPop = '\0', StackPush = "(" },
-            new() { FromStateId = 1, ToStateId = 1, Symbol = ')', StackPop = '(', StackPush = null }
+            new() { FromStateId = 1, ToStateId = 2, Symbol = '(', StackPop = '#', StackPush = "(#" },
+            new() { FromStateId = 2, ToStateId = 2, Symbol = '(', StackPop = '(', StackPush = "((" },
+            new() { FromStateId = 2, ToStateId = 2, Symbol = ')', StackPop = '(' },
+            new() { FromStateId = 2, ToStateId = 1, Symbol = '\0', StackPop = '#' }
         ],
         Input = input,
-        IsCustomAutomaton = true,
-        AcceptanceMode = acceptanceMode ?? PDAAcceptanceMode.FinalStateAndEmptyStack
+        AcceptanceMode = acceptanceMode ?? PDAAcceptanceMode.FinalStateOnly,
+        IsCustomAutomaton = true
     };
 
     private static AutomatonViewModel BuildAnBnPda(string input, PDAAcceptanceMode? acceptanceMode = null) => new()
@@ -529,7 +531,7 @@ public class ResultDisplayTests(IntegrationTestsFixture fixture) : IntegrationTe
             Transitions = [],
             Input = "",
             IsCustomAutomaton = true,
-            AcceptanceMode = PDAAcceptanceMode.FinalStateAndEmptyStack
+            AcceptanceMode = PDAAcceptanceMode.FinalStateOnly
         };
 
         var response = await PostAutomatonAsync(client, "/AutomatonExecution/ExecuteAll", model);
@@ -786,7 +788,7 @@ public class ResultDisplayTests(IntegrationTestsFixture fixture) : IntegrationTe
         {
             Type = AutomatonType.DPDA,
             States = [new() { Id = 1, IsStart = true, IsAccepting = false }],
-            Transitions = [],
+            Transitions = [new() { FromStateId = 1, ToStateId = 1, Symbol = '\0', StackPop = '#' }],
             Input = "",
             IsCustomAutomaton = true,
             AcceptanceMode = PDAAcceptanceMode.EmptyStackOnly
